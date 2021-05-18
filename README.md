@@ -25,7 +25,7 @@ $ git pull https://www.github.com/ghasshee/pen
 $ cd pen 
 $ cd src
 $ make
-$ ./pen < ../examples/006auction_first_case.bbo
+$ ./pen < ./erc20.pen
 ```
 
 
@@ -52,7 +52,7 @@ See [manifest](doc/manifest.md) for the motivation, or [tutorial](doc/tutorial.m
 produces a bytecode. Do not trust the output as the compiler still contains bugs probably.
 
 ```
-./pen --abi < src/erc20.pen
+./pen --abi < ./erc20.pen
 ```
 
 prints ABI.
