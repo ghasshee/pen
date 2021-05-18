@@ -26,14 +26,13 @@ let copy_stor_range_to_top le ce (range : imm Loc.stor_range) =
     let ce = SLOAD             >>> ce in
     le, ce
 
-let copy_nth_stack_elem le ce (s : int) =
+let copy_nth_stack_elem le ce (n:int) =
     let start_size    = stack_size ce  in
-    let diff          = start_size - s in
+    let diff          = start_size - n in
     assert (diff >= 0) ; 
     let ce = dup_suc_n diff     >>> ce in
     assert (stack_size ce = start_size+1) ; 
     le,ce
-
 
 
 let shiftR_top ce bits =
@@ -78,22 +77,21 @@ let align_boolean ce alignment =
 
 
 let align_address ce    = function 
-    | R_          -> ce
-    | L_           -> shiftL_top ce (12 * 8)
-
+    | R_        ->  ce
+    | L_        ->  shiftL_top ce (12 * 8)
 
 let align_from_right_aligned (ce:ce) alignment tyT =
     match alignment with
-    | R_  ->  ce
-    | L_   ->  let size   = size_of_ty tyT in
-                        let ()     = assert (size <= 32) in
-                        if size=32 then ce else
-                            let shift = (32 - size) * 8 in
-                            let ce = PUSH1 (Int shift)  >>> ce in (* stack: [shift] *)
-                            let ce = PUSH1 (Int 2)      >>> ce in (* stack: [shift, 2] *)
-                            let ce = EXP                >>> ce in (* stack: [2 ** shift] *)
-                            let ce = MUL                >>> ce in
-                            ce
+    | R_        ->  ce
+    | L_        ->  let size   = size_of_ty tyT in
+                    assert (size <= 32) ;
+                    if size=32 then ce else (* no alignment *) 
+                        let shift = (32 - size) * 8 in
+                        let ce = PUSH1 (Int shift)  >>> ce in (* stack: [shift] *)
+                        let ce = PUSH1 (Int 2)      >>> ce in (* stack: [shift, 2] *)
+                        let ce = EXP                >>> ce in (* stack: [2 ** shift] *)
+                        let ce = MUL                >>> ce in
+                        ce
 
 let copy_to_top le ce alignment ty (l:Loc.location) =
     let le,ce = Loc.( match l with

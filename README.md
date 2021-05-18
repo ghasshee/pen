@@ -1,9 +1,7 @@
 # pen 
 
-pen is a dialect of bamboo.
-Owing from ancient mathematician, haskell curry, inria, ocaml ... to bamboo@pirapira, pen is to be developed or used by everyone.
+pen is a high-level language compiled into EVM bytecodes. 
 
-First aim is to interpret bamboo. This will take a while.
 
 ## Build 
 
