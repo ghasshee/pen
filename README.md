@@ -13,7 +13,7 @@ So you need to install opam first of all.
 And after installation, switch to version `4.04.2` as; 
 
 ```
-$ opam switch 4.04.02
+$ opam switch 4.04.2
 ```
 and then install all dependencies; 
 
