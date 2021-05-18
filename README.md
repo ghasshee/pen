@@ -10,6 +10,12 @@ First aim is to interpret bamboo. This will take a while.
 pen is written by OCaml Programming Language, 
 whose package manager is OPAM. 
 So you need to install opam first of all.  
+And after installation, switch to version `4.04.2` as; 
+
+```
+$ opam switch 4.04.02
+```
+and then install all dependencies; 
 
 * opam install batteries
 * opam install cryptokit (>= 1.12)
