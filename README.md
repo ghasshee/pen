@@ -28,17 +28,18 @@ $ make
 $ ./pen < ../examples/006auction_first_case.bbo
 ```
 
-# --- BAMBOO README ---  
 
-## Bamboo: a language for morphing smart contracts
+## The Original Model Bamboo Motivations 
 
 See [manifest](doc/manifest.md) for the motivation, or [tutorial](doc/tutorial.md) if you want to deploy something first, or [semantics](doc/semantics.md) if you need something resembling a definition.
 
-## Example Bamboo Code
+## Examples
 
 * [A payment channel](./examples/00h_payment_channel.bbo)
-* [An ERC20 contract](./examples/01b_erc20better.bbo)
 * [A vault](https://medium.com/@pirapira/implementing-a-vault-in-bamboo-9c08241b6755)
+
+* [An ERC20 contract](./src/erc20.pen)
+
 
 ## Test
 
@@ -51,21 +52,14 @@ See [manifest](doc/manifest.md) for the motivation, or [tutorial](doc/tutorial.m
 produces a bytecode. Do not trust the output as the compiler still contains bugs probably.
 
 ```
-bamboo --abi < src/parse/examples/006auction_first_case.bbo
+./pen --abi < src/erc20.pen
 ```
+
 prints ABI.
+
 ```
 [{"type": "constructor", "inputs":[{"name": "_beneficiary", "type": "address"},{"name": "_bidding_time", "type": "uint256"},{"name": "_highest_bid", "type": "uint256"}], "name": "auction", "outputs":[], "payable": true},{"type":"fallback","inputs": [],"outputs": [],"payable": true}]
 ```
 
-
-
-## How to Contribute to Bamboo
-
-* notice problems and point them out. [create issues](https://github.com/pirapira/bamboo/issues/new).
-* test the bytecode like [this](doc/tutorial.md), but using other examples.  You might find bugs in the compiler.
-* write new Bamboo code and test the compiler.
-* join the [Gitter channel](https://gitter.im/bbo-dev/Lobby).
-* spread a rumor to your friends who are into programming languages.
 
 
