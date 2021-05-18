@@ -25,7 +25,7 @@ $ git pull https://www.github.com/ghasshee/pen
 $ cd pen 
 $ cd src
 $ make
-$ ./pen < ./erc20.pen
+$ ./pen < ../examples/erc20.pen
 ```
 
 
@@ -38,7 +38,7 @@ See [manifest](doc/manifest.md) for the motivation, or [tutorial](doc/tutorial.m
 * [A payment channel](./examples/00h_payment_channel.bbo)
 * [A vault](https://medium.com/@pirapira/implementing-a-vault-in-bamboo-9c08241b6755)
 
-* [An ERC20 contract](./src/erc20.pen)
+* [An ERC20 contract](./examples/erc20.pen)
 
 
 ## Test
@@ -47,12 +47,12 @@ See [manifest](doc/manifest.md) for the motivation, or [tutorial](doc/tutorial.m
 * opam install bamboo
 
 ```
-./pen < ../examples/006auction_first_case.bbo
+./pen < ../examples/erc20.pen
 ```
 produces a bytecode. Do not trust the output as the compiler still contains bugs probably.
 
 ```
-./pen --abi < ./erc20.pen
+./pen --abi < ../examples/erc20.pen
 ```
 
 prints ABI.
