@@ -1,0 +1,13 @@
+### Starting build.
+Backtrace:
+                      - Failed to build the target ast/ast_test.native
+                          - Building ast/ast_test.native:
+                              - Building ast/ast_test.cmx:
+                                  - Failed to build all of these:
+                                      - Building ast/ast_test.ml:
+                                          - Failed to build all of these:
+                                              - Building ast/ast_test.mly
+                                              - Building ast/ast_test.mlypack
+                                              - Building ast/ast_test.mll
+                                      - Building ast/ast_test.mlpack
+# Compilation unsuccessful.

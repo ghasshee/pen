@@ -1,0 +1,81 @@
+open Ethereum
+
+(*************************) 
+(*      PRINT ABI        *) 
+(*************************) 
+open Location 
+open Syntax
+open ContractId
+open Printf 
+
+module L  = List
+module BL = BatList
+module BS = BatString 
+module BB = BatBig_int
+
+
+let prABI_default_mthd   =
+  "{\"type\":\"fallback\",\"inputs\": [],\"outputs\": [],\"payable\": true}"
+
+let prABI_input (arg:arg) : string =
+    sprintf "{\"name\": \"%s\", \"type\": \"%s\"}" (arg.id)
+                 (string_of_intf_ty (intf_ty_of_ty arg.ty))
+
+let prABI_inputs (args:arg list) : string =
+    let strings         = L.map prABI_input args in
+    BS.concat "," strings
+
+let prABI_output (ty:ty) : string =
+    sprintf "{\"name\": \"\", \"type\": \"%s\"}"
+                 (string_of_intf_ty (intf_ty_of_ty ty))
+
+let prABI_outputs (tys:ty list) : string =
+    let strings = L.map prABI_output tys in
+    BS.concat "," strings
+
+let prABI_mthd_info u =
+    sprintf "{\"type\":\"function\",\"name\":\"%s\",\"inputs\": [%s],\"outputs\": [%s],\"payable\": true}"
+        (u.mthd_name) (prABI_inputs u.mthd_args) (prABI_outputs u.mthd_ret_ty)
+
+let prABI_mthd (c:ty mthd) : string = match c.mthd_head with
+    | Method u       ->  prABI_mthd_info u
+    | Default         ->  prABI_default_mthd
+
+let prABI_constructor (c:ty contract) : string =
+    sprintf
+        "{\"type\": \"constructor\", \"inputs\":[%s], \"name\": \"%s\", \"outputs\":[], \"payable\": true}"
+        (prABI_inputs (L.filter non_mapping_arg c.contract_args)) (c.contract_name)
+
+let prABI_contract seen_constructor (c:ty contract) : string =
+    let cases               =   c.mthds in
+    let strs : string list  =   L.map prABI_mthd cases in
+    let strs                =   if !seen_constructor then strs
+                                else prABI_constructor c :: strs in
+    let ()                  =   (seen_constructor := true) in
+    BS.concat "," strs
+
+
+let prABI_event_arg (a:event_arg) : string =
+    sprintf "{\"name\":\"%s\",\"type\":\"%s\",\"indexed\":%s}"
+                 (a.event_arg_body.id)
+                 (string_of_intf_ty (intf_ty_of_ty (a.event_arg_body.ty)))
+                 (string_of_bool a.event_arg_indexed)
+
+let prABI_event_inputs (is:event_arg list) : string =
+    let strs : string list  = L.map prABI_event_arg is in
+    BS.concat "," strs
+
+let prABI_event (e:event) : string =
+    sprintf "{\"type\":\"event\",\"inputs\":[%s],\"name\":\"%s\"}"
+        (prABI_event_inputs e.event_args) (e.event_name)
+
+let prABI_toplevel seen_constructor (t:ty toplevel) : string = match t with
+    | Contract c                -> prABI_contract seen_constructor c
+    | Event e                   -> prABI_event e
+
+let prABI (tops : ty toplevel with_cid) : unit =
+    let seen_constructor    = ref false in
+    let ()                  = printf "[" in
+    let strs : string list  = L.map (prABI_toplevel seen_constructor) (values tops) in
+    let ()                  = printf "%s" (BS.concat "," strs) in
+    printf "]"

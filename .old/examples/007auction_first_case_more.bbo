@@ -1,0 +1,15 @@
+
+
+contract auction
+  (address _beneficiary
+  ,uint256 _bidding_time
+,address => bool _bids
+	,uint256 _highest_bid)
+{
+   default
+   {
+     _bids[_beneficiary] = true;
+     return then become
+         auction(_beneficiary, _bidding_time, _bids, value(msg));
+   }
+}

@@ -1,0 +1,6 @@
+contract A () {
+    case(bool pass(address rec, uint256 amount)) {
+        void = rec.default() with amount reentrance { abort; };
+        return (true) then become A();
+    }
+}

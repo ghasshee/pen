@@ -1,0 +1,25 @@
+
+
+contract auction
+  (address _beneficiary
+  ,uint256 _bidding_time
+,address => bool _bids
+	,uint256 _highest_bid)
+{
+   default
+   {
+bid new_bid =
+deploy bid(sender(msg), value(msg), address(this)) with value(msg)
+reentrance { abort; }; // failure throws.
+     _bids[sender(msg)] = true;
+     return then become
+         auction(_beneficiary, _bidding_time, _bids, value(msg));
+   }
+}
+contract bid
+  (address _sender
+  ,uint256 _value
+  ,address _auction
+  )
+{
+}

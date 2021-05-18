@@ -1,0 +1,233 @@
+This is pdfTeX, Version 3.14159265-2.6-1.40.19 (TeX Live 2018/NixOS.org) (preloaded format=pdflatex 2019.8.15)  8 NOV 2019 16:53
+entering extended mode
+ restricted \write18 enabled.
+ %&-line parsing enabled.
+**spec.tex -o hoge.pdf
+(./spec.tex
+LaTeX2e <2018-12-01>
+
+(/nix/store/djnxd85wmk0hm5v7isrnqjh6rp6qca39-texlive-combined-full-2018/share/t
+exmf/tex/latex/base/book.cls
+Document Class: book 2018/09/03 v1.4i Standard LaTeX document class
+
+(/nix/store/djnxd85wmk0hm5v7isrnqjh6rp6qca39-texlive-combined-full-2018/share/t
+exmf/tex/latex/base/bk10.clo
+File: bk10.clo 2018/09/03 v1.4i Standard LaTeX file (size option)
+)
+\c@part=\count80
+\c@chapter=\count81
+\c@section=\count82
+\c@subsection=\count83
+\c@subsubsection=\count84
+\c@paragraph=\count85
+\c@subparagraph=\count86
+\c@figure=\count87
+\c@table=\count88
+\abovecaptionskip=\skip41
+\belowcaptionskip=\skip42
+\bibindent=\dimen102
+)
+(/nix/store/djnxd85wmk0hm5v7isrnqjh6rp6qca39-texlive-combined-full-2018/share/t
+exmf/tex/latex/stmaryrd/stmaryrd.sty
+Package: stmaryrd 1994/03/03 St Mary's Road symbol package
+\symstmry=\mathgroup4
+LaTeX Font Info:    Overwriting symbol font `stmry' in version `bold'
+(Font)                  U/stmry/m/n --> U/stmry/b/n on input line 89.
+)
+(/nix/store/djnxd85wmk0hm5v7isrnqjh6rp6qca39-texlive-combined-full-2018/share/t
+exmf/tex/latex/amsmath/amsmath.sty
+Package: amsmath 2018/12/01 v2.17b AMS math features
+\@mathmargin=\skip43
+
+For additional information on amsmath, use the `?' option.
+
+(/nix/store/djnxd85wmk0hm5v7isrnqjh6rp6qca39-texlive-combined-full-2018/share/t
+exmf/tex/latex/amsmath/amstext.sty
+Package: amstext 2000/06/29 v2.01 AMS text
+
+(/nix/store/djnxd85wmk0hm5v7isrnqjh6rp6qca39-texlive-combined-full-2018/share/t
+exmf/tex/latex/amsmath/amsgen.sty
+File: amsgen.sty 1999/11/30 v2.0 generic functions
+\@emptytoks=\toks14
+\ex@=\dimen103
+))
+(/nix/store/djnxd85wmk0hm5v7isrnqjh6rp6qca39-texlive-combined-full-2018/share/t
+exmf/tex/latex/amsmath/amsbsy.sty
+Package: amsbsy 1999/11/29 v1.2d Bold Symbols
+\pmbraise@=\dimen104
+)
+(/nix/store/djnxd85wmk0hm5v7isrnqjh6rp6qca39-texlive-combined-full-2018/share/t
+exmf/tex/latex/amsmath/amsopn.sty
+Package: amsopn 2016/03/08 v2.02 operator names
+)
+\inf@bad=\count89
+LaTeX Info: Redefining \frac on input line 223.
+\uproot@=\count90
+\leftroot@=\count91
+LaTeX Info: Redefining \overline on input line 385.
+\classnum@=\count92
+\DOTSCASE@=\count93
+LaTeX Info: Redefining \ldots on input line 482.
+LaTeX Info: Redefining \dots on input line 485.
+LaTeX Info: Redefining \cdots on input line 606.
+\Mathstrutbox@=\box27
+\strutbox@=\box28
+\big@size=\dimen105
+LaTeX Font Info:    Redeclaring font encoding OML on input line 729.
+LaTeX Font Info:    Redeclaring font encoding OMS on input line 730.
+\macc@depth=\count94
+\c@MaxMatrixCols=\count95
+\dotsspace@=\muskip10
+\c@parentequation=\count96
+\dspbrk@lvl=\count97
+\tag@help=\toks15
+\row@=\count98
+\column@=\count99
+\maxfields@=\count100
+\andhelp@=\toks16
+\eqnshift@=\dimen106
+\alignsep@=\dimen107
+\tagshift@=\dimen108
+\tagwidth@=\dimen109
+\totwidth@=\dimen110
+\lineht@=\dimen111
+\@envbody=\toks17
+\multlinegap=\skip44
+\multlinetaggap=\skip45
+\mathdisplay@stack=\toks18
+LaTeX Info: Redefining \[ on input line 2844.
+LaTeX Info: Redefining \] on input line 2845.
+) (./spec.aux)
+\openout1 = `spec.aux'.
+
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 16.
+LaTeX Font Info:    ... okay on input line 16.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 16.
+LaTeX Font Info:    ... okay on input line 16.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 16.
+LaTeX Font Info:    ... okay on input line 16.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 16.
+LaTeX Font Info:    ... okay on input line 16.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 16.
+LaTeX Font Info:    ... okay on input line 16.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 16.
+LaTeX Font Info:    ... okay on input line 16.
+LaTeX Font Info:    Try loading font information for U+stmry on input line 18.
+
+(/nix/store/djnxd85wmk0hm5v7isrnqjh6rp6qca39-texlive-combined-full-2018/share/t
+exmf/tex/latex/stmaryrd/Ustmry.fd)
+
+LaTeX Warning: No \author given.
+
+[1
+
+
+{/nix/store/djnxd85wmk0hm5v7isrnqjh6rp6qca39-texlive-combined-full-2018/share/t
+exmf/fonts/map/pdftex/updmap/pdftex.map}] [2]
+Chapter 1.
+[3
+
+] [4
+
+]
+Chapter 2.
+LaTeX Font Info:    Try loading font information for OMS+cmr on input line 55.
+
+(/nix/store/djnxd85wmk0hm5v7isrnqjh6rp6qca39-texlive-combined-full-2018/share/t
+exmf/tex/latex/base/omscmr.fd
+File: omscmr.fd 2014/09/29 v2.5h Standard LaTeX font definitions
+)
+LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <10> not available
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 55.
+ [5] [6] [7]
+LaTeX Font Info:    Try loading font information for OMS+cmtt on input line 201
+.
+LaTeX Font Info:    No file OMScmtt.fd. on input line 201.
+
+
+LaTeX Font Warning: Font shape `OMS/cmtt/m/n' undefined
+(Font)              using `OMS/cmsy/m/n' instead
+(Font)              for symbol `textbraceleft' on input line 201.
+
+[8]
+Overfull \hbox (48.54694pt too wide) in paragraph at lines 220--222
+[]\OT1/cmr/m/n/10 Exercise: what is the sig-na-ture of the fol-low-ing con-trac
+t? $[]$ 
+ []
+
+[9] [10
+
+]
+Chapter 3.
+[11]
+Overfull \hbox (5.69508pt too wide) in paragraph at lines 318--319
+[]$[]$ 
+ []
+
+[12]
+Overfull \hbox (279.05661pt too wide) in paragraph at lines 365--366
+$[]$ 
+ []
+
+
+Overfull \hbox (276.8344pt too wide) in paragraph at lines 369--370
+$[]$ 
+ []
+
+[13] [14]
+Overfull \hbox (114.02855pt too wide) in paragraph at lines 435--436
+[]$[]$ 
+ []
+
+[15] [16]
+Chapter 4.
+[17
+
+] (./spec.aux)
+
+LaTeX Font Warning: Some font shapes were not available, defaults substituted.
+
+ ) 
+Here is how much of TeX's memory you used:
+ 1095 strings out of 492616
+ 13486 string characters out of 6106109
+ 76689 words of memory out of 5000000
+ 5038 multiletter control sequences out of 15000+600000
+ 13436 words of font info for 51 fonts, out of 8000000 for 9000
+ 1141 hyphenation exceptions out of 8191
+ 27i,9n,21p,332b,254s stack positions out of 5000i,500n,10000p,200000b,80000s
+</nix/store/djnxd85wmk0hm5v7isrnqjh6rp6qca39-texlive-combined-full-2018/share
+/texmf/fonts/type1/public/amsfonts/cm/cmbx10.pfb></nix/store/djnxd85wmk0hm5v7is
+rnqjh6rp6qca39-texlive-combined-full-2018/share/texmf/fonts/type1/public/amsfon
+ts/cm/cmbx12.pfb></nix/store/djnxd85wmk0hm5v7isrnqjh6rp6qca39-texlive-combined-
+full-2018/share/texmf/fonts/type1/public/amsfonts/cm/cmex10.pfb></nix/store/djn
+xd85wmk0hm5v7isrnqjh6rp6qca39-texlive-combined-full-2018/share/texmf/fonts/type
+1/public/amsfonts/cm/cmitt10.pfb></nix/store/djnxd85wmk0hm5v7isrnqjh6rp6qca39-t
+exlive-combined-full-2018/share/texmf/fonts/type1/public/amsfonts/cm/cmmi10.pfb
+></nix/store/djnxd85wmk0hm5v7isrnqjh6rp6qca39-texlive-combined-full-2018/share/
+texmf/fonts/type1/public/amsfonts/cm/cmmi7.pfb></nix/store/djnxd85wmk0hm5v7isrn
+qjh6rp6qca39-texlive-combined-full-2018/share/texmf/fonts/type1/public/amsfonts
+/cm/cmr10.pfb></nix/store/djnxd85wmk0hm5v7isrnqjh6rp6qca39-texlive-combined-ful
+l-2018/share/texmf/fonts/type1/public/amsfonts/cm/cmr12.pfb></nix/store/djnxd85
+wmk0hm5v7isrnqjh6rp6qca39-texlive-combined-full-2018/share/texmf/fonts/type1/pu
+blic/amsfonts/cm/cmr17.pfb></nix/store/djnxd85wmk0hm5v7isrnqjh6rp6qca39-texlive
+-combined-full-2018/share/texmf/fonts/type1/public/amsfonts/cm/cmr7.pfb></nix/s
+tore/djnxd85wmk0hm5v7isrnqjh6rp6qca39-texlive-combined-full-2018/share/texmf/fo
+nts/type1/public/amsfonts/cm/cmsl10.pfb></nix/store/djnxd85wmk0hm5v7isrnqjh6rp6
+qca39-texlive-combined-full-2018/share/texmf/fonts/type1/public/amsfonts/cm/cms
+s10.pfb></nix/store/djnxd85wmk0hm5v7isrnqjh6rp6qca39-texlive-combined-full-2018
+/share/texmf/fonts/type1/public/amsfonts/cm/cmsy10.pfb></nix/store/djnxd85wmk0h
+m5v7isrnqjh6rp6qca39-texlive-combined-full-2018/share/texmf/fonts/type1/public/
+amsfonts/cm/cmsy7.pfb></nix/store/djnxd85wmk0hm5v7isrnqjh6rp6qca39-texlive-comb
+ined-full-2018/share/texmf/fonts/type1/public/amsfonts/cm/cmti10.pfb></nix/stor
+e/djnxd85wmk0hm5v7isrnqjh6rp6qca39-texlive-combined-full-2018/share/texmf/fonts
+/type1/public/amsfonts/cm/cmtt10.pfb></nix/store/djnxd85wmk0hm5v7isrnqjh6rp6qca
+39-texlive-combined-full-2018/share/texmf/fonts/type1/public/stmaryrd/stmary10.
+pfb>
+Output written on spec.pdf (17 pages, 198356 bytes).
+PDF statistics:
+ 127 PDF objects out of 1000 (max. 8388607)
+ 90 compressed objects within 1 object stream
+ 0 named destinations out of 1000 (max. 500000)
+ 1 words of extra memory for PDF output out of 10000 (max. 10000000)
+

@@ -1,0 +1,110 @@
+contract PreToken
+(uint256 totalSupply
+,address => uint256 balances
+,address => address => uint256 allowances
+)
+{
+    default
+    {
+        balances[this] = totalSupply;
+        return then become Token(totalSupply, balances, allowances);
+    }
+}
+
+event Transfer(address indexed _from, address indexed _to, uint256 _amount);
+event Buy(address indexed _buyer, uint256 _amount, uint256 _value);
+event Sell(address indexed _buyer, uint256 _amount, uint256 _value);
+event Approval(address indexed _owner, address indexed _spender, uint256 _value);
+
+contract Token
+(uint256 totalSupply
+,address => uint256 balances
+,address => address => uint256 allowances
+)
+{
+    case(uint256 totalSupply())
+    {
+        return totalSupply then become Token(totalSupply, balances, allowances);
+    }
+    case(uint256 balanceOf(address a))
+    {
+        return balances[a] then become Token(totalSupply, balances, allowances);
+    }
+
+    case(bool transfer(address _to, uint256 _amount))
+    {
+        if (balances[sender(msg)] < _amount) abort;
+        if (sender(msg) == _to)
+        {
+            log Transfer(sender(msg), sender(msg), _amount);
+            return true then become Token(totalSupply, balances, allowances);
+        }
+        balances[sender(msg)] = balances[sender(msg)] - _amount;
+        if (balances[_to] + _amount < balances[_to]) abort;
+        balances[_to] = balances[_to] + _amount;
+        log Transfer(sender(msg), _to, _amount);
+        return true then become Token(totalSupply, balances, allowances);
+    }
+
+    case(bool approve(address _spender, uint256 _amount))
+    {
+        if (balances[sender(msg)] < _amount) abort;
+        if (sender(msg) == _spender) abort;
+        allowances[sender(msg)][_spender] = _amount;
+        log Approval(sender(msg), _spender, _amount);
+        return true then become Token(totalSupply, balances, allowances);
+    }
+    case(uint256 allowance(address _owner, address _spender))
+    {
+        return allowances[_owner][_spender] then become Token(totalSupply, balances, allowances);
+    }
+    case(bool transferFrom(address _from, address _to, uint256 _amount))
+    {
+        if (balances[_from] < _amount) abort;
+        if (allowances[_from][sender(msg)] < _amount) abort;
+        if (_from == _to)
+        {
+            log Transfer(_from, _to, _amount);
+            return true then become Token(totalSupply, balances, allowances);
+        }
+
+        balances[_from] = balances[_from] - _amount;
+        allowances[_from][sender(msg)] = allowances[_from][sender(msg)] - _amount;
+        balances[_to] = balances[_to] + _amount;
+        log Transfer(_from, _to, _amount);
+        return true then become Token(totalSupply, balances, allowances);
+    }
+
+    case(bool buy(uint256 _amount))
+    {
+        if (balances[this] < _amount) abort;
+        if (balances[sender(msg)] + _amount < balances[sender(msg)]) abort;
+
+        uint256 old_eth_balance = balance(this) - value(msg);
+        if (balance(this) * _amount > (balances[this] - _amount) * value(msg)) abort;
+
+        balances[this] = balances[this] - _amount;
+        balances[sender(msg)] = balances[sender(msg)] + _amount;
+
+        log Buy(sender(msg), _amount, value(msg));
+        return true then become Token(totalSupply, balances, allowances);
+    }
+    case (bool sell(uint256 _amount, uint256 _value))
+    {
+        if (balance(this) < _value) abort;
+        if (balances[sender(msg)] < _amount) abort;
+        if (balances[this] + _amount < balances[this]) abort;
+        if (not (iszero(value(msg)))) abort;
+
+        uint256 old_eth_balance = balance(this);
+        uint256 new_eth_balance = balance(this) - _value;
+        uint256 new_amount = balances[this] + _amount;
+        if (new_eth_balance * _amount < new_amount * _value) abort;
+
+        balances[this] = new_amount;
+        balances[sender(msg)] = balances[sender(msg)] - _amount;
+        log Sell(sender(msg), _amount, _value);
+        void = sender(msg).default() with _value reentrance { abort; };
+        return true then become Token(totalSupply, balances, allowances);
+    }
+}
