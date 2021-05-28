@@ -653,13 +653,13 @@ and codegen_expr (le:le) (ce:ce) (align:alignment) ((e,t):ty expr) : ce =
 
     | ParenthExpr _, _       -> errc "ParenthExpr"
 
-    | SingleDerefExpr(ref,ref_ty), value_ty ->
-                                assert (ref_ty    = TyRef[value_ty]) ;
-                                assert (align = R_) ; 
-                                let size = size_of_ty value_ty in
-                                assert (size <= 32) ;   (* assuming word-size *)
-                                let ce = codegen_expr le ce R_ (ref, ref_ty) in (* pushes the pointer *)
-                                MLOAD                      >>> ce 
+    | SingleDerefExpr(ref,tyRef),ty ->
+                                let size = size_of_ty ty in
+                                assert (size <= 32)         ;   (* assuming word-size *)
+                                assert (tyRef=TyRef[ty])    ;
+                                assert (align=R_)           ; 
+                                let ce = (ref,tyRef)    >>>>> (R_,le,ce)    in (* pushes the pointer *)
+                                MLOAD                   >>>    ce 
 
     | TupleDerefExpr _,_     -> err "code generation for TupleDerefExpr should not happen.  Instead, try to decompose it into several assignments."
 
@@ -679,12 +679,12 @@ and prepare_arg le ce arg =    (* stack: (..., accum) *)
     let start_size  = stack_size ce      in
     let size        = size_of_ty(snd arg)in
     assert (size = 32) ; 
-    let ce = PUSH1 (Int size)     >>> ce in   (* stack: (..., accum, size) *)
-    let ce = codegen_expr le ce R_ arg   in   (* stack: (..., accum, size, val) *)
-    let ce = DUP2                 >>> ce in   (* stack: (..., accum, size, val, size) *)
-    let ce = mem_alloc                ce in   (* stack: (..., accum, size, val, offset) *)
-    let ce = MSTORE               >>> ce in   (* stack: (..., accum, size) *)
-    let ce = ADD                  >>> ce in   (* stack: (..., new_accum) *)
+    let ce = PUSH1 (Int size)     >>>   ce          in   (* stack: (..., accum, size) *)
+    let ce = arg                >>>>> (R_,le,ce)    in   (* stack: (..., accum, size, val) *)
+    let ce = DUP2                 >>>   ce          in   (* stack: (..., accum, size, val, size) *)
+    let ce = mem_alloc                  ce          in   (* stack: (..., accum, size, val, offset) *)
+    let ce = MSTORE               >>>   ce          in   (* stack: (..., accum, size) *)
+    let ce = ADD                  >>>   ce          in   (* stack: (..., new_accum) *)
     assert (stack_size ce = start_size) ; 
     ce
 (** [prepare_args] prepares args in the memory.
@@ -759,8 +759,8 @@ and codegen_send_expr le ce (s:ty send_expr) =
            let ce = prepare_input_in_mem le ce s m      in (* stack : [entrance_bkp, out size, out offset, out size, out offset, in size, in offset] *)
            let ce = (match s.send_msg_info.msg_value_info with
               | None   -> PUSH1 (Int 0)         >>> ce     (* no value info means value of zero *)
-              | Some e -> codegen_expr le      ce R_ e) in (* stack : [entrance_bkp, out size, out offset, out size, out offset, in size, in offset, value] *)
-           let ce = codegen_expr le ce R_ s.send_head_cntrct in
+              | Some e -> e            >>>>> (R_,le,ce))in (* stack : [entrance_bkp, out size, out offset, out size, out offset, in size, in offset, value] *)
+           let ce = s.send_head_cntrct >>>>> (R_,le,ce) in
            let ce = PUSH4(Int 3000)             >>> ce  in
            let ce = GAS                         >>> ce  in
            let ce = SUB                         >>> ce  in (* stack : [entrance_bkp, out size, out offset, out size, out offset, in size, in offset, value, to, gas] *)
@@ -790,8 +790,8 @@ and codegen_send_expr le ce (s:ty send_expr) =
         assert (stack_size ce=start_size+7) ; 
         let ce = match s.send_msg_info.msg_value_info with
            | None   -> PUSH1 (Int 0)        >>> ce     (* no value info means value of zero *)
-           | Some e -> codegen_expr le ce R_ e      in (* stack : [pc_bkp, out size, out offset, out size, out offset, in size, in offset, value] *)
-        let ce = codegen_expr le ce R_ s.send_head_cntrct in
+           | Some e -> e            >>>>> (R_,le,ce)in (* stack : [pc_bkp, out size, out offset, out size, out offset, in size, in offset, value] *)
+        let ce = s.send_head_cntrct >>>>> (R_,le,ce)in 
         let ce = PUSH4 (Int 3000)           >>> ce  in
         let ce = GAS                        >>> ce  in
         let ce = SUB                        >>> ce  in (* stack : [pc_bkp, out size, out offset, out size, out offset, in size, in offset, value, to, gas] *)
@@ -1136,12 +1136,13 @@ let add_mthd_dest ce (cid : cid) (h : mthd_head) =
  * [arg0] will be the topmost element of the stack.
  *)
 let prepare_words_on_stack le ce (args : ty expr list) =
-    (le, L.fold_right (fun arg ce' -> codegen_expr le ce' R_ arg) args ce)
+    let ce = L.fold_right(fun arg ce -> arg >>>>>(R_,le,ce))args ce in 
+    le,ce
 
-let store_word_into_stor_location (le, ce) (arg_location : LI.stor_location) =
-    let ce = PUSH32 (Int arg_location)  >>> ce  in
+let store_word_into_stor_location (le, ce) (arg_loc : LI.stor_location) =
+    let ce = PUSH32 (Int arg_loc)       >>> ce  in
     let ce = SSTORE                     >>> ce  in
-    (le, ce)
+    le,ce
 
 (** [store_words_into_stor_locations le ce arg_locations] moves the topmost stack element to the
  *  location indicated by [arg_locations] and the next element to the next location and so on.
@@ -1160,23 +1161,23 @@ let set_cntrct_args le ce offset cid (args : ty expr list) =
     (* TODO: In a special case where no movements are necessary, we can then skip these args. *)
     le,ce
 
-let set_cont_to_fun_call le ce layout (fcall, typ_expr) =
-    let hd      = fcall.call_head in
-    let args    = fcall.call_args in
-    let cid     =  (try cid_lookup ce hd
-                    with Not_found -> eprintf "contract name %s not found\n%!" hd; raise Not_found) in 
-    let ce      =   set_cntrct_pc ce cid in
-    let offset  =   layout.LI.stor_cnstrctr_args_begin cid in
-    let le,ce   =  (try set_cntrct_args le ce offset cid args
-                    with e  ->  eprintf "name of cntrct: %s\n" hd;
-                                eprintf "set_cont_to_fun_call cid: %d\n" cid; raise e) in
+let set_cont_to_fun_call le ce layout (fncall, typ_expr) =
+    let hd     =   fncall.call_head in
+    let args   =   fncall.call_args in
+    let cid    =  (try cid_lookup ce hd
+                   with Not_found -> eprintf "contract name %s not found\n%!" hd; raise Not_found) in 
+    let ce     =   set_cntrct_pc ce cid in
+    let offset =   layout.LI.stor_cnstrctr_args_begin cid in
+    let le,ce  =  (try set_cntrct_args le ce offset cid args
+                   with e  ->  eprintf "name of cntrct: %s\n" hd;
+                               eprintf "set_cont_to_fun_call cid: %d\n" cid; raise e) in
     le,ce 
 
 
 (* set_cont sets the storage contents.
  * So that the next message call would start from the continuation. *)
 let set_cont le ce layout (cont_expr, typ_expr) =
-    let start_size  = stack_size ce in
+    let start_size  = stack_size ce     in
     let le,ce       = match cont_expr with
         | FunCallExpr fcall -> set_cont_to_fun_call le ce layout (fcall, typ_expr)
         | _                 -> err "strange_continuation" in
