@@ -363,23 +363,22 @@ and init_code_into_mem le ce new_e =
     let ce = SWAP1                                  >>> ce  in (*                                      alloc(size) >>>   totalsize >>> .. *)
     ce
 
-and codegen_fun_call_expr (le:le) ce align (fun_call:ty function_call) (retT:ty) =
-    if fun_call.call_head = "pre_ecdsarecover" then (
-        assert (align = R_) ; 
-        codegen_ecdsarecover le ce fun_call.call_args retT )   (* XXX: need to pass alignment *)
-    else if fun_call.call_head = "keccak256" then (
-        assert (align = R_) ; 
-        codegen_keccak256    le ce fun_call.call_args retT )   (* XXX: need to pass alignment *) 
-    else if fun_call.call_head = "iszero" then 
-        codegen_iszero le ce align fun_call.call_args retT
-    else
-        err "codegen_function_call_expr: unknown function head."
+and codegen_fun_call_expr le ce align (fncall:ty function_call) (reT:ty) =
+    if      fncall.call_head = "pre_ecdsarecover" then (
+                assert (align = R_) ; 
+                codegen_ecdsarecover le ce fncall.call_args reT )   (* XXX: need to pass alignment *)
+    else if fncall.call_head = "keccak256" then (
+                assert (align = R_) ; 
+                codegen_keccak256    le ce fncall.call_args reT )   (* XXX: need to pass alignment *) 
+    else if fncall.call_head = "iszero" then 
+                codegen_iszero le ce align fncall.call_args reT
+    else        err "codegen_fun_call_expr: unknown function head."
 
 and codegen_iszero le ce align args reT = match args with
-    | [arg]   ->  assert (reT = TyBool) ; 
-                  let ce =  arg       >>>>>(align,le,ce)in
-                            ISZERO      >>>     ce 
-    | _       ->  err "codegen_iszero: Wrong number of args"
+    | [arg] ->  assert (reT = TyBool) ; 
+                let ce =  arg       >>>>> (align,le,ce) in
+                          ISZERO    >>>         ce 
+    | _     ->  err "codegen_iszero: Wrong number of args"
        
 and codegen_keccak256 le ce args rettyp =
     let start_size = stack_size ce in
@@ -392,27 +391,27 @@ and codegen_keccak256 le ce args rettyp =
 
 and codegen_ecdsarecover le ce args rettyp = match args with
     | [h; v; r; s] ->
-        let start_size = stack_size             ce      in  (* stack: [] *)
-        let ce = PUSH1 (Int 32)                 >>> ce  in  (* stack: [out size] *)
-        let ce = DUP1                           >>> ce  in  (* stack: [out size, out size] *)
-        let ce = mem_alloc                          ce  in  (* stack: [out size, out address] *)
-        let ce = DUP2                           >>> ce  in  (* stack: [out size, out address, out size] *)
-        let ce = DUP2                           >>> ce  in  (* stack: [out size, out address, out size, out address] *)
-        let ce = get_alloc                          ce  in
+        let start_size = stack_size ce                  in  (* stack: [] *)
+        let ce = PUSH1 (Int 32)         >>>     ce      in  (* stack: [out size] *)
+        let ce = DUP1                   >>>     ce      in  (* stack: [out size, out size] *)
+        let ce = mem_alloc                      ce      in  (* stack: [out size, out address] *)
+        let ce = DUP2                   >>>     ce      in  (* stack: [out size, out address, out size] *)
+        let ce = DUP2                   >>>     ce      in  (* stack: [out size, out address, out size, out address] *)
+        let ce = get_alloc                      ce      in
         let ce = mstore_mthd_args le ABIPack ce args    in  (* stack: [out size, out address, out size, out address, mem_offset, mem_total_size] *)
-        let ce = SWAP1                          >>> ce  in  (* stack: [out size, out address, out size, out address, in size, in offset] *)
-        let ce = PUSH1 (Int 0)                  >>> ce  in  (* stack: [out size, out address, out size, out address, in size, in offset, value] *)
+        let ce = SWAP1                  >>>     ce      in  (* stack: [out size, out address, out size, out address, in size, in offset] *)
+        let ce = PUSH1 (Int 0)          >>>     ce      in  (* stack: [out size, out address, out size, out address, in size, in offset, value] *)
         assert (stack_size ce = start_size+7) ;
-        let ce = PUSH1 (Int 1)                  >>> ce  in  (* stack: [out size, out address, out size, out address, in size, in offset, value, to] *)
-        let ce = PUSH4 (Int 10000)              >>> ce  in  (* stack: [out size, out address, out size, out offset, in size, in offset, value, to, gas] *)
-        let ce = CALL                           >>> ce  in  (* stack: [out size, out address, success?] *)
+        let ce = PUSH1 (Int 1)          >>>     ce      in  (* stack: [out size, out address, out size, out address, in size, in offset, value, to] *)
+        let ce = PUSH4 (Int 10000)      >>>     ce      in  (* stack: [out size, out address, out size, out offset, in size, in offset, value, to, gas] *)
+        let ce = CALL                   >>>     ce      in  (* stack: [out size, out address, success?] *)
         assert (stack_size ce = start_size+3) ;
         let ce = throw_if_zero ce                       in
-        let ce = POP                            >>> ce  in  (* stack: [out size, out address] *)
+        let ce = POP                    >>>     ce      in  (* stack: [out size, out address] *)
         assert (stack_size ce = start_size+2) ; 
-        let ce = SWAP1                          >>> ce  in  (* stack: [out address, out size] *)
-        let ce = POP                            >>> ce  in  (* we know it's 32 *) (* stack: [out address] *)
-        let ce = MLOAD                          >>> ce  in  (* stack: [output] *)
+        let ce = SWAP1                  >>>     ce      in  (* stack: [out address, out size] *)
+        let ce = POP                    >>>     ce      in  (* we know it's 32 *) (* stack: [out address] *)
+        let ce = MLOAD                  >>>     ce      in  (* stack: [output] *)
         assert (stack_size ce = start_size+1) ;    
         ce
     | _ -> err "pre_ecdsarecover has a wrong number of args"
@@ -435,35 +434,35 @@ and codegen_new_expr le ce new_e (cntrctname : string) =
     ce
 
 and generate_array_access_index le ce aa =
-    let array = aa.array_access_array in
-    let index = aa.array_access_index in
-    let ce    = codegen_expr le ce R_ index in
-    let ce    = codegen_expr le ce R_ array in
-    let ce    = keccak_cons le ce in
+    let array = aa.array_access_array                   in
+    let index = aa.array_access_index                   in
+    let ce    = index               >>>>> (R_,le,ce)    in 
+    let ce    = array               >>>>> (R_,le,ce)    in
+    let ce    = keccak_cons le ce                       in
     ce
 
-and codegen_array_access (le : le) ce (aa : ty array_access) =
+and codegen_array_access le ce (aa:ty array_access) =
     let ce    = generate_array_access_index le ce aa in
     SLOAD >>> ce 
 
 (* if the stack top is zero, set up an array seed at aa, and replace the zero with the new seed *)
 and setup_array_seed_at_array_access le ce aa =
-    let label = get_new_label ()           in       (* stack: [result, result] *)
-    let ce = DUP1                   >>> ce in       (* stack: [result, result] *)
-    let ce = PUSH4(Label label)     >>> ce in       (* stack: [result, result, shortcut] *)
-    let ce = JUMPI                  >>> ce in       (* stack: [result] *)
-    let ce = POP                    >>> ce in       (* stack: [] *)
-    let ce = generate_array_access_index le ce aa in(* stack: [stor_index] *)
-    let ce = PUSH1 (Int 1)          >>> ce in       (* stack: [stor_index, 1] *)
-    let ce = SLOAD                  >>> ce in       (* stack: [stor_index, orig_seed] *)
-    let ce = DUP1                   >>> ce in       (* stack: [stor_index, orig_seed, orig_seed] *)
-    let ce = incr_top ce 1                 in       (* stack: [stor_index, orig_seed, orig_seed + 1] *)
-    let ce = PUSH1 (Int 1)          >>> ce in       (* stack: [stor_index, orig_seed, orig_seed + 1, 1] *)
-    let ce = SSTORE                 >>> ce in       (* stack: [stor_index, orig_seed] *)
-    let ce = DUP1                   >>> ce in       (* stack: [stor_index, orig_seed, orig_seed] *)
-    let ce = SWAP2                  >>> ce in       (* stack: [orig_seed, orig_seed, stor_index] *)
-    let ce = SSTORE                 >>> ce in       (* stack: [orig_seed] *)
-    let ce = JUMPDEST label         >>> ce in       (* stack: [result] *)
+    let label = get_new_label ()                        in       (* stack: [result, result] *)
+    let ce = DUP1                                >>> ce in       (* stack: [result, result] *)
+    let ce = PUSH4(Label label)                  >>> ce in       (* stack: [result, result, shortcut] *)
+    let ce = JUMPI                               >>> ce in       (* stack: [result] *)
+    let ce = POP                                 >>> ce in       (* stack: [] *)
+    let ce = generate_array_access_index le ce aa       in(* stack: [stor_index] *)
+    let ce = PUSH1 (Int 1)                       >>> ce in       (* stack: [stor_index, 1] *)
+    let ce = SLOAD                               >>> ce in       (* stack: [stor_index, orig_seed] *)
+    let ce = DUP1                                >>> ce in       (* stack: [stor_index, orig_seed, orig_seed] *)
+    let ce = incr_top ce 1                              in       (* stack: [stor_index, orig_seed, orig_seed + 1] *)
+    let ce = PUSH1 (Int 1)                       >>> ce in       (* stack: [stor_index, orig_seed, orig_seed + 1, 1] *)
+    let ce = SSTORE                              >>> ce in       (* stack: [stor_index, orig_seed] *)
+    let ce = DUP1                                >>> ce in       (* stack: [stor_index, orig_seed, orig_seed] *)
+    let ce = SWAP2                               >>> ce in       (* stack: [orig_seed, orig_seed, stor_index] *)
+    let ce = SSTORE                              >>> ce in       (* stack: [orig_seed] *)
+    let ce = JUMPDEST label                      >>> ce in       (* stack: [result] *)
     ce
 
 (*   if the stack top is zero, set up an array seed at aa, and replace the zero with the new seed *)
