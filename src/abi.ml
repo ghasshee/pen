@@ -41,17 +41,17 @@ let prABI_mthd (c:ty mthd) : string = match c.mthd_head with
     | Method u       ->  prABI_mthd_info u
     | Default         ->  prABI_default_mthd
 
-let prABI_constructor (c:ty contract) : string =
+let prABI_cnstrctr (c:ty cntrct) : string =
     sprintf
-        "{\"type\": \"constructor\", \"inputs\":[%s], \"name\": \"%s\", \"outputs\":[], \"payable\": true}"
-        (prABI_inputs (L.filter non_mapping_arg c.contract_args)) (c.contract_name)
+        "{\"type\": \"cnstrctr\", \"inputs\":[%s], \"name\": \"%s\", \"outputs\":[], \"payable\": true}"
+        (prABI_inputs (L.filter non_mapping_arg c.cntrct_args)) (c.cntrct_name)
 
-let prABI_contract seen_constructor (c:ty contract) : string =
+let prABI_cntrct seen_cnstrctr (c:ty cntrct) : string =
     let cases               =   c.mthds in
     let strs : string list  =   L.map prABI_mthd cases in
-    let strs                =   if !seen_constructor then strs
-                                else prABI_constructor c :: strs in
-    let ()                  =   (seen_constructor := true) in
+    let strs                =   if !seen_cnstrctr then strs
+                                else prABI_cnstrctr c :: strs in
+    let ()                  =   (seen_cnstrctr := true) in
     BS.concat "," strs
 
 
@@ -69,13 +69,13 @@ let prABI_event (e:event) : string =
     sprintf "{\"type\":\"event\",\"inputs\":[%s],\"name\":\"%s\"}"
         (prABI_event_inputs e.event_args) (e.event_name)
 
-let prABI_toplevel seen_constructor (t:ty toplevel) : string = match t with
-    | Contract c                -> prABI_contract seen_constructor c
+let prABI_toplevel seen_cnstrctr (t:ty toplevel) : string = match t with
+    | Contract c                -> prABI_cntrct seen_cnstrctr c
     | Event e                   -> prABI_event e
 
 let prABI (tops : ty toplevel with_cid) : unit =
-    let seen_constructor    = ref false in
+    let seen_cnstrctr    = ref false in
     let ()                  = printf "[" in
-    let strs : string list  = L.map (prABI_toplevel seen_constructor) (values tops) in
+    let strs : string list  = L.map (prABI_toplevel seen_cnstrctr) (values tops) in
     let ()                  = printf "%s" (BS.concat "," strs) in
     printf "]"

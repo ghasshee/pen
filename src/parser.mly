@@ -53,14 +53,14 @@
    xs = delimited(LPAR, separated_list(COMMA, X), RPAR) {xs}
 
 file:
-    | cs = list(contract);EOF;  { cs }
+    | cs = list(cntrct);EOF;  { cs }
     ;
 
-contract:
+cntrct:
     | CONTRACT IDENT; plist(arg); LBRACE; list(case); RBRACE;
                                 { Contract { mthds              = $5
-                                           ; contract_name      = $2
-                                           ; contract_args      = $3 } }
+                                           ; cntrct_name      = $2
+                                           ; cntrct_args      = $3 } }
     | EVENT IDENT plist(event_arg) SEMI;
                                 { Event    { event_args    = $3
                                            ; event_name         = $2 } };
@@ -125,7 +125,7 @@ stmt:
   | LT                                      { fun (l,r) -> Syntax.LtExpr(l, r)}
   | GT                                      { fun (l,r) -> Syntax.GtExpr(l, r)}
   | NEQ                                     { fun (l,r) -> Syntax.NeqExpr(l, r)}
-  | EQEQ                                    { fun (l,r) -> Syntax.EqualityExpr(l, r)}
+  | EQEQ                                    { fun (l,r) -> Syntax.EqExpr(l, r)}
   ;
 
 expr:
@@ -139,13 +139,13 @@ expr:
   | BALANCE; LPAR; expr; RPAR                { Syntax.BalanceExpr $3, () }
   | NOW LPAR BLOCK RPAR                     { Syntax.NowExpr, () }
   | expr;op;expr                              { ($2 ($1, $3)), () }
-  | IDENT                                   { Syntax.IdentifierExpr $1, () }
+  | IDENT                                   { Syntax.IdentExpr $1, () }
   | LPAR;expr;RPAR                           { Syntax.ParenthExpr $2, () }
-  | IDENT; expr_list                         { Syntax.FunctionCallExpr {Syntax.call_head=$1; call_args=$2 }, () }
+  | IDENT; expr_list                         { Syntax.FunCallExpr {Syntax.call_head=$1; call_args=$2 }, () }
   | DEPLOY;IDENT;expr_list;msg_info          { Syntax.NewExpr{Syntax.new_head=$2; new_args=$3; new_msg_info=$4},() }
-  | expr;DOT;DEFAULT;LPAR;RPAR;msg_info      { Syntax.SendExpr{Syntax.send_head_contract=$1; send_head_method=None; send_args=[]; send_msg_info=$6},() }
-  | expr;DOT;IDENT;expr_list;msg_info         { Syntax.SendExpr{Syntax.send_head_contract=$1; send_head_method=Some $3; send_args=$4; send_msg_info=$5},() }
-  | ADDRESS;LPAR;expr;RPAR                   { Syntax.AddressExpr $3, () }
+  | expr;DOT;DEFAULT;LPAR;RPAR;msg_info      { Syntax.SendExpr{Syntax.send_head_cntrct=$1; send_head_method=None; send_args=[]; send_msg_info=$6},() }
+  | expr;DOT;IDENT;expr_list;msg_info         { Syntax.SendExpr{Syntax.send_head_cntrct=$1; send_head_method=Some $3; send_args=$4; send_msg_info=$5},() }
+  | ADDRESS;LPAR;expr;RPAR                   { Syntax.AddrExpr $3, () }
   | NOT; expr                                { Syntax.NotExpr $2, () }
   | THIS                                    { Syntax.ThisExpr, () }
   | l = lexpr;                               { Syntax.ArrayAccessExpr l, () }

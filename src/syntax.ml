@@ -17,7 +17,7 @@ type ty                 = TyVoid
                         | TyRef                 of ty list
                         | TyTuple               of ty list
                         | TyMap                 of ty * ty 
-                        | TyContractArch        of string   (* type of [bid(...)] where bid is a contract *) 
+                        | TyContractArch        of string   (* type of [bid(...)] where bid is a cntrct *) 
                         | TyContractInstance    of string   (* type of [b] declared as [bid b] *) 
 
 let rec string_of_ty    = function 
@@ -30,8 +30,8 @@ let rec string_of_ty    = function
     | TyRef              _  -> "ref" 
     | TyTuple            _  -> "tuple" 
     | TyMap(a,b)            -> "mapping" 
-    | TyContractArch     s  -> "contractArch " ^ s
-    | TyContractInstance s  -> "contractInstance " ^ s
+    | TyContractArch     s  -> "cntrctArch " ^ s
+    | TyContractInstance s  -> "cntrctInstance " ^ s
 
 type arg                = 
                         { ty                    : ty
@@ -66,7 +66,7 @@ and  'ty new_expr       =
                         ; new_msg_info          : 'ty msg_info
                         }
 and  'ty send_expr      =
-                        { send_head_contract    : 'ty expr
+                        { send_head_cntrct    : 'ty expr
                         ; send_head_method      : string option
                         ; send_args             : 'ty expr list
                         ; send_msg_info         : 'ty msg_info
@@ -88,8 +88,8 @@ and  'ty expr_tm        =
                         | DecLit256Expr         of big_int
                         | DecLit8Expr           of big_int
                         | NowExpr
-                        | FunctionCallExpr      of 'ty function_call
-                        | IdentifierExpr        of string
+                        | FunCallExpr      of 'ty function_call
+                        | IdentExpr        of string
                         | ParenthExpr           of 'ty expr
                         | NewExpr               of 'ty new_expr
                         | SendExpr              of 'ty send_expr
@@ -97,8 +97,8 @@ and  'ty expr_tm        =
                         | LtExpr                of 'ty expr * 'ty expr
                         | GtExpr                of 'ty expr * 'ty expr
                         | NeqExpr               of 'ty expr * 'ty expr
-                        | EqualityExpr          of 'ty expr * 'ty expr
-                        | AddressExpr           of 'ty expr
+                        | EqExpr          of 'ty expr * 'ty expr
+                        | AddrExpr           of 'ty expr
                         | NotExpr               of 'ty expr
                         | ArrayAccessExpr       of 'ty lexpr
                         | ValueExpr
@@ -160,27 +160,27 @@ type 'ty mthd          =
                         ; mthd_body              : 'ty mthd_body
                         }
 
-type 'ty contract       =
-                        { contract_name     : string
-                        ; contract_args     : arg list
+type 'ty cntrct       =
+                        { cntrct_name     : string
+                        ; cntrct_args     : arg list
                         ; mthds             : 'ty mthd list
                         }
 
 type 'ty toplevel     =
-                        | Contract    of 'ty contract
+                        | Contract    of 'ty cntrct
                         | Event       of event
 
-let contract_name_of_ret_cont ((r,_):'ty expr) : string option = match r with
-    | FunctionCallExpr c        -> Some c.call_head
+let cntrct_name_of_ret_cont ((r,_):'ty expr) : string option = match r with
+    | FunCallExpr c        -> Some c.call_head
     | _                         -> None
 
 let mthd_head_arg_list (h:mthd_head) : arg list = match h with
     | Method mthd               -> mthd.mthd_args
     | Default                   -> []
 
-let contract_name_of_instance ((_,(t,_)):(ty*'a)expr) = match t with
+let cntrct_name_of_instance ((_,(t,_)):(ty*'a)expr) = match t with
     | TyContractInstance s      -> s
-    | tyT                       -> err ("seeking contract_name_of non-contract "^(string_of_ty tyT))
+    | tyT                       -> err ("seeking cntrct_name_of non-cntrct "^(string_of_ty tyT))
 
 let string_of_expr_inner = function 
     | ThisExpr                  -> "this"
@@ -188,8 +188,8 @@ let string_of_expr_inner = function
     | SendExpr _                -> "send"
     | NewExpr _                 -> "new"
     | ParenthExpr _             -> "()"
-    | IdentifierExpr str        -> "ident "^str
-    | FunctionCallExpr _        -> "call"
+    | IdentExpr str        -> "ident "^str
+    | FunCallExpr _        -> "call"
     | NowExpr                   -> "now"
     | SenderExpr                -> "sender"
     | TrueExpr                  -> "true"
@@ -202,8 +202,8 @@ let string_of_expr_inner = function
     | LtExpr _                  -> "lt"
     | GtExpr _                  -> "gt"
     | ValueExpr                 -> "value"
-    | EqualityExpr _            -> "equality"
-    | AddressExpr _             -> "address"
+    | EqExpr _            -> "equality"
+    | AddrExpr _             -> "address"
     | SingleDerefExpr _         -> "dereference of ..."
     | TupleDerefExpr _          -> "dereference of tuple..."
     | PlusExpr (a, b)           -> "... + ..."
@@ -277,7 +277,7 @@ let non_mapping_arg (arg:arg)   = match arg.ty with
 
 
 (* MIGHT BECOME what ? *) 
-(* update contracts or methods ?  *) 
+(* update cntrcts or methods ?  *) 
 (* method name search walking *) 
     
 let rec functioncall_might_become f =
@@ -293,7 +293,7 @@ and msg_info_might_become m = (match m.msg_value_info with
         [(* TODO: msg_reentrance_info should contain a continuation! *)]
 
 and send_expr_might_become s =
-    (expr_might_become s.send_head_contract)@
+    (expr_might_become s.send_head_cntrct)@
         (L.concat (L.map expr_might_become s.send_args))@
             (msg_info_might_become s.send_msg_info)
 
@@ -306,8 +306,8 @@ and expr_might_become e : string list = match fst e with
     | DecLit256Expr _           -> []
     | DecLit8Expr _             -> []
     | NowExpr                   -> []
-    | IdentifierExpr _          -> []
-    | FunctionCallExpr f        -> functioncall_might_become f
+    | IdentExpr _          -> []
+    | FunCallExpr f        -> functioncall_might_become f
     | ParenthExpr content       -> expr_might_become content
     | NewExpr n                 -> new_expr_might_become n
     | SendExpr s                -> send_expr_might_become s
@@ -315,8 +315,8 @@ and expr_might_become e : string list = match fst e with
     | LtExpr (l, r)             -> (expr_might_become l)@(expr_might_become r)
     | GtExpr (l, r)             -> (expr_might_become l)@(expr_might_become r)
     | NeqExpr (l, r)            -> (expr_might_become l)@(expr_might_become r)
-    | EqualityExpr (l, r)       -> (expr_might_become l)@(expr_might_become r)
-    | AddressExpr a             -> (expr_might_become a)
+    | EqExpr (l, r)       -> (expr_might_become l)@(expr_might_become r)
+    | AddrExpr a             -> (expr_might_become a)
     | NotExpr n                 -> expr_might_become n
     | ArrayAccessExpr aa        -> lexpr_might_become aa
     | ValueExpr                 -> []
@@ -341,7 +341,7 @@ let rec stmt_might_become (s:ty stmt) : string list = match s with
     | ReturnStmt ret            -> (match ret.ret_expr with
         | Some e    -> expr_might_become e
         | None      -> []) @(expr_might_become ret.ret_cont)@
-                        (match contract_name_of_ret_cont ret.ret_cont with
+                        (match cntrct_name_of_ret_cont ret.ret_cont with
                          | Some name    -> [name]
                          | None         -> [] )
     | AssignStmt (l, r)         -> (lexpr_might_become l)@(expr_might_become r)
@@ -361,7 +361,7 @@ let mthd_might_become (mthd : ty mthd) : string list =
     let body = mthd.mthd_body in
     L.concat (L.map stmt_might_become body)
 
-let might_become (c : ty contract) : string list =
+let might_become (c : ty cntrct) : string list =
     let mthds = c.mthds in
     L.concat (L.map mthd_might_become mthds)
 
@@ -369,7 +369,7 @@ let might_become (c : ty contract) : string list =
 
 (* LOOKUP_USUAL_METHOD *) 
 
-let lookup_mthd_info_in_single_contract c mthd_name =
+let lookup_mthd_info_in_single_cntrct c mthd_name =
     let mthds = c.mthds in
     let mthds = L.filter (fun c -> match c.mthd_head with
                           | Default  -> false
@@ -383,13 +383,13 @@ let lookup_mthd_info_in_single_contract c mthd_name =
     | _::_::_   ->  err "should not happen"
     | [a]       ->  begin match a.mthd_head with
                     | Method uc     -> uc
-                    | Default       -> err "lookup_mthd_info_in_single_contract: default method found" 
+                    | Default       -> err "lookup_mthd_info_in_single_cntrct: default method found" 
                      end
 
-let rec lookup_mthd_info_inner (already_seen:ty contract list)(c:ty contract)(mthd_name:string)f 
+let rec lookup_mthd_info_inner (already_seen:ty cntrct list)(c:ty cntrct)(mthd_name:string)f 
                                     : mthd_info =
     if L.mem c already_seen then raise Not_found else
-    try  lookup_mthd_info_in_single_contract c mthd_name
+    try  lookup_mthd_info_in_single_cntrct c mthd_name
     with Not_found ->   let already_seen = c::already_seen in
                         let becomes      = L.map f (might_become c) in
                         let rec try_becomes bs already_seen =
@@ -400,7 +400,7 @@ let rec lookup_mthd_info_inner (already_seen:ty contract list)(c:ty contract)(mt
                                                              try_becomes tl already_seen)) in
                         try_becomes becomes already_seen
 
-let lookup_mthd_info (c : ty contract) (mthd_name : string) f : mthd_info =
+let lookup_mthd_info (c : ty cntrct) (mthd_name : string) f : mthd_info =
     lookup_mthd_info_inner [] c mthd_name f
 
 

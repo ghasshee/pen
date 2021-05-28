@@ -35,19 +35,19 @@ let () =
   let toplevels         = fold_with_cid toplevels   in
   let toplevels : ty Syntax.toplevel with_cid 
                         = Type.assign_types toplevels       in
-  let contracts         = filter_map (function 
+  let cntrcts         = filter_map (function 
                             | Contract c  -> Some c
                             | _           -> None     ) toplevels in
-  let ()                = match contracts with
+  let ()                = match cntrcts with
   | []              -> ()
   | _               ->
-        let constructors : constructor_compiled with_cid = compile_constructors contracts in
-        let contracts_stor_layout : (cid * LayoutInfo.contract_stor_layout) list =
-            List.map (fun (id, const) -> (id, stor_layout_from_constructor_compiled const)) constructors in
-        let layout = LayoutInfo.construct_stor_layout contracts_stor_layout in
-        let runtime_compiled = compile_runtime layout contracts in
+        let cnstrctrs : cnstrctr_compiled with_cid = compile_cnstrctrs cntrcts in
+        let cntrcts_stor_layout : (cid * LayoutInfo.cntrct_stor_layout) list =
+            List.map (fun (id, const) -> (id, stor_layout_from_cnstrctr_compiled const)) cnstrctrs in
+        let layout = LayoutInfo.cnstrct_stor_layout cntrcts_stor_layout in
+        let runtime_compiled = compile_runtime layout cntrcts in
         let bytecode : big_int Evm.program =
-            compose_bytecode constructors runtime_compiled (fst (List.hd contracts)) in
+            compose_bytecode cnstrctrs runtime_compiled (fst (List.hd cntrcts)) in
         let () = if abi then Abi.prABI toplevels else Evm.pr_encoded bytecode in
      () in
   ()

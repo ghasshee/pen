@@ -31,7 +31,7 @@ let intf_ty_of_ty       = function
     | TyContractInstance _      -> IntfAddr
     | TyTuple _                 -> failwith "intf_ty_of_type: tupleType not supported yet"
     | TyMap(_, _)               -> failwith "intf_ty_of_type: mappingType not supported"
-    | TyContractArch _          -> failwith "contract arch-type does not appear in the ABI"
+    | TyContractArch _          -> failwith "cntrct arch-type does not appear in the ABI"
     | TyRef _                   -> failwith "reference type does not appear in the ABI"
     | TyVoid                    -> failwith "VoidType should not appear in the ABI"
     
@@ -95,11 +95,11 @@ let get_array (raw:arg) : (string*ty*ty) option = match (raw.ty) with
     | TyMap(k, v)               ->  Some (raw.id, k, v)
     | _                         ->  None
 
-let arrays_in_contract c : (string*ty*ty) list = 
-    BL.filter_map get_array (c.contract_args)
+let arrays_in_cntrct c : (string*ty*ty) list = 
+    BL.filter_map get_array (c.cntrct_args)
 
-let constructor_args (contract:ty contract) : (string*intf_ty) list = 
-    get_intf_tys (contract.contract_args)
+let cnstrctr_args (cntrct:ty cntrct) : (string*intf_ty) list = 
+    get_intf_tys (cntrct.cntrct_args)
 
 let total_size_of_intf_args lst : int = 
     try     BL.sum (L.map intf_ty_size lst) 

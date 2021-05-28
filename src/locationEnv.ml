@@ -44,7 +44,7 @@ let last_stack_element_recorded (le:le) = match fst_some stack_story_block le wi
     | Some n                    ->  n
     | None                      -> -1
 
-let constructor_args_locations (cid:cid) (args:(string*Ethereum.intf_ty)list) = 
+let cnstrctr_args_locations (cid:cid) (args:(string*Ethereum.intf_ty)list) = 
     let total   = Ethereum.total_size_of_intf_args (List.map snd args) in
     let one_arg((name:string),(offset:int),(size:int)) 
                 = (name, Code   { code_start = Imm.(Minus(InitDataSize cid,(Int(total-offset))))
@@ -56,17 +56,17 @@ let constructor_args_locations (cid:cid) (args:(string*Ethereum.intf_ty)list) =
                                     (offset + Ethereum.intf_ty_size h_ty) t in
     [List.map one_arg (name_offset_size_list [] 0 args)]
 
-let constructor_initial_env (cid : cid) (contract : ty contract) =
-    let args = Ethereum.constructor_args contract in
-    constructor_args_locations cid args
+let cnstrctr_initial_env (cid : cid) (cntrct : ty cntrct) =
+    let args = Ethereum.cnstrctr_args cntrct in
+    cnstrctr_args_locations cid args
 
 
-(** [runtime_initial_t contract]
+(** [runtime_initial_t cntrct]
  * is a location environment that contains
- * the constructor args
+ * the cnstrctr args
  * after StorageConstrutorArgumentBegin *)
-let runtime_initial_env (contract : ty contract) =
-  let plain = Ethereum.constructor_args contract in
+let runtime_initial_env (cntrct : ty cntrct) =
+  let plain = Ethereum.cnstrctr_args cntrct in
   let init = add_empty_block empty_env in
   let f (lenv, word_idx) (name, typ) =
     let size_in_word = Ethereum.intf_ty_size typ / 32 in
@@ -79,7 +79,7 @@ let runtime_initial_env (contract : ty contract) =
   in
   (* XXX: remove the hard coded 2 *)
   let (le, mid) = List.fold_left f (init, 2) plain in
-  let arrays = Ethereum.arrays_in_contract contract in (* XXX: refactor the repetition *)
+  let arrays = Ethereum.arrays_in_cntrct cntrct in (* XXX: refactor the repetition *)
   let g (lenv, word_idx) (name, _, _) =
     let size_in_word = 1 in
     let loc = (Storage {

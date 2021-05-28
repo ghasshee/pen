@@ -8,16 +8,16 @@ type ce             =
                     { stack_size     : int
                     ; program        : Imm.imm program
                     ; cid_lookup     : string -> cid
-                    ; contracts      : ty contract with_cid }
+                    ; cntrcts      : ty cntrct with_cid }
 
 let extract_program ce              =   ce.program
 let cid_lookup      ce              =   ce.cid_lookup
 
-let empty_ce cid_lookup contracts   =
+let empty_ce cid_lookup cntrcts   =
     { stack_size     = 0
     ; program        = empty_program
     ; cid_lookup     = cid_lookup
-    ; contracts      = contracts  }
+    ; cntrcts      = cntrcts  }
 
 let code_length    ce               =   size_of_program ce.program
 let stack_size     ce               =   ce.stack_size
@@ -34,13 +34,13 @@ let append_opcode ce opcode         =
             else    { stack_size = new_stack_size
                     ; program    = opcode :: ce.program 
                     ; cid_lookup = ce.cid_lookup
-                    ; contracts  = ce.contracts  }
+                    ; cntrcts  = ce.cntrcts  }
 
 
 let (>>>) op ce = append_opcode ce op  
 
 
-let contract_lookup ce cid          =   try choose_contract cid ce.contracts
-                                        with e ->   (Printf.eprintf "contract_lookup failed on %d\n%!" cid; 
-                                                    (pr_cid_mapping(fun x->x)(cids ce.contracts)); 
+let cntrct_lookup ce cid          =   try choose_cntrct cid ce.cntrcts
+                                        with e ->   (Printf.eprintf "cntrct_lookup failed on %d\n%!" cid; 
+                                                    (pr_cid_mapping(fun x->x)(cids ce.cntrcts)); 
                                                     raise e)

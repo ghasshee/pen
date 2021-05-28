@@ -7,12 +7,12 @@ bamboo.cmx : type.cmx syntax.cmx support.cmx lexer.cmx layoutInfo.cmx \
     evm.cmx ethereum.cmx codegen.cmx assoc.cmx
 codegen.cmo : syntax.cmi storage.cmi pseudoImm.cmi locationEnv.cmi \
     location.cmi layoutInfo.cmi label.cmi evm.cmi ethereum.cmi \
-    entrypointDatabase.cmi contract.cmi codegenEnv.cmi assoc.cmi codegen.cmi
+    entrypointDatabase.cmi cntrct.cmi codegenEnv.cmi assoc.cmi codegen.cmi
 codegen.cmx : syntax.cmx storage.cmx pseudoImm.cmx locationEnv.cmx \
     location.cmx layoutInfo.cmx label.cmx evm.cmx ethereum.cmx \
-    entrypointDatabase.cmx contract.cmx codegenEnv.cmx assoc.cmx codegen.cmi
+    entrypointDatabase.cmx cntrct.cmx codegenEnv.cmx assoc.cmx codegen.cmi
 codegen.cmi : syntax.cmi pseudoImm.cmi locationEnv.cmi layoutInfo.cmi \
-    evm.cmi contract.cmi codegenEnv.cmi assoc.cmi
+    evm.cmi cntrct.cmi codegenEnv.cmi assoc.cmi
 codegenEnv.cmo : syntax.cmi pseudoImm.cmi label.cmi evm.cmi assoc.cmi \
     codegenEnv.cmi
 codegenEnv.cmx : syntax.cmx pseudoImm.cmx label.cmx evm.cmx assoc.cmx \
@@ -23,9 +23,9 @@ compileFile.cmo : type.cmi syntax.cmi parse.cmi layoutInfo.cmi evm.cmi \
 compileFile.cmx : type.cmx syntax.cmx parse.cmx layoutInfo.cmx evm.cmx \
     codegen.cmx assoc.cmx compileFile.cmi
 compileFile.cmi :
-contract.cmo : syntax.cmi misc.cmi ethereum.cmi contract.cmi
-contract.cmx : syntax.cmx misc.cmx ethereum.cmx contract.cmi
-contract.cmi : syntax.cmi ethereum.cmi assoc.cmi
+cntrct.cmo : syntax.cmi misc.cmi ethereum.cmi cntrct.cmi
+cntrct.cmx : syntax.cmx misc.cmx ethereum.cmx cntrct.cmi
+cntrct.cmi : syntax.cmi ethereum.cmi assoc.cmi
 endToEnd.cmo : ethereum.cmi compileFile.cmi
 endToEnd.cmx : ethereum.cmx compileFile.cmx
 entrypointDatabase.cmo : syntax.cmi label.cmi assoc.cmi \
@@ -87,9 +87,9 @@ support.cmx : parser.cmx lexer.cmx
 syntax.cmo : sideEffect.cmi syntax.cmi
 syntax.cmx : sideEffect.cmx syntax.cmi
 syntax.cmi : sideEffect.cmi
-type.cmo : typeEnv.cmi syntax.cmi sideEffect.cmi ethereum.cmi contract.cmi \
+type.cmo : typeEnv.cmi syntax.cmi sideEffect.cmi ethereum.cmi cntrct.cmi \
     assoc.cmi type.cmi
-type.cmx : typeEnv.cmx syntax.cmx sideEffect.cmx ethereum.cmx contract.cmx \
+type.cmx : typeEnv.cmx syntax.cmx sideEffect.cmx ethereum.cmx cntrct.cmx \
     assoc.cmx type.cmi
 type.cmi : syntax.cmi assoc.cmi
 typeEnv.cmo : syntax.cmi misc.cmi assoc.cmi typeEnv.cmi

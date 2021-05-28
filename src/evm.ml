@@ -78,7 +78,7 @@ let stack_popped = function
   | CALLCODE                            -> 7
   | RETURN                              -> 2
   | DELEGATECALL                        -> 7
-  | SELFDESTRUCT                             -> 1
+  | SELFDESTRUCT                        -> 1
   | DUP1                                -> 1
   | DUP2                                -> 2
   | DUP3                                -> 3
@@ -140,7 +140,7 @@ let stack_pushed = function
   | CALLCODE                            -> 1
   | RETURN                              -> 0
   | DELEGATECALL                        -> 1
-  | SELFDESTRUCT                             -> 0
+  | SELFDESTRUCT                        -> 0
 
 let string_of_opcode = function 
   | PUSH1 v         -> "PUSH1 " ^(Imm.string_of_imm v)
@@ -213,7 +213,7 @@ let string_of_opcode = function
   | CALLCODE        -> "CALLCODE"
   | RETURN          -> "RETURN"
   | DELEGATECALL    -> "DELEGATECALL"
-  | SELFDESTRUCT         -> "SELFDESTRUCT"
+  | SELFDESTRUCT    -> "SELFDESTRUCT"
 
 let string_of_opcodes p = String.concat""  (List.map(fun op->string_of_opcode op^"\n")(to_list p))
 let pr_opcodes        p = Printf.printf"%s"(string_of_opcodes p) 
@@ -313,7 +313,7 @@ let size_of_opcode  = function
 
 let size_of_program p = List.fold_left (fun a i -> a + size_of_opcode i) 0 p 
 
-let dup_suc_n       = function 
+let dup_succ       = function 
   | 0               -> DUP1
   | 1               -> DUP2
   | 2               -> DUP3

@@ -47,3 +47,4 @@ let as_string           = function
     | Code _                -> "Code ..."
     | Calldata c            -> Printf.sprintf "Calldata offset %d, size %d" c.calldata_offset c.calldata_size
     | Stack i               -> Printf.sprintf "Stack %d" i
+

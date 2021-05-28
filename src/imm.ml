@@ -13,13 +13,13 @@ type imm =
   | Int                                 of int
   | Label                               of Label.label
   | StoragePCIndex
-  | StorageConstructorArgumentsBegin    of cid
-  | StorageConstructorArgumentsSize     of cid    (* the size depends on the contract id *)
+  | StorageCnstrctrArgumentsBegin    of cid
+  | StorageCnstrctrArgumentsSize     of cid    (* the size depends on the cntrct id *)
   | InitDataSize                        of cid
   | ContractOffsetInRuntimeCode         of cid    (* This index should be a JUMPDEST *)
   | CaseOffsetInRuntimeCode             of cid * Syntax.mthd_head
-  | ConstructorCodeSize                 of cid
-  | ConstructorInRuntimeCodeOffset      of cid
+  | CnstrctrCodeSize                 of cid
+  | CnstrctrInRuntimeCodeOffset      of cid
   | RuntimeCodeOffset                   of cid
   | RuntimeCodeSize
   | Minus                               of imm * imm
@@ -29,20 +29,20 @@ let rec string_of_imm           = function
   | Int i                               -> "(Int "^(string_of_int i)^")"
   | Label _                             -> "Label (print label here)"
   | StoragePCIndex                      -> "StoragePCIndex"
-  | StorageConstructorArgumentsBegin _  -> "StorageConstructorArgumentBegin (print contract id)"
-  | StorageConstructorArgumentsSize _   -> "StorageConstructorArgumentsSize (print contract id)"
-  | InitDataSize cid                    -> "InitDataSize (print contract id here)"
+  | StorageCnstrctrArgumentsBegin _  -> "StorageCnstrctrArgumentBegin (print cntrct id)"
+  | StorageCnstrctrArgumentsSize _   -> "StorageCnstrctrArgumentsSize (print cntrct id)"
+  | InitDataSize cid                    -> "InitDataSize (print cntrct id here)"
   | ContractOffsetInRuntimeCode _       -> "ContractOffsetInRuntimeCode (print contact id)"
-  | CaseOffsetInRuntimeCode(cid,header) -> "CaseOffsetInRuntimeCode (print contract id, case header)"
-  | ConstructorCodeSize cid             -> "ConstructorCodeSize (print contract id)"
-  | ConstructorInRuntimeCodeOffset cid  -> "ConstructorInRuntimeCodeOffset (print contract id)"
-  | RuntimeCodeOffset cid               -> "RuntimeCodeOffset (print contract id)"
+  | CaseOffsetInRuntimeCode(cid,header) -> "CaseOffsetInRuntimeCode (print cntrct id, case header)"
+  | CnstrctrCodeSize cid             -> "CnstrctrCodeSize (print cntrct id)"
+  | CnstrctrInRuntimeCodeOffset cid  -> "CnstrctrInRuntimeCodeOffset (print cntrct id)"
+  | RuntimeCodeOffset cid               -> "RuntimeCodeOffset (print cntrct id)"
   | RuntimeCodeSize                     -> "RuntimeCodeSize"
   | Minus (a, b)                        -> "(- "^(string_of_imm a)^" "^(string_of_imm b)^")"
 
-let is_constant_big (b:big_int) = function 
+let is_const_big (b:big_int) = function 
   | Big b'                              -> eq_big_int b b'
   | Int i                               -> eq_big_int(big_int_of_int i)b
   | _                                   -> false                        (* XXX: very rough approximation *)
 
-let is_constant_int (i:int)     = is_constant_big (big_int_of_int i)
+let is_const_int (i:int)     = is_const_big (big_int_of_int i)

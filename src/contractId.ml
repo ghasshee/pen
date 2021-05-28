@@ -1,4 +1,4 @@
-(* cid := contract ID *) 
+(* cid := cntrct ID *) 
 
 open Printf 
 open Misc
@@ -17,8 +17,8 @@ let fold_with_cid       =   function
 let map              f  =   L.map (fun(id,x)->(id,f x)) 
 let pair_map         f  =   L.map (fun(id,x)->(id,f id x)) 
 let filter_map       f  =   BL.filter_map (fun(id,x)-> BO.map (fun ret->(id,ret)) (f x))
-let choose_contract  l  =   try   L.assoc l 
-                            with  Not_found -> eprintf "choose_contract: not_found\n%!"; raise Not_found
+let choose_cntrct  l  =   try   L.assoc l 
+                            with  Not_found -> eprintf "choose_cntrct: not_found\n%!"; raise Not_found
 let pr_cid_mapping   f  =   L.iter (fun cid -> printf "%d ↦ %d, " cid (f cid))
 let insert id a orig    =   (id, a)::orig       (* shall I sort it?  Maybe later at once. *)
 let lookup_id f l       =   let (id, _) = L.find (f $ snd) l in id 

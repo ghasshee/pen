@@ -1,5 +1,5 @@
 DEPEND += lexer.ml parser.ml
-OBJS = misc.cmo label.cmo storage.cmo contractId.cmo hexa.cmo sideEffect.cmo syntax.cmo typeEnv.cmo imm.cmo location.cmo entrypoint.cmo evm.cmo ethereum.cmo abi.cmo locationEnv.cmo layoutInfo.cmo contract.cmo type.cmo codegenEnv.cmo codegen.cmo parser.cmo lexer.cmo support.cmo 
+OBJS = misc.cmo label.cmo contractId.cmo hexa.cmo sideEffect.cmo syntax.cmo typeEnv.cmo imm.cmo location.cmo entrypoint.cmo evm.cmo ethereum.cmo abi.cmo locationEnv.cmo layoutInfo.cmo contract.cmo type.cmo codegenEnv.cmo codegen.cmo parser.cmo lexer.cmo support.cmo 
 OCAMLC=ocamlfind ocamlc -linkpkg -package rpclib -package batteries -package cryptokit -package hex -package menhirLib -package rope cryptokit.cma batteries.cma hex.cma rope.cma
 OCAMLDEP=ocamlfind ocamldep -package batteries -package cryptokit -package hex -package menhirLib -package rope 
 
