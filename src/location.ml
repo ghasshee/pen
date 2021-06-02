@@ -3,11 +3,11 @@ open Imm
 type stor_location   = int 
 
 
-type 'imm mem_range  =
+type 'imm mem_range     =
                         { mem_start         : 'imm    (* byte as in EVM *)
                         ; mem_size          : 'imm    (* byte *)  }
 
-type 'imm stor_range =
+type 'imm stor_range    =
                         { stor_start        : 'imm    (* word as in EVM *)
                         ; stor_size         : 'imm    (* word *)  }
 

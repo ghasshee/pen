@@ -15,8 +15,8 @@ let empty_ty_env                =
     ; events                    = []
     ; retTyCheck_fn             = None  }
 
-let forget_innermost tyenv      =   { tyenv with idents = List.tl tyenv.idents    }
-let add_empty_block  tyenv      =   { tyenv with idents = [] :: tyenv.idents      }
+(*let tail tyenv                  =   { tyenv with idents = List.tl tyenv.idents    } *)
+(* let add_empty_block  tyenv      =   { tyenv with idents = [] :: tyenv.idents      } *)
 let add_pair tyenv id ty loc    =   match tyenv.idents with
     | t::ts   -> { tyenv with idents = ({id=id;ty=ty;loc=loc}::t)::ts}
     | _       -> err "no current scope in type env"

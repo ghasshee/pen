@@ -1288,11 +1288,11 @@ let push_event ce event =
     ce
 
 let add_varDecl le ce layout i =
-    let pos     = stack_size ce                             in
-    let ce      = codegen_expr le ce R_ i.varDecl_val in
-    let name    = i.varDecl_id                        in
-    let loc     = Loc.Stack (pos + 1)                       in
-    let le      = add_pair le name loc                      in
+    let pos     = stack_size ce                         in
+    let ce      = codegen_expr le ce R_ i.varDecl_val   in
+    let name    = i.varDecl_id                          in
+    let loc     = Loc.Stack (pos + 1)                   in
+    let le      = add_pair le (name,loc)                in
     le, ce
 
 
@@ -1382,8 +1382,8 @@ and add_self_destruct le ce layout expr =
 
 
 
-let add_mthd_arg_locations (le : le) (mthd : ty mthd) =
-  let additions : (string * Loc.location) list = Eth.args_with_locations mthd in
+let add_mthd_arg_locations le (mthd : ty mthd) =
+  let additions : locEnv = Eth.args_with_locations mthd in
   let ret = add_pairs le additions in
   ret
 
@@ -1396,80 +1396,75 @@ let calldatasize_of_usual_header us =
 let add_mthd_arg_len_chk ce = function 
     | Default       -> (* no check, the choice is arguable *) ce
     | Method us     ->
-     let ce = PUSH4(Int(calldatasize_of_usual_header us))   >>> ce in
-     let ce = CALLDATASIZE                                  >>> ce in
-     let ce = EQ                                            >>> ce in
-     let ce = ISZERO                                        >>> ce in
-     let ce = PUSH1(Int 0)                                  >>> ce in
-     let ce = JUMPI                                         >>> ce in
-     ce
+    let ce    = PUSH4(Int(calldatasize_of_usual_header us))   >>> ce in
+    let ce    = CALLDATASIZE                                  >>> ce in
+    let ce    = EQ                                            >>> ce in
+    let ce    = ISZERO                                        >>> ce in
+    let ce    = PUSH1(Int 0)                                  >>> ce in
+    let ce    = JUMPI                                         >>> ce in
+    ce
 
-let add_mthd (le:le) (ce:ce) layout (cid:cid) (mthd:ty mthd) =
-    let ce = add_mthd_dest ce cid mthd.mthd_head in
-    let ce = add_mthd_arg_len_chk ce mthd.mthd_head in
-    let le = add_empty_block le in
-    let le = add_mthd_arg_locations le mthd in
-    let ((le:le),ce) = L.fold_left (fun((le:le),ce)stmt->add_stmt le ce layout stmt)(le,ce)mthd.mthd_body in
-    (le, ce)
+let add_mthd le ce layout cid m =
+    let ce    = add_mthd_dest ce cid m.mthd_head in
+    let ce    = add_mthd_arg_len_chk ce m.mthd_head in
+    let le    = add_empty_locEnv le in
+    let le    = add_mthd_arg_locations le m in
+    let le,ce = L.fold_left(fun(le,ce)-> add_stmt le ce layout)(le,ce)m.mthd_body in
+    le, ce
 
 let codegen_append_cntrct_bytecode le ce layout((cid,cntrct):cid*ty cntrct) =
     (* jump destination for the cntrct *)
-    let entry_label   = get_new_label () in
-    let ce            = append_opcode ce (JUMPDEST entry_label) in
+    let label = get_new_label () in
+    let ce    = append_opcode ce (JUMPDEST label) in
     (* update the entrypoint database with (id, pc) pair *)
-    let ()            = Entrypoint.(register_entrypoint (Cntrct cid) entry_label) in
-    let ce            = init_mem_alloc ce in
+    Entrypoint.(register_entrypoint (Cntrct cid) label); 
+    let ce    = init_mem_alloc ce in
     (* add jumps to the mthds *)
-    let (le, ce)      = add_dispatcher le ce cid cntrct in
+    let le,ce = add_dispatcher le ce cid cntrct in
     (* add the mthds *)
-    let mthds         = cntrct.mthds in
-    let (le, ce)      = L.fold_left (fun (le,ce)mthd -> add_mthd le ce layout cid mthd)(le, ce) mthds in
+    let mthds = cntrct.mthds in
+    let le,ce = L.fold_left(fun(le,ce)->add_mthd le ce layout cid)(le,ce)mthds in
     ce
 
 let append_runtime layout (prev : runtime_compiled)
-                   ((cid : cid), (cntrct : ty cntrct))
-                   : runtime_compiled =
-  { runtime_codegen_env = codegen_append_cntrct_bytecode (runtime_initial_env cntrct) prev.runtime_codegen_env layout (cid, cntrct)
-  ; runtime_cntrct_offsets = insert cid (code_length prev.runtime_codegen_env) prev.runtime_cntrct_offsets
+                   (cid, (cn : ty cntrct)) : runtime_compiled =
+  { runtime_codegen_env     = codegen_append_cntrct_bytecode (runtime_initial_env cn)prev.runtime_codegen_env layout(cid,cn)
+  ; runtime_cntrct_offsets  = insert cid (code_length prev.runtime_codegen_env)prev.runtime_cntrct_offsets
   }
 
-let compile_runtime layout (cntrcts : ty cntrct with_cid) : runtime_compiled = 
-    L.fold_left (append_runtime layout) (initial_runtime_compiled (cid_lookup_in_assoc cntrcts) cntrcts) cntrcts
+let compile_runtime layout (cns : ty cntrct with_cid) : runtime_compiled = 
+    L.fold_left (append_runtime layout) (initial_runtime_compiled (cid_lookup_in_assoc cns) cns) cns
 
 let stor_layout_from_cnstrctr_compiled (cc : cnstrctr_compiled) : LI.cntrct_stor_layout =
     LI.stor_layout_of_cntrct cc.cnstrctr_cntrct (extract_program cc.cnstrctr_codegen_env)
 
 let sizes_of_cnstrctrs (cnstrctrs : cnstrctr_compiled with_cid) : int list =
-    let lengths = map (fun cc -> code_length cc.cnstrctr_codegen_env) cnstrctrs in
-    let lengths = L.sort (fun a b -> compare (fst a) (fst b)) lengths in
+    let lengths = map    (fun cc -> code_length cc.cnstrctr_codegen_env) cnstrctrs in
+    let lengths = L.sort (fun a b-> compare(fst a)(fst b)) lengths in
     L.map snd lengths
 
-let rec calculate_offsets_inner ret current lst = match lst with
-    | [] -> L.rev ret
-    | hd::tl ->
-       (* XXX: fix the append *)
-       calculate_offsets_inner (current :: ret) (current + hd) tl
+let rec calculate_offsets_inner ret current = function
+    | []        -> L.rev ret
+    | hd::tl    -> calculate_offsets_inner (current::ret) (current + hd) tl
 
-let calculate_offsets initial lst   = calculate_offsets_inner [] initial lst
+let calculate_offsets init l   = calculate_offsets_inner [] init l
 
 let stor_layout_from_runtime_compiled (rc:runtime_compiled) (cnstrctrs:cnstrctr_compiled with_cid) : LI.runtime_stor_layout =
     let sizes_of_cnstrctrs       = sizes_of_cnstrctrs cnstrctrs in
     let offsets_of_cnstrctrs     = calculate_offsets (code_length rc.runtime_codegen_env) sizes_of_cnstrctrs in
     let sum_of_cnstrctr_sizes    = BL.sum sizes_of_cnstrctrs in
     LI.(
-        { runtime_code_size = sum_of_cnstrctr_sizes + code_length rc.runtime_codegen_env
-        ; runtime_offset_of_cid = rc.runtime_cntrct_offsets
-        ; runtime_size_of_cnstrctr = fold_with_cid sizes_of_cnstrctrs
-        ; runtime_offset_of_cnstrctr = fold_with_cid offsets_of_cnstrctrs
-        })
+        { runtime_code_size             = sum_of_cnstrctr_sizes + code_length rc.runtime_codegen_env
+        ; runtime_offset_of_cid         = rc.runtime_cntrct_offsets
+        ; runtime_size_of_cnstrctr      = fold_with_cid sizes_of_cnstrctrs
+        ; runtime_offset_of_cnstrctr    = fold_with_cid offsets_of_cnstrctrs })
 
 let concat_programs_rev (programs : 'imm Evm.program list) =
     let rev_programs = L.rev programs in
     L.concat rev_programs
 
 (** cnstrctrs_packed concatenates cnstrctr code.
- *  Since the code is stored in the reverse order, the concatenation is also reversed.
- *)
+ *  Since the code is stored in the reverse order, the concatenation is also reversed. *)
 let cnstrctrs_packed layout (cnstrctrs : cnstrctr_compiled with_cid) =
     let programs            = map (fun cc -> extract_program cc.cnstrctr_codegen_env) cnstrctrs in
     let programs            = L.sort (fun a b -> compare (fst a) (fst b)) programs in
@@ -1477,15 +1472,14 @@ let cnstrctrs_packed layout (cnstrctrs : cnstrctr_compiled with_cid) =
     concat_programs_rev programs
 
 let compose_bytecode (cnstrctrs : cnstrctr_compiled with_cid)
-                     (runtime : runtime_compiled) (cid : cid) : big_int Evm.program =
+                     (runtime : runtime_compiled) cid : big_int Evm.program =
     let cntrcts_stor_layout : (cid * LI.cntrct_stor_layout) list =
       L.map (fun (id, const) -> (id, stor_layout_from_cnstrctr_compiled const)) cnstrctrs in
     let runtime_layout      = stor_layout_from_runtime_compiled runtime cnstrctrs in
     let layout              = LI.cnstrct_post_stor_layout cntrcts_stor_layout runtime_layout in
-    let pseudo_cnstrctr  = choose_cntrct cid cnstrctrs in
-    let imm_cnstrctr     = LI.realize_program layout cid (extract_program pseudo_cnstrctr.cnstrctr_codegen_env) in
+    let pseudo_cnstrctr     = choose_cntrct cid cnstrctrs in
+    let imm_cnstrctr        = LI.realize_program layout cid (extract_program pseudo_cnstrctr.cnstrctr_codegen_env) in
     let pseudo_runtime_core = extract_program runtime.runtime_codegen_env in
-    (* XXX: This part is somehow not modular. *)
     (* Sicne the code is stored in the reverse order, the concatenation is also reversed. *)
     let imm_runtime         = LI.realize_program layout cid ((cnstrctrs_packed layout cnstrctrs)@pseudo_runtime_core) in
     (* the code is stored in the reverse order *)
