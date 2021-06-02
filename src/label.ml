@@ -7,8 +7,8 @@ let fresh_label                 = ref 0
 let store :(label*int)list ref  = ref []
 
 let get_new_label ()            = 
-    let ret = !fresh_label in 
-    fresh_label := !fresh_label + 1; 
+    let ret      = !fresh_label in 
+    fresh_label := !fresh_label+1; 
     ret 
 
 let register_value l i          =   store := (l,i) :: !store  

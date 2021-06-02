@@ -1,20 +1,20 @@
 open Printf 
+open List 
+
+module Maybe = BatOption 
 
 
-
-
-
-let rec fst_some f = function 
+let rec filter_getFst f = function 
   | []      ->  None
-  | h::t    -> ( match f h with
-     | None     -> fst_some f t
-     | Some x   -> Some x ) 
+  | x::xs   ->  begin match f x with
+     | None     -> filter_getFst f xs 
+     | Some y   -> Some y       end 
 
-let rec change_fst f = function 
-  | []      -> None
-  | h :: t  -> (match f h with
-     | None     -> BatOption.map (fun xs-> h::xs)(change_fst f t)
-     | Some n   -> Some (n :: t) ) 
+let rec filter_changeFst f = function 
+  | []      ->  None
+  | x::xs   ->  begin match f x with
+     | None     -> Maybe.map (cons x)(filter_changeFst f xs)
+     | Some n   -> Some (n::xs) end 
 
 
 

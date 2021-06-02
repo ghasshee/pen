@@ -19,7 +19,7 @@ rule read =
   | white           { read lexbuf }
   | comment         { new_line lexbuf; read lexbuf }
   | newline         { new_line lexbuf; read lexbuf }
-  | "cntrct"      { CONTRACT }
+  | "contract"      { CONTRACT }
   | "default"       { DEFAULT }
   | "method"        { METHOD }
   | "abort"         { ABORT }

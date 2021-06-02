@@ -21,13 +21,13 @@ let forget_innermost    = function
 let update_block   (key:string)(new_loc:location)(blk:(string*location)list) :
       (string * location) list option = failwith "update_block"
 
-let update  (le:le)(key:string)(new_loc:location) = change_fst(update_block key new_loc)le 
+let update  (le:le)(key:string)(new_loc:location) = filter_changeFst(update_block key new_loc)le 
 
 let lookup_block (key:string)(l:(string*location)list) = 
     try   Some (List.assoc key l)
     with  Not_found -> None
 
-let lookup  (le:le)(key:string)                 = fst_some (lookup_block key) le
+let lookup  (le:le)(key:string)                 = filter_getFst (lookup_block key) le
 
 let add_pair(le:le)(key:string)(loc:location)   = match le with
     | []                      -> failwith "add_pair: no block"
@@ -40,7 +40,7 @@ let add_empty_block le                          = [] :: le
 
 let stack_story_block (blk:(string*location)list) : int option = failwith "stack_story_block"
 
-let last_stack_element_recorded (le:le) = match fst_some stack_story_block le with
+let last_stack_element_recorded (le:le) = match filter_getFst stack_story_block le with
     | Some n                    ->  n
     | None                      -> -1
 
@@ -64,13 +64,13 @@ let cnstrctr_initial_env (cid : cid) (cntrct : ty cntrct) =
 (** [runtime_initial_t cntrct]
  * is a location environment that contains
  * the cnstrctr args
- * after StorageConstrutorArgumentBegin *)
+ * after StorConstrutorArgumentBegin *)
 let runtime_initial_env (cntrct : ty cntrct) =
   let plain = Ethereum.cnstrctr_args cntrct in
   let init = add_empty_block empty_env in
   let f (lenv, word_idx) (name, typ) =
     let size_in_word = Ethereum.intf_ty_size typ / 32 in
-    let loc = (Storage {
+    let loc = (Stor {
                   stor_start = Int word_idx;
                   stor_size = Int size_in_word
                 }) in
@@ -82,7 +82,7 @@ let runtime_initial_env (cntrct : ty cntrct) =
   let arrays = Ethereum.arrays_in_cntrct cntrct in (* XXX: refactor the repetition *)
   let g (lenv, word_idx) (name, _, _) =
     let size_in_word = 1 in
-    let loc = (Storage {
+    let loc = (Stor {
                             stor_start = Int word_idx;
                             stor_size = Int size_in_word
               }) in

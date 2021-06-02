@@ -11,9 +11,12 @@ type ce             =
                     ; cntrcts      : ty cntrct with_cid }
 
 let extract_program ce              =   ce.program
-let cid_lookup      ce              =   ce.cid_lookup
+let cid_lookup      ce name         =   
+    try ce.cid_lookup name 
+    with Not_found ->   Printf.eprintf "Unknown Cntrct %s.\n%!" name; 
+                        raise Not_found 
 
-let empty_ce cid_lookup cntrcts   =
+let empty_ce cid_lookup cntrcts     =
     { stack_size     = 0
     ; program        = empty_program
     ; cid_lookup     = cid_lookup

@@ -21,7 +21,7 @@ let _           = if files <> [] then (eprintf "Pass the contents to stdin.\n"; 
 let abi:bool    = (Some true = enable_abi.BatOptParse.Opt.option_get ()) 
 let toplevels   = parse_with_error lexbuf 
 let toplevels'  = fold_with_cid toplevels
-let toplevels'' = Type.assign_types toplevels'
+let toplevels'' = Type.assignTys toplevels'
 *)
 
 let () =
@@ -34,9 +34,9 @@ let () =
                         = parse_with_error lexbuf           in
   let toplevels         = fold_with_cid toplevels   in
   let toplevels : ty Syntax.toplevel with_cid 
-                        = Type.assign_types toplevels       in
+                        = Type.assignTys toplevels       in
   let cntrcts         = filter_map (function 
-                            | Contract c  -> Some c
+                            | Cntrct c  -> Some c
                             | _           -> None     ) toplevels in
   let ()                = match cntrcts with
   | []              -> ()

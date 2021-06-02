@@ -58,12 +58,10 @@ file:
 
 cntrct:
     | CONTRACT IDENT; plist(arg); LBRACE; list(case); RBRACE;
-                                { Contract { mthds              = $5
-                                           ; cntrct_name      = $2
-                                           ; cntrct_args      = $3 } }
-    | EVENT IDENT plist(event_arg) SEMI;
-                                { Event    { event_args    = $3
-                                           ; event_name         = $2 } };
+                                        { Cntrct { mthds       = $5
+                                                   ; cntrct_name = $2
+                                                   ; cntrct_args = $3 } }
+    | EVENT IDENT plist(event_arg) SEMI { Event    { event_args = $3; event_name = $2 } };
 
 case:
     | mthd_head block         {   { mthd_head    = $1
@@ -75,93 +73,90 @@ block:
     ;
 
 mthd_head:
-    | DEFAULT                               { Syntax.Default }
-    | METHOD LPAR typ IDENT plist(arg) RPAR { Syntax.Method { mthd_ret_ty = [$3]; Syntax.mthd_name = $4; mthd_args = $5 } }
-    | METHOD LPAR VOID IDENT plist(arg)RPAR { Syntax.Method { mthd_ret_ty = []; Syntax.mthd_name = $4; mthd_args = $5 } };
+    | DEFAULT                               { Default }
+    | METHOD LPAR ty IDENT plist(arg) RPAR { Method { mthd_ret_ty = [$3];  mthd_name = $4; mthd_args = $5 } }
+    | METHOD LPAR VOID IDENT plist(arg)RPAR { Method { mthd_ret_ty = [];    mthd_name = $4; mthd_args = $5 } };
 
 arg:
-    | typ IDENT                {   { ty = $1; id = $2; loc = None    }   }
+    | ty IDENT                                 { { ty = $1; id = $2; loc = None } }
     
 
 event_arg:
-  | arg                             { Syntax.event_arg_of_arg $1 false }
-  | typ INDEXED IDENT               { { Syntax.event_arg_body =
-        { ty        = $1 
-        ; id      = $3 
-        ; loc   = None 
-        }; 
-        Syntax.event_arg_indexed = true }
-    }
+  | arg                                         { event_arg_of_arg $1 false }
+  | ty INDEXED IDENT                           { { event_arg_body =    { ty  = $1 
+                                                                        ; id  = $3 
+                                                                        ; loc = None }; 
+                                                                        event_arg_indexed = true } }
 
-typ:
-  | UINT256                                 { TyUint256             }
-  | UINT8                                   { TyUint8               }
-  | BYTES32                                 { TyBytes32             }
-  | ADDRESS                                 { TyAddr                }
-  | BOOL                                    { TyBool                }
-  | typ RARROW typ                          { TyMap($1,$3)          }
-  | IDENT                                   { TyContractInstance $1 }
+ty:
+  | UINT256                                     { TyUint256             }
+  | UINT8                                       { TyUint8               }
+  | BYTES32                                     { TyBytes32             }
+  | ADDRESS                                     { TyAddr                }
+  | BOOL                                        { TyBool                }
+  | ty RARROW ty                                { TyMap($1,$3)          }
+  | IDENT                                       { TyCntrctInstance $1 }
   ;
 %inline body:
-  | stmt                                { [$1] }
-  | block                                   { $1   }
+  | stmt                                        { [$1] }
+  | block                                       { $1   }
   ;
 stmt:
-  | ABORT;SEMI                              { Syntax.AbortStmt }
-  | RETURN;option(expr);THEN;BECOME;expr;SEMI { Syntax.ReturnStmt{Syntax.ret_expr=$2; ret_cont=$5} }     
-  | lexpr; EQ; expr; SEMI                     { Syntax.AssignStmt ($1,$3) }
-  | typ;IDENT;EQ;expr;SEMI                   { Syntax.VarDeclStmt{ Syntax.var_declare_type=$1; var_declare_name=$2; var_declare_value=$4 } }
-  | VOID; EQ;expr; SEMI                      { Syntax.ExprStmt $3 }
-  | IF; expr; THEN; body; ELSE; body         { Syntax.IfThenElse($2,$4,$6) }
-  | IF; expr; THEN; body                     { Syntax.IfThenOnly ($2, $4) }
-  | LOG;IDENT;expr_list; SEMI                { Syntax.LogStmt($2,$3,None)}
-  | SELFDESTRUCT; expr; SEMI                 { Syntax.SelfDestructStmt $2 }
+  | ABORT SEMI                                  { AbortStmt }
+  | RETURN;option(expr);THEN;BECOME;expr;SEMI   { ReturnStmt{ret_expr=$2; ret_cont=$5} }     
+  | lexpr EQ expr SEMI                          { AssignStmt($1,$3) }
+  | ty IDENT EQ expr SEMI                       { VarDeclStmt{ varDecl_ty=$1; varDecl_id=$2; varDecl_val=$4 } }
+  | VOID EQ expr SEMI                           { ExprStmt $3 }
+  | IF expr THEN body ELSE  body                { IfThenElse($2,$4,$6) }
+  | IF expr THEN body                           { IfThenOnly ($2, $4) }
+  | LOG IDENT expr_list SEMI                    { LogStmt($2,$3,None)}
+  | SELFDESTRUCT expr SEMI                      { SelfDestructStmt $2 }
   ;
 
 %inline op:
-  | PLUS                                    { fun (l,r) -> Syntax.PlusExpr(l, r)}
-  | MINUS                                   { fun (l,r) -> Syntax.MinusExpr(l, r)}
-  | MULT                                    { fun (l,r) -> Syntax.MultExpr(l, r)}
-  | LT                                      { fun (l,r) -> Syntax.LtExpr(l, r)}
-  | GT                                      { fun (l,r) -> Syntax.GtExpr(l, r)}
-  | NEQ                                     { fun (l,r) -> Syntax.NeqExpr(l, r)}
-  | EQEQ                                    { fun (l,r) -> Syntax.EqExpr(l, r)}
+  | PLUS                                        { fun (l,r) -> PlusExpr(l, r)}
+  | MINUS                                       { fun (l,r) -> MinusExpr(l, r)}
+  | MULT                                        { fun (l,r) -> MultExpr(l, r)}
+  | LT                                          { fun (l,r) -> LtExpr(l, r)}
+  | GT                                          { fun (l,r) -> GtExpr(l, r)}
+  | EQEQ                                        { fun (l,r) -> EqExpr(l, r)}
+  | NEQ                                         { fun (l,r) -> NeqExpr(l, r)}
   ;
 
 expr:
-  | lhs = expr; LAND; rhs = expr              { Syntax.LandExpr (lhs, rhs), () }
-  | TRUE                                    { Syntax.TrueExpr, () }
-  | FALSE                                   { Syntax.FalseExpr, () }
-  | d = DECLIT256                           { Syntax.DecLit256Expr d, ()}
-  | d = DECLIT8                             { Syntax.DecLit8Expr d, ()}
-  | VALUE LPAR MSG RPAR                     { Syntax.ValueExpr, () }
-  | SENDER LPAR MSG RPAR                    { Syntax.SenderExpr, () }
-  | BALANCE; LPAR; expr; RPAR                { Syntax.BalanceExpr $3, () }
-  | NOW LPAR BLOCK RPAR                     { Syntax.NowExpr, () }
-  | expr;op;expr                              { ($2 ($1, $3)), () }
-  | IDENT                                   { Syntax.IdentExpr $1, () }
-  | LPAR;expr;RPAR                           { Syntax.ParenthExpr $2, () }
-  | IDENT; expr_list                         { Syntax.FunCallExpr {Syntax.call_head=$1; call_args=$2 }, () }
-  | DEPLOY;IDENT;expr_list;msg_info          { Syntax.NewExpr{Syntax.new_head=$2; new_args=$3; new_msg_info=$4},() }
-  | expr;DOT;DEFAULT;LPAR;RPAR;msg_info      { Syntax.SendExpr{Syntax.send_head_cntrct=$1; send_head_method=None; send_args=[]; send_msg_info=$6},() }
-  | expr;DOT;IDENT;expr_list;msg_info         { Syntax.SendExpr{Syntax.send_head_cntrct=$1; send_head_method=Some $3; send_args=$4; send_msg_info=$5},() }
-  | ADDRESS;LPAR;expr;RPAR                   { Syntax.AddrExpr $3, () }
-  | NOT; expr                                { Syntax.NotExpr $2, () }
-  | THIS                                    { Syntax.ThisExpr, () }
-  | l = lexpr;                               { Syntax.ArrayAccessExpr l, () }
+  | lhs = expr; LAND; rhs = expr                { LandExpr (lhs, rhs), () }
+  | TRUE                                        { TrueExpr, () }
+  | FALSE                                       { FalseExpr, () }
+  | DECLIT256                                   { DecLit256Expr $1, ()}
+  | DECLIT8                                     { DecLit8Expr $1, ()}
+  | VALUE LPAR MSG RPAR                         { ValueExpr, () }
+  | SENDER LPAR MSG RPAR                        { SenderExpr, () }
+  | BALANCE; LPAR; expr; RPAR                   { BalanceExpr $3, () }
+  | NOW LPAR BLOCK RPAR                         { NowExpr, () }
+  | expr;op;expr                                { ($2 ($1, $3)), () }
+  | IDENT                                       { IdentExpr $1, () }
+  | LPAR;expr;RPAR                              { ParenExpr $2, () }
+  | IDENT; expr_list                            { FunCallExpr {call_head=$1; call_args=$2 }, () }
+  | DEPLOY;IDENT;expr_list;msg_info             { NewExpr{new_head=$2; new_args=$3; new_msg_info=$4},() }
+  | expr;DOT;DEFAULT;LPAR;RPAR;msg_info         { SendExpr{send_cntrct=$1; send_method=None   ; send_args=[]; send_msg_info=$6},() }
+  | expr;DOT;IDENT;expr_list;msg_info           { SendExpr{send_cntrct=$1; send_method=Some $3; send_args=$4; send_msg_info=$5},() }
+  | ADDRESS;LPAR;expr;RPAR                      { AddrExpr $3, () }
+  | NOT; expr                                   { NotExpr $2, () }
+  | THIS                                        { ThisExpr, () }
+  | l = lexpr;                                  { ArrayAccessExpr l, () }
   ;
 %inline expr_list:
-  | plist(expr)                              {$1}
+  | plist(expr)                                 {$1}
 msg_info:
-  | value_info; reentrance_info             { {Syntax.msg_value_info=$1; msg_reentrance_info=$2} }
+  | value_info; reentrance_info                 { {msg_value_info=$1; msg_reentrance_info=$2} }
   ;
 value_info:
-  | (* empty *)                             { None }
-  | ALONG; expr;                             { Some $2 }
+  | (* empty *)                                 { None }
+  | ALONG; expr;                                { Some $2 }
   ;
 reentrance_info:
-  | REENTRANCE; block                       { $2 }
+  | REENTRANCE; block                           { $2 }
   ;
 lexpr:
-  | expr;LSQBR;expr;RSQBR                     { Syntax.ArrayAccessLExpr{Syntax.array_access_array=$1; array_access_index=$3} }
+  | expr;LSQBR;expr;RSQBR                       { ArrayAccessLExpr{array_access_array=$1; array_access_index=$3} }
   ;

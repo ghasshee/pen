@@ -1,49 +1,46 @@
-contract PreToken
-(uint256 totalSupply
-,address => uint256 balances
-,address => address => uint256 allowances
-)
-{
-    default
-    {
+
+contract PreToken   (uint256 totalSupply
+                    ,address => uint256 balances
+                    ,address => address => uint256 allowances ) {
+    default {
         balances[this] = totalSupply;
-        return then become Token(totalSupply, balances, allowances);
+        return 
+            then become Token(totalSupply, balances, allowances);
     }
 }
 
-event Transfer(address indexed _from, address indexed _to, uint256 _amount);
-event Buy(address indexed _buyer, uint256 _amount, uint256 _value);
-event Sell(address indexed _buyer, uint256 _amount, uint256 _value);
-event Approval(address indexed _owner, address indexed _spender, uint256 _value);
+event Transfer  (address indexed _from,  address indexed _to,       uint256 _amount);
+event Buy       (address indexed _buyer, uint256 _amount,           uint256 _value);
+event Sell      (address indexed _buyer, uint256 _amount,           uint256 _value);
+event Approval  (address indexed _owner, address indexed _spender,  uint256 _value);
 
-contract Token
-(uint256 totalSupply
-,address => uint256 balances
-,address => address => uint256 allowances
-)
+contract Token( uint256 totalSupply
+                ,address => uint256 balances
+                ,address => address => uint256 allowances )
 {
-    method(uint256 totalSupply())
-    {
-        return totalSupply then become Token(totalSupply, balances, allowances);
-    }
-    method(uint256 balanceOf(address a))
-    {
-        return balances[a] then become Token(totalSupply, balances, allowances);
+    method(uint256 totalSupply()) {
+        return totalSupply 
+            then become Token(totalSupply, balances, allowances);
     }
 
-    method(bool transfer(address _to, uint256 _amount))
-    {
+    method(uint256 balanceOf(address a)) {
+        return balances[a] 
+            then become Token(totalSupply, balances, allowances);
+    }
+
+    method(bool transfer(address _to, uint256 _amount)) {
         if (balances[sender(msg)] < _amount) then abort;
-        if (sender(msg) == _to) then 
-        {
+        if (sender(msg) == _to) then {
             log Transfer(sender(msg), sender(msg), _amount);
-            return true then become Token(totalSupply, balances, allowances);
+            return true 
+                then become Token(totalSupply, balances, allowances);
         }
         balances[sender(msg)] = balances[sender(msg)] - _amount;
         if (balances[_to] + _amount < balances[_to]) then abort;
         balances[_to] = balances[_to] + _amount;
         log Transfer(sender(msg), _to, _amount);
-        return true then become Token(totalSupply, balances, allowances);
+        return true 
+            then become Token(totalSupply, balances, allowances);
     }
 
     method(bool approve(address _spender, uint256 _amount))
@@ -52,59 +49,62 @@ contract Token
         if (sender(msg) == _spender) then abort;
         allowances[sender(msg)][_spender] = _amount;
         log Approval(sender(msg), _spender, _amount);
-        return true then become Token(totalSupply, balances, allowances);
+        return true 
+            then become Token(totalSupply, balances, allowances);
     }
-    method(uint256 allowance(address _owner, address _spender))
-    {
-        return allowances[_owner][_spender] then become Token(totalSupply, balances, allowances);
+
+    method(uint256 allowance(address _owner, address _spender)) {
+        return allowances[_owner][_spender] 
+            then become Token(totalSupply, balances, allowances);
     }
-    method(bool transferFrom(address _from, address _to, uint256 _amount))
-    {
+    
+    method(bool transferFrom(address _from, address _to, uint256 _amount)) {
         if (balances[_from] < _amount) then abort;
         if (allowances[_from][sender(msg)] < _amount) then abort;
-        if (_from == _to) then 
-        {
+        if (_from == _to) then {
             log Transfer(_from, _to, _amount);
-            return true then become Token(totalSupply, balances, allowances);
+            return true 
+                then become Token(totalSupply, balances, allowances);
         }
 
-        balances[_from] = balances[_from] - _amount;
-        allowances[_from][sender(msg)] = allowances[_from][sender(msg)] - _amount;
-        balances[_to] = balances[_to] + _amount;
+        balances[_from]                 = balances[_from] - _amount;
+        allowances[_from][sender(msg)]  = allowances[_from][sender(msg)] - _amount;
+        balances[_to]                   = balances[_to] + _amount;
         log Transfer(_from, _to, _amount);
         return true then become Token(totalSupply, balances, allowances);
     }
 
-    method(bool buy(uint256 _amount))
-    {
+    method(bool buy(uint256 _amount)) {
         if (balances[this] < _amount) then abort;
         if (balances[sender(msg)] + _amount < balances[sender(msg)]) then abort;
 
         uint256 old_eth_balance = balance(this) - value(msg);
         if (balance(this) * _amount > (balances[this] - _amount) * value(msg)) then  abort;
 
-        balances[this] = balances[this] - _amount;
-        balances[sender(msg)] = balances[sender(msg)] + _amount;
+        balances[this]          = balances[this] - _amount;
+        balances[sender(msg)]   = balances[sender(msg)] + _amount;
 
         log Buy(sender(msg), _amount, value(msg));
-        return true then become Token(totalSupply, balances, allowances);
+        return true 
+            then become Token(totalSupply, balances, allowances);
     }
-    method (bool sell(uint256 _amount, uint256 _value))
-    {
-        if (balance(this) < _value) then abort;
-        if (balances[sender(msg)] < _amount) then abort;
-        if (balances[this] + _amount < balances[this]) then abort;
-        if (not (iszero(value(msg)))) then abort;
+
+    method(bool sell(uint256 _amount, uint256 _value)) {
+        if balance(this)            < _value            then abort;
+        if balances[sender(msg)]    < _amount           then abort;
+        if balances[this]+_amount   < balances[this]    then abort;
+        if not (iszero(value(msg)))                     then abort;
 
         uint256 old_eth_balance = balance(this);
-        uint256 new_eth_balance = balance(this) - _value;
-        uint256 new_amount = balances[this] + _amount;
-        if (new_eth_balance * _amount < new_amount * _value) then abort;
+        uint256 new_eth_balance = balance(this)  - _value;
+        uint256 new_amount      = balances[this] + _amount;
+        if new_eth_balance*_amount < new_amount*_value then abort;
 
-        balances[this] = new_amount;
-        balances[sender(msg)] = balances[sender(msg)] - _amount;
+        balances[this]          = new_amount;
+        balances[sender(msg)]   = balances[sender(msg)] - _amount;
         log Sell(sender(msg), _amount, _value);
-        void = sender(msg).default() with _value reentrance { abort; };
-        return true then become Token(totalSupply, balances, allowances);
+        void                    = sender(msg).default() with _value reentrance { abort; };
+        return true 
+            then become Token(totalSupply, balances, allowances);
     }
 }

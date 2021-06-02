@@ -70,7 +70,7 @@ let prABI_event (e:event) : string =
         (prABI_event_inputs e.event_args) (e.event_name)
 
 let prABI_toplevel seen_cnstrctr (t:ty toplevel) : string = match t with
-    | Contract c                -> prABI_cntrct seen_cnstrctr c
+    | Cntrct c                -> prABI_cntrct seen_cnstrctr c
     | Event e                   -> prABI_event e
 
 let prABI (tops : ty toplevel with_cid) : unit =

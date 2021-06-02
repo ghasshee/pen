@@ -4,7 +4,7 @@ open ContractId
 open Label
 
 type entrypoint =
-                | Contract    of cid
+                | Cntrct    of cid
                 | Case        of cid * Syntax.mthd_head
 
 let store : (entrypoint*label)list ref          = ref []

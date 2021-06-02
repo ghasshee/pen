@@ -10,7 +10,7 @@ module L    = List
 
 type stor_location = int
 
-(* Storage Layout that should be available after the cnstrctr compilation finishes *)
+(* Stor Layout that should be available after the cnstrctr compilation finishes *)
 type stor_layout            =
                             { cids                        : cid list
                             ; cnstrctr_code_size       : cid -> int
@@ -35,7 +35,7 @@ type stor_layout            =
                             ; stor_array_seeds_size       : cid -> int
                             }
 
-(* Storage Layout that should be available after the runtime compilation finishes. *)
+(* Stor Layout that should be available after the runtime compilation finishes. *)
 type post_stor_layout       =
                             { (* The initial data is organized like this: *)
                               (* |cnstrctr code|runtime code|cnstrctr args|  *)
@@ -111,40 +111,40 @@ let cnstrct_stor_layout(lst:(cid*cntrct_stor_layout)list) : stor_layout =
 
 let cnstrct_post_stor_layout (lst:(cid*cntrct_stor_layout)list)
       (runtime:runtime_stor_layout) : post_stor_layout =
-    { init_data_size                      = compute_init_data_size lst runtime
-    ; runtime_code_size                   = runtime.runtime_code_size
-    ; cntrct_offset_in_runtime_code     = runtime.runtime_offset_of_cid
-    ; l                                   = cnstrct_stor_layout lst
-    ; cnstrctr_in_runtime_code_offset  = runtime.runtime_offset_of_cnstrctr
+    { init_data_size                        = compute_init_data_size lst runtime
+    ; runtime_code_size                     = runtime.runtime_code_size
+    ; cntrct_offset_in_runtime_code         = runtime.runtime_offset_of_cid
+    ; l                                     = cnstrct_stor_layout lst
+    ; cnstrctr_in_runtime_code_offset       = runtime.runtime_offset_of_cnstrctr
     }
 
 (* Assuming the layout described above, this definition makes sense. *)
-let runtime_code_offset (layout:stor_layout) (cid:cid) : int =
+let runtime_code_offset (layout:stor_layout) cid : int =
     layout.cnstrctr_code_size cid
 
-let rec realize_imm(layout:post_stor_layout)(initial_cid:cid) = 
+let rec realize_imm(layout:post_stor_layout)(init_cid:cid) = 
     let big = big_int_of_int in function 
-    | Big b                                   ->  b
-    | Int i                                   ->  big i
-    | Label l                                 ->  big (Label.lookup_value l)
-    | StoragePCIndex                          ->  big (layout.l.stor_current_pc_index)
-    | StorageCnstrctrArgumentsBegin cid    ->  big (layout.l.stor_cnstrctr_args_begin cid)
-    | StorageCnstrctrArgumentsSize cid     ->  big (layout.l.stor_cnstrctr_args_size cid)
-    | InitDataSize cid                        ->  big (layout.init_data_size cid)
-    | RuntimeCodeOffset cid                   ->  big (runtime_code_offset layout.l cid)
-    | RuntimeCodeSize                         ->  big (layout.runtime_code_size)
-    | CnstrctrCodeSize cid                 ->  big (layout.l.cnstrctr_code_size cid)
-    | CnstrctrInRuntimeCodeOffset cid      ->  big (choose_cntrct cid layout.cnstrctr_in_runtime_code_offset)
-    | ContractOffsetInRuntimeCode cid         ->  big (choose_cntrct cid layout.cntrct_offset_in_runtime_code)
-    | CaseOffsetInRuntimeCode(cid,mthd_head)  ->  let label = Entrypoint.(lookup_entrypoint (Case (cid, mthd_head))) in
-                                                  big (Label.lookup_value label)
-    | Minus (a, b)                            ->  sub_big_int (realize_imm layout initial_cid a) (realize_imm layout initial_cid b)
+    | Big b                                 ->  b
+    | Int i                                 ->  big i
+    | Label l                               ->  big (Label.lookup_value l)
+    | StorPCIndex                           ->  big (layout.l.stor_current_pc_index)
+    | StorCnstrctrArgsBegin       cid       ->  big (layout.l.stor_cnstrctr_args_begin cid)
+    | StorCnstrctrArgsSize        cid       ->  big (layout.l.stor_cnstrctr_args_size cid)
+    | InitDataSize                cid       ->  big (layout.init_data_size cid)
+    | RuntimeCodeOffset           cid       ->  big (runtime_code_offset layout.l cid)
+    | RuntimeCodeSize                       ->  big (layout.runtime_code_size)
+    | CnstrctrCodeSize            cid       ->  big (layout.l.cnstrctr_code_size cid)
+    | CnstrctrInRuntimeCodeOffset cid       ->  big (choose_cntrct cid layout.cnstrctr_in_runtime_code_offset)
+    | CntrctOffsetInRuntimeCode   cid       ->  big (choose_cntrct cid layout.cntrct_offset_in_runtime_code)
+    | CaseOffsetInRuntimeCode(cid,mthd_hd)  ->  let label = Entrypoint.(lookup_entrypoint (Case (cid, mthd_hd))) in
+                                                big (Label.lookup_value label)
+    | Minus (a, b)                          ->  sub_big_int (realize_imm layout init_cid a) (realize_imm layout init_cid b)
 
-let realize_opcode (l : post_stor_layout) (initial_cid : cid) (i : imm Evm.opcode) = Evm.(
+let realize_opcode (l : post_stor_layout) (init_cid : cid) (i : imm Evm.opcode) = Evm.(
     match i with
-    | PUSH1  imm      -> PUSH1  (realize_imm l initial_cid imm)
-    | PUSH4  imm      -> PUSH4  (realize_imm l initial_cid imm)
-    | PUSH32 imm      -> PUSH32 (realize_imm l initial_cid imm)
+    | PUSH1  imm      -> PUSH1  (realize_imm l init_cid imm)
+    | PUSH4  imm      -> PUSH4  (realize_imm l init_cid imm)
+    | PUSH32 imm      -> PUSH32 (realize_imm l init_cid imm)
     | NOT             -> NOT
     | TIMESTAMP       -> TIMESTAMP
     | EQ              -> EQ
@@ -215,8 +215,7 @@ let realize_opcode (l : post_stor_layout) (initial_cid : cid) (i : imm Evm.opcod
     | DUP7            -> DUP7
     )
 
-let realize_program (l : post_stor_layout) (initial_cid : cid) (p : imm Evm.program) : big_int Evm.program
-  = L.map (realize_opcode l initial_cid) p
+let realize_program l init_cid p = L.map (realize_opcode l init_cid) p
 
 let stor_layout_of_cntrct (c : ty cntrct) (cnstrctr_code : imm Evm.program) =
   { cntrct_cnstrctr_code_size  = Evm.size_of_program cnstrctr_code
@@ -239,17 +238,17 @@ let rec arg_locations_inner (offset : int) (used_plain_args : int) (used_mapping
 
 (* this needs to take stor_cnstrctr_args_begin *)
 let arg_locations (offset : int) (cntr : ty cntrct) : stor_location list =
-  let arg_types     = L.map (fun a -> a.ty) cntr.cntrct_args in
-  assert (L.for_all fits_in_one_stor_slot arg_types) ; 
-  let num_of_plains = count_plain_args arg_types in
-  let ret           = arg_locations_inner offset 0 0 num_of_plains arg_types in 
+  let arg_tys     = L.map (fun a -> a.ty) cntr.cntrct_args in
+  assert (L.for_all fits_in_one_stor_slot arg_tys) ; 
+  let num_of_plains = count_plain_args arg_tys in
+  let ret           = arg_locations_inner offset 0 0 num_of_plains arg_tys in 
   ret 
 
 let array_locations (cntr : ty cntrct) : stor_location list =
-  let arg_types = L.map (fun a -> a.ty) cntr.cntrct_args in
-  let () = assert (L.for_all fits_in_one_stor_slot arg_types) in
-  let num_of_plains = count_plain_args arg_types in
-  let total_num = L.length arg_types in
+  let arg_tys = L.map (fun a -> a.ty) cntr.cntrct_args in
+  let () = assert (L.for_all fits_in_one_stor_slot arg_tys) in
+  let num_of_plains = count_plain_args arg_tys in
+  let total_num = L.length arg_tys in
   if total_num = num_of_plains 
       then []
       else BL.(range (2 + num_of_plains) `To (total_num + 1))

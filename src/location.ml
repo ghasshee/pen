@@ -4,12 +4,12 @@ type stor_location   = int
 
 
 type 'imm mem_range  =
-                        { mem_start      : 'imm    (* byte as in EVM *)
-                        ; mem_size       : 'imm    (* byte *)  }
+                        { mem_start         : 'imm    (* byte as in EVM *)
+                        ; mem_size          : 'imm    (* byte *)  }
 
 type 'imm stor_range =
-                        { stor_start     : 'imm    (* word as in EVM *)
-                        ; stor_size      : 'imm    (* word *)  }
+                        { stor_start        : 'imm    (* word as in EVM *)
+                        ; stor_size         : 'imm    (* word *)  }
 
 type 'imm code_range    =
                         { code_start        : 'imm    (* byte *)
@@ -32,17 +32,17 @@ type calldata_range     =
 
 (* location *) 
 type location           =
-                        | Storage       of imm stor_range
-                        | CachedStorage of imm cached_stor
+                        | Stor          of imm stor_range
+                        | CachedStor    of imm cached_stor
                         | Volatile      of imm volatile_location
                         | Code          of imm code_range
                         | Calldata      of calldata_range
                         | Stack         of int
 
 
-let as_string           = function 
-    | Storage _             -> "Storage ..."
-    | CachedStorage _       -> "CachedStorage ..."
+let string_of_location           = function 
+    | Stor _                -> "Storage ..."
+    | CachedStor _          -> "CachedStorage ..."
     | Volatile _            -> "Volatile ..."
     | Code _                -> "Code ..."
     | Calldata c            -> Printf.sprintf "Calldata offset %d, size %d" c.calldata_offset c.calldata_size
