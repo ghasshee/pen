@@ -257,15 +257,16 @@ let prepare_mthd_sig mthd ce =
     assert (stack_size ce = start_size + 2) ; 
     ce
 
-let keccak_cons le ce =
-    let start_size = stack_size                 ce in (* put the top into 0x00 *)
-    let ce = PUSH1 (Int 0x0)                >>> ce in
-    let ce = MSTORE                         >>> ce in (* put the top into 0x20 *)
-    let ce = PUSH1 (Int 0x20)               >>> ce in
-    let ce = MSTORE                         >>> ce in (* take the sha3 of 0x00--0x40 *)
-    let ce = PUSH1 (Int 0x40)               >>> ce in
-    let ce = PUSH1 (Int 0x0 )               >>> ce in
-    let ce = SHA3                           >>> ce in
+(* take a := 256bit , b := 256bit(=32byte) , and return sha3(a++b) *)  
+let keccak_cons le ce =                               
+    let start_size = stack_size                 ce in (*                    a <<< b <<< .. *) 
+    let ce = PUSH1 (Int 0x0)                >>> ce in (*           0x00 <<< a <<< b <<< .. *)
+    let ce = MSTORE                         >>> ce in (* M[0x00]=a                b <<< .. *)
+    let ce = PUSH1 (Int 0x20)               >>> ce in (*                 0x20 <<< b <<< .. *)
+    let ce = MSTORE                         >>> ce in (* M[0x20]=b                      .. *) 
+    let ce = PUSH1 (Int 0x40)               >>> ce in (*                       0x40 <<< .. *)
+    let ce = PUSH1 (Int 0x0 )               >>> ce in (*              0x0  <<< 0x40 <<< .. *)
+    let ce = SHA3                           >>> ce in (*        sha3(M[0x00..0x3F]) <<< .. *)
     assert (stack_size ce + 1 = start_size) ;
     ce
 
@@ -431,26 +432,26 @@ and codegen_new_expr le ce new_e (cntrctname : string) =
     assert (stack_size ce = start_size + 1) ; 
     ce
 
-and generate_array_access_index le ce aa =
-    let array = aa.array_access_array                   in
-    let index = aa.array_access_index                   in
-    let ce    = index               >>>>> (R_,le,ce)    in 
-    let ce    = array               >>>>> (R_,le,ce)    in
-    let ce    = keccak_cons le ce                       in
-    ce
+and generate_array_index le ce aa =
+    let array = aa.array_name                   in
+    let index = aa.array_index                   in
+    let ce    = index               >>>>> (R_,le,ce)    in (*                    index <<< .. *)
+    let ce    = array               >>>>> (R_,le,ce)    in (*      array_loc <<< index <<< .. *)
+                keccak_cons le ce                          (*   sha3(array_loc++index) <<< .. *) 
+      
 
-and codegen_array_access le ce (aa:ty array_access) =
-    let ce    = generate_array_access_index le ce aa in
+and codegen_array le ce (aa:ty array) =
+    let ce    = generate_array_index le ce aa in
     SLOAD >>> ce 
 
 (* if the stack top is zero, set up an array seed at aa, and replace the zero with the new seed *)
-and setup_array_seed_at_array_access le ce aa =
-    let label = get_new_label ()                        in       (* stack: [result, result] *)
+and setup_array_seed_at_array le ce aa =
+    let label = get_new_label ()                        in (* *)    (* stack: [result, result] *)
     let ce = DUP1                                >>> ce in       (* stack: [result, result] *)
     let ce = PUSH4(Label label)                  >>> ce in       (* stack: [result, result, shortcut] *)
     let ce = JUMPI                               >>> ce in       (* stack: [result] *)
     let ce = POP                                 >>> ce in       (* stack: [] *)
-    let ce = generate_array_access_index le ce aa       in(* stack: [stor_index] *)
+    let ce = generate_array_index le ce aa              in       (* stack: [stor_index] *)
     let ce = PUSH1 (Int 1)                       >>> ce in       (* stack: [stor_index, 1] *)
     let ce = SLOAD                               >>> ce in       (* stack: [stor_index, orig_seed] *)
     let ce = DUP1                                >>> ce in       (* stack: [stor_index, orig_seed, orig_seed] *)
@@ -497,7 +498,7 @@ and setup_array_seed_at_location le ce loc =
 (* le is not updated here.  It can be only updated in
  * a variable initialization *)
 
-and codegen_expr (le:le) (ce:ce) (align:alignment) ((e,t):ty expr) : ce =
+and codegen_expr le ce align  ((e,t):ty expr) : ce =
     let ret = (match e,t with
     | AddrExpr((c,TyCntrctInstance _)as inner),TyAddr ->
                                 inner >>>>> (align,le,ce) 
@@ -514,11 +515,11 @@ and codegen_expr (le:le) (ce:ce) (align:alignment) ((e,t):ty expr) : ce =
 
     | SenderExpr,_           -> errc "SenderExpr"
 
-    | ArrayAccessExpr aa,ty  -> let ce = codegen_array_access le ce (read_array_access aa) in
-                                assert (align = R_) ; 
-                                (match ty with
-                                | TyMap _   -> setup_array_seed_at_array_access le ce (read_array_access aa)
-                                | _         -> ce    ) 
+    | ArrayExpr a,ty         -> assert (align = R_) ; 
+                                let ce = codegen_array le ce (read_array a) in
+                                begin match ty with
+                                | TyMap _   -> setup_array_seed_at_array le ce (read_array a)
+                                | _         -> ce                   end 
 
     | ThisExpr,_             -> let ce = ADDRESS        >>> ce      in
                                 let ce = align_address ce align     in
@@ -527,11 +528,11 @@ and codegen_expr (le:le) (ce:ce) (align:alignment) ((e,t):ty expr) : ce =
     | IdentExpr id,ty        -> (match lookup le id with
                                 (** if things are just DUP'ed, location env should not be updated.  
                                  *  If they are SLOADED,   the location env should be updated. *)
-                                | Some location ->  let (le, ce) = copy_to_top le ce align ty location in
+                                | Some loc  ->  let le,ce = copy_to_top le ce align ty loc in
                                                     begin match ty with
-                                                    | TyMap _   -> setup_array_seed_at_location le ce location
+                                                    | TyMap _   -> setup_array_seed_at_location le ce loc
                                                     | _         -> ce           end
-                                | None          ->  err ("codegen_expr: identifier's location not found: "^id) )
+                                | None      ->  err ("codegen_expr: identifier's location not found: "^id) )
 
     | FalseExpr,TyBool       -> let ce = PUSH1(Big zero_big_int)>>> ce  in
                                 assert (align = R_) ; 
@@ -626,8 +627,8 @@ and codegen_expr (le:le) (ce:ce) (align:alignment) ((e,t):ty expr) : ce =
                                 
     | GtExpr _, _            -> errc "GtExpr"
 
-    | BalanceExpr inner,TyUint256 ->
-                                let ce = inner          >>>>>(R_,le,ce)    in
+    | BalanceExpr e,TyUint256->
+                                let ce = e              >>>>>(R_,le,ce)    in
                                          BALANCE        >>>ce
     | BalanceExpr inner, _   -> errc "BalanceExpr"
 
@@ -641,10 +642,10 @@ and codegen_expr (le:le) (ce:ce) (align:alignment) ((e,t):ty expr) : ce =
     | SendExpr s, _          -> assert (align = R_) ; 
                                 codegen_send_expr le ce s
 
-    | NewExpr new_, TyCntrctInstance cty ->
+    | NewExpr n,TyCntrctInstance c ->
                                 assert (align = R_) ; 
-                                codegen_new_expr le ce new_ cty
-    | NewExpr new_, _        -> errc "NewExpr"
+                                codegen_new_expr le ce n c
+    | NewExpr n, _           -> errc "NewExpr"
 
     | FunCallExpr fcall,reT  -> codegen_fun_call_expr le ce align fcall reT
 
@@ -1264,9 +1265,9 @@ let add_return le ce layout ret =
     assert (stack_size ce = start_size) ; 
     le,ce
 
-let put_stacktop_into_array_access le ce layout (aa : ty array_access) =
-    let array = aa.array_access_array       in
-    let index = aa.array_access_index       in
+let put_stacktop_into_array le ce layout (aa : ty array) =
+    let array = aa.array_name       in
+    let index = aa.array_index       in
     let ce = index          >>>>>(R_,le,ce) in   (* stack : [value, index] *)
     let ce = array          >>>>>(R_,le,ce) in   (* stack : [value, index, array_seed] *)
     let ce = keccak_cons    le ce           in   (* stack : [value, kec(array_seed ^ index)] *)
@@ -1276,7 +1277,7 @@ let put_stacktop_into_array_access le ce layout (aa : ty array_access) =
 let put_stacktop_into_lexpr le ce layout l =
     let start_size = stack_size ce in
     let ce  = match l with
-        | ArrayAccessLExpr aa -> put_stacktop_into_array_access le ce layout aa in
+        | ArrayLExpr aa -> put_stacktop_into_array le ce layout aa in
     assert (start_size = stack_size ce + 1) ; 
     ce
 

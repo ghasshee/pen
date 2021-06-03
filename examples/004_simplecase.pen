@@ -1,7 +1,7 @@
 
 
 contract C() {
-case (uint256 f(uint256 _x, uint256 _y))
+method (uint256 f(uint256 _x, uint256 _y))
 {
     abort;
 }

@@ -124,7 +124,7 @@ stmt:
   ;
 
 expr:
-  | lhs = expr; LAND; rhs = expr                { LandExpr (lhs, rhs), () }
+  | expr LAND expr                              { LandExpr($1,$3), () }
   | TRUE                                        { TrueExpr, () }
   | FALSE                                       { FalseExpr, () }
   | DECLIT256                                   { DecLit256Expr $1, ()}
@@ -133,7 +133,7 @@ expr:
   | SENDER LPAR MSG RPAR                        { SenderExpr, () }
   | BALANCE; LPAR; expr; RPAR                   { BalanceExpr $3, () }
   | NOW LPAR BLOCK RPAR                         { NowExpr, () }
-  | expr;op;expr                                { ($2 ($1, $3)), () }
+  | expr op expr                                { ($2($1,$3)), () }
   | IDENT                                       { IdentExpr $1, () }
   | LPAR;expr;RPAR                              { ParenExpr $2, () }
   | IDENT; expr_list                            { FunCallExpr {call_head=$1; call_args=$2 }, () }
@@ -143,10 +143,10 @@ expr:
   | ADDRESS;LPAR;expr;RPAR                      { AddrExpr $3, () }
   | NOT; expr                                   { NotExpr $2, () }
   | THIS                                        { ThisExpr, () }
-  | l = lexpr;                                  { ArrayAccessExpr l, () }
+  | lexpr;                                      { ArrayExpr $1, () }
   ;
 %inline expr_list:
-  | plist(expr)                                 {$1}
+  | plist(expr)                                 { $1 }
 msg_info:
   | value_info; reentrance_info                 { {msg_value_info=$1; msg_reentrance_info=$2} }
   ;
@@ -157,6 +157,6 @@ value_info:
 reentrance_info:
   | REENTRANCE; block                           { $2 }
   ;
-lexpr:
-  | expr;LSQBR;expr;RSQBR                       { ArrayAccessLExpr{array_access_array=$1; array_access_index=$3} }
+  lexpr:                                        (* expr '[' expr ']' *) 
+  | expr;LSQBR;expr;RSQBR                       { ArrayLExpr{array_name=$1; array_index=$3} }
   ;

@@ -241,15 +241,15 @@ let rec arg_locations_inner offset used_plain_args used_mapping_seeds num_of_pla
 
 
 (* this needs to take stor_cnstrctr_args_begin *)
-let arg_locations offset (cntr:ty cntrct) : stor_location list =
-    let arg_tys       = L.map (fun a->a.ty) cntr.cntrct_args in
+let arg_locations offset (cn:ty cntrct) : stor_location list =
+    let arg_tys       = L.map (fun a->a.ty) cn.cntrct_args in
     assert (L.for_all fits_in_one_stor_slot arg_tys) ; 
     let num_of_plains = count_plain_args arg_tys  in
     let ret           = arg_locations_inner offset 0 0 num_of_plains arg_tys in 
     ret 
 
-let array_locations (cntr:ty cntrct) : stor_location list =
-    let arg_tys       = L.map (fun a->a.ty) cntr.cntrct_args in
+let array_locations (cn:ty cntrct) : stor_location list =
+    let arg_tys       = L.map (fun a->a.ty) cn.cntrct_args in
     assert (L.for_all fits_in_one_stor_slot arg_tys) ;
     let num_of_plains = count_plain_args arg_tys  in
     let total_num     = L.length arg_tys          in

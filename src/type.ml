@@ -216,17 +216,17 @@ and assignTy_expr cn_intfs cname tyenv (expr_inner,()) : (ty*eff list) expr =
                             assert (acceptable_as TyAddr (get_ty e));
                             assert (get_eff e = []);
                             BalanceExpr e   , (TyUint256, [External, Read])
-    | ArrayAccessExpr aa->
-                            let e = assignTy_expr cn_intfs cname tyenv (read_array_access aa).array_access_array in
+    | ArrayExpr aa->
+                            let e = assignTy_expr cn_intfs cname tyenv (read_array aa).array_name in
                             begin match get_ty e with
-                            | TyMap(kT,vT)-> let aaidx              = (read_array_access aa).array_access_index in 
+                            | TyMap(kT,vT)-> let aaidx              = (read_array aa).array_index in 
                                              let idx,(idxTy,idxEff) = assignTy_expr cn_intfs cname tyenv aaidx in 
                                              assert (acceptable_as kT idxTy) ; 
                                              assert (BL.for_all isStorRead idxEff) ; 
                                              (* TODO Check idxTy and key_ty are somehow compatible *)
-                                             (ArrayAccessExpr (ArrayAccessLExpr
-                                                      { array_access_array = e
-                                                      ; array_access_index = idx,(idxTy,idxEff) }),(vT,[Stor,Read]))
+                                             (ArrayExpr (ArrayLExpr
+                                                      { array_name = e
+                                                      ; array_index = idx,(idxTy,idxEff) }),(vT,[Stor,Read]))
                             | _           -> err "index access has to be on mappings"   end
     | SendExpr send     ->
                             let msg_info'   = assignTy_msg_info cn_intfs cname tyenv send.send_msg_info in
@@ -274,13 +274,13 @@ and assignTy_new_expr cn_intfs cname tenv e : (ty*eff list)new_expr*string (* na
 and assignTy_lexpr cn_intfs cname tyenv (src:unit lexpr) : (ty*eff list) lexpr =
   (* no need to type the left hand side? *)
     match src with
-    | ArrayAccessLExpr aa ->let e = assignTy_expr cn_intfs cname tyenv aa.array_access_array in
+    | ArrayLExpr aa ->let e = assignTy_expr cn_intfs cname tyenv aa.array_name in
                             begin match get_ty e with
                             | TyMap (kT,vT) ->
-                               let idx,idx_ty = assignTy_expr cn_intfs cname tyenv aa.array_access_index in
+                               let idx,idx_ty = assignTy_expr cn_intfs cname tyenv aa.array_index in
                                (* TODO Check idx_typ' and key_ty are somehow compatible *)
-                               ArrayAccessLExpr { array_access_array = e 
-                                                ; array_access_index = idx,idx_ty  }
+                               ArrayLExpr { array_name = e 
+                                                ; array_index = idx,idx_ty  }
                             | _             -> err ("unknown array") end
 
 
@@ -471,11 +471,11 @@ and stripEffect_varDecl v =
     ; varDecl_val        = stripEffect_expr v.varDecl_val }
 
 and stripEffect_aa aa =
-    { array_access_array    = stripEffect_expr aa.array_access_array
-    ; array_access_index    = stripEffect_expr aa.array_access_index }
+    { array_name    = stripEffect_expr aa.array_name
+    ; array_index    = stripEffect_expr aa.array_index }
 
 and stripEffect_lexpr = function 
-    | ArrayAccessLExpr aa          -> ArrayAccessLExpr (stripEffect_aa aa)
+    | ArrayLExpr aa          -> ArrayLExpr (stripEffect_aa aa)
 
 and stripEffect_expr(i,(t,_)) = stripEffect_expr_inner i, t
 
@@ -516,7 +516,7 @@ and stripEffect_expr_inner = function
     | EqExpr(a,b)           -> EqExpr (stripEffect_expr a, stripEffect_expr b)
     | AddrExpr a            -> AddrExpr (stripEffect_expr a)
     | NotExpr e             -> NotExpr (stripEffect_expr e)
-    | ArrayAccessExpr l     -> ArrayAccessExpr (stripEffect_lexpr l)
+    | ArrayExpr l     -> ArrayExpr (stripEffect_lexpr l)
     | ValueExpr             -> ValueExpr
     | SenderExpr            -> SenderExpr
     | ThisExpr              -> ThisExpr

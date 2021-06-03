@@ -108,7 +108,7 @@ and  'ty expr_tm        =
                         | EqExpr                of 'ty expr * 'ty expr
                         | AddrExpr              of 'ty expr
                         | NotExpr               of 'ty expr
-                        | ArrayAccessExpr       of 'ty lexpr
+                        | ArrayExpr       of 'ty lexpr
                         | ValueExpr
                         | SenderExpr
                         | ThisExpr
@@ -120,11 +120,11 @@ and  'ty expr_tm        =
                         | BalanceExpr           of 'ty expr
 
 and 'ty lexpr           =
-                        | ArrayAccessLExpr      of 'ty array_access
+                        | ArrayLExpr      of 'ty array
 
-and 'ty array_access    =
-                        { array_access_array    : 'ty expr
-                        ; array_access_index    : 'ty expr          }
+and 'ty array    =
+                        { array_name    : 'ty expr
+                        ; array_index    : 'ty expr          }
 
 and 'ty varDecl     =
                         { varDecl_ty            : ty
@@ -137,8 +137,8 @@ and 'ty return          =
 
 
 
-let read_array_access   = function 
-    | ArrayAccessLExpr a    -> a
+let read_array   = function 
+    | ArrayLExpr a    -> a
 
 let event_arg_of_arg arg isIndexed =
     { event_arg_body        = arg
@@ -207,7 +207,7 @@ let cntrct_name_of_instance ((_,(t,_)):(ty*'a)expr) = match t with
 
 let string_of_expr_inner = function 
     | ThisExpr                  -> "this"
-    | ArrayAccessExpr _         -> "a[idx]"
+    | ArrayExpr _         -> "a[idx]"
     | SendExpr _                -> "send"
     | NewExpr _                 -> "new"
     | ParenExpr _               -> "()"
@@ -319,8 +319,8 @@ and send_expr_might_become s =
         (L.concat (L.map expr_might_become s.send_args))@
             (msg_info_might_become s.send_msg_info)
 
-and array_access_might_become aa =
-    expr_might_become aa.array_access_index
+and array_might_become aa =
+    expr_might_become aa.array_index
 
 and expr_might_become e : string list = match fst e with
     | TrueExpr                  -> []
@@ -340,7 +340,7 @@ and expr_might_become e : string list = match fst e with
     | EqExpr (l, r)             -> (expr_might_become l)@(expr_might_become r)
     | AddrExpr a                -> expr_might_become a
     | NotExpr n                 -> expr_might_become n
-    | ArrayAccessExpr aa        -> lexpr_might_become aa
+    | ArrayExpr aa        -> lexpr_might_become aa
     | ValueExpr                 -> []
     | SenderExpr                -> []
     | ThisExpr                  -> []
@@ -353,7 +353,7 @@ and expr_might_become e : string list = match fst e with
 
 
 and lexpr_might_become      = function 
-    | ArrayAccessLExpr aa       -> array_access_might_become aa
+    | ArrayLExpr aa       -> array_might_become aa
 
 let varDecl_might_become v  =
     expr_might_become v.varDecl_val

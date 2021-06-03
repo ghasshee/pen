@@ -57,9 +57,9 @@ contract bid
 	}
 	case (bool pay_beneficiary())
 	{
-if (iszero(_auction.highest_bid() reentrance { abort; }))
+        if (iszero(_auction.highest_bid() reentrance { abort; }))
 			abort;
-address beneficiary = _auction.beneficiary() reentrance { abort; };
+        address beneficiary = _auction.beneficiary() reentrance { abort; };
 		selfdestruct(beneficiary);
 	}
 	default
@@ -67,6 +67,9 @@ address beneficiary = _auction.beneficiary() reentrance { abort; };
 		abort;
 	}
 }
+
+
+
 contract auction_done
 (address _bene,
  address => bool _bids,
