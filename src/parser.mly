@@ -138,8 +138,8 @@ expr:
   | LPAR;expr;RPAR                              { ParenExpr $2, () }
   | IDENT; expr_list                            { FunCallExpr {call_head=$1; call_args=$2 }, () }
   | DEPLOY;IDENT;expr_list;msg_info             { NewExpr{new_head=$2; new_args=$3; new_msg_info=$4},() }
-  | expr;DOT;DEFAULT;LPAR;RPAR;msg_info         { SendExpr{send_cntrct=$1; send_method=None   ; send_args=[]; send_msg_info=$6},() }
-  | expr;DOT;IDENT;expr_list;msg_info           { SendExpr{send_cntrct=$1; send_method=Some $3; send_args=$4; send_msg_info=$5},() }
+  | expr;DOT;DEFAULT;LPAR;RPAR;msg_info         { SendExpr{send_cntrct=$1; send_mthd=None   ; send_args=[]; send_msg_info=$6},() }
+  | expr;DOT;IDENT;expr_list;msg_info           { SendExpr{send_cntrct=$1; send_mthd=Some $3; send_args=$4; send_msg_info=$5},() }
   | ADDRESS;LPAR;expr;RPAR                      { AddrExpr $3, () }
   | NOT; expr                                   { NotExpr $2, () }
   | THIS                                        { ThisExpr, () }

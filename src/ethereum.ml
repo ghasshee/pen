@@ -87,7 +87,7 @@ let args_with_locations (c:ty mthd) : (string*location)list = match c.mthd_head 
     | Method h          ->  let sizes       = L.map calldata_size_of_arg h.mthd_args in
                             let positions   = arg_sizes_to_positions sizes in
                             let size_pos    = L.combine positions sizes in
-                            let locations   = L.map (fun(o,s)->Calldata{calldata_offset=o;calldata_size=s}) size_pos in
+                            let locations   = L.map (fun(o,s)->Calldata{calldata_start=o;calldata_size=s}) size_pos in
                             let names       = L.map (fun a -> a.id) h.mthd_args in
                             let ret         = L.combine names locations in
                             ret

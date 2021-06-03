@@ -12,8 +12,8 @@ type stor_location = int
 
 (* Stor Layout that should be available after the cnstrctr compilation finishes *)
 type stor_layout            =
-                            { cids                        : cid list
-                            ; cnstrctr_code_size       : cid -> int
+                            { cids                      : cid list
+                            ; cnstrctr_code_size        : cid -> int
                               (* numbers about the storage *)
                               (* The storage during the runtime looks like this: *)
                               (* |S[0]  := PROGRAM COUNTER     (might be entry_pc_of_current_cntrct)
@@ -27,29 +27,36 @@ type stor_layout            =
                                  | ... 
                                  | *)
                               (* In addition, array elements are placed at the same location as in Solidity *)
-                            ; stor_current_pc_index       : int
-                            ; stor_array_counter_index    : int
-                            ; stor_cnstrctr_args_begin : cid -> int
-                            ; stor_cnstrctr_args_size  : cid -> int
-                            ; stor_array_seeds_begin      : cid -> int
-                            ; stor_array_seeds_size       : cid -> int
+                            ; stor_current_pc_index     : int
+                            ; stor_array_counter_index  : int
+                            ; stor_cnstrctr_args_begin  : cid -> int
+                            ; stor_cnstrctr_args_size   : cid -> int
+                            ; stor_array_seeds_begin    : cid -> int
+                            ; stor_array_seeds_size     : cid -> int
                             }
 
 (* Stor Layout that should be available after the runtime compilation finishes. *)
 type post_stor_layout       =
                             { (* The initial data is organized like this: *)
-                              (* |cnstrctr code|runtime code|cnstrctr args|  *)
-                              init_data_size : cid -> int
+                              (* |cnstrctr code
+                               * |runtime  code
+                               * |cnstrctr args|  *)
+                              init_data_size            : cid -> int
                               (* runtime_coode_offset is equal to cnstrctr_code_size *)
-                            ; runtime_code_size : int
+                            ; runtime_code_size         : int
                             ; cntrct_offset_in_runtime_code : int with_cid
                             (* And then, the runtime code is organized like this: *)
-                            (* |dispatcher that jumps into the stored pc|runtime code for cntrct A|runtime code for cntrct B|runtime code for cntrct C| *)
+                            (* |dispatcher that jumps into the stored pc
+                             * |runtime code for cntrct A
+                             * |runtime code for cntrct B
+                             * |runtime code for cntrct C| *)
 
                             ; cnstrctr_in_runtime_code_offset : int with_cid
 
                             (* And then, the runtime code for a particular cntrct is organized like this: *)
-                            (* |dispatcher that jumps into a case|runtime code for case f|runtime code for case g| *)
+                            (* |dispatcher that jumps into a method
+                             * |runtime code for method f
+                             * |runtime code for method g| *)
                             ; l : stor_layout
                             }
 
@@ -59,7 +66,7 @@ let pr_stor_layout l        =   printf "stor_layout\n";
 
 
 type cntrct_stor_layout   =
-                            { cntrct_cnstrctr_code_size  : int
+                            { cntrct_cnstrctr_code_size     : int
                             ; cntrct_arg_size               : int (** the number of words that the cntrct args occupy *)
                             ; cntrct_num_array_seeds        : int (** the number of args that arrays *)
                             ; cntrct_args                   : ty list (** the list of arg types *)
@@ -67,10 +74,10 @@ type cntrct_stor_layout   =
 
 
 type runtime_stor_layout    =
-                            { runtime_code_size               : int
-                            ; runtime_offset_of_cid           : int with_cid
-                            ; runtime_offset_of_cnstrctr   : int with_cid
-                            ; runtime_size_of_cnstrctr     : int with_cid
+                            { runtime_code_size             : int
+                            ; runtime_offset_of_cid         : int with_cid
+                            ; runtime_offset_of_cnstrctr    : int with_cid
+                            ; runtime_size_of_cnstrctr      : int with_cid
                             }
 
 
@@ -99,14 +106,14 @@ let compute_stor_array_seeds_size lst cid =
     c.cntrct_num_array_seeds
 
 let cnstrct_stor_layout(lst:(cid*cntrct_stor_layout)list) : stor_layout =
-    { cids                        = L.map fst lst
-    ; cnstrctr_code_size       = compute_cnstrctr_code_size lst
-    ; stor_current_pc_index       = 0 (* This is a magic const. *)
-    ; stor_array_counter_index    = 1 (* This is also a magic const. *)
-    ; stor_cnstrctr_args_begin = compute_stor_cnstrctr_args_begin lst
-    ; stor_cnstrctr_args_size  = compute_cnstrctr_args_size lst
-    ; stor_array_seeds_begin      = compute_stor_array_seeds_begin lst
-    ; stor_array_seeds_size       = compute_stor_array_seeds_size lst
+    { cids                      = L.map fst lst
+    ; cnstrctr_code_size        = compute_cnstrctr_code_size lst
+    ; stor_current_pc_index     = 0 (* This is a magic const. *)
+    ; stor_array_counter_index  = 1 (* This is also a magic const. *)
+    ; stor_cnstrctr_args_begin  = compute_stor_cnstrctr_args_begin lst
+    ; stor_cnstrctr_args_size   = compute_cnstrctr_args_size lst
+    ; stor_array_seeds_begin    = compute_stor_array_seeds_begin lst
+    ; stor_array_seeds_size     = compute_stor_array_seeds_size lst
     }
 
 let cnstrct_post_stor_layout (lst:(cid*cntrct_stor_layout)list)
@@ -217,38 +224,36 @@ let realize_opcode (l : post_stor_layout) (init_cid : cid) (i : imm Evm.opcode) 
 
 let realize_program l init_cid p = L.map (realize_opcode l init_cid) p
 
-let stor_layout_of_cntrct (c : ty cntrct) (cnstrctr_code : imm Evm.program) =
-  { cntrct_cnstrctr_code_size  = Evm.size_of_program cnstrctr_code
-  ; cntrct_arg_size               = Eth.total_size_of_intf_args (L.map snd (Eth.cnstrctr_args c))
-  ; cntrct_num_array_seeds        = L.length (Eth.arrays_in_cntrct c)
-  ; cntrct_args                   = L.map (fun a -> a.ty) (c.cntrct_args)
-  }
+let stor_layout_of_cntrct (cn:ty cntrct) (cnstrctr_code : imm Evm.program) =
+    { cntrct_cnstrctr_code_size = Evm.size_of_program cnstrctr_code
+    ; cntrct_arg_size           = Eth.total_size_of_intf_args (L.map snd (Eth.cnstrctr_args cn))
+    ; cntrct_num_array_seeds    = L.length (Eth.arrays_in_cntrct cn)
+    ; cntrct_args               = L.map (fun a->a.ty) (cn.cntrct_args)
+    }
 
-let rec arg_locations_inner (offset : int) (used_plain_args : int) (used_mapping_seeds : int)
-                            (num_of_plains : int)
-                            (args : ty list) : stor_location list =
-  match args with
-  | []          -> []
-  | h :: t      -> if is_mapping h 
-    then (offset + num_of_plains + used_mapping_seeds) ::
-         arg_locations_inner offset used_plain_args (used_mapping_seeds + 1) num_of_plains t
-    else (offset + used_plain_args) ::
-         arg_locations_inner offset (used_plain_args + 1) used_mapping_seeds num_of_plains t
+let rec arg_locations_inner offset used_plain_args used_mapping_seeds num_of_plains = function 
+    | []    ->  []
+    | h::t  ->  if is_mapping h 
+                    then (offset + num_of_plains + used_mapping_seeds) ::
+                        arg_locations_inner offset used_plain_args(used_mapping_seeds+1)num_of_plains t
+                    else (offset + used_plain_args) ::
+                        arg_locations_inner offset(used_plain_args+1)used_mapping_seeds num_of_plains t
 
 
 (* this needs to take stor_cnstrctr_args_begin *)
-let arg_locations (offset : int) (cntr : ty cntrct) : stor_location list =
-  let arg_tys     = L.map (fun a -> a.ty) cntr.cntrct_args in
-  assert (L.for_all fits_in_one_stor_slot arg_tys) ; 
-  let num_of_plains = count_plain_args arg_tys in
-  let ret           = arg_locations_inner offset 0 0 num_of_plains arg_tys in 
-  ret 
+let arg_locations offset (cntr:ty cntrct) : stor_location list =
+    let arg_tys       = L.map (fun a->a.ty) cntr.cntrct_args in
+    assert (L.for_all fits_in_one_stor_slot arg_tys) ; 
+    let num_of_plains = count_plain_args arg_tys  in
+    let ret           = arg_locations_inner offset 0 0 num_of_plains arg_tys in 
+    ret 
 
-let array_locations (cntr : ty cntrct) : stor_location list =
-  let arg_tys = L.map (fun a -> a.ty) cntr.cntrct_args in
-  let () = assert (L.for_all fits_in_one_stor_slot arg_tys) in
-  let num_of_plains = count_plain_args arg_tys in
-  let total_num = L.length arg_tys in
-  if total_num = num_of_plains 
-      then []
-      else BL.(range (2 + num_of_plains) `To (total_num + 1))
+let array_locations (cntr:ty cntrct) : stor_location list =
+    let arg_tys       = L.map (fun a->a.ty) cntr.cntrct_args in
+    assert (L.for_all fits_in_one_stor_slot arg_tys) ;
+    let num_of_plains = count_plain_args arg_tys  in
+    let total_num     = L.length arg_tys          in
+    if total_num=num_of_plains 
+        then []
+        else BL.(range (2 + num_of_plains) `To (total_num + 1))
+

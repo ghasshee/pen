@@ -2,6 +2,7 @@
 
 open Big_int
 open Printf
+open Misc
 
 module L    = List 
 module BL   = BatList
@@ -72,7 +73,7 @@ and  'ty new_expr       =
 
 and  'ty send_expr      =
                         { send_cntrct      : 'ty expr
-                        ; send_method      : string option
+                        ; send_mthd      : string option
                         ; send_args             : 'ty expr list
                         ; send_msg_info         : 'ty msg_info      }
 
@@ -126,9 +127,9 @@ and 'ty array_access    =
                         ; array_access_index    : 'ty expr          }
 
 and 'ty varDecl     =
-                        { varDecl_ty           : ty
-                        ; varDecl_id         : string
-                        ; varDecl_val        : 'ty expr          }
+                        { varDecl_ty            : ty
+                        ; varDecl_id            : string
+                        ; varDecl_val           : 'ty expr          }
 
 and 'ty return          =
                         { ret_expr              : 'ty expr option
@@ -187,8 +188,8 @@ type 'ty cntrct         =
 (*****************************************)
 
 type 'ty toplevel       =
-                        | Cntrct    of 'ty cntrct
-                        | Event       of event
+                        | Cntrct        of 'ty cntrct
+                        | Event         of event
 
 
 
@@ -201,7 +202,7 @@ let mthd_head_arg_list (h:mthd_head) : arg list = match h with
     | Default                   -> []
 
 let cntrct_name_of_instance ((_,(t,_)):(ty*'a)expr) = match t with
-    | TyCntrctInstance s      -> s
+    | TyCntrctInstance s        -> s
     | tyT                       -> err ("seeking cntrct_name_of non-cntrct "^(string_of_ty tyT))
 
 let string_of_expr_inner = function 
@@ -209,7 +210,7 @@ let string_of_expr_inner = function
     | ArrayAccessExpr _         -> "a[idx]"
     | SendExpr _                -> "send"
     | NewExpr _                 -> "new"
-    | ParenExpr _             -> "()"
+    | ParenExpr _               -> "()"
     | IdentExpr str             -> "ident "^str
     | FunCallExpr _             -> "call"
     | NowExpr                   -> "now"
@@ -246,7 +247,7 @@ let is_mapping = function
     | TyVoid                    -> false
     | TyMap _                   -> true
 
-let count_plain_args (tys:ty list) = L.length (L.filter (fun t -> not (is_mapping t)) tys)
+let count_plain_args (args:ty list) = L.length (L.filter (not $ is_mapping) args)
 
 let fits_in_one_stor_slot = function 
     | TyUint256
@@ -270,8 +271,8 @@ let size_of_ty (* in bytes *) = function
     | TyRef _                   -> 32
     | TyTuple lst               -> err "size_of_ty TyTuple"
     | TyMap     _               -> err "size_of_ty TyMap" (* XXX: this is just 32 I think *)
-    | TyCntrctArch x          -> err ("size_of_ty TyCntrctArch: "^x)
-    | TyCntrctInstance _      -> 20 (* address as word *)
+    | TyCntrctArch x            -> err ("size_of_ty TyCntrctArch: "^x)
+    | TyCntrctInstance _        -> 20 (* address as word *)
     | TyVoid                    -> err "size_of_ty VoidType should not be asked"
 
 let size_of_tys (tys:ty list)   = BL.sum (L.map size_of_ty tys)
@@ -280,7 +281,7 @@ let calldata_size_of_ty         = function
     | TyMap _                   -> err "mapping cannot be a method arg"
     | TyRef _                   -> err "reference type cannot be a method arg"
     | TyTuple _                 -> err "tupletype not implemented"
-    | TyCntrctArch _          -> err "CntrctArchType cannot be a method arg"
+    | TyCntrctArch _            -> err "CntrctArchType cannot be a method arg"
     | tyT                       -> size_of_ty tyT
 
 let calldata_size_of_arg(arg:arg)   = calldata_size_of_ty arg.ty
@@ -329,7 +330,7 @@ and expr_might_become e : string list = match fst e with
     | NowExpr                   -> []
     | IdentExpr _               -> []
     | FunCallExpr f             -> functioncall_might_become f
-    | ParenExpr content       -> expr_might_become content
+    | ParenExpr content         -> expr_might_become content
     | NewExpr n                 -> new_expr_might_become n
     | SendExpr s                -> send_expr_might_become s
     | LandExpr (l, r)           -> (expr_might_become l)@(expr_might_become r)
@@ -337,7 +338,7 @@ and expr_might_become e : string list = match fst e with
     | GtExpr (l, r)             -> (expr_might_become l)@(expr_might_become r)
     | NeqExpr (l, r)            -> (expr_might_become l)@(expr_might_become r)
     | EqExpr (l, r)             -> (expr_might_become l)@(expr_might_become r)
-    | AddrExpr a                -> (expr_might_become a)
+    | AddrExpr a                -> expr_might_become a
     | NotExpr n                 -> expr_might_become n
     | ArrayAccessExpr aa        -> lexpr_might_become aa
     | ValueExpr                 -> []
@@ -351,17 +352,17 @@ and expr_might_become e : string list = match fst e with
     | BalanceExpr a             -> expr_might_become a
 
 
-and lexpr_might_become  = function 
+and lexpr_might_become      = function 
     | ArrayAccessLExpr aa       -> array_access_might_become aa
 
-let varDecl_might_become v =
+let varDecl_might_become v  =
     expr_might_become v.varDecl_val
 
 let rec stmt_might_become (s:ty stmt) : string list = match s with
     | AbortStmt                 -> []
     | ReturnStmt ret            -> (match ret.ret_expr with
         | Some e    -> expr_might_become e
-        | None      -> []) @(expr_might_become ret.ret_cont)@
+        | None      -> []   ) @ (expr_might_become ret.ret_cont)@
                         (match cntrct_name_of_ret_cont ret.ret_cont with
                          | Some name    -> [name]
                          | None         -> [] )
@@ -378,8 +379,8 @@ and exprs_might_become (l:ty expr list) : string list =
 
 and stmts_might_become ss = L.concat (L.map stmt_might_become ss)
 
-let mthd_might_become (mthd : ty mthd) : string list =
-    let body = mthd.mthd_body in
+let mthd_might_become (m:ty mthd) : string list =
+    let body = m.mthd_body in
     L.concat (L.map stmt_might_become body)
 
 let might_become (c : ty cntrct) : string list =
@@ -391,14 +392,14 @@ let might_become (c : ty cntrct) : string list =
 
 (* LOOKUP_USUAL_METHOD *) 
 
-let lookup_mthd_info_in_cntrct c mthd_name =
+let lookup_mthd_info_in_cntrct c name =
     let mthds = c.mthds in
     let mthd  = L.filter (fun c -> match c.mthd_head with
                           | Default  -> false
-                          | Method m -> m.mthd_name=mthd_name) mthds in
+                          | Method m -> m.mthd_name=name) mthds in
     match mthd with
     | []        ->  raise Not_found
-    | _::_::_   ->  eprintf "method %s duplicated\n%!" mthd_name;err "mthd_lookup" 
+    | _::_::_   ->  eprintf "method %s duplicated\n%!" name;err "mthd_lookup" 
     | [a]       ->  begin match a.mthd_head with
                     | Method m      -> m
                     | Default       -> err "lookup_mthd_info_in_cntrct: default method found" end

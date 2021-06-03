@@ -22,16 +22,14 @@ module Eth  = Ethereum
 let err = failwith
 
 
-let id_lookup_ty tenv id : (ty * eff list) expr =
-    match lookup tenv id with
-    | Some (tyT, Some loc)    -> (IdentExpr id, (tyT, [(loc,Read)]))
-    | Some (tyT, None)        -> (IdentExpr id, (tyT, []))
-    | None                    -> err ("unknown identifier "^id)
+let id_lookup_ty tenv id        = match lookup tenv id with
+    | Some (tyT, Some loc)          -> IdentExpr id, (tyT, [(loc,Read)])
+    | Some (tyT, None)              -> IdentExpr id, (tyT, [])
+    | None                          -> err ("unknown identifier "^id)
 
-let is_known_cntrct cn_intfs name   = 
-    BL.exists (fun (_,i)-> i.cntrct_intf_name = name) cn_intfs
+let is_known_cntrct cn_intfs nm = BL.exists (fun(_,i)->i.cntrct_intf_name=nm) cn_intfs
 
-let rec is_known_ty (cn_intfs : cntrct_intf with_cid) = function 
+let rec is_known_ty cn_intfs    = function 
     | TyRef l                       ->  BL.for_all (is_known_ty cn_intfs) l
     | TyTuple l                     ->  BL.for_all (is_known_ty cn_intfs) l
     | TyMap(a,b)                    ->  is_known_ty cn_intfs a && is_known_ty cn_intfs b
@@ -42,37 +40,32 @@ let rec is_known_ty (cn_intfs : cntrct_intf with_cid) = function
     | TyBytes32                     ->  true
     | TyAddr                        ->  true
     | TyBool                        ->  true
-    | TyVoid                        ->  true  
+    | TyVoid                        ->  true
 
 let arg_has_known_ty cn_intfs arg =
     let ret = is_known_ty cn_intfs arg.ty in
     if not ret then eprintf"arg has Unknown Type %s\n"(string_of_ty arg.ty);
     ret
 
-let ret_ty_is_known cn_intfs m =
-    BL.for_all (is_known_ty cn_intfs) m.mthd_ret_ty
+let ret_ty_is_known cn_intfs m  = BL.for_all (is_known_ty cn_intfs) m.mthd_ret_ty
 
 let assignTy_mthd_head cn_intfs = function 
-  | Method m            -> assert (BL.for_all (arg_has_known_ty cn_intfs) m.mthd_args) ; 
-                           assert (ret_ty_is_known cn_intfs m) ;
-                           Method m
-  | Default             -> Default
+    | Method m              ->  assert (BL.for_all(arg_has_known_ty cn_intfs)m.mthd_args) ; 
+                                assert (ret_ty_is_known cn_intfs m) ;
+                                Method m
+    | Default               ->  Default
 
-let call_arg_expectations (cn_intfs : cntrct_intf with_cid) = function 
-  | "pre_ecdsarecover"  ->  fun x -> x=[TyBytes32;TyUint8;TyBytes32;TyBytes32]
-  | "keccak256"         ->  fun _ -> true
-  | "iszero"            ->  fun x -> x=[TyBytes32]||x=[TyUint8]||x=[TyUint256]||x=[TyBool]||x=[TyAddr]
-  | name                ->  let cid     = lookup_id (fun c->c.cntrct_intf_name=name) cn_intfs in
-                            let intf    = choose_cntrct cid cn_intfs in
-                            fun x -> x=intf.cntrct_intf_args
-
-
+let call_arg_expectations cn_intfs = function 
+    | "pre_ecdsarecover"    ->  (=) [TyBytes32;TyUint8;TyBytes32;TyBytes32]
+    | "keccak256"           ->  fun _ -> true
+    | "iszero"              ->  fun x -> x=[TyBytes32]||x=[TyUint8]||x=[TyUint256]||x=[TyBool]||x=[TyAddr]
+    | name                  ->  let cid     = lookup_id (fun c->c.cntrct_intf_name=name) cn_intfs in
+                                let intf    = choose_cntrct cid cn_intfs in
+                                (=) intf.cntrct_intf_args
 
 
 
 let type_check ((expr:ty),((_,(t,_)):(ty*'a)expr)) = assert (expr = t)
-
-
 
 
 
@@ -83,19 +76,19 @@ let get_eff (_,(_,eff))     = eff
 let get_effs                = L.map get_eff
 let get_ty  (_,(ty,_))      = ty
 let get_tm  (x,_)           = x
-let assert_tyeqv l r        = assert (get_ty l = get_ty r) 
+let assert_tyeqv l r        = assert (get_ty l=get_ty r) 
 
 
-let check_args_match (cn_intfs : cntrct_intf with_cid) (args:(ty*'x)expr list) (call_head:string option) =
-    let expectations : ty list -> bool = match call_head with
-        | Some mtd      ->  call_arg_expectations cn_intfs mtd
-        | None          ->  isNil  in
-    assert (expectations (L.map(fst $ snd)args))
+let check_args_match cn_intfs (args:(ty*'x)expr list) = function 
+    | Some mtd      ->  assert (call_arg_expectations cn_intfs mtd (L.map get_ty args))
+    | None          ->  assert (isNil (L.map get_ty args))
+
 
 let typecheck_multiple (exprs:ty list) (actual:(ty*'a)expr list) =
-    L.for_all2 (fun e(_,(a,_))-> e=a) exprs actual
+    L.for_all2 (fun e (_,(a,_)) -> e=a) exprs actual
 
-let check_only_1_effect (llst : eff list list)  =
+
+let check_only_1_effect (llst:eff list list)  =
     (* write-write *)
     let ll = L.filter (BL.exists isWrite) llst in 
     if      L.length ll > 1 then err "sub-exprs have side-effects";
@@ -104,34 +97,36 @@ let check_only_1_effect (llst : eff list list)  =
     if      L.length ll = 0 then () 
     else if L.length ll'> 0 then err "sub-exprs have write effects and read effects"
 
-let has_no_side_effects (e:(ty*eff list)expr) = snd(snd e)=[]
 
-let rec assignTy_call cn_intfs cname venv (src:unit fn_call) : ((ty * eff list) fn_call * (ty * eff list)) =
-    let args'       = L.map (assignTy_expr cn_intfs cname venv) src.call_args in
-    check_args_match cn_intfs args' (Some src.call_head) ; 
-    let args_eff    = L.map (snd $ snd) args' in
-    check_only_1_effect args_eff ; 
-    let effs        = (External,Write) :: L.concat args_eff in
-    let reT         = match src.call_head with
+let has_no_side_effects = isNil $ get_eff 
+
+
+let rec assignTy_call cn_intfs cname tyenv (fncall:unit fn_call) : (ty*eff list)fn_call * (ty*eff list) =
+    let args   = L.map (assignTy_expr cn_intfs cname tyenv) fncall.call_args in
+    check_args_match cn_intfs args (Some fncall.call_head) ; 
+    let effs   = get_effs args in
+    check_only_1_effect effs ; 
+    let effs   = (External,Write) :: L.concat effs in
+    let reT    = match fncall.call_head with
         | "value" when true         -> TyUint256 (* check the arg is 'msg' *) 
         | "pre_ecdsarecover"        -> TyAddr
         | "keccak256"               -> TyBytes32
-        | "iszero"                  -> begin match args' with
+        | "iszero"                  -> begin match args with
             | [arg]                     -> TyBool
             | _                         -> err "should not happen" end 
         | cn_name when true         -> TyCntrctArch cn_name (* check contract exists *) 
         | _                         -> err "assignTy_call: should not happen" in
-    ({call_head=src.call_head;call_args=args'}, (reT,effs))
+    ({call_head=fncall.call_head;call_args=args}, (reT,effs))
 
 
-and assignTy_msg_info cn_intfs cname tenv (msg:unit msg_info) : (ty*eff list) msg_info =
-  let v'        = BO.map (assignTy_expr cn_intfs cname tenv) msg.msg_value_info in
-  let block'    = assignTy_stmts cn_intfs cname tenv msg.msg_reentrance_info in
-  { msg_value_info      = v'
-  ; msg_reentrance_info = block' }
+and assignTy_msg_info cn_intfs cname tyenv (msg:unit msg_info) : (ty*eff list) msg_info =
+    let expr  = BO.map (assignTy_expr cn_intfs cname tyenv) msg.msg_value_info in
+    let stmts = assignTy_stmts cn_intfs cname tyenv msg.msg_reentrance_info in
+    { msg_value_info      = expr
+    ; msg_reentrance_info = stmts }
 
 
-and assignTy_expr cn_intfs cname (venv:ty_env) ((expr_inner,()):unit expr) : (ty*eff list) expr =
+and assignTy_expr cn_intfs cname tyenv (expr_inner,()) : (ty*eff list) expr =
     match expr_inner with
     | ThisExpr          ->  ThisExpr         , (TyCntrctInstance cname, [])
     | TrueExpr          ->  TrueExpr         , (TyBool,                 [])
@@ -140,54 +135,57 @@ and assignTy_expr cn_intfs cname (venv:ty_env) ((expr_inner,()):unit expr) : (ty
     | NowExpr           ->  NowExpr          , (TyUint256,              [])
     | DecLit256Expr d   ->  DecLit256Expr d  , (TyUint256,              [])
     | DecLit8Expr   d   ->  DecLit8Expr   d  , (TyUint8,                [])
-    | FunCallExpr   c   ->  let c',ty=assignTy_call cn_intfs cname venv c in
-                            FunCallExpr c'   , ty
-    | IdentExpr     s   ->  (* Now something is strange. This might not need a type anyway. *)
-                            (* Maybe introduce a type called CallableType *)
+
+    | FunCallExpr   c   ->  let c,ty = assignTy_call cn_intfs cname tyenv c in
+                            FunCallExpr c    , ty
+
+    | IdentExpr     s   ->  (* Maybe introduce a type called CallableType *)
                             if BS.starts_with s "pre_" then err "names that start with pre_ are reserved" ; 
-                            id_lookup_ty venv s
-    | ParenExpr e       ->  assignTy_expr cn_intfs cname venv e (* omit the parenthesis at this place*)
-    | NewExpr n         ->  let n',cname'   = assignTy_new_expr cn_intfs cname venv n in
+                            id_lookup_ty tyenv s
+
+    | ParenExpr e       ->  assignTy_expr cn_intfs cname tyenv e (* omit the parenthesis at this place*)
+
+    | NewExpr n         ->  let n',cname'   = assignTy_new_expr cn_intfs cname tyenv n in
                             if BS.starts_with cname' "pre_" then err "names that start with pre_ are reserved"; 
                             NewExpr n'       , (TyCntrctInstance cname',[External, Write])
-    | LandExpr (l, r)   ->  let l           = assignTy_expr cn_intfs cname venv l in
+    | LandExpr (l, r)   ->  let l           = assignTy_expr cn_intfs cname tyenv l in
                             type_check (TyBool,l);
-                            let r           = assignTy_expr cn_intfs cname venv r in
+                            let r           = assignTy_expr cn_intfs cname tyenv r in
                             type_check (TyBool,r); 
                             let effs        = get_effs [l;r] in
                             check_only_1_effect effs; 
                             LandExpr(l,r)    , (TyBool,L.concat effs)
     | LtExpr (l, r)     ->
-                            let l       = assignTy_expr cn_intfs cname venv l in
-                            let r       = assignTy_expr cn_intfs cname venv r in
+                            let l       = assignTy_expr cn_intfs cname tyenv l in
+                            let r       = assignTy_expr cn_intfs cname tyenv r in
                             let effs    = get_effs [l; r] in
                             check_only_1_effect effs ; 
                             assert_tyeqv l r ; 
                             LtExpr(l,r)      , (TyBool,L.concat effs)
     | GtExpr (l, r)     ->
-                            let l       = assignTy_expr cn_intfs cname venv l in
-                            let r       = assignTy_expr cn_intfs cname venv r in
+                            let l       = assignTy_expr cn_intfs cname tyenv l in
+                            let r       = assignTy_expr cn_intfs cname tyenv r in
                             assert_tyeqv l r ; 
                             let effs    = get_effs [l; r] in
                             check_only_1_effect effs; 
                             GtExpr (l, r)    , (TyBool, L.concat effs)
     | NeqExpr (l, r)    ->
-                            let l       = assignTy_expr cn_intfs cname venv l in
-                            let r       = assignTy_expr cn_intfs cname venv r in
+                            let l       = assignTy_expr cn_intfs cname tyenv l in
+                            let r       = assignTy_expr cn_intfs cname tyenv r in
                             assert_tyeqv l r ;
                             let effs    = get_effs [l; r] in
                             check_only_1_effect effs; 
                             NeqExpr (l, r), (TyBool, L.concat effs)
     | EqExpr (l, r)     ->
-                            let l       = assignTy_expr cn_intfs cname venv l in
-                            let r       = assignTy_expr cn_intfs cname venv r in
+                            let l       = assignTy_expr cn_intfs cname tyenv l in
+                            let r       = assignTy_expr cn_intfs cname tyenv r in
                             assert_tyeqv l r ; 
                             let effs    = get_effs [l; r] in
                             check_only_1_effect effs;
                             EqExpr (l, r), (TyBool, L.concat effs)
     | PlusExpr (l, r)   ->
-                            let l       = assignTy_expr cn_intfs cname venv l in
-                            let r       = assignTy_expr cn_intfs cname venv r in
+                            let l       = assignTy_expr cn_intfs cname tyenv l in
+                            let r       = assignTy_expr cn_intfs cname tyenv r in
                             if snd l<>snd r 
                                 then (printf "%s %s\n%!" (string_of_ty (get_ty l)) (string_of_ty (get_ty r))) ; 
                             assert_tyeqv l r ;
@@ -195,34 +193,34 @@ and assignTy_expr cn_intfs cname (venv:ty_env) ((expr_inner,()):unit expr) : (ty
                             check_only_1_effect effs; 
                             PlusExpr (l, r), (get_ty l, L.concat effs)
     | MinusExpr (l, r)  ->
-                            let l       = assignTy_expr cn_intfs cname venv l in
-                            let r       = assignTy_expr cn_intfs cname venv r in
+                            let l       = assignTy_expr cn_intfs cname tyenv l in
+                            let r       = assignTy_expr cn_intfs cname tyenv r in
                             assert_tyeqv l r; 
                             let effs    = get_effs [l; r] in
                             check_only_1_effect effs; 
                             MinusExpr (l, r), (get_ty l, L.concat effs)
     | MultExpr (l, r)   ->
-                            let l       = assignTy_expr cn_intfs cname venv l in
-                            let r       = assignTy_expr cn_intfs cname venv r in
+                            let l       = assignTy_expr cn_intfs cname tyenv l in
+                            let r       = assignTy_expr cn_intfs cname tyenv r in
                             assert_tyeqv l r; 
                             MultExpr (l, r), snd l
     | NotExpr  e        ->
-                            let e = assignTy_expr cn_intfs cname venv e in
+                            let e = assignTy_expr cn_intfs cname tyenv e in
                             assert (get_ty e = TyBool) ; 
                             NotExpr e       , (TyBool, get_eff e)
     | AddrExpr e        ->
-                            let e = assignTy_expr cn_intfs cname venv e in
+                            let e = assignTy_expr cn_intfs cname tyenv e in
                             AddrExpr e      , (TyAddr, get_eff e)
     | BalanceExpr e     ->
-                            let e = assignTy_expr cn_intfs cname venv e in
+                            let e = assignTy_expr cn_intfs cname tyenv e in
                             assert (acceptable_as TyAddr (get_ty e));
                             assert (get_eff e = []);
                             BalanceExpr e   , (TyUint256, [External, Read])
     | ArrayAccessExpr aa->
-                            let e = assignTy_expr cn_intfs cname venv (read_array_access aa).array_access_array in
+                            let e = assignTy_expr cn_intfs cname tyenv (read_array_access aa).array_access_array in
                             begin match get_ty e with
                             | TyMap(kT,vT)-> let aaidx              = (read_array_access aa).array_access_index in 
-                                             let idx,(idxTy,idxEff) = assignTy_expr cn_intfs cname venv aaidx in 
+                                             let idx,(idxTy,idxEff) = assignTy_expr cn_intfs cname tyenv aaidx in 
                                              assert (acceptable_as kT idxTy) ; 
                                              assert (BL.for_all isStorRead idxEff) ; 
                                              (* TODO Check idxTy and key_ty are somehow compatible *)
@@ -230,10 +228,10 @@ and assignTy_expr cn_intfs cname (venv:ty_env) ((expr_inner,()):unit expr) : (ty
                                                       { array_access_array = e
                                                       ; array_access_index = idx,(idxTy,idxEff) }),(vT,[Stor,Read]))
                             | _           -> err "index access has to be on mappings"   end
-    | SendExpr send        ->
-                            let msg_info'   = assignTy_msg_info cn_intfs cname venv send.send_msg_info in
-                            let cntrct'     = assignTy_expr cn_intfs cname venv send.send_cntrct in
-                            begin match send.send_method with
+    | SendExpr send     ->
+                            let msg_info'   = assignTy_msg_info cn_intfs cname tyenv send.send_msg_info in
+                            let cntrct'     = assignTy_expr cn_intfs cname tyenv send.send_cntrct in
+                            begin match send.send_mthd with
                             | Some m ->
                                 let cntrct_name = cntrct_name_of_instance cntrct' in
                                 let method_sig : Eth.fn_sig = begin
@@ -241,10 +239,10 @@ and assignTy_expr cn_intfs cname (venv:ty_env) ((expr_inner,()):unit expr) : (ty
                                     | Some x -> x
                                     | None   -> err ("method "^m^" not found") end in
                                 let types   = Eth.(L.map to_ty (method_sig.sig_return)) in
-                                let args    = L.map (assignTy_expr cn_intfs cname venv) send.send_args in
+                                let args    = L.map (assignTy_expr cn_intfs cname tyenv) send.send_args in
                                 assert (BL.for_all has_no_side_effects args) ;
                                 let reference = SendExpr{ send_cntrct   = cntrct'
-                                                        ; send_method   = send.send_method
+                                                        ; send_mthd   = send.send_mthd
                                                         ; send_args     = args
                                                         ; send_msg_info = msg_info' }, (TyRef types,[External,Write])  in
                                 (match types with
@@ -254,109 +252,103 @@ and assignTy_expr cn_intfs cname (venv:ty_env) ((expr_inner,()):unit expr) : (ty
                                let () = assert (send.send_args = []) in
                                ( SendExpr
                                    { send_cntrct = cntrct'
-                                   ; send_method = None
+                                   ; send_mthd = None
                                    ; send_args = []
                                    ; send_msg_info = msg_info'
                                    }, (TyVoid, [External, Write]) )
                             end
-    | ValueExpr          -> ValueExpr, (TyUint256,[])
+    | ValueExpr         ->  ValueExpr, (TyUint256,[])
     | SingleDerefExpr _
-    | TupleDerefExpr _   ->  err "DerefExpr not supposed to appear in the raw tree for now"
+    | TupleDerefExpr _  ->  err "DerefExpr not supposed to appear in the raw tree for now"
 
 
-and assignTy_new_expr 
-      cn_intfs cname tenv e : ((ty * eff list) new_expr * string (* name of the cntrct just created *)) =
-    let msg_info'   = assignTy_msg_info cn_intfs cname tenv e.new_msg_info in
-    let args'       = L.map (assignTy_expr cn_intfs cname tenv) e.new_args in
+and assignTy_new_expr cn_intfs cname tenv e : (ty*eff list)new_expr*string (* name of the cntrct just created *) =
+    let msg_info'   =   assignTy_msg_info cn_intfs cname tenv e.new_msg_info in
+    let args'       =   L.map (assignTy_expr cn_intfs cname tenv) e.new_args in
     let e'          =   { new_head      = e.new_head
                         ; new_args      = args'
                         ; new_msg_info  = msg_info' } in
     (e', e.new_head )
 
   
-and assignTy_lexpr cn_intfs cname venv (src:unit lexpr) : (ty*eff list) lexpr =
+and assignTy_lexpr cn_intfs cname tyenv (src:unit lexpr) : (ty*eff list) lexpr =
   (* no need to type the left hand side? *)
     match src with
-    | ArrayAccessLExpr aa ->
-                                let atyped = assignTy_expr cn_intfs cname venv aa.array_access_array in
-                                begin match fst (snd atyped) with
-                                | TyMap (kT, vT)    ->
-                                   let idx', idx_ty' = assignTy_expr cn_intfs
-                                                                          cname venv
-                                                                          aa.array_access_index in
-                                   (* TODO Check idx_typ' and key_ty are somehow compatible *)
-                                   (ArrayAccessLExpr
-                                      { array_access_array = atyped
-                                      ; array_access_index = (idx', idx_ty')})
-                                | _                 -> err ("unknown array")
-                                end
+    | ArrayAccessLExpr aa ->let e = assignTy_expr cn_intfs cname tyenv aa.array_access_array in
+                            begin match get_ty e with
+                            | TyMap (kT,vT) ->
+                               let idx,idx_ty = assignTy_expr cn_intfs cname tyenv aa.array_access_index in
+                               (* TODO Check idx_typ' and key_ty are somehow compatible *)
+                               ArrayAccessLExpr { array_access_array = e 
+                                                ; array_access_index = idx,idx_ty  }
+                            | _             -> err ("unknown array") end
 
 
-and assignTy_return cn_intfs cname tyenv (src:unit return) : (ty * eff list) return =
-    let ret_ty_expr = BO.map (assignTy_expr cn_intfs cname tyenv) src.ret_expr in
-    let tycheck_ret = lookup_retTyCheck tyenv in
-    assert (tycheck_ret (BO.map get_ty ret_ty_expr)); 
-    { ret_expr  =   ret_ty_expr
-    ; ret_cont  =   assignTy_expr cn_intfs cname tyenv src.ret_cont }
+and assignTy_return cn_intfs cname tyenv (ret:unit return) : (ty*eff list) return =
+    let ret_ty_expr = BO.map (assignTy_expr cn_intfs cname tyenv) ret.ret_expr in
+    let retTyCheck  = lookup_retTyCheck tyenv in
+    assert (retTyCheck(BO.map get_ty ret_ty_expr)); 
+    { ret_expr  = ret_ty_expr
+    ; ret_cont  = assignTy_expr cn_intfs cname tyenv ret.ret_cont }
 
 
 and assignTy_varDecl cn_intfs cname tyenv (vd:unit varDecl): (ty*eff list)varDecl * ty_env =
-    let v           = assignTy_expr cn_intfs cname tyenv vd.varDecl_val in
-    let id          = vd.varDecl_id     in
-    let ty          = vd.varDecl_ty     in
+    let v       = assignTy_expr cn_intfs cname tyenv vd.varDecl_val in
+    let id      = vd.varDecl_id     in
+    let ty      = vd.varDecl_ty     in
     if BS.starts_with id "pre_" then err "Names \"pre_..\" are reserved" ;
     assert (is_known_ty cn_intfs ty);
-    let tyenv'      = add_pair tyenv id ty None in
-    let vd'         =   { varDecl_ty        = ty
-                        ; varDecl_id        = id
-                        ; varDecl_val       = v  } in
+    let tyenv'  = add_pair tyenv id ty None in
+    let vd'     =   { varDecl_ty    = ty
+                    ; varDecl_id    = id
+                    ; varDecl_val   = v  } in
     vd', tyenv'
 
 
-and assignTy_stmt cn_intfs cname venv (src:unit stmt) : ((ty*eff list)stmt * ty_env) =
+and assignTy_stmt cn_intfs cname tyenv (src:unit stmt) : ((ty*eff list)stmt * ty_env) =
     match src with
-    | AbortStmt         ->  AbortStmt, venv
+    | AbortStmt         ->  AbortStmt, tyenv
     | ReturnStmt r      ->
-                            let r' = assignTy_return cn_intfs cname venv r in
-                            ReturnStmt r', venv
+                            let r = assignTy_return cn_intfs cname tyenv r in
+                            ReturnStmt r, tyenv
     | AssignStmt(l,r)   ->
-                            let l' = assignTy_lexpr cn_intfs cname venv l in
-                            let r' = assignTy_expr  cn_intfs cname venv r in
-                            AssignStmt (l', r'), venv
+                            let l = assignTy_lexpr cn_intfs cname tyenv l in
+                            let r = assignTy_expr  cn_intfs cname tyenv r in
+                            AssignStmt(l,r), tyenv
     | IfThenOnly(b,t)   ->
-                            let b' = assignTy_expr  cn_intfs cname venv b in
-                            let t' = assignTy_stmts cn_intfs cname venv t in
-                            IfThenOnly(b',t'), venv
+                            let b = assignTy_expr  cn_intfs cname tyenv b in
+                            let t = assignTy_stmts cn_intfs cname tyenv t in
+                            IfThenOnly(b,t), tyenv
     | IfThenElse(b,t,f) ->
-                            let b' = assignTy_expr  cn_intfs cname venv b in
-                            let t' = assignTy_stmts cn_intfs cname venv t in
-                            let f' = assignTy_stmts cn_intfs cname venv f in
-                            IfThenElse(b',t',f'), venv
+                            let b = assignTy_expr  cn_intfs cname tyenv b in
+                            let t = assignTy_stmts cn_intfs cname tyenv t in
+                            let f = assignTy_stmts cn_intfs cname tyenv f in
+                            IfThenElse(b,t,f), tyenv
     | SelfDestructStmt e ->
-                            let e' = assignTy_expr cn_intfs cname venv e in
-                            SelfDestructStmt e', venv
-    | VarDeclStmt vi    ->
-                            let vi',venv' = assignTy_varDecl cn_intfs cname venv vi in
-                            VarDeclStmt vi', venv'
+                            let e = assignTy_expr  cn_intfs cname tyenv e in
+                            SelfDestructStmt e, tyenv
+    | VarDeclStmt vd    ->
+                            let vd,tyenv = assignTy_varDecl cn_intfs cname tyenv vd in
+                            VarDeclStmt vd, tyenv
     | ExprStmt e        ->
-                            let e' = assignTy_expr cn_intfs cname venv e in
-                            assert (fst (snd e') = TyVoid) ;
-                            assert (BL.exists isWrite (snd (snd e'))) ; 
-                            ExprStmt e', venv
-    | LogStmt(name,args, _) ->
-                            let args        = L.map (assignTy_expr cn_intfs cname venv) args in
-                            let ev          = lookup_event venv name in
-                            let ty_expcts   = L.map (fun ea->ea.event_arg_body.ty) ev.event_args in
-                            assert (typecheck_multiple ty_expcts args) ;
-                            let effs        = L.map(snd$snd)args in
+                            let e = assignTy_expr  cn_intfs cname tyenv e in
+                            assert(get_ty e = TyVoid) ;
+                            assert(BL.exists isWrite (get_eff e)) ; 
+                            ExprStmt e, tyenv
+    | LogStmt(nm,args,_)->
+                            let args    = L.map(assignTy_expr cn_intfs cname tyenv)args in
+                            let ev      = lookup_event tyenv nm in
+                            let tys     = L.map(fun ea->ea.event_arg_body.ty)ev.event_args in
+                            assert (typecheck_multiple tys args) ;
+                            let effs    = get_effs args in
                             check_only_1_effect effs ; 
-                            LogStmt(name,args,Some ev), venv
+                            LogStmt(nm,args,Some ev), tyenv
 
 
-and assignTy_stmts cn_intfs cname ty_env = function (* unit stmt list -> (ty*eff list)stmt list*) 
-    | []            -> []
-    | stmt::rest    ->  let stmt',ty_env' = assignTy_stmt cn_intfs cname ty_env stmt in
-                        stmt' :: assignTy_stmts cn_intfs cname ty_env' rest
+and assignTy_stmts cn_intfs cname tyenv = function (* unit stmt list -> (ty*eff list)stmt list*) 
+    | []            ->  []
+    | stmt::rest    ->  let stmt,tyenv = assignTy_stmt cn_intfs cname tyenv stmt in
+                        stmt :: assignTy_stmts cn_intfs cname tyenv rest
 
 
 (* Termination *) 
@@ -497,7 +489,7 @@ and stripEffect_msg_info m =
 
 and stripEffect_send s =
     { send_cntrct           = stripEffect_expr s.send_cntrct
-    ; send_method           = s.send_method
+    ; send_mthd           = s.send_mthd
     ; send_args             = L.map stripEffect_expr s.send_args
     ; send_msg_info         = stripEffect_msg_info s.send_msg_info }
 
