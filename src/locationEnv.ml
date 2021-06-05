@@ -46,10 +46,10 @@ let last_stack_element_recorded le = match filter_getFst stack_story_locEnv le w
     | Some n                    ->  n
     | None                      -> -1
 
-let cnstrctr_args_locations cid (args:(string*Eth.intf_ty)list) = 
+let cnstrctr_args_locations idx (args:(string*Eth.intf_ty)list) = 
     let total   = Eth.total_size_of_intf_args (L.map snd args) in
     let one_arg (name,offset,size) 
-                = (name,Code{ code_start = Imm.(Minus(InitDataSize cid,(Int(total-offset))))
+                = (name,Code{ code_start = Imm.(Minus(InitDataSize idx,(Int(total-offset))))
                             ; code_size  = Int size     }) in
     let rec name_offset_size_list rev_acc offset = function 
         (* match (args : (string*Eth.intf_ty)list) with *)  
@@ -58,9 +58,9 @@ let cnstrctr_args_locations cid (args:(string*Eth.intf_ty)list) =
                                     (offset + Eth.intf_ty_size h_ty) t in
     [L.map one_arg (name_offset_size_list [] 0 args)]
 
-let cnstrctr_initial_env cid (cntrct : ty cntrct) =
+let cnstrctr_initial_env idx (cntrct : ty cntrct) =
     let args = Eth.cnstrctr_args cntrct in
-    cnstrctr_args_locations cid args
+    cnstrctr_args_locations idx args
 
 
 (** [runtime_initial_t cntrct]

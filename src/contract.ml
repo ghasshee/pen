@@ -34,18 +34,18 @@ type cntrct_intf =
 (*********************************)
 
 let rec collect_cont_in_stmt = function 
-    | AbortStmt             ->  []
-    | ReturnStmt r          ->  begin
+    | SmAbort             ->  []
+    | SmReturn r          ->  begin
          match cntrct_name_of_ret_cont r.ret_cont with
          | None                 -> []
          | Some name            -> [name]   end
-    | AssignStmt (_,_)      ->  []
-    | VarDeclStmt _         ->  []
-    | SelfDestructStmt _    ->  []
-    | IfThenOnly (_,s)      ->  collect_cont_in_stmts s
-    | IfThenElse (_,s,t)    ->  collect_cont_in_stmts s @ collect_cont_in_stmts t
-    | ExprStmt _            ->  []
-    | LogStmt _             ->  []  
+    | SmAssign (_,_)      ->  []
+    | SmVarDecl _         ->  []
+    | SmSelfDestruct _    ->  []
+    | SmIfThen (_,s)      ->  collect_cont_in_stmts s
+    | SmIfThenElse (_,s,t)    ->  collect_cont_in_stmts s @ collect_cont_in_stmts t
+    | SmExpr _            ->  []
+    | SmLog _             ->  []  
 
 and collect_cont_in_stmts s =  L.concat (L.map collect_cont_in_stmt s)
 

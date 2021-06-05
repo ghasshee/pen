@@ -102,48 +102,48 @@ ty:
   | block                                       { $1   }
   ;
 stmt:
-  | ABORT SEMI                                  { AbortStmt }
-  | RETURN;option(expr);THEN;BECOME;expr;SEMI   { ReturnStmt{ret_expr=$2; ret_cont=$5} }     
-  | lexpr EQ expr SEMI                          { AssignStmt($1,$3) }
-  | ty IDENT EQ expr SEMI                       { VarDeclStmt{ varDecl_ty=$1; varDecl_id=$2; varDecl_val=$4 } }
-  | VOID EQ expr SEMI                           { ExprStmt $3 }
-  | IF expr THEN body ELSE  body                { IfThenElse($2,$4,$6) }
-  | IF expr THEN body                           { IfThenOnly ($2, $4) }
-  | LOG IDENT expr_list SEMI                    { LogStmt($2,$3,None)}
-  | SELFDESTRUCT expr SEMI                      { SelfDestructStmt $2 }
+  | ABORT SEMI                                  { SmAbort }
+  | RETURN;option(expr);THEN;BECOME;expr;SEMI   { SmReturn{ret_expr=$2; ret_cont=$5} }     
+  | lexpr EQ expr SEMI                          { SmAssign($1,$3) }
+  | ty IDENT EQ expr SEMI                       { SmVarDecl{ varDecl_ty=$1; varDecl_id=$2; varDecl_val=$4 } }
+  | VOID EQ expr SEMI                           { SmExpr $3 }
+  | IF expr THEN body ELSE  body                { SmIfThenElse($2,$4,$6) }
+  | IF expr THEN body                           { SmIfThen ($2, $4) }
+  | LOG IDENT expr_list SEMI                    { SmLog($2,$3,None)}
+  | SELFDESTRUCT expr SEMI                      { SmSelfDestruct $2 }
   ;
 
 %inline op:
-  | PLUS                                        { fun (l,r) -> PlusExpr(l, r)}
-  | MINUS                                       { fun (l,r) -> MinusExpr(l, r)}
-  | MULT                                        { fun (l,r) -> MultExpr(l, r)}
-  | LT                                          { fun (l,r) -> LtExpr(l, r)}
-  | GT                                          { fun (l,r) -> GtExpr(l, r)}
-  | EQEQ                                        { fun (l,r) -> EqExpr(l, r)}
-  | NEQ                                         { fun (l,r) -> NeqExpr(l, r)}
+  | PLUS                                        { fun (l,r) -> EpPlus(l, r)}
+  | MINUS                                       { fun (l,r) -> EpMinus(l, r)}
+  | MULT                                        { fun (l,r) -> EpMult(l, r)}
+  | LT                                          { fun (l,r) -> EpLt(l, r)}
+  | GT                                          { fun (l,r) -> EpGt(l, r)}
+  | EQEQ                                        { fun (l,r) -> EpEq(l, r)}
+  | NEQ                                         { fun (l,r) -> EpNeq(l, r)}
   ;
 
 expr:
-  | expr LAND expr                              { LandExpr($1,$3), () }
-  | TRUE                                        { TrueExpr, () }
-  | FALSE                                       { FalseExpr, () }
-  | DECLIT256                                   { DecLit256Expr $1, ()}
-  | DECLIT8                                     { DecLit8Expr $1, ()}
-  | VALUE LPAR MSG RPAR                         { ValueExpr, () }
-  | SENDER LPAR MSG RPAR                        { SenderExpr, () }
-  | BALANCE; LPAR; expr; RPAR                   { BalanceExpr $3, () }
-  | NOW LPAR BLOCK RPAR                         { NowExpr, () }
+  | expr LAND expr                              { EpLand($1,$3), () }
+  | TRUE                                        { EpTrue, () }
+  | FALSE                                       { EpFalse, () }
+  | DECLIT256                                   { EpDecLit256 $1, ()}
+  | DECLIT8                                     { EpDecLit8 $1, ()}
+  | VALUE LPAR MSG RPAR                         { EpValue, () }
+  | SENDER LPAR MSG RPAR                        { EpSender, () }
+  | BALANCE; LPAR; expr; RPAR                   { EpBalance $3, () }
+  | NOW LPAR BLOCK RPAR                         { EpNow, () }
   | expr op expr                                { ($2($1,$3)), () }
-  | IDENT                                       { IdentExpr $1, () }
-  | LPAR;expr;RPAR                              { ParenExpr $2, () }
-  | IDENT; expr_list                            { FunCallExpr {call_head=$1; call_args=$2 }, () }
-  | DEPLOY;IDENT;expr_list;msg_info             { NewExpr{new_head=$2; new_args=$3; new_msg_info=$4},() }
-  | expr;DOT;DEFAULT;LPAR;RPAR;msg_info         { SendExpr{send_cntrct=$1; send_mthd=None   ; send_args=[]; send_msg_info=$6},() }
-  | expr;DOT;IDENT;expr_list;msg_info           { SendExpr{send_cntrct=$1; send_mthd=Some $3; send_args=$4; send_msg_info=$5},() }
-  | ADDRESS;LPAR;expr;RPAR                      { AddrExpr $3, () }
-  | NOT; expr                                   { NotExpr $2, () }
-  | THIS                                        { ThisExpr, () }
-  | lexpr;                                      { ArrayExpr $1, () }
+  | IDENT                                       { EpIdent $1, () }
+  | LPAR;expr;RPAR                              { EpParen $2, () }
+  | IDENT; expr_list                            { EpFnCall {call_head=$1; call_args=$2 }, () }
+  | DEPLOY;IDENT;expr_list;msg_info             { EpNew{new_head=$2; new_args=$3; new_msg_info=$4},() }
+  | expr;DOT;DEFAULT;LPAR;RPAR;msg_info         { EpSend{send_cntrct=$1; send_mthd=None   ; send_args=[]; send_msg_info=$6},() }
+  | expr;DOT;IDENT;expr_list;msg_info           { EpSend{send_cntrct=$1; send_mthd=Some $3; send_args=$4; send_msg_info=$5},() }
+  | ADDRESS;LPAR;expr;RPAR                      { EpAddr $3, () }
+  | NOT; expr                                   { EpNot $2, () }
+  | THIS                                        { EpThis, () }
+  | lexpr;                                      { EpArray $1, () }
   ;
 %inline expr_list:
   | plist(expr)                                 { $1 }
@@ -158,5 +158,5 @@ reentrance_info:
   | REENTRANCE; block                           { $2 }
   ;
   lexpr:                                        (* expr '[' expr ']' *) 
-  | expr;LSQBR;expr;RSQBR                       { ArrayLExpr{array_name=$1; array_index=$3} }
+  | expr;LSQBR;expr;RSQBR                       { LExprArray{array_name=$1; array_index=$3} }
   ;

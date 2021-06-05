@@ -20,7 +20,7 @@ let files       = BatOptParse.OptParser.add optparser
 let _           = if files <> [] then (eprintf "Pass the contents to stdin.\n"; exit 1) 
 let abi:bool    = (Some true = enable_abi.BatOptParse.Opt.option_get ()) 
 let toplevels   = parse_with_error lexbuf 
-let toplevels'  = fold_with_cid toplevels
+let toplevels'  = fold_indexed_list toplevels
 let toplevels'' = Type.assignTys toplevels'
 *)
 
@@ -32,8 +32,8 @@ let () =
   let lexbuf            = Lexing.from_channel stdin         in
   let toplevels : unit Syntax.toplevel list 
                         = parse_with_error lexbuf           in
-  let toplevels         = fold_with_cid toplevels   in
-  let toplevels : ty Syntax.toplevel with_cid 
+  let toplevels         = fold_indexed_list toplevels   in
+  let toplevels : ty Syntax.toplevel indexed_list 
                         = Type.assignTys toplevels       in
   let cntrcts         = filter_map (function 
                             | Cntrct c  -> Some c
@@ -41,8 +41,8 @@ let () =
   let ()                = match cntrcts with
   | []              -> ()
   | _               ->
-        let cnstrctrs : cnstrctr_compiled with_cid = compile_cnstrctrs cntrcts in
-        let cntrcts_stor_layout : (cid * LayoutInfo.cntrct_stor_layout) list =
+        let cnstrctrs : cnstrctr_compiled indexed_list = compile_cnstrctrs cntrcts in
+        let cntrcts_stor_layout : (idx * LayoutInfo.cntrct_stor_layout) list =
             List.map (fun (id, const) -> (id, stor_layout_from_cnstrctr_compiled const)) cnstrctrs in
         let layout = LayoutInfo.cnstrct_stor_layout cntrcts_stor_layout in
         let runtime_compiled = compile_runtime layout cntrcts in

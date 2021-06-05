@@ -12,8 +12,8 @@ type stor_location = int
 
 (* Stor Layout that should be available after the cnstrctr compilation finishes *)
 type stor_layout            =
-                            { cids                      : cid list
-                            ; cnstrctr_code_size        : cid -> int
+                            { idxs                      : idx list
+                            ; cnstrctr_code_size        : idx -> int
                               (* numbers about the storage *)
                               (* The storage during the runtime looks like this: *)
                               (* |S[0]  := PROGRAM COUNTER     (might be entry_pc_of_current_cntrct)
@@ -29,10 +29,10 @@ type stor_layout            =
                               (* In addition, array elements are placed at the same location as in Solidity *)
                             ; stor_current_pc_index     : int
                             ; stor_array_counter_index  : int
-                            ; stor_cnstrctr_args_begin  : cid -> int
-                            ; stor_cnstrctr_args_size   : cid -> int
-                            ; stor_array_seeds_begin    : cid -> int
-                            ; stor_array_seeds_size     : cid -> int
+                            ; stor_cnstrctr_args_begin  : idx -> int
+                            ; stor_cnstrctr_args_size   : idx -> int
+                            ; stor_array_seeds_begin    : idx -> int
+                            ; stor_array_seeds_size     : idx -> int
                             }
 
 (* Stor Layout that should be available after the runtime compilation finishes. *)
@@ -41,17 +41,17 @@ type post_stor_layout       =
                               (* |cnstrctr code
                                * |runtime  code
                                * |cnstrctr args|  *)
-                              init_data_size            : cid -> int
+                              init_data_size            : idx -> int
                               (* runtime_coode_offset is equal to cnstrctr_code_size *)
                             ; runtime_code_size         : int
-                            ; cntrct_offset_in_runtime_code : int with_cid
+                            ; cntrct_offset_in_runtime_code : int indexed_list
                             (* And then, the runtime code is organized like this: *)
                             (* |dispatcher that jumps into the stored pc
                              * |runtime code for cntrct A
                              * |runtime code for cntrct B
                              * |runtime code for cntrct C| *)
 
-                            ; cnstrctr_in_runtime_code_offset : int with_cid
+                            ; cnstrctr_in_runtime_code_offset : int indexed_list
 
                             (* And then, the runtime code for a particular cntrct is organized like this: *)
                             (* |dispatcher that jumps into a method
@@ -75,38 +75,38 @@ type cntrct_stor_layout   =
 
 type runtime_stor_layout    =
                             { runtime_code_size             : int
-                            ; runtime_offset_of_cid         : int with_cid
-                            ; runtime_offset_of_cnstrctr    : int with_cid
-                            ; runtime_size_of_cnstrctr      : int with_cid
+                            ; runtime_offset_of_idx         : int indexed_list
+                            ; runtime_offset_of_cnstrctr    : int indexed_list
+                            ; runtime_size_of_cnstrctr      : int indexed_list
                             }
 
 
-let compute_cnstrctr_code_size lst cid =
-    let c : cntrct_stor_layout = choose_cntrct cid lst in
+let compute_cnstrctr_code_size lst idx =
+    let c : cntrct_stor_layout = choose_cntrct idx lst in
     c.cntrct_cnstrctr_code_size
 
 
-let compute_cnstrctr_args_size lst cid =
-    let c : cntrct_stor_layout = choose_cntrct cid lst in
+let compute_cnstrctr_args_size lst idx =
+    let c : cntrct_stor_layout = choose_cntrct idx lst in
     c.cntrct_arg_size
 
-let compute_cnstrctr_args_begin lst runtime cid =
-    compute_cnstrctr_code_size lst cid + runtime.runtime_code_size
+let compute_cnstrctr_args_begin lst runtime idx =
+    compute_cnstrctr_code_size lst idx + runtime.runtime_code_size
 
-let compute_init_data_size lst runtime cid =
-    compute_cnstrctr_args_begin lst runtime cid + compute_cnstrctr_args_size lst cid
+let compute_init_data_size lst runtime idx =
+    compute_cnstrctr_args_begin lst runtime idx + compute_cnstrctr_args_size lst idx
 
-let compute_stor_cnstrctr_args_begin lst cid = 2
+let compute_stor_cnstrctr_args_begin lst idx = 2
 
-let compute_stor_array_seeds_begin lst cid = 
-    compute_stor_cnstrctr_args_begin lst cid + compute_cnstrctr_args_size lst cid
+let compute_stor_array_seeds_begin lst idx = 
+    compute_stor_cnstrctr_args_begin lst idx + compute_cnstrctr_args_size lst idx
 
-let compute_stor_array_seeds_size lst cid =
-    let c = choose_cntrct cid lst in
+let compute_stor_array_seeds_size lst idx =
+    let c = choose_cntrct idx lst in
     c.cntrct_num_array_seeds
 
-let cnstrct_stor_layout(lst:(cid*cntrct_stor_layout)list) : stor_layout =
-    { cids                      = L.map fst lst
+let cnstrct_stor_layout(lst:(idx*cntrct_stor_layout)list) : stor_layout =
+    { idxs                      = L.map fst lst
     ; cnstrctr_code_size        = compute_cnstrctr_code_size lst
     ; stor_current_pc_index     = 0 (* This is a magic const. *)
     ; stor_array_counter_index  = 1 (* This is also a magic const. *)
@@ -116,42 +116,42 @@ let cnstrct_stor_layout(lst:(cid*cntrct_stor_layout)list) : stor_layout =
     ; stor_array_seeds_size     = compute_stor_array_seeds_size lst
     }
 
-let cnstrct_post_stor_layout (lst:(cid*cntrct_stor_layout)list)
+let cnstrct_post_stor_layout (lst:(idx*cntrct_stor_layout)list)
       (runtime:runtime_stor_layout) : post_stor_layout =
     { init_data_size                        = compute_init_data_size lst runtime
     ; runtime_code_size                     = runtime.runtime_code_size
-    ; cntrct_offset_in_runtime_code         = runtime.runtime_offset_of_cid
+    ; cntrct_offset_in_runtime_code         = runtime.runtime_offset_of_idx
     ; l                                     = cnstrct_stor_layout lst
     ; cnstrctr_in_runtime_code_offset       = runtime.runtime_offset_of_cnstrctr
     }
 
 (* Assuming the layout described above, this definition makes sense. *)
-let runtime_code_offset (layout:stor_layout) cid : int =
-    layout.cnstrctr_code_size cid
+let runtime_code_offset (layout:stor_layout) idx : int =
+    layout.cnstrctr_code_size idx
 
-let rec realize_imm(layout:post_stor_layout)(init_cid:cid) = 
+let rec realize_imm(layout:post_stor_layout)(init_idx:idx) = 
     let big = big_int_of_int in function 
     | Big b                                 ->  b
     | Int i                                 ->  big i
     | Label l                               ->  big (Label.lookup_value l)
     | StorPCIndex                           ->  big (layout.l.stor_current_pc_index)
-    | StorCnstrctrArgsBegin       cid       ->  big (layout.l.stor_cnstrctr_args_begin cid)
-    | StorCnstrctrArgsSize        cid       ->  big (layout.l.stor_cnstrctr_args_size cid)
-    | InitDataSize                cid       ->  big (layout.init_data_size cid)
-    | RuntimeCodeOffset           cid       ->  big (runtime_code_offset layout.l cid)
+    | StorCnstrctrArgsBegin       idx       ->  big (layout.l.stor_cnstrctr_args_begin idx)
+    | StorCnstrctrArgsSize        idx       ->  big (layout.l.stor_cnstrctr_args_size idx)
+    | InitDataSize                idx       ->  big (layout.init_data_size idx)
+    | RuntimeCodeOffset           idx       ->  big (runtime_code_offset layout.l idx)
     | RuntimeCodeSize                       ->  big (layout.runtime_code_size)
-    | CnstrctrCodeSize            cid       ->  big (layout.l.cnstrctr_code_size cid)
-    | CnstrctrInRuntimeCodeOffset cid       ->  big (choose_cntrct cid layout.cnstrctr_in_runtime_code_offset)
-    | CntrctOffsetInRuntimeCode   cid       ->  big (choose_cntrct cid layout.cntrct_offset_in_runtime_code)
-    | CaseOffsetInRuntimeCode(cid,mthd_hd)  ->  let label = Entrypoint.(lookup_entrypoint (Case (cid, mthd_hd))) in
+    | CnstrctrCodeSize            idx       ->  big (layout.l.cnstrctr_code_size idx)
+    | CnstrctrInRuntimeCodeOffset idx       ->  big (choose_cntrct idx layout.cnstrctr_in_runtime_code_offset)
+    | CntrctOffsetInRuntimeCode   idx       ->  big (choose_cntrct idx layout.cntrct_offset_in_runtime_code)
+    | MthdAddrInRuntimeCode(idx,mthd_hd)  ->  let label = Entrypoint.(lookup_entrypoint (Case (idx, mthd_hd))) in
                                                 big (Label.lookup_value label)
-    | Minus (a, b)                          ->  sub_big_int (realize_imm layout init_cid a) (realize_imm layout init_cid b)
+    | Minus (a, b)                          ->  sub_big_int (realize_imm layout init_idx a) (realize_imm layout init_idx b)
 
-let realize_opcode (l : post_stor_layout) (init_cid : cid) (i : imm Evm.opcode) = Evm.(
+let realize_opcode (l : post_stor_layout) (init_idx : idx) (i : imm Evm.opcode) = Evm.(
     match i with
-    | PUSH1  imm      -> PUSH1  (realize_imm l init_cid imm)
-    | PUSH4  imm      -> PUSH4  (realize_imm l init_cid imm)
-    | PUSH32 imm      -> PUSH32 (realize_imm l init_cid imm)
+    | PUSH1  imm      -> PUSH1  (realize_imm l init_idx imm)
+    | PUSH4  imm      -> PUSH4  (realize_imm l init_idx imm)
+    | PUSH32 imm      -> PUSH32 (realize_imm l init_idx imm)
     | NOT             -> NOT
     | TIMESTAMP       -> TIMESTAMP
     | EQ              -> EQ
@@ -222,7 +222,7 @@ let realize_opcode (l : post_stor_layout) (init_cid : cid) (i : imm Evm.opcode) 
     | DUP7            -> DUP7
     )
 
-let realize_program l init_cid p = L.map (realize_opcode l init_cid) p
+let realize_program l init_idx p = L.map (realize_opcode l init_idx) p
 
 let stor_layout_of_cntrct (cn:ty cntrct) (cnstrctr_code : imm Evm.program) =
     { cntrct_cnstrctr_code_size = Evm.size_of_program cnstrctr_code

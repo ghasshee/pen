@@ -13,14 +13,14 @@ type imm =
   | Int                                 of int
   | Label                               of Label.label
   | StorPCIndex
-  | StorCnstrctrArgsBegin    of cid
-  | StorCnstrctrArgsSize     of cid    (* the size depends on the cntrct id *)
-  | InitDataSize                        of cid
-  | CntrctOffsetInRuntimeCode         of cid    (* This index should be a JUMPDEST *)
-  | CaseOffsetInRuntimeCode             of cid * Syntax.mthd_head
-  | CnstrctrCodeSize                 of cid
-  | CnstrctrInRuntimeCodeOffset      of cid
-  | RuntimeCodeOffset                   of cid
+  | StorCnstrctrArgsBegin    of idx
+  | StorCnstrctrArgsSize     of idx    (* the size depends on the cntrct id *)
+  | InitDataSize                        of idx
+  | CntrctOffsetInRuntimeCode         of idx    (* This index should be a JUMPDEST *)
+  | MthdAddrInRuntimeCode             of idx * Syntax.mthd_head
+  | CnstrctrCodeSize                 of idx
+  | CnstrctrInRuntimeCodeOffset      of idx
+  | RuntimeCodeOffset                   of idx
   | RuntimeCodeSize
   | Minus                               of imm * imm
 
@@ -31,12 +31,12 @@ let rec string_of_imm           = function
   | StorPCIndex                      -> "StorPCIndex"
   | StorCnstrctrArgsBegin _          -> "StorCnstrctrArgBegin (print cntrct id)"
   | StorCnstrctrArgsSize _           -> "StorCnstrctrArgsSize (print cntrct id)"
-  | InitDataSize cid                    -> "InitDataSize (print cntrct id here)"
+  | InitDataSize idx                    -> "InitDataSize (print cntrct id here)"
   | CntrctOffsetInRuntimeCode _       -> "CntrctOffsetInRuntimeCode (print contact id)"
-  | CaseOffsetInRuntimeCode(cid,header) -> "CaseOffsetInRuntimeCode (print cntrct id, case header)"
-  | CnstrctrCodeSize cid                -> "CnstrctrCodeSize (print cntrct id)"
-  | CnstrctrInRuntimeCodeOffset cid     -> "CnstrctrInRuntimeCodeOffset (print cntrct id)"
-  | RuntimeCodeOffset cid               -> "RuntimeCodeOffset (print cntrct id)"
+  | MthdAddrInRuntimeCode(idx,header) -> "MthdAddrInRuntimeCode (print cntrct id, case header)"
+  | CnstrctrCodeSize idx                -> "CnstrctrCodeSize (print cntrct id)"
+  | CnstrctrInRuntimeCodeOffset idx     -> "CnstrctrInRuntimeCodeOffset (print cntrct id)"
+  | RuntimeCodeOffset idx               -> "RuntimeCodeOffset (print cntrct id)"
   | RuntimeCodeSize                     -> "RuntimeCodeSize"
   | Minus (a, b)                        -> "(- "^(string_of_imm a)^" "^(string_of_imm b)^")"
 
