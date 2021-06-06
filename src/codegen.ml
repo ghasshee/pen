@@ -247,7 +247,7 @@ let push_method ce (m:mthd_info)  =
  *  Allocates 4 bytes on the memory, and puts the function signature of the arg there.
  *  After that, the stack has (..., signature size, signature offset )
  *)
-let prepare_mthd_sig mthd ce =
+let prepare_tyMthd mthd ce =
     let start_size = stack_size ce in
     let ce = PUSH1(Int 4)                   >>> ce in (*                                                  4 <<< .. *)
     let ce = DUP1                           >>> ce in (*                                           4  <<< 4 <<< .. *)
@@ -307,14 +307,14 @@ let rec mstore_mthd_arg le pack ce (arg:ty expr) =
     assert (fits_in_one_stor_slot ty) ; 
     let i,a= (match pack with 
               | ABIPack   -> 32           ,R_ 
-              | TightPack -> size_of_ty ty,L_)  in   (*                                          sumsize >>> .. *)
-    let ce = PUSH1 (Int i)              >>> ce  in   (*                                 size >>> sumsize >>> .. *)
-    let ce = DUP1                       >>> ce  in   (*                       size  >>> size >>> sumsize >>> .. *)
-    let ce = mem_alloc ce                       in   (*                 alloc(size) >>> size >>> sumsize >>> .. *)
-    let ce = arg                >>>>> (a,le,ce) in   (*         arg >>> alloc(size) >>> size >>> sumsize >>> .. *)
-    let ce = SWAP1                      >>> ce  in   (*         alloc(size) >>> arg >>> size >>> sumsize >>> .. *)
-    let ce = MSTORE                     >>> ce  in   (* M[alloc(size)] := arg           size >>> sumsize >>> .. *)
-    let ce = ADD                        >>> ce  in   (*                                     size+sumsize >>> .. *)
+              | TightPack -> size_of_ty ty,L_)      in   (*                                          sumsize >>> .. *)
+    let ce = PUSH1 (Int i)          >>>ce           in   (*                                 size >>> sumsize >>> .. *)
+    let ce = DUP1                   >>>ce           in   (*                       size  >>> size >>> sumsize >>> .. *)
+    let ce = mem_alloc                 ce           in   (*                 alloc(size) >>> size >>> sumsize >>> .. *)
+    let ce = arg                    >>>>>(a,le,ce)  in   (*         arg >>> alloc(size) >>> size >>> sumsize >>> .. *)
+    let ce = SWAP1                  >>>ce           in   (*         alloc(size) >>> arg >>> size >>> sumsize >>> .. *)
+    let ce = MSTORE                 >>>ce           in   (* M[alloc(size)] := arg           size >>> sumsize >>> .. *)
+    let ce = ADD                    >>>ce           in   (*                                     size+sumsize >>> .. *)
     assert (stack_size ce = start_size) ; 
     ce
 
@@ -452,7 +452,7 @@ and setup_array_storLoc le ce aa =
     let ce = PUSH4(Label label)                  >>> ce in       (* stack: [result, result, shortcut] *)
     let ce = JUMPI                               >>> ce in       (* stack: [result] *)
     let ce = POP                                 >>> ce in       (* stack: [] *)
-    let ce = gen_array_storLoc le ce aa                   in       (* stack: [stor_index] *)
+    let ce = gen_array_storLoc le ce aa                 in       (* stack: [stor_index] *)
     let ce = PUSH1 (Int 1)                       >>> ce in       (* stack: [stor_index, 1] *)
     let ce = SLOAD                               >>> ce in       (* stack: [stor_index, orig_seed] *)
     let ce = DUP1                                >>> ce in       (* stack: [stor_index, orig_seed, orig_seed] *)
@@ -650,7 +650,7 @@ and codegen_expr le ce align  ((e,t):ty expr) : ce =
                                 codegen_new_expr le ce n c
     | EpNew n, _           -> errc "EpNew"
 
-    | EpFnCall fcall,reT  -> codegen_fun_call_expr le ce align fcall reT
+    | EpFnCall fncall,reT  -> codegen_fun_call_expr le ce align fncall reT
 
     | EpParen _, _         -> errc "EpParen"
 
@@ -707,12 +707,12 @@ and prepare_args args le ce =
 and prepare_input_in_mem le ce s mthd =
     let start_size  = stack_size ce   in
     let args        = s.send_args     in
-    let ce = prepare_mthd_sig mthd ce in   (* stack : [sig size, &(mthd_sig) ] *)
-    let ce = prepare_args args  le ce in   (* stack : [sigsize, &(mthd_sig), argsize] *)
-    let ce = SWAP1              >>>ce in   (* stack : [sigsize, argsize, &(mthd_sig)] *)
-    let ce = SWAP2              >>>ce in   (* stack : [&(mthd_sig), argsize, sigsize] *)
-    let ce = ADD                >>>ce in   (* stack : [&(mthd_sig), total size] *)
-    let ce = SWAP1              >>>ce in   (* stack : [total size, &(mthd_sig)] *)
+    let ce = prepare_tyMthd mthd ce in   (* stack : [sig size, &(tyMthd) ] *)
+    let ce = prepare_args args  le ce in   (* stack : [sigsize, &(tyMthd), argsize] *)
+    let ce = SWAP1              >>>ce in   (* stack : [sigsize, argsize, &(tyMthd)] *)
+    let ce = SWAP2              >>>ce in   (* stack : [&(tyMthd), argsize, sigsize] *)
+    let ce = ADD                >>>ce in   (* stack : [&(tyMthd), total size] *)
+    let ce = SWAP1              >>>ce in   (* stack : [total size, &(tyMthd)] *)
     assert (stack_size ce = start_size+2) ; 
     ce
 (** [obtain_ret_values_from_mem] assumes stack (..., out size, out offset),
@@ -931,7 +931,7 @@ let copy_args_from_mem_to_stor le ce idx =
  *  Output [rest of the stack, mem_size, mem_begin].
  *)
 let copy_args_from_code_to_mem le ce (cn:ty cntrct) =
-    let total_size = Eth.total_size_of_args (L.map snd (Eth.cnstrctr_args cn)) in
+    let total_size = Eth.total_size_of_tyArgs (L.map snd (Eth.cnstrctr_args cn)) in
     let start_size = stack_size ce        in (* [] *)
     let ce = PUSH32(Int total_size) >>>ce in (* [total_size] *)
     let ce = DUP1                   >>>ce in (* [total_size, total_size] *)
@@ -959,24 +959,24 @@ let copy_args_from_code_to_mem le ce (cn:ty cntrct) =
 let setup_seed (le,ce) (array_loc:LI.stor_location) =
     let label       = get_new_label()   in
     let start_size  = stack_size ce     in
-    let ce = PUSH4 (Int array_loc)  >>>ce in (* loc  <<< .. *)
-    let ce = PUSH4 (Label label)    >>>ce in (* label <<< loc <<< .. *)
-    let ce = JUMPI                  >>>ce in (* IF loc!=0 GOTO label *) 
-    let ce = PUSH1 (Int 1)          >>>ce in (*   1  <<< .. *)
-    let ce = SLOAD                  >>>ce in (* S[1] <<< .. *)
-    let ce = DUP1                   >>>ce in (* S[1] <<< S[1] <<< .. *)
-    let ce = PUSH4 (Int array_loc)  >>>ce in (* loc  <<< S[1] <<< S[1] <<< .. *)
-    let ce = SSTORE                 >>>ce in (* S[loc]:=S[1] *)
-    let ce = incr_top ce 1                in (*S[1]+1<<< .. *)
-    let ce = PUSH1 (Int 1)          >>>ce in (*   1  <<< S[1]+1 <<< .. *)
-    let ce = SSTORE                 >>>ce in (* S[1]:=S[1]+1 *)
-    let ce = JUMPDEST label         >>>ce in (* .. *)
+    let ce = PUSH4 (Int array_loc)  >>>ce in (*                           loc <<< .. *)
+    let ce = PUSH4 (Label label)    >>>ce in (*                 label <<< loc <<< .. *)
+    let ce = JUMPI                  >>>ce in (* IF loc != 0 GOTO label *) 
+    let ce = PUSH1 (Int 1)          >>>ce in (*                            1  <<< .. *)
+    let ce = SLOAD                  >>>ce in (*                          S[1] <<< .. *)
+    let ce = DUP1                   >>>ce in (*                 S[1] <<< S[1] <<< .. *)
+    let ce = PUSH4 (Int array_loc)  >>>ce in (*        loc  <<< S[1] <<< S[1] <<< .. *)
+    let ce = SSTORE                 >>>ce in (* S[loc]:=S[1]             S[1] <<< .. *)
+    let ce = incr_top ce 1                in (*                        S[1]+1 <<< .. *)
+    let ce = PUSH1 (Int 1)          >>>ce in (*                 1  <<< S[1]+1 <<< .. *)
+    let ce = SSTORE                 >>>ce in (* S[1]:=S[1]+1                      .. *)
+    let ce = JUMPDEST label         >>>ce in (*                                   .. *)
     assert (stack_size ce = start_size) ; 
     le, ce
 
 
-let reset_array_seed_counter ce = 
 (* let setup_array_seed_counter_to_one_if_not_initialized ce = *)
+let reset_array_seed_counter ce = 
     let start_size  = stack_size ce     in
     let label       = get_new_label()   in
     let ce = PUSH1 (Int 1)          >>>ce in (* 1 >>> .. *)
@@ -1020,7 +1020,7 @@ let codegen_cnstrctr_bytecode ((cns:ty cntrct idx_list), idx) : ce (* containing
     let ce      = setup_array_seeds le ce cn                    in
     let ce      = set_cntrct_pc ce idx                          in (* stack: [] *)
     let ce      = copy_runtime_code_to_mem ce idx               in (* stack: [code_length, code_start_on_memory] *)
-    RETURN >>> ce 
+                  RETURN >>> ce 
 
 
 
@@ -1047,7 +1047,7 @@ let codegen_cnstrctr_bytecode ((cns:ty cntrct idx_list), idx) : ce (* containing
 
 type cnstrctr_compiled      =
                             { cnstrctr_codegen_env      : ce
-                            ; cnstrctr_intf             : cntrct_intf
+                            ; cnstrctr_ty             : tyCntrct
                             ; cnstrctr_cntrct           : ty cntrct                     }
 
 type runtime_compiled       =
@@ -1064,7 +1064,7 @@ let empty_runtime_compiled idx_lookup layouts =
 
 let compile_cnstrctr (cns,idx) : cnstrctr_compiled =
     { cnstrctr_codegen_env      = codegen_cnstrctr_bytecode (cns, idx)
-    ; cnstrctr_intf             = cntrct_intf_of (L.assoc idx cns)
+    ; cnstrctr_ty             = typeof_cntrct (L.assoc idx cns)
     ; cnstrctr_cntrct           = L.assoc idx cns                           }
 
 let compile_cnstrctrs cns : cnstrctr_compiled idx_list =
@@ -1118,13 +1118,13 @@ let add_dispatcher le ce idx cntrct =
     let ce = push_word_of_inputdata_at_byte ce (Int 0) in
     let ce = shiftR_top ce Eth.(word_bits - sig_bits) in
     assert (stack_size ce = start_size + 1) ;
-    let mthd_sigs   = L.map (fun x->x.mthd_head) cntrct.mthds in
+    let tyMthds   = L.map (fun x->x.mthd_head) cntrct.mthds in
     let mthd_infos  = BL.filter_map 
                          (function  | Default  -> None 
-                                    | Method u -> Some u) mthd_sigs in 
+                                    | Method u -> Some u) tyMthds in 
     let ce = L.fold_left (fun ce -> add_dispatcher_for_a_mthd_info le ce idx) ce mthd_infos in
     let ce = POP                        >>>ce   in (* the signature in input is not necessary anymore *)
-    let ce = if L.exists (function  | Default  -> true | _ -> false) mthd_sigs 
+    let ce = if L.exists (function  | Default  -> true | _ -> false) tyMthds 
                     then add_dispatcher_for_default_mthd le ce idx
                     else add_throw ce   in
     le,ce
@@ -1390,16 +1390,9 @@ and add_self_destruct le ce layout expr =
 
 
 
-
-let add_mthd_arg_locations le (m : ty mthd) =
-    let locEnv = Eth.args_with_locations m in
-    add_pairs le locEnv
-
 let calldatasize_of_usual_header us =
     let args = us.mthd_args in
-    4 (* for signature *) +
-        try     BL.sum (L.map (fun x ->size_of_ty x.ty) args) 
-        with    Invalid_argument _ -> 0
+    4 (* for signature *) + Eth.total_size_of_args args   
 
 let add_mthd_arg_len_chk ce = function 
     | Default       -> (* no check, the choice is arguable *) ce

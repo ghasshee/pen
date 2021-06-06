@@ -15,10 +15,11 @@ let err                     = failwith
 let word_bits               = 256
 let sig_bits                = 32
 
-type fn_sig                 =
-                            { sig_return  : ty list
-                            ; sig_name    : string
-                            ; sig_args    : ty list }
+
+type tyMthd                 =
+                            { tyRet       : ty list
+                            ; name        : string
+                            ; tyArgs      : ty list }
 
 
 let get_ty arg : (string*ty)option  = match arg.ty with
@@ -36,7 +37,7 @@ let arg_sizes_to_positions sizes = arg_sizes_to_positions_inner [] 4(*size of si
 
 let pr_arg_loc r            = L.iter (fun(nm,loc) -> printf"arg %s at %s\n" nm (string_of_location loc)) r
 
-let args_with_locations (c:ty mthd) : (string*location)list = match c.mthd_head with
+let argLocs_of_mthd m : (string*location)list = match m.mthd_head with
     | Default           ->  []
     | Method h          ->  let sizes       = L.map calldata_size_of_arg h.mthd_args in
                             let positions   = arg_sizes_to_positions sizes in
@@ -56,9 +57,13 @@ let arrays_in_cntrct c : (string*ty*ty) list =
 let cnstrctr_args (cn:ty cntrct) : (string*ty) list = 
     get_tys cn.cntrct_args
 
-let total_size_of_args l : int = 
-    try     BL.sum (L.map size_of_ty l) 
+let total_size_of_tyArgs tys = 
+    try     BL.sum (L.map size_of_ty tys) 
     with    Invalid_argument _          -> 0
+
+let total_size_of_args args = 
+    try     BL.sum (L.map (fun arg-> size_of_ty arg.ty) args)
+    with    Invalid_argument _          -> 0 
 
 
 

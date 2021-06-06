@@ -39,6 +39,10 @@ let add_pair le (key,loc)   = match le with
 
 let add_pairs le locEnv     = L.fold_left add_pair le locEnv
 
+let add_mthd_arg_locations le (m : ty mthd) =
+    let locEnv = Eth.argLocs_of_mthd m in
+    add_pairs le locEnv
+
 let add_empty_locEnv le     = [] :: le
 
 let stack_story_locEnv locEnv : int option = err "stack_story_locEnv"
