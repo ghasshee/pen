@@ -237,9 +237,10 @@ let copy_whole_code_to_mem ce =
     assert(start_size + 2 = stack_size ce) ;        
     ce
 
-let push_method (ce:ce) (a_mthd:mthd_info) =
-    let hash  = Eth.hash_of_mthd_info_ty a_mthd     in
-    let ce    = PUSH4(Big(Eth.hex_to_big_int hash))>>> ce in 
+let push_method ce (m:mthd_info)  =
+    let hash  = Eth.hash_of_mthd_info_ty m         in
+    let b     = Eth.hex_to_big_int hash            in 
+    let ce    = PUSH4(Big b)                >>> ce in 
     ce
 
 (** [prepare_functiohn_signature ce mthd]
@@ -431,26 +432,27 @@ and codegen_new_expr le ce new_e (cntrctname : string) =
     assert (stack_size ce = start_size + 1) ; 
     ce
 
-and generate_array_index le ce aa =
-    let array = aa.array_name                   in
-    let index = aa.array_index                   in
+and gen_array_storLoc le ce aa =
+    let array = aa.array_name                           in
+    let index = aa.array_index                          in
     let ce    = index               >>>>> (R_,le,ce)    in (*                    index <<< .. *)
     let ce    = array               >>>>> (R_,le,ce)    in (*      array_loc <<< index <<< .. *)
                 keccak_cons le ce                          (*   sha3(array_loc++index) <<< .. *) 
       
-
 and codegen_array le ce (aa:ty array) =
-    let ce    = generate_array_index le ce aa in
+    let ce    = gen_array_storLoc le ce aa in
     SLOAD >>> ce 
 
-(* if the stack top is zero, set up an array seed at aa, and replace the zero with the new seed *)
-and setup_array_seed_at_array le ce aa =
-    let label = get_new_label ()                        in (* *)    (* stack: [result, result] *)
+(* if the stack top is zero, 
+ *      then set up an array seed at aa, 
+ *           replace the zero with the new seed *)
+and setup_array_storLoc le ce aa =
+    let label = get_new_label ()                        in       (* stack: [result, result] *)
     let ce = DUP1                                >>> ce in       (* stack: [result, result] *)
     let ce = PUSH4(Label label)                  >>> ce in       (* stack: [result, result, shortcut] *)
     let ce = JUMPI                               >>> ce in       (* stack: [result] *)
     let ce = POP                                 >>> ce in       (* stack: [] *)
-    let ce = generate_array_index le ce aa              in       (* stack: [stor_index] *)
+    let ce = gen_array_storLoc le ce aa                   in       (* stack: [stor_index] *)
     let ce = PUSH1 (Int 1)                       >>> ce in       (* stack: [stor_index, 1] *)
     let ce = SLOAD                               >>> ce in       (* stack: [stor_index, orig_seed] *)
     let ce = DUP1                                >>> ce in       (* stack: [stor_index, orig_seed, orig_seed] *)
@@ -463,12 +465,14 @@ and setup_array_seed_at_array le ce aa =
     let ce = JUMPDEST label                      >>> ce in       (* stack: [result] *)
     ce
 
-(*   if the stack top is zero, set up an array seed at aa, and replace the zero with the new seed *)
-and setup_array_seed_at_location le ce loc =
+(*   if the stack top is zero, 
+ *      then set up an array seed at aa, 
+ *      replace the zero with the new seed *)
+and setup_array_storLoc_of_loc le ce loc =
     let stor_idx = (match loc with
-      | Loc.Stor stor_range    ->  assert (stor_range.Loc.stor_size = (Int 1)) ;
-                                      stor_range.Loc.stor_start
-      | _                         ->  err "setup array seed at non-storage") in
+      | Loc.Stor stor_range     ->  assert (stor_range.Loc.stor_size = (Int 1)) ;
+                                    stor_range.Loc.stor_start
+      | _                       ->  err "setup array seed at non-storage") in
     let label = get_new_label ()    in    (* stack: [result, result] *)
     let ce = DUP1                   >>> ce in    (* stack: [result, result] *)
     let ce = PUSH32(Label label)    >>> ce in    (* stack: [result, result, shortcut] *)
@@ -517,7 +521,7 @@ and codegen_expr le ce align  ((e,t):ty expr) : ce =
     | EpArray a,ty         -> assert (align = R_) ; 
                                 let ce = codegen_array le ce (read_array a) in
                                 begin match ty with
-                                | TyMap _   -> setup_array_seed_at_array le ce (read_array a)
+                                | TyMap _   -> setup_array_storLoc le ce (read_array a)
                                 | _         -> ce                   end 
 
     | EpThis,_             -> let ce = ADDRESS        >>> ce      in
@@ -529,7 +533,7 @@ and codegen_expr le ce align  ((e,t):ty expr) : ce =
                                  *  If they are SLOADED,   the location env should be updated. *)
                                 | Some loc  ->  let le,ce = copy_to_top le ce align ty loc in
                                                     begin match ty with
-                                                    | TyMap _   -> setup_array_seed_at_location le ce loc
+                                                    | TyMap _   -> setup_array_storLoc_of_loc le ce loc
                                                     | _         -> ce           end
                                 | None      ->  err ("codegen_expr: identifier's location not found: "^id) )
 
@@ -995,9 +999,9 @@ let reset_array_seed_counter ce =
  * ..
  * array[n] := seed + n *) 
 
-let setup_array_seeds le ce (c:ty cntrct) : ce =
+let setup_array_seeds le ce (cn:ty cntrct) =
     let ce            = reset_array_seed_counter ce in
-    let array_locs    = LI.array_locations c in
+    let array_locs    = LI.array_locations cn in
     let _,ce          = L.fold_left setup_seed (le,ce) array_locs in
     ce
 
@@ -1006,18 +1010,16 @@ let setup_array_seeds le ce (c:ty cntrct) : ce =
 
 (* CODEGEN CONSTRUCTOR *) 
 
-let codegen_cnstrctr_bytecode ((cs:ty cntrct indexed_list), idx) : ce (* containing the program *)  =
-    let le      = cnstrctr_initial_env idx (choose_cntrct idx cs)  in
-    let ce      = empty_ce (idx_lookup_in_assoc cs) cs                      in
-    let ce      = init_mem_alloc ce                                         in
-    (* implement some kind of fold function over the arg list
-     * each step generates new (le,ce) *)
-    let ce      = copy_args_from_code_to_mem le ce(choose_cntrct idx cs)    in (* stack: [arg_mem_size, arg_mem_begin] *)
-    let ce:ce   = copy_args_from_mem_to_stor le ce idx                      in (* stack: [] *)
-    (* set up array seeds *)
-    let ce:ce   = setup_array_seeds le ce (choose_cntrct idx cs)            in
-    let ce      = set_cntrct_pc ce idx                                      in (* stack: [] *)
-    let ce      = copy_runtime_code_to_mem ce idx                           in (* stack: [code_length, code_start_on_memory] *)
+let codegen_cnstrctr_bytecode ((cns:ty cntrct idx_list), idx) : ce (* containing the program *)  =
+    let cn      = choose_cntrct idx cns                         in 
+    let le      = cnstrctr_initial_env idx cn                   in
+    let ce      = empty_ce (idx_lookup_in_assoc cns) cns        in
+    let ce      = init_mem_alloc                         ce     in
+    let ce      = copy_args_from_code_to_mem le ce cn           in (* stack: [arg_mem_size, arg_mem_begin] *)
+    let ce      = copy_args_from_mem_to_stor le ce idx          in (* stack: [] *)
+    let ce      = setup_array_seeds le ce cn                    in
+    let ce      = set_cntrct_pc ce idx                          in (* stack: [] *)
+    let ce      = copy_runtime_code_to_mem ce idx               in (* stack: [code_length, code_start_on_memory] *)
     RETURN >>> ce 
 
 
@@ -1050,7 +1052,7 @@ type cnstrctr_compiled      =
 
 type runtime_compiled       =
                             { runtime_codegen_env       : ce
-                            ; runtime_cntrct_offsets    : int indexed_list                  }
+                            ; runtime_cntrct_offsets    : int idx_list                  }
                             (* what form should the cnstrctr code be encoded?
                                1. pseudo program.  easy
                                2. pseudo codegen_env.  maybe uniform
@@ -1065,7 +1067,7 @@ let compile_cnstrctr (cns,idx) : cnstrctr_compiled =
     ; cnstrctr_intf             = cntrct_intf_of (L.assoc idx cns)
     ; cnstrctr_cntrct           = L.assoc idx cns                           }
 
-let compile_cnstrctrs cns : cnstrctr_compiled indexed_list =
+let compile_cnstrctrs cns : cnstrctr_compiled idx_list =
     pair_map (fun idx _ -> compile_cnstrctr (cns,idx)) cns
 
 let initial_runtime_compiled idx_lookup layouts : runtime_compiled =
@@ -1078,12 +1080,12 @@ let initial_runtime_compiled idx_lookup layouts : runtime_compiled =
 let push_mthd_dest ce idx m_hd =
     PUSH32(MthdAddrInRuntimeCode(idx,m_hd)) >>>ce 
 
-let add_dispatcher_for_a_mthd_info le ce idx m_hd =
-    let start_size = stack_size ce              in
-    let ce = DUP1                       >>>ce   in
-    let ce = push_method ce m_hd                in
+let add_dispatcher_for_a_mthd_info le ce idx m =   
+    let start_size = stack_size ce              in 
+    let ce = DUP1                       >>>ce   in 
+    let ce = push_method ce m                   in
     let ce = EQ                         >>>ce   in
-    let ce = push_mthd_dest ce idx(Method m_hd) in
+    let ce = push_mthd_dest ce idx(Method m)    in
     let ce = JUMPI                      >>>ce   in
     assert (stack_size ce = start_size) ; 
     ce
@@ -1437,13 +1439,13 @@ let append_runtime layout(prev:runtime_compiled)(idx, (cn : ty cntrct)) : runtim
     ; runtime_cntrct_offsets  = insert idx (code_length prev.runtime_codegen_env)prev.runtime_cntrct_offsets
     }
 
-let compile_runtime layout (cns : ty cntrct indexed_list) : runtime_compiled = 
+let compile_runtime layout (cns : ty cntrct idx_list) : runtime_compiled = 
     L.fold_left (append_runtime layout) (initial_runtime_compiled (idx_lookup_in_assoc cns) cns) cns
 
 let stor_layout_from_cnstrctr_compiled (cc : cnstrctr_compiled) : LI.cntrct_stor_layout =
     LI.stor_layout_of_cntrct cc.cnstrctr_cntrct (extract_program cc.cnstrctr_codegen_env)
 
-let sizes_of_cnstrctrs (cnstrctrs : cnstrctr_compiled indexed_list) : int list =
+let sizes_of_cnstrctrs (cnstrctrs : cnstrctr_compiled idx_list) : int list =
     let lengths = map    (fun cc -> code_length cc.cnstrctr_codegen_env) cnstrctrs in
     let lengths = L.sort (fun a b-> compare(fst a)(fst b)) lengths in
     L.map snd lengths
@@ -1454,15 +1456,15 @@ let rec calculate_offsets_inner ret current = function
 
 let calculate_offsets init l   = calculate_offsets_inner [] init l
 
-let stor_layout_from_runtime_compiled (rc:runtime_compiled) (cnstrctrs:cnstrctr_compiled indexed_list) : LI.runtime_stor_layout =
+let stor_layout_from_runtime_compiled (rc:runtime_compiled) (cnstrctrs:cnstrctr_compiled idx_list) : LI.runtime_stor_layout =
     let sizes_of_cnstrctrs       = sizes_of_cnstrctrs cnstrctrs in
     let offsets_of_cnstrctrs     = calculate_offsets (code_length rc.runtime_codegen_env) sizes_of_cnstrctrs in
     let sum_of_cnstrctr_sizes    = BL.sum sizes_of_cnstrctrs in
     LI.(
         { runtime_code_size             = sum_of_cnstrctr_sizes + code_length rc.runtime_codegen_env
         ; runtime_offset_of_idx         = rc.runtime_cntrct_offsets
-        ; runtime_size_of_cnstrctr      = fold_indexed_list sizes_of_cnstrctrs
-        ; runtime_offset_of_cnstrctr    = fold_indexed_list offsets_of_cnstrctrs })
+        ; runtime_size_of_cnstrctr      = to_idx_list sizes_of_cnstrctrs
+        ; runtime_offset_of_cnstrctr    = to_idx_list offsets_of_cnstrctrs })
 
 let concat_programs_rev (programs : 'imm Evm.program list) =
     let rev_programs = L.rev programs in
@@ -1470,13 +1472,13 @@ let concat_programs_rev (programs : 'imm Evm.program list) =
 
 (** cnstrctrs_packed concatenates cnstrctr code.
  *  Since the code is stored in the reverse order, the concatenation is also reversed. *)
-let cnstrctrs_packed layout (cnstrctrs : cnstrctr_compiled indexed_list) =
+let cnstrctrs_packed layout (cnstrctrs : cnstrctr_compiled idx_list) =
     let programs            = map (fun cc -> extract_program cc.cnstrctr_codegen_env) cnstrctrs in
     let programs            = L.sort (fun a b -> compare (fst a) (fst b)) programs in
     let programs            = L.map snd programs in
     concat_programs_rev programs
 
-let compose_bytecode (cnstrctrs : cnstrctr_compiled indexed_list)
+let compose_bytecode (cnstrctrs : cnstrctr_compiled idx_list)
                      (runtime : runtime_compiled) idx : big_int Evm.program =
     let cntrcts_stor_layout : (idx * LI.cntrct_stor_layout) list =
       L.map (fun (id, const) -> (id, stor_layout_from_cnstrctr_compiled const)) cnstrctrs in
@@ -1490,7 +1492,7 @@ let compose_bytecode (cnstrctrs : cnstrctr_compiled indexed_list)
     (* the code is stored in the reverse order *)
     imm_runtime @ imm_cnstrctr
 
-let compose_runtime_bytecode (cnstrctrs : cnstrctr_compiled indexed_list)
+let compose_runtime_bytecode (cnstrctrs : cnstrctr_compiled idx_list)
                      (runtime : runtime_compiled) : big_int Evm.program =
     let cntrcts_stor_layout : (idx * LI.cntrct_stor_layout) list =
       L.map (fun (id, const) -> (id, stor_layout_from_cnstrctr_compiled const)) cnstrctrs in

@@ -8,6 +8,7 @@ open Location
 open Misc
 
 module L    = List
+module BL   = BatList
 module Eth  = Ethereum
 
 
@@ -15,7 +16,7 @@ type locEnv             = (string * location) list
 type le                 = locEnv list
 
 let err                 = failwith 
-let size l              = BatList.sum (L.map L.length l)
+let size l              = BL.sum (L.map L.length l)
 let empty_env           = []
 
 
@@ -38,11 +39,11 @@ let add_pair le (key,loc)   = match le with
 
 let add_pairs le locEnv     = L.fold_left add_pair le locEnv
 
-let add_empty_locEnv le      = [] :: le
+let add_empty_locEnv le     = [] :: le
 
 let stack_story_locEnv locEnv : int option = err "stack_story_locEnv"
 
-let last_stack_element_recorded le = match filter_getFst stack_story_locEnv le with
+let last_stack_elem_recorded le = match filter_getFst stack_story_locEnv le with
     | Some n                    ->  n
     | None                      -> -1
 

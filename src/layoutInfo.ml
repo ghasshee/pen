@@ -44,14 +44,14 @@ type post_stor_layout       =
                               init_data_size            : idx -> int
                               (* runtime_coode_offset is equal to cnstrctr_code_size *)
                             ; runtime_code_size         : int
-                            ; cntrct_offset_in_runtime_code : int indexed_list
+                            ; cntrct_offset_in_runtime_code : int idx_list
                             (* And then, the runtime code is organized like this: *)
                             (* |dispatcher that jumps into the stored pc
                              * |runtime code for cntrct A
                              * |runtime code for cntrct B
                              * |runtime code for cntrct C| *)
 
-                            ; cnstrctr_in_runtime_code_offset : int indexed_list
+                            ; cnstrctr_in_runtime_code_offset : int idx_list
 
                             (* And then, the runtime code for a particular cntrct is organized like this: *)
                             (* |dispatcher that jumps into a method
@@ -75,9 +75,9 @@ type cntrct_stor_layout   =
 
 type runtime_stor_layout    =
                             { runtime_code_size             : int
-                            ; runtime_offset_of_idx         : int indexed_list
-                            ; runtime_offset_of_cnstrctr    : int indexed_list
-                            ; runtime_size_of_cnstrctr      : int indexed_list
+                            ; runtime_offset_of_idx         : int idx_list
+                            ; runtime_offset_of_cnstrctr    : int idx_list
+                            ; runtime_size_of_cnstrctr      : int idx_list
                             }
 
 

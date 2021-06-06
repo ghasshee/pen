@@ -12,13 +12,13 @@ type ce                             =
                                     { stack_size    : int
                                     ; program       : Imm.imm program
                                     ; idx_lookup    : string -> idx
-                                    ; cntrcts       : ty cntrct indexed_list }
+                                    ; cntrcts       : ty cntrct idx_list }
 
 let extract_program ce              =   ce.program
 let idx_lookup ce name              =   try ce.idx_lookup name 
                                         with e -> (eprintf"Unknown Cntrct %s.\n%!"name;raise e)
 
-let idx_lookup_in_assoc cns name = lookup_id (fun cn -> cn.cntrct_name=name) cns
+let idx_lookup_in_assoc cns name = lookup_idx (fun cn -> cn.cntrct_name=name) cns
 
 let empty_ce idx_lookup cntrcts     =
     { stack_size        = 0
@@ -35,7 +35,6 @@ let set_stack_size ce i             =   { ce with stack_size = i }
 let cntrct_lookup ce idx          =   try choose_cntrct idx ce.cntrcts
                                       with e -> Printf.eprintf "cntrct_lookup failed on %d\n%!" idx; 
                                                 pr_idx_mapping(fun x->x)(idxs ce.cntrcts); raise e;;
-
 
 let cntrct_of_name  ce  = ( cntrct_lookup ce ) $ ( idx_lookup ce )   
 

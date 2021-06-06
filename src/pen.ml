@@ -7,10 +7,16 @@ open Support
 open ContractId
 open Big_int
 
-let enable_abi      = BatOptParse.StdOpt.store_true () 
+module Parser = BatOptParse.OptParser
+module Option = BatOptParse.Opt
+module StdOpt = BatOptParse.StdOpt
+module LI     = LayoutInfo
+module L      = List
 
-let optparser : BatOptParse.OptParser.t 
-                    = BatOptParse.OptParser.make 
+let enable_abi      = StdOpt.store_true () 
+
+let optparser : Parser.t 
+                    = Parser.make 
                             ~version:"0.0.02" 
                             ~usage:"bamboo [options] < src.bbo" 
                             ~description:"Bamboo compiles input from stdin and prints EVM bytecode in stdout. " ()
@@ -20,34 +26,31 @@ let files       = BatOptParse.OptParser.add optparser
 let _           = if files <> [] then (eprintf "Pass the contents to stdin.\n"; exit 1) 
 let abi:bool    = (Some true = enable_abi.BatOptParse.Opt.option_get ()) 
 let toplevels   = parse_with_error lexbuf 
-let toplevels'  = fold_indexed_list toplevels
+let toplevels'  = to_idx_list toplevels
 let toplevels'' = Type.assignTys toplevels'
 *)
 
 let () =
-  let ()                = BatOptParse.OptParser.add optparser ~long_names:["abi"] ~help:"print ABI" enable_abi  in
-  let files             = BatOptParse.OptParser.parse_argv optparser                                            in
-  let ()                = if files<>[] then (Printf.eprintf "Pass the contents to stdin.\n"; exit 1)            in
-  let abi : bool        = (Some true = enable_abi.BatOptParse.Opt.option_get ())                                in
-  let lexbuf            = Lexing.from_channel stdin         in
-  let toplevels : unit Syntax.toplevel list 
-                        = parse_with_error lexbuf           in
-  let toplevels         = fold_indexed_list toplevels   in
-  let toplevels : ty Syntax.toplevel indexed_list 
-                        = Type.assignTys toplevels       in
-  let cntrcts         = filter_map (function 
-                            | Cntrct c  -> Some c
-                            | _           -> None     ) toplevels in
-  let ()                = match cntrcts with
-  | []              -> ()
-  | _               ->
-        let cnstrctrs : cnstrctr_compiled indexed_list = compile_cnstrctrs cntrcts in
-        let cntrcts_stor_layout : (idx * LayoutInfo.cntrct_stor_layout) list =
-            List.map (fun (id, const) -> (id, stor_layout_from_cnstrctr_compiled const)) cnstrctrs in
-        let layout = LayoutInfo.cnstrct_stor_layout cntrcts_stor_layout in
-        let runtime_compiled = compile_runtime layout cntrcts in
-        let bytecode : big_int Evm.program =
-            compose_bytecode cnstrctrs runtime_compiled (fst (List.hd cntrcts)) in
-        let () = if abi then Abi.prABI toplevels else Evm.pr_encoded bytecode in
-     () in
-  ()
+    Parser.add optparser 
+        ~long_names:["abi"] 
+        ~help:"print ABI" enable_abi ; 
+    let files                                                          = Parser.parse_argv optparser                                            in
+    if files<>[] then (eprintf "Pass the contents to stdin.\n"; exit 1) else 
+    let abi : bool                                                     = (Some true = enable_abi.Option.option_get ())                          in
+    let lexbuf                                                         = Lexing.from_channel stdin     in
+    let toplevels : unit toplevel list                                 = parse_with_error lexbuf       in
+    let toplevels                                                      = to_idx_list toplevels   in
+    let toplevels : ty toplevel idx_list                               = Type.assignTys toplevels      in
+    let cntrcts                                                        = filter_map (function 
+                                                                                    | Cntrct cn     -> Some cn
+                                                                                    | _             -> None     ) toplevels in
+    match cntrcts with
+    | []  ->  ()
+    | _   ->  let cnstrctrs : cnstrctr_compiled idx_list               = compile_cnstrctrs cntrcts in
+              let cntrcts_stor_layout : LI.cntrct_stor_layout idx_list = map stor_layout_from_cnstrctr_compiled cnstrctrs in
+              let layout                                               = LI.cnstrct_stor_layout cntrcts_stor_layout in
+              let runtime_compiled                                     = compile_runtime layout cntrcts in
+              let bytecode : big_int Evm.program                       = compose_bytecode cnstrctrs runtime_compiled (fst (L.hd cntrcts)) in
+              if abi 
+                  then Abi.prABI toplevels 
+                  else Evm.pr_encoded bytecode 

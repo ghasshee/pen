@@ -59,7 +59,7 @@ let call_arg_expectations cn_intfs = function
     | "pre_ecdsarecover"    ->  (=) [TyBytes32;TyUint8;TyBytes32;TyBytes32]
     | "keccak256"           ->  fun _ -> true
     | "iszero"              ->  fun x -> x=[TyBytes32]||x=[TyUint8]||x=[TyUint256]||x=[TyBool]||x=[TyAddr]
-    | name                  ->  let idx     = lookup_id (fun c->c.cntrct_intf_name=name) cn_intfs in
+    | name                  ->  let idx     = lookup_idx (fun c->c.cntrct_intf_name=name) cn_intfs in
                                 let intf    = choose_cntrct idx cn_intfs in
                                 (=) intf.cntrct_intf_args
 
@@ -238,7 +238,7 @@ and assignTy_expr cn_intfs cname tyenv (expr_inner,()) : (ty*eff list) expr =
                                     match find_mthd_sig cn_intfs cntrct_name m with
                                     | Some x -> x
                                     | None   -> err ("method "^m^" not found") end in
-                                let types   = Eth.(L.map to_ty (method_sig.sig_return)) in
+                                let types   = (L.map to_ty (method_sig.sig_return)) in
                                 let args    = L.map (assignTy_expr cn_intfs cname tyenv) send.send_args in
                                 assert (BL.for_all has_no_side_effects args) ;
                                 let reference = EpSend{ send_cntrct   = cntrct'
@@ -421,7 +421,7 @@ let has_distinct_sigs (cn:unit cntrct) =
     L.length sigs=L.length uniq_sigs
 
 
-let assignTy_cntrct cn_intfs (evs: event indexed_list)(cn : unit cntrct) 
+let assignTy_cntrct cn_intfs (evs: event idx_list)(cn : unit cntrct) 
             : (ty*eff list) cntrct =
     assert (BL.for_all (arg_has_known_ty cn_intfs) cn.cntrct_args) ; 
     assert (has_distinct_sigs cn);
@@ -435,7 +435,7 @@ let assignTy_cntrct cn_intfs (evs: event indexed_list)(cn : unit cntrct)
     ; mthds           = L.map(assignTy_mthd cn_intfs cn.cntrct_name tyenv)cn.mthds }
 
 
-let assignTy_toplevel cn_intfs (evs:event indexed_list) (top:unit toplevel) : (ty*eff list)toplevel 
+let assignTy_toplevel cn_intfs (evs:event idx_list) (top:unit toplevel) : (ty*eff list)toplevel 
     = match top with
     | Cntrct c    -> Cntrct (assignTy_cntrct cn_intfs evs c)
     | Event  e    -> Event e
@@ -556,17 +556,17 @@ let stripEffect (raw:(ty*'a)toplevel) : ty toplevel =
 
 (* Assign Type *) 
 
-let has_distinct_cntrct_names (cns : unit cntrct indexed_list) : bool =
+let has_distinct_cntrct_names (cns : unit cntrct idx_list) : bool =
     let cn_names    = (L.map (fun (_, b) -> b.cntrct_name) cns) in
     L.length cns=L.length(BL.unique cn_names)
 
 
-let assignTys (raw : unit toplevel indexed_list) : ty toplevel indexed_list =
-    let raw_cntrcts : unit cntrct indexed_list =
+let assignTys (raw : unit toplevel idx_list) : ty toplevel idx_list =
+    let raw_cntrcts : unit cntrct idx_list =
       filter_map (function  | Cntrct c -> Some c
                             | _        -> None   ) raw in
     assert(has_distinct_cntrct_names(raw_cntrcts));
     let intfs = map cntrct_intf_of raw_cntrcts in
-    let evs : event indexed_list = filter_map (function | Event e -> Some e
+    let evs : event idx_list = filter_map (function | Event e -> Some e
                                                     | _       -> None   ) raw in
     map stripEffect (map (assignTy_toplevel intfs evs) raw)

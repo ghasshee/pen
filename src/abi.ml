@@ -73,7 +73,7 @@ let prABI_toplevel seen_cnstrctr (t:ty toplevel) : string = match t with
     | Cntrct c                -> prABI_cntrct seen_cnstrctr c
     | Event e                   -> prABI_event e
 
-let prABI (tops : ty toplevel indexed_list) : unit =
+let prABI (tops : ty toplevel idx_list) : unit =
     let seen_cnstrctr    = ref false in
     let ()                  = printf "[" in
     let strs : string list  = L.map (prABI_toplevel seen_cnstrctr) (values tops) in
