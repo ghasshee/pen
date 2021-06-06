@@ -13,13 +13,20 @@ module BL = BatList
 module BS = BatString 
 module BB = BatBig_int
 
+let abi_string_of_ty       = function 
+    | TyUint256                ->  "uint256" 
+    | TyUint8                  ->  "uint8"   
+    | TyBytes32               ->  "bytes32" 
+    | TyAddr                  ->  "address"
+    | TyBool                  ->  "bool"
+
 
 let prABI_default_mthd   =
   "{\"type\":\"fallback\",\"inputs\": [],\"outputs\": [],\"payable\": true}"
 
 let prABI_input (arg:arg) : string =
     sprintf "{\"name\": \"%s\", \"type\": \"%s\"}" (arg.id)
-                 (string_of_intf_ty (intf_ty_of_ty arg.ty))
+                 (abi_string_of_ty arg.ty)
 
 let prABI_inputs (args:arg list) : string =
     let strings         = L.map prABI_input args in
@@ -27,7 +34,7 @@ let prABI_inputs (args:arg list) : string =
 
 let prABI_output (ty:ty) : string =
     sprintf "{\"name\": \"\", \"type\": \"%s\"}"
-                 (string_of_intf_ty (intf_ty_of_ty ty))
+                 (abi_string_of_ty ty)
 
 let prABI_outputs (tys:ty list) : string =
     let strings = L.map prABI_output tys in
@@ -58,7 +65,7 @@ let prABI_cntrct seen_cnstrctr (c:ty cntrct) : string =
 let prABI_event_arg (a:event_arg) : string =
     sprintf "{\"name\":\"%s\",\"type\":\"%s\",\"indexed\":%s}"
                  (a.event_arg_body.id)
-                 (string_of_intf_ty (intf_ty_of_ty (a.event_arg_body.ty)))
+                 (abi_string_of_ty (a.event_arg_body.ty))
                  (string_of_bool a.event_arg_indexed)
 
 let prABI_event_inputs (is:event_arg list) : string =

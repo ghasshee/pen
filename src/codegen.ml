@@ -931,7 +931,7 @@ let copy_args_from_mem_to_stor le ce idx =
  *  Output [rest of the stack, mem_size, mem_begin].
  *)
 let copy_args_from_code_to_mem le ce (cn:ty cntrct) =
-    let total_size = Eth.total_size_of_intf_args (L.map snd (Eth.cnstrctr_args cn)) in
+    let total_size = Eth.total_size_of_args (L.map snd (Eth.cnstrctr_args cn)) in
     let start_size = stack_size ce        in (* [] *)
     let ce = PUSH32(Int total_size) >>>ce in (* [total_size] *)
     let ce = DUP1                   >>>ce in (* [total_size, total_size] *)
@@ -1398,7 +1398,7 @@ let add_mthd_arg_locations le (m : ty mthd) =
 let calldatasize_of_usual_header us =
     let args = us.mthd_args in
     4 (* for signature *) +
-        try     BL.sum (L.map (fun x -> Eth.(intf_ty_size(intf_ty_of_ty x.ty)))args) 
+        try     BL.sum (L.map (fun x ->size_of_ty x.ty) args) 
         with    Invalid_argument _ -> 0
 
 let add_mthd_arg_len_chk ce = function 

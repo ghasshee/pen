@@ -15,63 +15,17 @@ let err                     = failwith
 let word_bits               = 256
 let sig_bits                = 32
 
-type intf_ty                =
-                            | IntfUint       of int
-                            | IntfBytes      of int
-                            | IntfAddr
-                            | IntfBool
-
-type intf_arg               = string * intf_ty
-
-(** [intf_ty_of_ty] parses "uint" into IntfUint 256, etc. *)
-let intf_ty_of_ty           = function 
-    | TyUint256                 -> IntfUint 256
-    | TyUint8                   -> IntfUint   8
-    | TyBytes32                 -> IntfBytes 32
-    | TyAddr                    -> IntfAddr
-    | TyBool                    -> IntfBool
-    | TyCntrctInstance _        -> IntfAddr
-    | TyTuple _                 -> err "intf_ty_of_ty: tupleType not supported yet"
-    | TyMap(_, _)               -> err "intf_ty_of_ty: mappingType not supported"
-    | TyCntrctArch _            -> err "cntrct arch-type does not appear in the ABI"
-    | TyRef _                   -> err "reference type does not appear in the ABI"
-    | TyVoid                    -> err "VoidType should not appear in the ABI"
-    
-
-let to_ty                  = function  
-    | IntfUint x                -> if x<0||x>256 then err "integer: out of range"; TyUint256
-    | IntfBytes x when x=32     -> TyBytes32
-    | IntfBool                  -> TyBool
-    | IntfAddr                  -> TyAddr
-    
-
-let intf_ty_size            = function 
-    | IntfUint _                -> 32 (* bytes *) 
-    | IntfAddr                  -> 32 
-    | IntfBool                  -> 32
-    | IntfBytes _               -> 32
-
-
-
-
-
-
-
-
 type fn_sig                 =
-                            { sig_return  : intf_ty list
+                            { sig_return  : ty list
                             ; sig_name    : string
-                            ; sig_args    : intf_ty list }
+                            ; sig_args    : ty list }
 
 
-
-
-
-let get_intf_ty arg : (string*intf_ty)option  = match arg.ty with
+let get_ty arg : (string*ty)option  = match arg.ty with
     | TyMap (_,_)               -> None
-    | _                         -> Some(arg.id,intf_ty_of_ty arg.ty)
+    | _                         -> Some(arg.id,arg.ty)
 
-let get_intf_tys : arg list -> (string*intf_ty)list = BL.filter_map get_intf_ty
+let get_tys : arg list -> (string*ty)list = BL.filter_map get_ty
 
 let rec arg_sizes_to_positions_inner ret used  = function 
     | []                        ->  L.rev ret
@@ -99,11 +53,11 @@ let get_array arg : (string*ty*ty) option = match arg.ty with
 let arrays_in_cntrct c : (string*ty*ty) list = 
     BL.filter_map get_array (c.cntrct_args)
 
-let cnstrctr_args (cn:ty cntrct) : (string*intf_ty) list = 
-    get_intf_tys cn.cntrct_args
+let cnstrctr_args (cn:ty cntrct) : (string*ty) list = 
+    get_tys cn.cntrct_args
 
-let total_size_of_intf_args l : int = 
-    try     BL.sum (L.map intf_ty_size l) 
+let total_size_of_args l : int = 
+    try     BL.sum (L.map size_of_ty l) 
     with    Invalid_argument _          -> 0
 
 
@@ -151,17 +105,11 @@ let hex_keccak h : string   =
 
 let keccak_signature str : string  =  String.sub (string_keccak str) 0 8
 
-let string_of_intf_ty       = function 
-    | IntfUint x                ->  "uint"  ^ (string_of_int x)
-    | IntfBytes x               ->  "bytes" ^ (string_of_int x)
-    | IntfAddr                  ->  "address"
-    | IntfBool                  ->  "bool"
-
 let string_of_mthd_info_ty m =
     let name_of_mthd    = m.mthd_name                       in
-    let args            = get_intf_tys m.mthd_args          in
+    let args            = get_tys m.mthd_args          in
     let arg_tys         = L.map snd args                    in
-    let str_tys         = L.map string_of_intf_ty arg_tys   in
+    let str_tys         = L.map string_of_ty arg_tys   in
     let ty              = String.concat "," str_tys         in
     name_of_mthd ^ "(" ^ ty ^ ")"
 
@@ -169,9 +117,9 @@ let string_of_mthd_info_ty m =
 let string_of_event e =
     (* do I consider indexed no? *)
     let name            = e.event_name in
-    let args            = get_intf_tys (L.map arg_of_event_arg e.event_args) in
+    let args            = get_tys (L.map arg_of_event_arg e.event_args) in
     let arg_tys         = L.map snd args in
-    let list_of_tys     = L.map string_of_intf_ty arg_tys in
+    let list_of_tys     = L.map string_of_ty arg_tys in
     let args            = String.concat "," list_of_tys in
     name ^ "(" ^ args ^ ")"
 

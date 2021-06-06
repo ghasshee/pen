@@ -47,16 +47,15 @@ let last_stack_elem_recorded le = match filter_getFst stack_story_locEnv le with
     | Some n                    ->  n
     | None                      -> -1
 
-let cnstrctr_args_locations idx (args:(string*Eth.intf_ty)list) = 
-    let total   = Eth.total_size_of_intf_args (L.map snd args) in
+let cnstrctr_args_locations idx (args:(string*ty)list) = 
+    let total   = BL.sum (L.map size_of_ty (L.map snd args)) in
     let one_arg (name,offset,size) 
                 = (name,Code{ code_start = Imm.(Minus(InitDataSize idx,(Int(total-offset))))
                             ; code_size  = Int size     }) in
     let rec name_offset_size_list rev_acc offset = function 
-        (* match (args : (string*Eth.intf_ty)list) with *)  
         | []                    -> L.rev rev_acc
-        | (h_name,h_ty)::t      -> name_offset_size_list ((h_name, offset, Eth.intf_ty_size h_ty) :: rev_acc)
-                                    (offset + Eth.intf_ty_size h_ty) t in
+        | (name,ty)::t      -> name_offset_size_list ((name, offset, size_of_ty ty) :: rev_acc)
+                                    (offset + size_of_ty ty) t in
     [L.map one_arg (name_offset_size_list [] 0 args)]
 
 let cnstrctr_initial_env idx (cntrct : ty cntrct) =
@@ -73,7 +72,7 @@ let runtime_initial_env (cntrct : ty cntrct) =
     let init    = add_empty_locEnv empty_env in
 
     let f (le,word_idx) (nm,ty) =
-        let size_in_word    = Eth.intf_ty_size ty / 32 in
+        let size_in_word    = size_of_ty ty / 32 in
         let loc             = Stor  { stor_start    = Int word_idx
                                     ; stor_size     = Int size_in_word } in
         let le'             = add_pair le (nm,loc) in

@@ -238,7 +238,7 @@ and assignTy_expr cn_intfs cname tyenv (expr_inner,()) : (ty*eff list) expr =
                                     match find_mthd_sig cn_intfs cntrct_name m with
                                     | Some x -> x
                                     | None   -> err ("method "^m^" not found") end in
-                                let types   = (L.map to_ty (method_sig.sig_return)) in
+                                let types   = method_sig.sig_return in
                                 let args    = L.map (assignTy_expr cn_intfs cname tyenv) send.send_args in
                                 assert (BL.for_all has_no_side_effects args) ;
                                 let reference = EpSend{ send_cntrct   = cntrct'

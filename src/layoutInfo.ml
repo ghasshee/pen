@@ -226,7 +226,7 @@ let realize_program l init_idx p = L.map (realize_opcode l init_idx) p
 
 let stor_layout_of_cntrct (cn:ty cntrct) (cnstrctr_code : imm Evm.program) =
     { cntrct_cnstrctr_code_size = Evm.size_of_program cnstrctr_code
-    ; cntrct_arg_size           = Eth.total_size_of_intf_args (L.map snd (Eth.cnstrctr_args cn))
+    ; cntrct_arg_size           = Eth.total_size_of_args (L.map snd (Eth.cnstrctr_args cn))
     ; cntrct_num_array_seeds    = L.length (Eth.arrays_in_cntrct cn)
     ; cntrct_args               = L.map (fun a->a.ty) (cn.cntrct_args)
     }

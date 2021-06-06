@@ -10,10 +10,10 @@ module L   = List
 type mthd_intf     = Eth.fn_sig
 
 let mthd_intf_of raw    = match raw.mthd_head with
-  | Method m    ->  { Eth.sig_return = L.map Eth.intf_ty_of_ty m.mthd_ret_ty
+  | Method m    ->  Eth.{ sig_return = m.mthd_ret_ty
                         ; sig_name   = m.mthd_name
-                        ; sig_args   = L.map Eth.intf_ty_of_ty(L.map(fun x -> x.ty)m.mthd_args)}
-  | Default     ->  { Eth.sig_return = []
+                        ; sig_args   = L.map (fun x -> x.ty) m.mthd_args }
+  | Default     ->  Eth.{ sig_return = []
                         ; sig_name   = "" (* is this a good choice? *)
                         ; sig_args   = []    }
 
