@@ -58,7 +58,7 @@ type event              =
 (***      STATEMENTS & EXPRESSIONS     ***)
 (*****************************************)
 
-type 'ty fn_call=
+type 'ty fncall=
                         { call_head             : string
                         ; call_args             : ('ty expr) list   }
 
@@ -96,7 +96,7 @@ and  'ty expr_tm        =
                         | EpDecLit256         of big_int
                         | EpDecLit8           of big_int
                         | EpNow
-                        | EpFnCall           of 'ty fn_call
+                        | EpFnCall           of 'ty fncall
                         | EpIdent             of string
                         | EpParen             of 'ty expr
                         | EpNew               of 'ty new_expr
@@ -120,7 +120,7 @@ and  'ty expr_tm        =
                         | EpBalance           of 'ty expr
 
 and 'ty lexpr           =
-                        | LExprArray      of 'ty array
+                        | LEpArray      of 'ty array
 
 and 'ty array    =
                         { array_name    : 'ty expr
@@ -138,7 +138,7 @@ and 'ty return          =
 
 
 let read_array   = function 
-    | LExprArray a    -> a
+    | LEpArray a    -> a
 
 let event_arg_of_arg arg isIndexed =
     { event_arg_body        = arg

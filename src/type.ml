@@ -100,7 +100,7 @@ let check_only_1_effect (llst:eff list list)  =
 let has_no_side_effects = isNil $ get_eff 
 
 
-let rec assignTy_call tyCns cname tyenv (fncall:unit fn_call) : (ty*eff list)fn_call * (ty*eff list) =
+let rec assignTy_call tyCns cname tyenv (fncall:unit fncall) : (ty*eff list)fncall * (ty*eff list) =
     let args   = L.map (assignTy_expr tyCns cname tyenv) fncall.call_args in
     check_args_match tyCns args (Some fncall.call_head) ; 
     let effs   = get_effs args in
@@ -221,7 +221,7 @@ and assignTy_expr tyCns cname tyenv (expr_inner,()) : (ty*eff list) expr =
                                              assert (acceptable_as kT idxTy) ; 
                                              assert (BL.for_all isStorRead idxEff) ; 
                                              (* TODO Check idxTy and key_ty are somehow compatible *)
-                                             (EpArray (LExprArray
+                                             (EpArray (LEpArray
                                                       { array_name = e
                                                       ; array_index = idx,(idxTy,idxEff) }),(vT,[Stor,Read]))
                             | _           -> err "index access has to be on mappings"   end
@@ -251,7 +251,7 @@ and assignTy_expr tyCns cname tyenv (expr_inner,()) : (ty*eff list) expr =
                                                ; send_msg_info = msg_info' }, (TyVoid, [External, Write]) end
     | EpValue         ->    EpValue, (TyUint256,[])
     | EpSingleDeref _
-    | EpTupleDeref  _ ->    err "DerefExpr not supposed (Bamboo Bad Designing)"
+    | EpTupleDeref  _ ->    err "DerefEp not supposed (Bamboo Bad Designing)"
 
 
 and assignTy_new_expr tyCns cname tenv e : (ty*eff list)new_expr*string (* name of the cntrct just created *) =
@@ -266,12 +266,12 @@ and assignTy_new_expr tyCns cname tenv e : (ty*eff list)new_expr*string (* name 
 and assignTy_lexpr tyCns cname tyenv (src:unit lexpr) : (ty*eff list) lexpr =
   (* no need to type the left hand side? *)
     match src with
-    | LExprArray aa ->let e = assignTy_expr tyCns cname tyenv aa.array_name in
+    | LEpArray aa ->let e = assignTy_expr tyCns cname tyenv aa.array_name in
                             begin match get_ty e with
                             | TyMap (kT,vT) ->
                                let idx,idx_ty = assignTy_expr tyCns cname tyenv aa.array_index in
                                (* TODO Check idx_typ' and key_ty are somehow compatible *)
-                               LExprArray { array_name = e 
+                               LEpArray { array_name = e 
                                                 ; array_index = idx,idx_ty  }
                             | _             -> err ("unknown array") end
 
@@ -467,11 +467,11 @@ and stripEffect_aa aa =
     ; array_index    = stripEffect_expr aa.array_index }
 
 and stripEffect_lexpr = function 
-    | LExprArray aa          -> LExprArray (stripEffect_aa aa)
+    | LEpArray aa          -> LEpArray (stripEffect_aa aa)
 
 and stripEffect_expr(i,(t,_)) = stripEffect_expr_inner i, t
 
-and stripEffect_fn_call fc =
+and stripEffect_fncall fc =
     { call_head             = fc.call_head
     ; call_args             = L.map stripEffect_expr fc.call_args }
 
@@ -496,7 +496,7 @@ and stripEffect_expr_inner = function
     | EpDecLit256 d       -> EpDecLit256 d
     | EpDecLit8 d         -> EpDecLit8 d
     | EpNow               -> EpNow
-    | EpFnCall fc        -> EpFnCall (stripEffect_fn_call fc)
+    | EpFnCall fc        -> EpFnCall (stripEffect_fncall fc)
     | EpIdent str         -> EpIdent str
     | EpParen e         -> EpParen (stripEffect_expr e)
     | EpNew e             -> EpNew (stripEffect_new_expr e)

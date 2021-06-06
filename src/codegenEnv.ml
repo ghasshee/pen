@@ -16,9 +16,9 @@ type ce                             =
 
 let extract_program ce              =   ce.program
 let idx_lookup ce name              =   try ce.idx_lookup name 
-                                        with e -> (eprintf"Unknown Cntrct %s.\n%!"name;raise e)
+                                        with e -> (eprintf"Unknown Contract %s.\n%!"name;raise e)
 
-let idx_lookup_in_assoc cns name = lookup_idx (fun cn -> cn.cntrct_name=name) cns
+let idx_lookup_in_cntrcts cns name  = lookup_idx (fun cn->cn.cntrct_name=name) cns
 
 let empty_ce idx_lookup cntrcts     =
     { stack_size        = 0
@@ -110,7 +110,7 @@ and expr_might_become e         =   match fst e with
     | EpMinus     (l,r)
     | EpMult      (l,r)
     | EpPlus      (l,r)       ->  (expr_might_become l) @ (expr_might_become r)
-    | EpArray(LExprArray a)   ->  expr_might_become a.array_index
+    | EpArray(LEpArray a)   ->  expr_might_become a.array_index
     | EpFnCall f             ->  fncall_might_become f
     | EpNew n                 ->  new_expr_might_become n
     | EpSend s                ->  send_expr_might_become s
@@ -120,7 +120,7 @@ let rec stmt_might_become       =   function
     | SmSelfDestruct e        
     | SmExpr         e        ->  expr_might_become e
     | SmVarDecl      v        ->  expr_might_become v.varDecl_val
-    | SmAssign(LExprArray a,r)->  (expr_might_become a.array_index) @ (expr_might_become r)
+    | SmAssign(LEpArray a,r)->  (expr_might_become a.array_index) @ (expr_might_become r)
     | SmIfThen(c,b)           ->  (expr_might_become c) @ (stmts_might_become b)
     | SmIfThenElse(c,b0,b1)       ->  (expr_might_become c) @ (stmts_might_become b0) @ (stmts_might_become b1)
     | SmLog(_,l,_)            ->  exprs_might_become l
