@@ -4,7 +4,7 @@ open Printf
 open Syntax
 open Codegen
 open Support 
-open ContractId
+open IndexedList
 open Big_int
 
 module Parser = BatOptParse.OptParser

@@ -1,8 +1,9 @@
 
 open Printf 
 open Syntax
-open ContractId
+open IndexedList
 open Misc
+
 (** The first element is the context for the innermost block *)
 
 type ty_env                     = 
@@ -15,8 +16,6 @@ let empty_ty_env                =
     ; events                    = []
     ; retTyCheck_fn             = None  }
 
-(*let tail tyenv                  =   { tyenv with idents = List.tl tyenv.idents    } *)
-(* let add_empty_block  tyenv      =   { tyenv with idents = [] :: tyenv.idents      } *)
 let add_pair tyenv id ty loc    =   match tyenv.idents with
     | t::ts   -> { tyenv with idents = ({id=id;ty=ty;loc=loc}::t)::ts}
     | _       -> err "no current scope in type env"

@@ -2,7 +2,7 @@
 
 open Location 
 open Syntax
-open ContractId
+open IndexedList
 open Printf 
 
 module L  = List

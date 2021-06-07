@@ -17,10 +17,11 @@ let rec filter_changeFst f = function
      | Some n   -> Some (n::xs) end 
 
 
+let err                     = failwith
 
+let big                     = Big_int.big_int_of_int
 
+let ($) f g x               = f (g x) 
 
-
-let ($) f g x = f (g x) 
-
+let isNil x                 = x=[]
 

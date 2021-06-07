@@ -1,5 +1,5 @@
+open Misc
 
-let ($) f g x   = f (g x)
 
 type eff_loc    = Stor | External (*| Balance*)
 type rw         = Read | Write

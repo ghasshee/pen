@@ -1,43 +1,54 @@
 
+(* label *) 
+
 open Printf 
 
-type label                      = int
+type label                      =   int
 
-let fresh_label                 = ref 0 
-let store :(label*int)list ref  = ref []
+let current_label               =   ref 0 
+let fresh_label ()              =   let l          = !current_label in 
+                                    current_label := !current_label+1; 
+                                    l
 
-let get_new_label ()            = 
-    let ret      = !fresh_label in 
-    fresh_label := !fresh_label+1; 
-    ret 
+let labeltbl:(label*int)list ref=   ref []
 
-let register_value l i          =   store := (l,i) :: !store  
-
-let lookup_value l              =   List.assoc l !store
+let register_label label line   =   labeltbl := (label,line) :: !labeltbl  
+let lookup_label l              =   List.assoc l !labeltbl
                                     
 
 
 
-(*
-let debug_label                 = false
 
-(* internal data not accessible from outside of the module. *)
-let next_fresh_label            = ref 0
-let store : (label*int)list ref = ref []
 
-let new_label ()                =
-  let ret                           = !next_fresh_label in
-  if debug_label 
-    then printf "label: generating label %d\n" ret 
-    else ();
-  next_fresh_label := ret + 1;
-  ret
 
-let register_value l i  =
-    if debug_label then printf "label: registering label %d %d\n%!" l i; 
-    store := (l, i) :: !store
 
-let lookup_value l      =
-  try       List.assoc l !store
-  with Not_found -> if debug_label then eprintf "label: %d not found\n%!" l; raise Not_found
-*)
+
+
+
+
+
+
+(* entrypoint Database *) 
+
+
+open IndexedList
+
+type entrypoint =
+                | Cntrct  of idx
+                | Mthd    of idx * Syntax.mthd_head
+
+let store : (entrypoint*label)list ref          = ref []
+let register_entrypoint(k:entrypoint)(v:label)  = store := (k, v) :: !store
+let lookup_entrypoint (k : entrypoint) : label  = List.assoc k !store
+
+
+
+
+
+
+
+
+
+
+
+

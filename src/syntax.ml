@@ -8,7 +8,6 @@ module L    = List
 module BL   = BatList
 
 
-let err = failwith 
 
 
 type ty                 = TyVoid

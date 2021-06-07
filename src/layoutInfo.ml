@@ -1,8 +1,10 @@
 open Big_int
-open Syntax
-open ContractId
-open Imm
 open Printf 
+open Misc
+open Syntax
+open Label
+open IndexedList
+open Imm
 
 module Eth  = Ethereum
 module BL   = BatList
@@ -82,12 +84,12 @@ type runtime_stor_layout    =
 
 
 let compute_cnstrctr_code_size lst idx =
-    let c : cntrct_stor_layout = choose_cntrct idx lst in
+    let c : cntrct_stor_layout = lookup_index idx lst in
     c.cntrct_cnstrctr_code_size
 
 
 let compute_cnstrctr_args_size lst idx =
-    let c : cntrct_stor_layout = choose_cntrct idx lst in
+    let c : cntrct_stor_layout = lookup_index idx lst in
     c.cntrct_arg_size
 
 let compute_cnstrctr_args_begin lst runtime idx =
@@ -102,7 +104,7 @@ let compute_stor_array_seeds_begin lst idx =
     compute_stor_cnstrctr_args_begin lst idx + compute_cnstrctr_args_size lst idx
 
 let compute_stor_array_seeds_size lst idx =
-    let c = choose_cntrct idx lst in
+    let c = lookup_index idx lst in
     c.cntrct_num_array_seeds
 
 let cnstrct_stor_layout(lst:(idx*cntrct_stor_layout)list) : stor_layout =
@@ -129,11 +131,10 @@ let cnstrct_post_stor_layout (lst:(idx*cntrct_stor_layout)list)
 let runtime_code_offset (layout:stor_layout) idx : int =
     layout.cnstrctr_code_size idx
 
-let rec realize_imm(layout:post_stor_layout)(init_idx:idx) = 
-    let big = big_int_of_int in function 
+let rec realize_imm(layout:post_stor_layout)(init_idx:idx) = function 
     | Big b                                 ->  b
     | Int i                                 ->  big i
-    | Label l                               ->  big (Label.lookup_value l)
+    | Label l                               ->  big (Label.lookup_label l)
     | StorPCIndex                           ->  big (layout.l.stor_current_pc_index)
     | StorCnstrctrArgsBegin       idx       ->  big (layout.l.stor_cnstrctr_args_begin idx)
     | StorCnstrctrArgsSize        idx       ->  big (layout.l.stor_cnstrctr_args_size idx)
@@ -141,10 +142,10 @@ let rec realize_imm(layout:post_stor_layout)(init_idx:idx) =
     | RuntimeCodeOffset           idx       ->  big (runtime_code_offset layout.l idx)
     | RuntimeCodeSize                       ->  big (layout.runtime_code_size)
     | CnstrctrCodeSize            idx       ->  big (layout.l.cnstrctr_code_size idx)
-    | CnstrctrInRuntimeCodeOffset idx       ->  big (choose_cntrct idx layout.cnstrctr_in_runtime_code_offset)
-    | CntrctOffsetInRuntimeCode   idx       ->  big (choose_cntrct idx layout.cntrct_offset_in_runtime_code)
-    | MthdAddrInRuntimeCode(idx,mthd_hd)  ->  let label = Entrypoint.(lookup_entrypoint (Case (idx, mthd_hd))) in
-                                                big (Label.lookup_value label)
+    | CnstrctrInRuntimeCodeOffset idx       ->  big (lookup_index idx layout.cnstrctr_in_runtime_code_offset)
+    | CntrctOffsetInRuntimeCode   idx       ->  big (lookup_index idx layout.cntrct_offset_in_runtime_code)
+    | MthdAddrInRuntimeCode(idx,mthd_hd)    ->  let label = lookup_entrypoint (Mthd (idx, mthd_hd)) in
+                                                big (Label.lookup_label label)
     | Minus (a, b)                          ->  sub_big_int (realize_imm layout init_idx a) (realize_imm layout init_idx b)
 
 let realize_opcode (l : post_stor_layout) (init_idx : idx) (i : imm Evm.opcode) = Evm.(

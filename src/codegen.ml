@@ -2,14 +2,14 @@ open Label
 open Big_int
 open Printf 
 
+open Misc
 open Imm
 open CodegenEnv
 open LocationEnv
 open Evm
 open Syntax
-open ContractId
+open IndexedList
 open Contract
-open Misc
 
 module Loc  = Location 
 module Eth  = Ethereum 
@@ -17,7 +17,6 @@ module BL   = BatList
 module L    = List
 module LI   = LayoutInfo
 
-let err = failwith 
 
 
 
@@ -447,7 +446,7 @@ and codegen_array le ce (aa:ty array) =
  *      then set up an array seed at aa, 
  *           replace the zero with the new seed *)
 and setup_array_storLoc le ce aa =
-    let label = get_new_label ()                        in       (* stack: [result, result] *)
+    let label = fresh_label ()                        in       (* stack: [result, result] *)
     let ce    = DUP1                                >>> ce in       (* stack: [result, result] *)
     let ce    = PUSH4(Label label)                  >>> ce in       (* stack: [result, result, shortcut] *)
     let ce    = JUMPI                               >>> ce in       (* stack: [result] *)
@@ -473,7 +472,7 @@ and setup_array_storLoc_of_loc le ce loc =
       | Loc.Stor stor_range     ->  assert (stor_range.Loc.stor_size = (Int 1)) ;
                                     stor_range.Loc.stor_start
       | _                       ->  err "setup array seed at non-storage") in
-    let label = get_new_label ()    in    (* stack: [result, result] *)
+    let label = fresh_label ()    in    (* stack: [result, result] *)
     let ce    = DUP1                   >>> ce in    (* stack: [result, result] *)
     let ce    = PUSH32(Label label)    >>> ce in    (* stack: [result, result, shortcut] *)
     let ce    = JUMPI                  >>> ce in    (* stack: [result] *)
@@ -551,7 +550,7 @@ and codegen_expr le ce align  ((e,t):ty expr) : ce =
     | EpDecLit8 d, _        ->  errc("EpDecLit8 "^(string_of_big_int d))
 
     | EpLand(l,r),TyBool    ->  assert (align=R_) ; 
-                                let la  =   get_new_label () in
+                                let la  =   fresh_label () in
                                 let ce  =   l              >>>>>(R_,le,ce)    in (* stack: [..., l] *)
                                 let ce  =   DUP1           >>>ce              in (* stack: [..., l, l] *)
                                 let ce  =   ISZERO         >>>ce              in (* stack: [..., l, !l] *)
@@ -859,8 +858,8 @@ let get_cntrct_pc ce =
  *)
 let copy_code_from_mem ce =
     let start_size  = stack_size ce     in       (* TODO: check that size is a multiple of 32 *)
-    let label       = get_new_label()   in
-    let exit        = get_new_label()   in
+    let label       = fresh_label()   in
+    let exit        = fresh_label()   in
     let ce = JUMPDEST label         >>>ce   in (*                          idx <<< mem_start <<< size <<< .. *)
     let ce = DUP3                   >>>ce   in (*                 size <<< idx <<< mem_start <<< size <<< .. *)
     let ce = ISZERO                 >>>ce   in (*          size_iszero <<< idx <<< mem_start <<< size <<< .. *)
@@ -946,7 +945,7 @@ let copy_args_from_code_to_mem le ce (cn:ty cntrct) =
  * S[loc] := old seed 
  * S[1]   := S[1] + 1       *)
 let setup_seed (le,ce) (array_loc:LI.stor_location) =
-    let label       = get_new_label()   in
+    let label       = fresh_label()   in
     let start_size  = stack_size ce     in
     let ce = PUSH4 (Int array_loc)  >>>ce in (*                           loc <<< .. *)
     let ce = PUSH4 (Label label)    >>>ce in (*                 label <<< loc <<< .. *)
@@ -967,7 +966,7 @@ let setup_seed (le,ce) (array_loc:LI.stor_location) =
 (* let setup_array_seed_counter_to_one_if_not_initialized ce = *)
 let reset_array_seed_counter ce = 
     let start_size  = stack_size ce     in
-    let label       = get_new_label()   in
+    let label       = fresh_label()   in
     let ce = PUSH1 (Int 1)          >>>ce in (* 1 >>> .. *)
     let ce = SLOAD                  >>>ce in (* S[1] >>> .. *)
     let ce = PUSH4 (Label label)    >>>ce in (* label >>> S[1] >>> ..*)
@@ -1000,7 +999,7 @@ let setup_array_seeds le ce (cn:ty cntrct) =
 (* CODEGEN CONSTRUCTOR *) 
 
 let codegen_cnstrctr_bytecode ((cns:ty cntrct idx_list), idx) : ce (* containing the program *)  =
-    let cn      = choose_cntrct idx cns                         in 
+    let cn      = lookup_index idx cns                         in 
     let le      = cnstrctr_initial_env idx cn                   in
     let ce      = empty_ce (idx_lookup_in_cntrcts cns) cns        in
     let ce      = init_mem_alloc                         ce     in
@@ -1060,9 +1059,9 @@ let compile_cnstrctrs cns : cnstrctr_compiled idx_list =
     pair_map (fun idx _ -> compile_cnstrctr (cns,idx)) cns
 
 let initial_runtime_compiled idx_lookup layouts : runtime_compiled =
-    let ce = empty_ce idx_lookup layouts in
-    let ce = get_cntrct_pc     ce  in
-    let ce = JUMP           >>>ce  in
+    let ce  =   empty_ce idx_lookup layouts in
+    let ce  =   get_cntrct_pc     ce  in
+    let ce  =   JUMP           >>>ce  in
     { runtime_codegen_env       = ce
     ; runtime_cntrct_offsets    = [] }
 
@@ -1070,56 +1069,56 @@ let push_mthd_dest ce idx m_hd =
     PUSH32(MthdAddrInRuntimeCode(idx,m_hd)) >>>ce 
 
 let add_dispatcher_for_a_mthd_info le ce idx m =   
-    let start_size = stack_size ce              in 
-    let ce = DUP1                       >>>ce   in 
-    let ce = push_method ce m                   in
-    let ce = EQ                         >>>ce   in
-    let ce = push_mthd_dest ce idx(Method m)    in
-    let ce = JUMPI                      >>>ce   in
-    assert (stack_size ce = start_size) ; 
+    let start_size = stack_size ce                  in  (*                                          ABCD <<< .. *)  
+    let ce  =   DUP1                       >>>ce    in  (*                                 ABCD <<< ABCD <<< .. *)
+    let ce  =   push_method ce m                    in  (*                          m  <<< ABCD <<< ABCD <<< .. *)
+    let ce  =   EQ                         >>>ce    in  (*                           m=ABCD?1:0 <<< ABCD <<< .. *)
+    let ce  =   push_mthd_dest ce idx(Method m)     in  (*            Runtime(m) <<< m=ABCD?1:0 <<< ABCD <<< .. *)
+    let ce  =   JUMPI                      >>>ce    in  (* if m=ABCD then GOTO Runtime(m)           ABCD <<< .. *)
+    assert  (stack_size ce = start_size) ; 
     ce
 
 let add_dispatcher_for_default_mthd le ce idx =
-    let start_size = stack_size ce              in
-    let ce = push_mthd_dest ce idx Default      in
-    let ce = JUMP                       >>>ce   in
-    assert (stack_size ce = start_size) ;
+    let start_size = stack_size ce                  in
+    let ce  =   push_mthd_dest ce idx Default       in
+    let ce  =   JUMP                       >>>ce    in
+    assert  (stack_size ce = start_size) ;
     ce
 
-let push_word_of_inputdata_at_byte ce b =
+let push_inputdata32_from b ce =
     let start_size = stack_size ce in
-    let ce = PUSH32 b                   >>>ce   in
-    let ce = CALLDATALOAD               >>>ce   in
-    assert (stack_size ce = start_size + 1) ; 
+    let ce  =   PUSH32 b                   >>>ce    in
+    let ce  =   CALLDATALOAD               >>>ce    in
+    assert  (stack_size ce = start_size + 1) ; 
     ce
 
 
 let add_throw ce =
-    (* Just using the same method as solc. *)
-    let ce = PUSH1 (Int 2)              >>>ce   in
-    let ce = JUMP                       >>>ce   in
+    (* Just  using the same method as solc. *)
+    let ce  =   PUSH1 (Int 2)              >>>ce    in
+    let ce  =   JUMP                       >>>ce    in
     ce
 
 let add_dispatcher le ce idx cntrct =
     let start_size  = stack_size ce in
     let tyMthds     = L.map (fun x->x.mthd_head) cntrct.mthds in
     let mthd_infos  = BL.filter_map(function| Default  -> None 
-                                            | Method u -> Some u) tyMthds in 
-    (* load the first four bytes of the input data *)
-    let ce = push_word_of_inputdata_at_byte ce (Int 0) in
-    let ce = shiftR_top ce Eth.(word_bits - sig_bits) in
+                                              | Method m -> Some m) tyMthds in 
+    (* load  the first four bytes of the input data *)
+    let ce  =   push_inputdata32_from (Int 0) ce        in (* ABCDxxxxxxxxxxxxyyyyyyyyyyyyyyyyy <<< .. *)
+    let ce  =   shiftR_top ce Eth.(word_bits-sig_bits)  in (* 00000000000000000000000000000ABCD <<< .. *)                             
     assert (stack_size ce = start_size + 1) ;
-    let ce = L.fold_left (fun ce -> add_dispatcher_for_a_mthd_info le ce idx) ce mthd_infos in
-    let ce = POP                        >>>ce   in (* the signature in input is not necessary anymore *)
-    let ce = if L.exists (function  | Default  -> true | _ -> false) tyMthds 
+    let ce  =   L.fold_left (fun ce -> add_dispatcher_for_a_mthd_info le ce idx) ce mthd_infos in
+    let ce  =   POP                        >>>ce   in (* the signature in input is not necessary anymore *)
+    let ce  =   if L.exists (function  | Default  -> true | _ -> false) tyMthds 
                     then add_dispatcher_for_default_mthd le ce idx
                     else add_throw ce   in
     le,ce
 
 let add_mthd_dest ce idx (m:mthd_head) =
-    let label   = get_new_label()               in
-    let ce = JUMPDEST label             >>>ce   in
-    Entrypoint.(register_entrypoint(Case(idx,m))label) ; 
+    let label   = fresh_label()               in
+    let ce  =   JUMPDEST label             >>>ce   in
+    register_entrypoint(Mthd(idx,m))label ; 
     ce
 
 
@@ -1279,7 +1278,7 @@ let add_varDecl le ce layout i =
 
 
 let rec add_if_single le ce layout cond body =
-    let label       = get_new_label ()              in
+    let label       = fresh_label ()              in
     let start_size  = stack_size ce                 in
     let ce      = codegen_expr le ce R_ cond        in
     let ce      = ISZERO                    >>> ce  in
@@ -1291,8 +1290,8 @@ let rec add_if_single le ce layout cond body =
     le,ce
 
 and add_if le ce layout cond bodyT bodyF =
-    let label       = get_new_label()   in
-    let next        = get_new_label()   in
+    let label       = fresh_label()   in
+    let next        = fresh_label()   in
     let start_size  = stack_size ce     in
     let ce      = codegen_expr le ce R_ cond        in
     let ce      = ISZERO                    >>> ce  in
@@ -1354,7 +1353,6 @@ and add_self_destruct le ce layout expr =
 
 
 
-
 let calldatasize_of_usual_header us =
     let args = us.mthd_args in
     4 (* for signature *) + Eth.total_size_of_args args   
@@ -1380,10 +1378,10 @@ let add_mthd le ce layout idx m =
 
 let codegen_append_cntrct_bytecode le ce layout((idx,cntrct):idx*ty cntrct) =
     (* jump destination for the cntrct *)
-    let label = get_new_label () in
+    let label = fresh_label () in
     let ce    = append_opcode ce (JUMPDEST label) in
     (* update the entrypoint database with (id, pc) pair *)
-    Entrypoint.(register_entrypoint (Cntrct idx) label); 
+    register_entrypoint (Cntrct idx) label ;  
     let ce    = init_mem_alloc ce in
     (* add jumps to the mthds *)
     let le,ce = add_dispatcher le ce idx cntrct in
@@ -1442,7 +1440,7 @@ let compose_bytecode (cnstrctrs : cnstrctr_compiled idx_list)
       L.map (fun (id, const) -> (id, stor_layout_from_cnstrctr_compiled const)) cnstrctrs in
     let runtime_layout      = stor_layout_from_runtime_compiled runtime cnstrctrs in
     let layout              = LI.cnstrct_post_stor_layout cntrcts_stor_layout runtime_layout in
-    let pseudo_cnstrctr     = choose_cntrct idx cnstrctrs in
+    let pseudo_cnstrctr     = lookup_index idx cnstrctrs in
     let imm_cnstrctr        = LI.realize_program layout idx (extract_program pseudo_cnstrctr.cnstrctr_codegen_env) in
     let pseudo_runtime_core = extract_program runtime.runtime_codegen_env in
     (* Sicne the code is stored in the reverse order, the concatenation is also reversed. *)

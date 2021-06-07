@@ -3,7 +3,7 @@
 
 open Printf 
 open Syntax
-open ContractId
+open IndexedList
 open Evm 
 open Misc
 
@@ -24,7 +24,7 @@ let empty_ce idx_lookup cntrcts     =
     { stack_size        = 0
     ; program           = empty_program
     ; idx_lookup        = idx_lookup
-    ; cntrcts           = cntrcts  }
+    ; cntrcts           = cntrcts       }
 
 let code_length    ce               =   size_of_program ce.program
 let stack_size     ce               =   ce.stack_size
@@ -32,11 +32,13 @@ let set_stack_size ce i             =   { ce with stack_size = i }
 
 
 
-let cntrct_lookup ce idx          =   try choose_cntrct idx ce.cntrcts
-                                      with e -> Printf.eprintf "cntrct_lookup failed on %d\n%!" idx; 
-                                                pr_idx_mapping(fun x->x)(idxs ce.cntrcts); raise e;;
+let cntrct_lookup ce idx            =   try lookup_index idx ce.cntrcts
+                                        with e ->   Printf.eprintf "cntrct_lookup failed on %d\n%!" idx; 
+                                                    pr_idx_mapping(fun x->x)(idxs ce.cntrcts); raise e;;
 
-let cntrct_of_name  ce  = ( cntrct_lookup ce ) $ ( idx_lookup ce )   
+let cntrct_of_name  ce              =   ( cntrct_lookup ce ) $ ( idx_lookup ce )   
+
+
 
 (***************************************)
 (*         APPEND OPCODE               *)
@@ -46,8 +48,8 @@ let cntrct_of_name  ce  = ( cntrct_lookup ce ) $ ( idx_lookup ce )
 let append_opcode ce opcode         =
     if ce.stack_size < stack_popped opcode then failwith "stack underflow" else    
     begin match opcode with
-    | JUMPDEST l   ->  begin try ignore ( Label.lookup_value   l )
-                       with Not_found ->  Label.register_value l (code_length ce) end
+    | JUMPDEST l   ->  begin try ignore ( Label.lookup_label   l )
+                       with Not_found ->  Label.register_label l (code_length ce) end
     | _            ->  ()   end ; 
     let new_stack_size = ce.stack_size - stack_popped opcode + stack_pushed opcode in
     if new_stack_size > 1024 then failwith "stack overflow" else    
@@ -57,7 +59,7 @@ let append_opcode ce opcode         =
     ; cntrcts       = ce.cntrcts        }
 
 
-let (>>>) op ce = append_opcode ce op  
+let (>>>) op ce                 = append_opcode ce op  
 
 
 
@@ -95,13 +97,13 @@ and expr_might_become e         =   match fst e with
     | EpThis                  
     | EpDecLit256   _         
     | EpDecLit8     _         
-    | EpIdent       _         ->  []
+    | EpIdent       _           ->  []
     | EpParen       e         
     | EpAddr        e         
     | EpNot         e         
     | EpSingleDeref e         
     | EpTupleDeref  e         
-    | EpBalance     e         ->  expr_might_become e
+    | EpBalance     e           ->  expr_might_become e
     | EpLand      (l,r)           
     | EpLt        (l,r)           
     | EpGt        (l,r)           
@@ -109,22 +111,22 @@ and expr_might_become e         =   match fst e with
     | EpEq        (l,r)           
     | EpMinus     (l,r)
     | EpMult      (l,r)
-    | EpPlus      (l,r)       ->  (expr_might_become l) @ (expr_might_become r)
-    | EpArray(LEpArray a)   ->  expr_might_become a.array_index
-    | EpFnCall f             ->  fncall_might_become f
-    | EpNew n                 ->  new_expr_might_become n
-    | EpSend s                ->  send_expr_might_become s
+    | EpPlus      (l,r)         ->  (expr_might_become l) @ (expr_might_become r)
+    | EpArray(LEpArray a)       ->  expr_might_become a.array_index
+    | EpFnCall f                ->  fncall_might_become f
+    | EpNew n                   ->  new_expr_might_become n
+    | EpSend s                  ->  send_expr_might_become s
 
 let rec stmt_might_become       =   function 
-    | SmAbort                 ->  []
+    | SmAbort                   ->  []
     | SmSelfDestruct e        
-    | SmExpr         e        ->  expr_might_become e
-    | SmVarDecl      v        ->  expr_might_become v.varDecl_val
-    | SmAssign(LEpArray a,r)->  (expr_might_become a.array_index) @ (expr_might_become r)
-    | SmIfThen(c,b)           ->  (expr_might_become c) @ (stmts_might_become b)
-    | SmIfThenElse(c,b0,b1)       ->  (expr_might_become c) @ (stmts_might_become b0) @ (stmts_might_become b1)
-    | SmLog(_,l,_)            ->  exprs_might_become l
-    | SmReturn r              ->  (match r.ret_expr with
+    | SmExpr         e          ->  expr_might_become e
+    | SmVarDecl      v          ->  expr_might_become v.varDecl_val
+    | SmAssign(LEpArray a,r)    ->  (expr_might_become a.array_index) @ (expr_might_become r)
+    | SmIfThen(c,b)             ->  (expr_might_become c) @ (stmts_might_become b)
+    | SmIfThenElse(c,b0,b1)     ->  (expr_might_become c) @ (stmts_might_become b0) @ (stmts_might_become b1)
+    | SmLog(_,l,_)              ->  exprs_might_become l
+    | SmReturn r                ->  (match r.ret_expr with
                                     | Some e        -> expr_might_become e
                                     | None          -> [] ) 
                                 @   ( expr_might_become r.ret_cont ) 
@@ -143,19 +145,19 @@ let might_become cn             =   mthds_might_become cn.mthds
 (* LOOKUP_USUAL_METHOD *) 
 
 let lookup_mthd_info_in_cntrct cn mname =
-    let mthd  = L.filter (fun c -> match c.mthd_head with
-                          | Default  -> false
-                          | Method m -> m.mthd_name=mname) cn.mthds in
+    let mthd = L.filter (fun c -> match c.mthd_head with
+                        | Default  -> false
+                        | Method m -> m.mthd_name=mname) cn.mthds in
     match mthd with
-    | []        ->  raise Not_found
-    | _::_::_   ->  eprintf "method %s duplicated\n%!" mname;err "lookup_mthd_info_in_cntrct" 
-    | [a]       ->  begin match a.mthd_head with Method m -> m end
+    | []            ->  raise Not_found
+    | _::_::_       ->  eprintf "method %s duplicated\n%!" mname;err "lookup_mthd_info_in_cntrct" 
+    | [a]           ->  begin match a.mthd_head with Method m -> m end
 
 
 let rec lookup_mthd_info_inner ce (seen:ty cntrct list) cn mname : mthd_info =
     if L.mem cn seen then raise Not_found else
     try  lookup_mthd_info_in_cntrct cn mname
-    with Not_found ->   let seen        = cn :: seen in
+    with Not_found  ->  let seen        = cn :: seen in
                         let becomes     = L.map (cntrct_of_name ce)(might_become cn) in
                         let rec lookup_becomes seen = function 
                            | []         ->  raise Not_found

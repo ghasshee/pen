@@ -7,8 +7,10 @@
 
 
 open Printf 
+
+open Misc 
 open Syntax
-open ContractId
+open IndexedList
 open Contract
 open TypeEnv
 open SideEffect 
@@ -19,7 +21,6 @@ module BO   = BatOption
 module L    = List
 module Eth  = Ethereum
 
-let err = failwith
 
 
 let id_lookup_ty tenv id        = match lookup tenv id with
@@ -59,7 +60,7 @@ let call_arg_expectations tyCns =   function
     | "keccak256"                   ->  fun _ -> true
     | "iszero"                      ->  fun x -> x=[TyBytes32]||x=[TyUint8]||x=[TyUint256]||x=[TyBool]||x=[TyAddr]
     | name                          ->  let idx     = lookup_idx (fun c->c.tyCntrct_name=name) tyCns in
-                                        let tyCn    = choose_cntrct idx tyCns in
+                                        let tyCn    = lookup_index idx tyCns in
                                         (=) tyCn.tyCntrct_args
 
 
@@ -69,8 +70,6 @@ let type_check ((expr:ty),((_,(t,_)):(ty*'a)expr)) = assert (expr = t)
 
 
 
-let isNil x                 = x=[]
-let ($) f g x               = f (g x) 
 let get_eff (_,(_,eff))     = eff
 let get_effs                = L.map get_eff
 let get_ty  (_,(ty,_))      = ty

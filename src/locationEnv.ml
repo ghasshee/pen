@@ -1,11 +1,11 @@
 (* le := location environment *) 
 
 
+open Misc
 open Syntax 
 open Imm
-open ContractId
+open IndexedList
 open Location 
-open Misc
 
 module L    = List
 module BL   = BatList
@@ -15,7 +15,6 @@ module Eth  = Ethereum
 type locEnv             = (string * location) list 
 type le                 = locEnv list
 
-let err                 = failwith 
 let size l              = BL.sum (L.map L.length l)
 let empty_env           = []
 
