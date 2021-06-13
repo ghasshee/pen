@@ -76,10 +76,10 @@ let typeof_cntrct (cn : 'expr cntrct) : tyCntrct =
 
 
 let find_tyMthd_in_cntrct mname tyCntrct : tyMthd option =
-    filter_getFst (fun mi -> if mi.Eth.name=mname then Some mi else None) tyCntrct.tyCntrct_mthds
+    getFstFilter (fun mi -> if mi.Eth.name=mname then Some mi else None) tyCntrct.tyCntrct_mthds
 
 let find_tyMthd tyCntrcts mname = 
-    filter_getFst (find_tyMthd_in_cntrct mname) (L.map snd tyCntrcts)
+    getFstFilter (find_tyMthd_in_cntrct mname) (L.map snd tyCntrcts)
 
 
 

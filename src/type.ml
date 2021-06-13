@@ -23,7 +23,7 @@ module Eth  = Ethereum
 
 
 
-let id_lookup_ty tenv id        = match lookup tenv id with
+let id_lookup_ty tenv id        =   match lookup tenv id with
     | Some (tyT, Some loc)          -> EpIdent id, (tyT, [(loc,Read)])
     | Some (tyT, None)              -> EpIdent id, (tyT, [])
     | None                          -> err ("unknown identifier "^id)
@@ -117,11 +117,11 @@ let rec assignTy_call tyCns cname tyenv (fncall:unit fncall) : (ty*eff list)fnca
     ({call_head=fncall.call_head;call_args=args}, (reT,effs))
 
 
-and assignTy_msg_info tyCns cname tyenv (msg:unit msg_info) : (ty*eff list) msg_info =
-    let expr  = BO.map (assignTy_expr tyCns cname tyenv) msg.msg_value_info in
-    let stmts = assignTy_stmts tyCns cname tyenv msg.msg_reentrance_info in
-    { msg_value_info      = expr
-    ; msg_reentrance_info = stmts }
+and assignTy_msg tyCns cname tyenv (msg:unit msg) : (ty*eff list) msg =
+    let expr  = BO.map (assignTy_expr tyCns cname tyenv) msg.msg_value in
+    let stmts = assignTy_stmts tyCns cname tyenv msg.msg_reentrance in
+    { msg_value      = expr
+    ; msg_reentrance = stmts }
 
 
 and assignTy_expr tyCns cname tyenv (expr_inner,()) : (ty*eff list) expr =
@@ -225,7 +225,7 @@ and assignTy_expr tyCns cname tyenv (expr_inner,()) : (ty*eff list) expr =
                                                       ; array_index = idx,(idxTy,idxEff) }),(vT,[Stor,Read]))
                             | _           -> err "index access has to be on mappings"   end
     | EpSend send     ->
-                            let msg_info'   = assignTy_msg_info tyCns cname tyenv send.send_msg_info in
+                            let msg         = assignTy_msg tyCns cname tyenv send.send_msg in
                             let cn'         = assignTy_expr tyCns cname tyenv send.send_cntrct in
                             begin match send.send_mthd with
                             | Some m ->
@@ -238,27 +238,27 @@ and assignTy_expr tyCns cname tyenv (expr_inner,()) : (ty*eff list) expr =
                                         let ref     =   EpSend  { send_cntrct   = cn'
                                                                 ; send_mthd     = send.send_mthd
                                                                 ; send_args     = args
-                                                                ; send_msg_info = msg_info'},(TyRef tyRet,[External,Write])in
+                                                                ; send_msg = msg},(TyRef tyRet,[External,Write])in
                                         (match tyRet with
                                          | [ty]     -> EpSingleDeref ref, (ty, [External, Write])
                                          | _        -> ref)
                             | None ->
                                         assert (send.send_args = []) ; 
-                                        EpSend { send_cntrct = cn'
-                                               ; send_mthd = None
-                                               ; send_args = []
-                                               ; send_msg_info = msg_info' }, (TyVoid, [External, Write]) end
+                                        EpSend { send_cntrct    = cn'
+                                               ; send_mthd      = None
+                                               ; send_args      = []
+                                               ; send_msg  = msg }, (TyVoid, [External, Write]) end
     | EpValue         ->    EpValue, (TyUint256,[])
     | EpSingleDeref _
     | EpTupleDeref  _ ->    err "DerefEp not supposed (Bamboo Bad Designing)"
 
 
 and assignTy_new_expr tyCns cname tenv e : (ty*eff list)new_expr*string (* name of the cntrct just created *) =
-    let msg_info'   =   assignTy_msg_info tyCns cname tenv e.new_msg_info in
+    let msg'        =   assignTy_msg tyCns cname tenv e.new_msg in
     let args'       =   L.map (assignTy_expr tyCns cname tenv) e.new_args in
     let e'          =   { new_head      = e.new_head
                         ; new_args      = args'
-                        ; new_msg_info  = msg_info' } in
+                        ; new_msg  = msg' } in
     (e', e.new_head )
 
   
@@ -283,7 +283,7 @@ and assignTy_return tyCns cname tyenv (ret:unit return) : (ty*eff list) return =
     ; ret_cont  = assignTy_expr tyCns cname tyenv ret.ret_cont }
 
 
-and assignTy_varDecl tyCns cname tyenv (vd:unit varDecl): (ty*eff list)varDecl * ty_env =
+and assignTy_varDecl tyCns cname tyenv (vd:unit varDecl): (ty*eff list)varDecl * tyEnv =
     let v       = assignTy_expr tyCns cname tyenv vd.varDecl_val in
     let id      = vd.varDecl_id     in
     let ty      = vd.varDecl_ty     in
@@ -296,18 +296,15 @@ and assignTy_varDecl tyCns cname tyenv (vd:unit varDecl): (ty*eff list)varDecl *
     vd', tyenv'
 
 
-and assignTy_stmt tyCns cname tyenv (src:unit stmt) : ((ty*eff list)stmt * ty_env) =
+and assignTy_stmt tyCns cname tyenv (src:unit stmt) : ((ty*eff list)stmt * tyEnv) =
     match src with
-    | SmAbort         ->  SmAbort, tyenv
-    | SmReturn r      ->
-                            let r = assignTy_return tyCns cname tyenv r in
+    | SmAbort         ->    SmAbort, tyenv
+    | SmReturn r      ->    let r = assignTy_return tyCns cname tyenv r in
                             SmReturn r, tyenv
-    | SmAssign(l,r)   ->
-                            let l = assignTy_lexpr tyCns cname tyenv l in
+    | SmAssign(l,r)   ->    let l = assignTy_lexpr tyCns cname tyenv l in
                             let r = assignTy_expr  tyCns cname tyenv r in
                             SmAssign(l,r), tyenv
-    | SmIfThen(b,t)   ->
-                            let b = assignTy_expr  tyCns cname tyenv b in
+    | SmIfThen(b,t)   ->    let b = assignTy_expr  tyCns cname tyenv b in
                             let t = assignTy_stmts tyCns cname tyenv t in
                             SmIfThen(b,t), tyenv
     | SmIfThenElse(b,t,f) ->
@@ -344,10 +341,10 @@ and assignTy_stmts tyCns cname tyenv = function (* unit stmt list -> (ty*eff lis
 
 (* Termination *) 
 
-type termination    =
-                    | OnTheWay 
-                    | ReturnValues of int 
-                    | JustStop
+type termination            =
+                            | OnTheWay 
+                            | ReturnValues of int 
+                            | JustStop
 
 let rec is_terminating = function 
     | SmAbort                 -> [JustStop]
@@ -416,7 +413,7 @@ let assignTy_cntrct tyCns (evs: event idx_list)(cn : unit cntrct)
             : (ty*eff list) cntrct =
     assert (BL.for_all (arg_has_known_ty tyCns) cn.cntrct_args) ; 
     assert (has_distinct_sigs cn);
-    let tyenv  = add_block cn.cntrct_args (add_events evs empty_ty_env) in
+    let tyenv  = add_block cn.cntrct_args (add_events evs empty_tyEnv) in
     if BS.starts_with cn.cntrct_name "pre_" 
         then err "names \"pre_..\" are reserved" ; 
     if BL.exists (fun arg -> BS.starts_with arg.id "pre_") cn.cntrct_args 
@@ -451,19 +448,19 @@ let rec stripEffect_stmt (raw:(ty*'a)stmt): ty stmt =
     | SmAssign(l,r)         -> SmAssign (stripEffect_lexpr l, stripEffect_expr r)
     | SmVarDecl v           -> SmVarDecl(stripEffect_varDecl v)
     | SmIfThen(b,blk)       -> SmIfThen (stripEffect_expr b, stripEffect_mthd_body blk)
-    | SmIfThenElse(b,t,u)       -> SmIfThenElse (stripEffect_expr b,stripEffect_mthd_body t,stripEffect_mthd_body u)
+    | SmIfThenElse(b,t,u)   -> SmIfThenElse (stripEffect_expr b,stripEffect_mthd_body t,stripEffect_mthd_body u)
     | SmSelfDestruct e      -> SmSelfDestruct (stripEffect_expr e)
     | SmExpr e              -> SmExpr   (stripEffect_expr e)
     | SmLog(str,args,eopt)  -> SmLog (str, L.map stripEffect_expr args, eopt)
 
 and stripEffect_varDecl v =
-    { varDecl_ty           = v.varDecl_ty
-    ; varDecl_id         = v.varDecl_id
-    ; varDecl_val        = stripEffect_expr v.varDecl_val }
+    { varDecl_ty            = v.varDecl_ty
+    ; varDecl_id            = v.varDecl_id
+    ; varDecl_val           = stripEffect_expr v.varDecl_val }
 
 and stripEffect_aa aa =
-    { array_name    = stripEffect_expr aa.array_name
-    ; array_index    = stripEffect_expr aa.array_index }
+    { array_name            = stripEffect_expr aa.array_name
+    ; array_index           = stripEffect_expr aa.array_index }
 
 and stripEffect_lexpr = function 
     | LEpArray aa          -> LEpArray (stripEffect_aa aa)
@@ -474,49 +471,49 @@ and stripEffect_fncall fc =
     { call_head             = fc.call_head
     ; call_args             = L.map stripEffect_expr fc.call_args }
 
-and stripEffect_msg_info m =
-    { msg_value_info        = BO.map stripEffect_expr m.msg_value_info
-    ; msg_reentrance_info   = L.map stripEffect_stmt m.msg_reentrance_info  }
+and stripEffect_msg m =
+    { msg_value             = BO.map stripEffect_expr m.msg_value
+    ; msg_reentrance        = L.map stripEffect_stmt m.msg_reentrance  }
 
 and stripEffect_send s =
     { send_cntrct           = stripEffect_expr s.send_cntrct
-    ; send_mthd           = s.send_mthd
+    ; send_mthd             = s.send_mthd
     ; send_args             = L.map stripEffect_expr s.send_args
-    ; send_msg_info         = stripEffect_msg_info s.send_msg_info }
+    ; send_msg              = stripEffect_msg s.send_msg }
 
 and stripEffect_new_expr n =
     { new_head              = n.new_head
     ; new_args              = L.map stripEffect_expr n.new_args
-    ; new_msg_info          = stripEffect_msg_info n.new_msg_info }
+    ; new_msg               = stripEffect_msg n.new_msg }
 
 and stripEffect_expr_inner = function 
-    | EpTrue              -> EpTrue
-    | EpFalse             -> EpFalse
-    | EpDecLit256 d       -> EpDecLit256 d
-    | EpDecLit8 d         -> EpDecLit8 d
-    | EpNow               -> EpNow
-    | EpFnCall fc        -> EpFnCall (stripEffect_fncall fc)
-    | EpIdent str         -> EpIdent str
-    | EpParen e         -> EpParen (stripEffect_expr e)
-    | EpNew e             -> EpNew (stripEffect_new_expr e)
-    | EpSend send         -> EpSend (stripEffect_send send)
-    | EpLand(a,b)         -> EpLand (stripEffect_expr a, stripEffect_expr b)
-    | EpLt(a,b)           -> EpLt (stripEffect_expr a, stripEffect_expr b)
-    | EpGt(a,b)           -> EpGt (stripEffect_expr a, stripEffect_expr b)
-    | EpNeq(a,b)          -> EpNeq (stripEffect_expr a, stripEffect_expr b)
-    | EpEq(a,b)           -> EpEq (stripEffect_expr a, stripEffect_expr b)
-    | EpAddr a            -> EpAddr (stripEffect_expr a)
-    | EpNot e             -> EpNot (stripEffect_expr e)
-    | EpArray l     -> EpArray (stripEffect_lexpr l)
-    | EpValue             -> EpValue
-    | EpSender            -> EpSender
-    | EpThis              -> EpThis
-    | EpSingleDeref e     -> EpSingleDeref (stripEffect_expr e)
-    | EpTupleDeref  e     -> EpTupleDeref (stripEffect_expr e)
-    | EpPlus(a,b)         -> EpPlus (stripEffect_expr a, stripEffect_expr b)
-    | EpMinus(a,b)        -> EpMinus (stripEffect_expr a, stripEffect_expr b)
-    | EpMult(a,b)         -> EpMult (stripEffect_expr a, stripEffect_expr b)
-    | EpBalance e         -> EpBalance (stripEffect_expr e)
+    | EpTrue                -> EpTrue
+    | EpFalse               -> EpFalse
+    | EpDecLit256 d         -> EpDecLit256 d
+    | EpDecLit8 d           -> EpDecLit8 d
+    | EpNow                 -> EpNow
+    | EpFnCall fc           -> EpFnCall (stripEffect_fncall fc)
+    | EpIdent str           -> EpIdent str
+    | EpParen e             -> EpParen (stripEffect_expr e)
+    | EpNew e               -> EpNew (stripEffect_new_expr e)
+    | EpSend send           -> EpSend (stripEffect_send send)
+    | EpLand(a,b)           -> EpLand (stripEffect_expr a, stripEffect_expr b)
+    | EpLt(a,b)             -> EpLt (stripEffect_expr a, stripEffect_expr b)
+    | EpGt(a,b)             -> EpGt (stripEffect_expr a, stripEffect_expr b)
+    | EpNeq(a,b)            -> EpNeq (stripEffect_expr a, stripEffect_expr b)
+    | EpEq(a,b)             -> EpEq (stripEffect_expr a, stripEffect_expr b)
+    | EpAddr a              -> EpAddr (stripEffect_expr a)
+    | EpNot e               -> EpNot (stripEffect_expr e)
+    | EpArray l             -> EpArray (stripEffect_lexpr l)
+    | EpValue               -> EpValue
+    | EpSender              -> EpSender
+    | EpThis                -> EpThis
+    | EpSingleDeref e       -> EpSingleDeref (stripEffect_expr e)
+    | EpTupleDeref  e       -> EpTupleDeref (stripEffect_expr e)
+    | EpPlus(a,b)           -> EpPlus (stripEffect_expr a, stripEffect_expr b)
+    | EpMinus(a,b)          -> EpMinus (stripEffect_expr a, stripEffect_expr b)
+    | EpMult(a,b)           -> EpMult (stripEffect_expr a, stripEffect_expr b)
+    | EpBalance e           -> EpBalance (stripEffect_expr e)
 
 and stripEffect_return ret =
     { ret_expr = BO.map stripEffect_expr ret.ret_expr

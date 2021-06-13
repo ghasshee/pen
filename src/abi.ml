@@ -50,7 +50,7 @@ let prABI_mthd (c:ty mthd) : string = match c.mthd_head with
 
 let prABI_cnstrctr (c:ty cntrct) : string =
     sprintf
-        "{\"type\": \"cnstrctr\", \"inputs\":[%s], \"name\": \"%s\", \"outputs\":[], \"payable\": true}"
+        "{\"type\": \"constructor\", \"inputs\":[%s], \"name\": \"%s\", \"outputs\":[], \"payable\": true}"
         (prABI_inputs (L.filter non_mapping_arg c.cntrct_args)) (c.cntrct_name)
 
 let prABI_cntrct seen_cnstrctr (c:ty cntrct) : string =
@@ -77,7 +77,7 @@ let prABI_event (e:event) : string =
         (prABI_event_inputs e.event_args) (e.event_name)
 
 let prABI_toplevel seen_cnstrctr (t:ty toplevel) : string = match t with
-    | Cntrct c                -> prABI_cntrct seen_cnstrctr c
+    | Cntrct c                  -> prABI_cntrct seen_cnstrctr c
     | Event e                   -> prABI_event e
 
 let prABI (tops : ty toplevel idx_list) : unit =

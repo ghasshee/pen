@@ -22,40 +22,43 @@ type tyMthd                 =
                             ; tyArgs      : ty list }
 
 
-let get_ty arg : (string*ty)option  = match arg.ty with
+type argTy                  = string * ty 
+type argArr                 = string * ty * ty 
+
+let getTy_of_arg arg        = match arg.ty with
     | TyMap (_,_)               -> None
     | _                         -> Some(arg.id,arg.ty)
 
-let get_tys : arg list -> (string*ty)list = BL.filter_map get_ty
+let getTy_of_args           = BL.filter_map getTy_of_arg
 
-let rec arg_sizes_to_positions_inner ret used  = function 
-    | []                        ->  L.rev ret
-    | h::t                      ->  assert (h > 0 && h <= 32); (* XXX using div and mod, generalization is possible *)
-                                    arg_sizes_to_positions_inner(used+32-h::ret)(used+32)t
+let getArr_of_arg arg       = match arg.ty with
+    | TyMap(k,v)                ->  Some (arg.id, k, v)
+    | _                         ->  None
 
-let arg_sizes_to_positions sizes = arg_sizes_to_positions_inner [] 4(*size of signature*) sizes
+let getArr_of_cntrct cn     = BL.filter_map getArr_of_arg (cn.cntrct_args)
 
-let pr_arg_loc r            = L.iter (fun(nm,loc) -> printf"arg %s at %s\n" nm (string_of_location loc)) r
+let positions_of_argLens lens =
+    let rec loop ret used = function 
+        | []            ->  L.rev ret
+        | alen::rest    ->  assert (alen>0 && alen<=32);
+                            loop (used+32-alen::ret) (used+32) rest in 
+    loop [] 4(* signature length *) lens
 
-let argLocs_of_mthd m : (string*location)list = match m.mthd_head with
+let pr_argLoc r             = L.iter (fun(nm,loc) -> printf"arg %s at %s\n" nm (string_of_location loc)) r
+
+let argLocs_of_mthd m       = match m.mthd_head with
     | Default           ->  []
     | Method h          ->  let sizes       = L.map calldata_size_of_arg h.mthd_args in
-                            let positions   = arg_sizes_to_positions sizes in
+                            let positions   = positions_of_argLens sizes in
                             let size_pos    = L.combine positions sizes in
                             let locations   = L.map (fun(o,s)->Calldata{calldata_start=o;calldata_size=s}) size_pos in
                             let names       = L.map (fun a -> a.id) h.mthd_args in
-                            let ret         = L.combine names locations in
-                            ret
+                            let locEnv      = L.combine names locations in
+                            locEnv
 
-let get_array arg : (string*ty*ty) option = match arg.ty with
-    | TyMap(k, v)               ->  Some (arg.id, k, v)
-    | _                         ->  None
-
-let arrays_in_cntrct c : (string*ty*ty) list = 
-    BL.filter_map get_array (c.cntrct_args)
 
 let cnstrctr_args (cn:ty cntrct) : (string*ty) list = 
-    get_tys cn.cntrct_args
+    getTy_of_args cn.cntrct_args
 
 let total_size_of_tyArgs tys = 
     try     BL.sum (L.map size_of_ty tys) 
@@ -112,7 +115,7 @@ let keccak_signature str : string  =  String.sub (string_keccak str) 0 8
 
 let string_of_mthd_info_ty m =
     let name_of_mthd    = m.mthd_name                       in
-    let args            = get_tys m.mthd_args          in
+    let args            = getTy_of_args m.mthd_args          in
     let arg_tys         = L.map snd args                    in
     let str_tys         = L.map string_of_ty arg_tys   in
     let ty              = String.concat "," str_tys         in
@@ -122,7 +125,7 @@ let string_of_mthd_info_ty m =
 let string_of_event e =
     (* do I consider indexed no? *)
     let name            = e.event_name in
-    let args            = get_tys (L.map arg_of_event_arg e.event_args) in
+    let args            = getTy_of_args (L.map arg_of_event_arg e.event_args) in
     let arg_tys         = L.map snd args in
     let list_of_tys     = L.map string_of_ty arg_tys in
     let args            = String.concat "," list_of_tys in

@@ -1,6 +1,6 @@
 open Imm
 
-type stor_location   = int 
+type stor_addr   = int 
 
 
 type 'imm code_range    =

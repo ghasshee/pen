@@ -137,9 +137,9 @@ expr:
   | IDENT                                       { EpIdent $1, () }
   | LPAR;expr;RPAR                              { EpParen $2, () }
   | IDENT; expr_list                            { EpFnCall {call_head=$1; call_args=$2 }, () }
-  | DEPLOY;IDENT;expr_list;msg_info             { EpNew{new_head=$2; new_args=$3; new_msg_info=$4},() }
-  | expr;DOT;DEFAULT;LPAR;RPAR;msg_info         { EpSend{send_cntrct=$1; send_mthd=None   ; send_args=[]; send_msg_info=$6},() }
-  | expr;DOT;IDENT;expr_list;msg_info           { EpSend{send_cntrct=$1; send_mthd=Some $3; send_args=$4; send_msg_info=$5},() }
+  | DEPLOY;IDENT;expr_list;msg             { EpNew{new_head=$2; new_args=$3; new_msg=$4},() }
+  | expr;DOT;DEFAULT;LPAR;RPAR;msg         { EpSend{send_cntrct=$1; send_mthd=None   ; send_args=[]; send_msg=$6},() }
+  | expr;DOT;IDENT  ;expr_list;msg         { EpSend{send_cntrct=$1; send_mthd=Some $3; send_args=$4; send_msg=$5},() }
   | ADDRESS;LPAR;expr;RPAR                      { EpAddr $3, () }
   | NOT; expr                                   { EpNot $2, () }
   | THIS                                        { EpThis, () }
@@ -147,8 +147,8 @@ expr:
   ;
 %inline expr_list:
   | plist(expr)                                 { $1 }
-msg_info:
-  | value_info; reentrance_info                 { {msg_value_info=$1; msg_reentrance_info=$2} }
+msg:
+  | value_info; reentrance_info                 { {msg_value=$1; msg_reentrance=$2} }
   ;
 value_info:
   | (* empty *)                                 { None }

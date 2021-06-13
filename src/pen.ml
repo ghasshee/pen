@@ -10,7 +10,7 @@ open Big_int
 module Parser = BatOptParse.OptParser
 module Option = BatOptParse.Opt
 module StdOpt = BatOptParse.StdOpt
-module LI     = LayoutInfo
+module LI     = StorLayout
 module L      = List
 
 let enable_abi      = StdOpt.store_true () 
@@ -35,7 +35,7 @@ let () =
         ~long_names:["abi"] 
         ~help:"print ABI" enable_abi ; 
     let files                                                          = Parser.parse_argv optparser                                            in
-    if files<>[] then (eprintf "Pass the contents to stdin.\n"; exit 1) else 
+    if files <> [] then (eprintf "Pass the contents to stdin.\n"; exit 1) else 
     let abi : bool                                                     = (Some true = enable_abi.Option.option_get ())                          in
     let lexbuf                                                         = Lexing.from_channel stdin     in
     let toplevels : unit toplevel list                                 = parse_with_error lexbuf       in
@@ -49,8 +49,8 @@ let () =
     | _   ->  let cnstrctrs : cnstrctr_compiled idx_list               = compile_cnstrctrs cntrcts in
               let cntrcts_stor_layout : LI.cntrct_stor_layout idx_list = map stor_layout_from_cnstrctr_compiled cnstrctrs in
               let layout                                               = LI.cnstrct_stor_layout cntrcts_stor_layout in
-              let runtime_compiled                                     = compile_runtime layout cntrcts in
-              let bytecode : big_int Evm.program                       = compose_bytecode cnstrctrs runtime_compiled (fst (L.hd cntrcts)) in
+              let rntime_compiled                                     = compile_rntime layout cntrcts in
+              let bytecode : big_int Evm.program                       = compose_bytecode cnstrctrs rntime_compiled (fst (L.hd cntrcts)) in
               if abi 
                   then Abi.prABI toplevels 
                   else Evm.pr_encoded bytecode 

@@ -11,32 +11,30 @@ open Misc
 type ce                             =
                                     { stack_size    : int
                                     ; program       : Imm.imm program
-                                    ; idx_lookup    : string -> idx
+                                    ; lookup_cn_idx : string -> idx
                                     ; cntrcts       : ty cntrct idx_list }
 
 let extract_program ce              =   ce.program
-let idx_lookup ce name              =   try ce.idx_lookup name 
+let lookup_cn_idx_of_ce ce name     =   try ce.lookup_cn_idx name 
                                         with e -> (eprintf"Unknown Contract %s.\n%!"name;raise e)
 
-let idx_lookup_in_cntrcts cns name  = lookup_idx (fun cn->cn.cntrct_name=name) cns
+let lookup_cn_idx_of_cns cns name   =   lookup_idx (fun cn->cn.cntrct_name=name) cns
 
-let empty_ce idx_lookup cntrcts     =
-    { stack_size        = 0
-    ; program           = empty_program
-    ; idx_lookup        = idx_lookup
-    ; cntrcts           = cntrcts       }
+let empty_ce lookup_cn_idx cns      =   { stack_size        = 0
+                                        ; program           = empty_program
+                                        ; lookup_cn_idx     = lookup_cn_idx
+                                        ; cntrcts           = cns           }
+    
 
-let code_length    ce               =   size_of_program ce.program
+let code_len       ce               =   size_of_program ce.program
 let stack_size     ce               =   ce.stack_size
 let set_stack_size ce i             =   { ce with stack_size = i }
-
-
 
 let cntrct_lookup ce idx            =   try lookup_index idx ce.cntrcts
                                         with e ->   Printf.eprintf "cntrct_lookup failed on %d\n%!" idx; 
                                                     pr_idx_mapping(fun x->x)(idxs ce.cntrcts); raise e;;
 
-let cntrct_of_name  ce              =   ( cntrct_lookup ce ) $ ( idx_lookup ce )   
+let cntrct_of_name  ce              =   ( cntrct_lookup ce ) $ ( lookup_cn_idx_of_ce ce )   
 
 
 
@@ -44,20 +42,18 @@ let cntrct_of_name  ce              =   ( cntrct_lookup ce ) $ ( idx_lookup ce )
 (*         APPEND OPCODE               *)
 (***************************************)
 
-
 let append_opcode ce opcode         =
     if ce.stack_size < stack_popped opcode then failwith "stack underflow" else    
     begin match opcode with
     | JUMPDEST l   ->  begin try ignore ( Label.lookup_label   l )
-                       with Not_found ->  Label.register_label l (code_length ce) end
+                       with Not_found ->  Label.register_label l (code_len ce) end
     | _            ->  ()   end ; 
     let new_stack_size = ce.stack_size - stack_popped opcode + stack_pushed opcode in
     if new_stack_size > 1024 then failwith "stack overflow" else    
-    { stack_size    = new_stack_size
-    ; program       = opcode :: ce.program 
-    ; idx_lookup    = ce.idx_lookup
-    ; cntrcts       = ce.cntrcts        }
-
+    { stack_size        = new_stack_size
+    ; program           = opcode :: ce.program 
+    ; lookup_cn_idx     = ce.lookup_cn_idx
+    ; cntrcts           = ce.cntrcts        }
 
 let (>>>) op ce                 = append_opcode ce op  
 
@@ -79,14 +75,14 @@ let (>>>) op ce                 = append_opcode ce op
     
 let rec fncall_might_become f   =   exprs_might_become      f.call_args
 and new_expr_might_become n     =   exprs_might_become      n.new_args 
-                                @   msg_info_might_become   n.new_msg_info
-and msg_info_might_become m     =   ( match m.msg_value_info with
+                                @   msg_might_become   n.new_msg
+and msg_might_become m          =   ( match m.msg_value with
                                     | None    -> []
                                     | Some e  -> expr_might_become e) 
-                                @   [(* TODO: m.msg_reentrance_info *)]
+                                @   [(* TODO: m.msg_reentrance *)]
 and send_expr_might_become s    =   expr_might_become       s.send_cntrct
                                 @   exprs_might_become      s.send_args
-                                @   msg_info_might_become   s.send_msg_info
+                                @   msg_might_become   s.send_msg
 and exprs_might_become es       =   L.concat (L.map expr_might_become es)
 and expr_might_become e         =   match fst e with
     | EpTrue                  
@@ -165,7 +161,7 @@ let rec lookup_mthd_info_inner ce (seen:ty cntrct list) cn mname : mthd_info =
                                             with Not_found -> lookup_becomes (b :: seen) bs  in
                         lookup_becomes seen becomes
 
-let lookup_mthd_info ce cn mthd_name = lookup_mthd_info_inner ce [] cn mthd_name 
+let lookup_mthd_info ce cn mname = lookup_mthd_info_inner ce [] cn mname 
 
 
 
