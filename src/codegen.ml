@@ -37,16 +37,13 @@ let copy_nth_stack_elem le ce (n:int) =
 
 
 let shiftR_top ce bits =
-    assert (bits >= 0 ) ; 
-    assert (bits < 256) ; 
-    let start_size = stack_size ce in
+    assert (0 <= bits && bits < 256) ; 
     if bits=0 then ce else                     (*                 x >>> .. *) 
     let ce    = PUSH1 (Int bits)   >>> ce in   (*        bits >>> x >>> .. *)
     let ce    = PUSH1 (Int 2)      >>> ce in   (*  2 >>> bits >>> x >>> .. *)
     let ce    = EXP                >>> ce in   (*     2**bits >>> x >>> .. *) 
     let ce    = SWAP1              >>> ce in   (*     x >>> 2**bits >>> .. *) 
     let ce    = DIV                >>> ce in   (*       x/(2**bits) >>> .. *) 
-    assert (stack_size ce = start_size) ; 
     ce
 
 let shiftL_top ce bits =
@@ -60,11 +57,12 @@ let shiftL_top ce bits =
     ce
 
 let copy_calldata_to_top le ce (range : Loc.calldata_range) =
-    assert (range.Loc.calldata_size >  0 ) ;
-    assert (range.Loc.calldata_size <= 32) ;
-    let ce    = PUSH4 (Int range.Loc.calldata_start) >>> ce  in
-    let ce    = CALLDATALOAD                         >>> ce  in
-    let ce    = shiftR_top ce((32-range.Loc.calldata_size)*8)in
+    let start= range.calldata_start         in 
+    let size = range.calldata_size          in 
+    assert (0 < size && size <= 32) ;
+    let ce    = PUSH4 (Int start)   >>>ce   in
+    let ce    = CALLDATALOAD        >>>ce   in
+    let ce    = shiftR_top ce((32-size)*8)  in
     le, ce
 
 
@@ -72,27 +70,22 @@ type alignment          = L_
                         | R_
 
 
-let align_boolean ce align = 
+let align_bool ce align = 
     assert (align = R_) ; 
     ce
 
 
-let align_address ce    = function 
+let align_addr ce = function 
     | R_        ->  ce
     | L_        ->  shiftL_top ce (12 * 8)
 
-let align_from_right_aligned (ce:ce) align tyT =
+let align_to_L_ (ce:ce) align tyT =
     match align with
     | R_        ->  ce
     | L_        ->  let size   = size_of_ty tyT in
                     assert (size <= 32) ;
-                    if size=32 then ce else (* no align *) 
-                        let shift = (32 - size) * 8 in
-                        let ce = PUSH1 (Int shift)  >>> ce in (* stack: [shift] *)
-                        let ce = PUSH1 (Int 2)      >>> ce in (* stack: [shift, 2] *)
-                        let ce = EXP                >>> ce in (* stack: [2 ** shift] *)
-                        let ce = MUL                >>> ce in
-                        ce
+                    let shift = (32-size)*8 in
+                    shiftL_top ce shift
 
 let copy_to_top le ce align ty (l:Loc.location) =
     let le,ce = Loc.( match l with
@@ -101,8 +94,8 @@ let copy_to_top le ce align ty (l:Loc.location) =
     | Volatile _      -> err "copy_to_top: Volatile"
     | Code _          -> err "copy_to_top: Code"
     | Calldata range  -> copy_calldata_to_top le ce range
-    | Stack s         -> copy_nth_stack_elem le ce s ) in
-    let ce = align_from_right_aligned ce align ty in
+    | Stack s         -> copy_nth_stack_elem le ce s )      in
+    let ce    = align_to_L_ ce align ty                        in
     (* le needs to remember the alignment *)
     le, ce
 
@@ -163,8 +156,7 @@ let throw_if_zero ce    =                           (*                   i >>> .
  *      push(a)                                BEFORE MEM                AFTER MEM 
  *)
 
-let mem_alloc (ce:ce) =                         (*  STACK                                *)
-    let start_size = stack_size     ce in       (*                            len <<< .. *)
+let mem_alloc (ce:ce) =                         (*  STACK                     len <<< .. *)
     let ce    = PUSH1 (Int 64)     >>> ce in    (*                     64 <<< len <<< .. *)
     let ce    = DUP1               >>> ce in    (*              64 <<< 64 <<< len <<< .. *)
     let ce    = MLOAD              >>> ce in    (*           M[64] <<< 64 <<< len <<< .. *)
@@ -173,7 +165,6 @@ let mem_alloc (ce:ce) =                         (*  STACK                       
     let ce    = ADD                >>> ce in    (*     M[64+len] <<< 64 <<< M[64] <<< .. *)
     let ce    = SWAP1              >>> ce in    (*     64 <<< M[64+len] <<< M[64] <<< .. *)
     let ce    = MSTORE             >>> ce in    (*                          M[64] <<< .. *) 
-    assert (stack_size ce = start_size) ; 
     ce
 
 (* M[64]  :=   the address of mem alloc     *) 
@@ -181,10 +172,8 @@ let mem_alloc (ce:ce) =                         (*  STACK                       
 (* MLOAD  :=   x=pop() ; push M[x]          *) 
 
 let get_alloc (ce:ce) =
-    let start_size = stack_size     ce in (*           .. *)
     let ce    = PUSH1 (Int 64)     >>> ce in (* 64    <<< .. *) 
     let ce    = MLOAD              >>> ce in (* M[64] <<< .. *) 
-    assert (stack_size ce = 1+start_size) ; 
     ce
 
 (** [Tight] just uses [size_of_ty] bytes on the memory.
@@ -201,7 +190,6 @@ type memoryPack = TightPack | ABIPack
  * This adds two elements to the stack, resulting in
  * [..., code_len, code_start) *)
 let mstore_rntime_code ce idx =
-    let start_size = stack_size ce in                    (*                                                           .. *)  
     let ce    = PUSH32(RntimeCodeSize)         >>> ce in (*                                                  size <<< .. *)
     let ce    = DUP1                           >>> ce in (*                                         size <<< size <<< .. *)  
     let ce    = mem_alloc                          ce in (*                                  alloc(size) <<< size <<< .. *)
@@ -209,7 +197,6 @@ let mstore_rntime_code ce idx =
     let ce    = PUSH32(RntimeCodeOffset idx)   >>> ce in (*                 idx <<< size <<< alloc(size) <<< size <<< .. *)
     let ce    = DUP3                           >>> ce in (* alloc(size) <<< idx <<< size <<< alloc(size) <<< size <<< .. *)
     let ce    = CODECOPY                       >>> ce in (*                                  alloc(size) <<< size <<< .. *)
-    assert (stack_size ce = start_size+2) ; 
     ce
 
 let mstore_code ce =                                     (*                                          idx <<< size <<< .. *)
@@ -227,7 +214,6 @@ let mstore_code ce =                                     (*                     
  *  After this, [size, offset] of the memory region is left on the stack.
  *)
 let mstore_whole_code ce =
-    let start_size = stack_size ce                 in (*                                                           .. *)        
     let ce    = CODESIZE                       >>> ce in (*                                                  size <<< .. *)
     let ce    = DUP1                           >>> ce in (*                                         size <<< size <<< .. *)
     let ce    = mem_alloc                          ce in (*                                  alloc(size) <<< size <<< .. *)
@@ -235,7 +221,6 @@ let mstore_whole_code ce =
     let ce    = PUSH1(Int 0)                   >>> ce in (*                  0  <<< size <<< alloc(size) <<< size <<< .. *)
     let ce    = DUP3                           >>> ce in (* alloc(size) <<<  0  <<< size <<< alloc(size) <<< size <<< .. *)
     let ce    = CODECOPY                       >>> ce in (*                                  alloc(size) <<< size <<< .. *)
-    assert(start_size + 2 = stack_size ce) ;        
     ce
 
 let push_method ce (m:mthd_info)  =
@@ -249,33 +234,26 @@ let push_method ce (m:mthd_info)  =
  *  After that, the stack has (..., signature size, signature offset )
  *)
 let prepare_tyMthd mthd ce =
-    let start_size = stack_size ce in
     let ce    = PUSH1(Int 4)                   >>> ce in (*                                                  4 <<< .. *)
     let ce    = DUP1                           >>> ce in (*                                           4  <<< 4 <<< .. *)
     let ce    = mem_alloc                          ce in (*                                     alloc(4) <<< 4 <<< .. *)
     let ce    = push_method ce mthd                   in (*                      method_sig <<< alloc(4) <<< 4 <<< .. *)
     let ce    = DUP2                           >>> ce in (*         alloc(4) <<< method_sig <<< alloc(4) <<< 4 <<< .. *)
-    let ce    = MSTORE                         >>> ce in (* M[alloc(4)] := method_sig           alloc(4) <<< 4 <<< .. *)
-    assert (stack_size ce = start_size + 2) ; 
-    ce
+                MSTORE                         >>> ce    (* M[alloc(4)] := method_sig           alloc(4) <<< 4 <<< .. *)
 
 (* take a := 256bit , b := 256bit(=32byte) , and return sha3(a++b) *)  
-let keccak_cons le ce =                               
-    let start_size = stack_size                    ce in (*                    a <<< b <<< .. *) 
-    let ce    = PUSH1 (Int 0x0)                >>> ce in (*           0x00 <<< a <<< b <<< .. *)
+let keccak_cat le ce =                                   (*                    a <<< b <<< .. *) 
+    let ce    = PUSH1 (Int 0x00)               >>> ce in (*           0x00 <<< a <<< b <<< .. *)
     let ce    = MSTORE                         >>> ce in (* M[0x00]=a                b <<< .. *)
     let ce    = PUSH1 (Int 0x20)               >>> ce in (*                 0x20 <<< b <<< .. *)
     let ce    = MSTORE                         >>> ce in (* M[0x20]=b                      .. *) 
     let ce    = PUSH1 (Int 0x40)               >>> ce in (*                       0x40 <<< .. *)
-    let ce    = PUSH1 (Int 0x0 )               >>> ce in (*              0x0  <<< 0x40 <<< .. *)
-    let ce    = SHA3                           >>> ce in (*        sha3(M[0x00..0x3F]) <<< .. *)
-    assert (stack_size ce + 1 = start_size) ;
-    ce
+    let ce    = PUSH1 (Int 0x00)               >>> ce in (*              0x0  <<< 0x40 <<< .. *)
+                SHA3                           >>> ce    (*        sha3(M[0x00..0x3F]) <<< .. *)
 
 let incr_top ce (inc : int) =
     let ce    = PUSH32 (Int inc)               >>> ce in
-    let ce    = ADD                            >>> ce in
-    ce
+                ADD                            >>> ce   
 
 
 
@@ -302,9 +280,7 @@ let incr_top ce (inc : int) =
 (** [add_cnstrctr_arg_to_mem ce arg] realizes [arg] on the memory according to the ABI.  
  *  This increases the stack top (sumsize) by the size of the new allocation. *)
 let rec mstore_mthd_arg le pack ce (arg:ty expr) =
-    let start_size  = stack_size ce in
     let ty          = snd arg       in 
-    printf "it's appending type %s\n"(string_of_ty ty) ; 
     assert (fits_in_one_stor_slot ty) ; 
     let i,a   = (match pack with 
                  | ABIPack   -> 32           ,R_ 
@@ -316,21 +292,14 @@ let rec mstore_mthd_arg le pack ce (arg:ty expr) =
     let ce    = SWAP1                  >>>ce           in   (*         alloc(size) >>> arg >>> size >>> sumsize >>> .. *)
     let ce    = MSTORE                 >>>ce           in   (* M[alloc(size)] := arg           size >>> sumsize >>> .. *)
     let ce    = ADD                    >>>ce           in   (*                                     size+sumsize >>> .. *)
-    assert (stack_size ce = start_size) ; 
     ce
 
 (** [add_cnstrctr_args_to_mem args] realizes [args] on the memory according to the ABI.  
  * This leaves the amount of memory on the stack.
- *  Usually this function is called right after the cnstrctr code is set up in the memory,
- *  so the offset of the memory is not returned.
- *  (This makes it easy for the zero-arg mthd)
- *)
+ *  Usually this function is called right after the cnstrctr code is set up in the memory, *)
 and mstore_mthd_args pack (args:ty expr list) le ce =
-    let add_arg     = mstore_mthd_arg le pack   in 
-    let start_size  = stack_size            ce  in
-    let ce    = PUSH1(Int 0)               >>> ce  in  (*                  0 >>> ..   *)
-    let ce    = foldl add_arg ce args        in  (*            sumsize >>> ..   *) 
-    assert (start_size+1 = stack_size ce) ; 
+    let ce    = PUSH1(Int 0)            >>>ce           in  (*                  0 >>> ..   *)
+    let ce    = foldl(mstore_mthd_arg le pack)ce args   in  (*            sumsize >>> ..   *) 
     ce
 
 
@@ -338,7 +307,7 @@ and mstore_mthd_args pack (args:ty expr list) le ce =
  *
  *              ADDRESS              MEMORY 
  *          +---------------------+-----------------+                         
- *          |                  0  | rntime_code    |                                   
+ *          |                  0  | rntime_code     |                                   
  *          |                ...  |  ...            |                                   
  *          |               size  | cnstrctr_code   |
  *          |                ...  |  ...            |
@@ -351,23 +320,23 @@ and mstore_mthd_args pack (args:ty expr list) le ce =
  *          |                ...  |                 |                         
  *)                                                                 
 
-and new_instance_into_mem le ce _new =
-    let cn_name   =  _new.new_head in
+and new_instance_into_mem le ce n =
+    let cn_name   =  n.new_head in
     let cn_idx    =  lookup_cn_idx_of_ce ce cn_name in 
-    let ce    = PUSH32(CnstrctrCodeSize cn_idx)        >>> ce  in (*                                                             size >>> .. *) 
-    let ce    = PUSH32(RntimeCnstrctrOffset cn_idx)    >>> ce  in (*                                                    cie  >>> size >>> .. *)
-    let ce    = mstore_code                                ce  in (*                                             alloc(size) >>> size >>> .. *)
-    let ce    = SWAP1                                  >>> ce  in (*                                             size >>> alloc(size) >>> .. *)
-    let ce    = mstore_whole_code                          ce  in (*                  alloc(wsize) >>> wsize >>> size >>> alloc(size) >>> .. *)
-    let ce    = mstore_mthd_args ABIPack _new.new_args  le ce  in (*     argssize >>> alloc(wsize) >>> wsize >>> size >>> alloc(size) >>> .. *)
-    let ce    = SWAP1                                  >>> ce  in (*     alloc(wsize) >>> argssize >>> wsize >>> size >>> alloc(size) >>> .. *)
-    let ce    = POP                                    >>> ce  in (*                      argssize >>> wsize >>> size >>> alloc(size) >>> .. *)
-    let ce    = ADD                                    >>> ce  in (*                          argssize+wsize >>> size >>> alloc(size) >>> .. *)
-    let ce    = ADD                                    >>> ce  in (*                              argssize+wsize+size >>> alloc(size) >>> .. *)
-    let ce    = SWAP1                                  >>> ce  in (*                                      alloc(size) >>>   totalsize >>> .. *)
+    let ce    = PUSH32(CnstrctrCodeSize cn_idx)     >>>ce   in (*                                                             size >>> .. *) 
+    let ce    = PUSH32(RntimeCnstrctrOffset cn_idx) >>>ce   in (*                                                    cie  >>> size >>> .. *)
+    let ce    = mstore_code                            ce   in (*                                             alloc(size) >>> size >>> .. *)
+    let ce    = SWAP1                               >>>ce   in (*                                             size >>> alloc(size) >>> .. *)
+    let ce    = mstore_whole_code                      ce   in (*                  alloc(wsize) >>> wsize >>> size >>> alloc(size) >>> .. *)
+    let ce    = mstore_mthd_args ABIPack n.new_args le ce   in (*     argssize >>> alloc(wsize) >>> wsize >>> size >>> alloc(size) >>> .. *)
+    let ce    = SWAP1                               >>>ce   in (*     alloc(wsize) >>> argssize >>> wsize >>> size >>> alloc(size) >>> .. *)
+    let ce    = POP                                 >>>ce   in (*                      argssize >>> wsize >>> size >>> alloc(size) >>> .. *)
+    let ce    = ADD                                 >>>ce   in (*                          argssize+wsize >>> size >>> alloc(size) >>> .. *)
+    let ce    = ADD                                 >>>ce   in (*                              argssize+wsize+size >>> alloc(size) >>> .. *)
+    let ce    = SWAP1                               >>>ce   in (*                                      alloc(size) >>>   totalsize >>> .. *)
     ce
 
-and codegen_fun_call_expr le ce align (fncall:ty fncall) (reT:ty) =
+and codegen_fncall_expr le ce align (fncall:ty fncall) (reT:ty) =
     if      fncall.call_head = "pre_ecdsarecover" then (
                 assert (align = R_) ; 
                 codegen_ecdsarecover le ce fncall.call_args )   (* XXX: need to pass alignment *)
@@ -376,7 +345,7 @@ and codegen_fun_call_expr le ce align (fncall:ty fncall) (reT:ty) =
                 codegen_keccak256    le ce fncall.call_args )   (* XXX: need to pass alignment *) 
     else if fncall.call_head = "iszero" then 
                 codegen_iszero le ce align fncall.call_args reT
-    else        err "codegen_fun_call_expr: unknown function head."
+    else        err "codegen_fncall_expr: unknown function head."
 
 and codegen_iszero le ce align args reT = match args with
     | [arg] ->  assert (reT = TyBool) ; 
@@ -385,12 +354,10 @@ and codegen_iszero le ce align args reT = match args with
     | _     ->  err "codegen_iszero: Wrong number of args"
        
 and codegen_keccak256 le ce args =
-    let start_size = stack_size ce                              in
     let ce    = get_alloc ce                                    in (* stack: [..., offset] *)
     let ce    = mstore_mthd_args TightPack args le ce           in (* stack: [..., offset, size] *)
     let ce    = SWAP1                           >>>ce           in (* stack: [..., size, offset] *)
     let ce    = SHA3                            >>>ce           in
-    assert(stack_size ce = start_size + 1) ;
     ce
 
 and codegen_ecdsarecover le ce args = match args with
@@ -418,27 +385,24 @@ and codegen_ecdsarecover le ce args = match args with
         ce
     | _ -> err "pre_ecdsarecover has a wrong number of args"
 
-and codegen_new_expr le ce _new =
-    let start_size = stack_size ce                              in (* assert that the reentrance info is throw *)
-    assert(is_throw_only _new.new_msg.msg_reentrance) ;             (* set up the reentrance guard *)
+and codegen_new_expr le ce n =    
+    assert(is_throw_only n.new_msg.msg_reentrance) ;               (* This is NOT a REENTRANCE GUARD which @pirapira instists. <- I do not know why ??? *) 
     let ce    = swap_pc_with_0 ce                               in (* stack : [pc_bkp] *)
-    let ce    = new_instance_into_mem le ce _new                in (* stack : [pc_bkp, size, alloc(size)] *)
-    let ce    = (match _new.new_msg.msg_value with    
+    let ce    = new_instance_into_mem le ce n                   in (* stack : [pc_bkp, size, alloc(size)] *)
+    let ce    = match n.new_msg.msg_value with                     (* value is the amount sent at the contract creation *) 
        | None     -> PUSH1 (Int 0)              >>>ce              (* no value in the new contract *)
-       | Some e   -> e                          >>>>>(R_,le,ce))in (* value is the new contract wei ammount *) (* stack : [pc_bkp, size, alloc(size), v ] *)
+       | Some e   -> e                          >>>>>(R_,le,ce) in (* stack : [pc_bkp, size, alloc(size), v ] *)
     let ce    = CREATE                          >>>ce           in (* stack : [pc_bkp, create_result] *)
     let ce    = throw_if_zero                      ce           in (* stack : [pc_bkp, create_result] *)
     let ce    = SWAP1                           >>>ce           in (* stack : [create_result, pc_bkp] *)
-    let ce    = restore_pc ce                                   in (* stack : [create_result] *)
-    assert (stack_size ce = start_size + 1) ; 
-    ce
+                restore_pc                         ce              (* stack : [create_result] *)
 
 and gen_array_storLoc le ce aa =
     let arr   = aa.array_name                                   in
     let idx   = aa.array_index                                  in
     let ce    = idx                             >>>>>(R_,le,ce) in (*                    index <<< .. *)
     let ce    = arr                             >>>>>(R_,le,ce) in (*      array_loc <<< index <<< .. *)
-                keccak_cons le ce                                  (*   sha3(array_loc++index) <<< .. *) 
+                keccak_cat le ce                                   (*   sha3(array_loc++index) <<< .. *) 
       
 and codegen_array le ce (aa:ty array) =
     let ce    = gen_array_storLoc le ce aa in
@@ -463,12 +427,11 @@ and setup_array_storLoc le ce aa =
     let ce    = DUP1                            >>>ce           in       (* stack: [stor_index, orig_seed, orig_seed] *)
     let ce    = SWAP2                           >>>ce           in       (* stack: [orig_seed, orig_seed, stor_index] *)
     let ce    = SSTORE                          >>>ce           in       (* stack: [orig_seed] *)
-    let ce    = JUMPDEST label                  >>>ce           in       (* stack: [result] *)
-    ce
+                JUMPDEST label                  >>>ce                    (* stack: [result] *)
 
 (*   if the stack top is zero, 
- *      then set up an array seed at aa, 
- *      replace the zero with the new seed *)
+ *      then  1.  set up an array seed at aa, 
+ *            2.  replace the zero with the new seed *)
 and setup_array_storLoc_of_loc le ce loc =
     let stor_idx = (match loc with
       | Loc.Stor stor_range     ->  assert (stor_range.Loc.stor_size = (Int 1)) ;
@@ -497,15 +460,12 @@ and setup_array_storLoc_of_loc le ce loc =
 
 
 
-
-
 (* le is not updated here.  It can be only updated in
  * a variable initialization *)
 
 and codegen_expr le ce align  ((e,t):ty expr) : ce =
     let ret = (match e,t with
-    | EpAddr((c,TyCntrctInstance _)as e'),TyAddr ->
-                                            e'                      >>>>>(align,le,ce) 
+    | EpAddr((c,TyInstnce _)as e),TyAddr->  e                       >>>>>(align,le,ce) 
 
     | EpAddr _, _           ->  errc"EpAddr"
 
@@ -513,7 +473,7 @@ and codegen_expr le ce align  ((e,t):ty expr) : ce =
     | EpValue,_             ->  errc"EpValue"
 
     | EpSender,TyAddr       ->  let ce  =   CALLER                  >>>ce      in
-                                            align_address ce align     
+                                            align_addr ce align     
     | EpSender,_            ->  errc"EpSender"
 
     | EpArray a,ty          ->  assert (align = R_) ; 
@@ -522,7 +482,7 @@ and codegen_expr le ce align  ((e,t):ty expr) : ce =
                                 | TyMap _-> setup_array_storLoc le ce (read_array a)
                                 | _      -> ce                   end 
     | EpThis,_              ->  let ce  =   ADDRESS                 >>>ce   in
-                                            align_address ce align     
+                                            align_addr ce align     
 
     | EpIdent id,ty         ->  (match lookup le id with
                                 (** if things are just DUP'ed, location env should not be updated.  
@@ -568,7 +528,7 @@ and codegen_expr le ce align  ((e,t):ty expr) : ce =
 
     | EpNot expr, TyBool    ->  let ce  =   expr           >>>>>(align,le,ce) in
                                 let ce  =   ISZERO         >>>ce              in 
-                                align_boolean ce align   
+                                align_bool ce align   
     | EpNot sub, _          ->  errc"EpNot"
 
     | EpNow,TyUint256       ->           TIMESTAMP      >>>ce 
@@ -578,14 +538,14 @@ and codegen_expr le ce align  ((e,t):ty expr) : ce =
                                 let ce  =   l              >>>>>(R_,le,ce)    in
                                 let ce  =   EQ             >>>ce              in
                                 let ce  =   ISZERO         >>>ce              in
-                                let ce  =   align_boolean ce align            in
+                                let ce  =   align_bool ce align            in
                                 ce
     | EpNeq _, _            ->  errc"EpNeq"
 
     | EpLt(l,r),TyBool      ->  let ce  =   r              >>>>>(R_,le,ce)    in
                                 let ce  =   l              >>>>>(R_,le,ce)    in
                                 let ce  =   LT             >>>ce              in
-                                let ce  =   align_boolean ce align            in
+                                let ce  =   align_bool ce align            in
                                 ce
     | EpLt _, _             ->  errc"EpLt"
 
@@ -618,7 +578,7 @@ and codegen_expr le ce align  ((e,t):ty expr) : ce =
     | EpGt(l,r),TyBool      ->  let ce  =   r              >>>>>(R_,le,ce)    in
                                 let ce  =   l              >>>>>(R_,le,ce)    in
                                 let ce  =   GT             >>>ce              in
-                                            align_boolean ce align   
+                                            align_bool ce align   
                                 
     | EpGt _, _             ->  errc"EpGt"
 
@@ -630,19 +590,17 @@ and codegen_expr le ce align  ((e,t):ty expr) : ce =
     | EpEq(l,r),TyBool      ->  let ce  =   r              >>>>>(R_,le,ce)    in
                                 let ce  =   l              >>>>>(R_,le,ce)    in
                                 let ce  =   EQ             >>>ce              in
-                                let ce  =   align_boolean ce align            in
-                                ce
+                                            align_bool ce align      
     | EpEq _, _             ->  errc"EpEq"
 
     | EpSend s, _           ->  assert (align = R_) ; 
-                                codegen_send_expr le ce s
+                                            codegen_send_expr le ce s
 
-    | EpNew n,TyCntrctInstance c ->
-                                assert (align = R_) ; 
-                                codegen_new_expr le ce n 
+    | EpNew n,TyInstnce c   ->  assert (align = R_) ; 
+                                            codegen_new_expr le ce n 
     | EpNew n, _            ->  errc"EpNew"
 
-    | EpFnCall fncall,reT   ->  codegen_fun_call_expr le ce align fncall reT
+    | EpFnCall fncall,reT   ->  codegen_fncall_expr le ce align fncall reT
 
     | EpParen _, _          ->  errc"EpParen"
 
@@ -725,7 +683,7 @@ and codegen_send_expr le ce (s:ty send_expr) =
     let start_size  = stack_size ce         in
     let head_cntrct = s.send_cntrct    in
     match snd head_cntrct with
-    | TyCntrctInstance c_name -> 
+    | TyInstnce c_name -> 
         let callee_idx          = lookup_cn_idx_of_ce ce c_name                  in 
         let callee              = cntrct_lookup ce callee_idx           in
         begin match s.send_mthd with

@@ -95,7 +95,7 @@ ty:
   | ADDRESS                                     { TyAddr                }
   | BOOL                                        { TyBool                }
   | ty RARROW ty                                { TyMap($1,$3)          }
-  | IDENT                                       { TyCntrctInstance $1 }
+  | IDENT                                       { TyInstnce $1 }
   ;
 %inline body:
   | stmt                                        { [$1] }

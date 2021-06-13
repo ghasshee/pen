@@ -35,7 +35,7 @@ let rec is_known_ty tyCns       =   function
     | TyTuple l                     ->  BL.for_all (is_known_ty tyCns) l
     | TyMap(a,b)                    ->  is_known_ty tyCns a && is_known_ty tyCns b
     | TyCntrctArch cn               ->  is_known_cntrct tyCns cn
-    | TyCntrctInstance cn           ->  is_known_cntrct tyCns cn
+    | TyInstnce cn           ->  is_known_cntrct tyCns cn
     | TyUint256                     ->  true
     | TyUint8                       ->  true
     | TyBytes32                     ->  true
@@ -126,7 +126,7 @@ and assignTy_msg tyCns cname tyenv (msg:unit msg) : (ty*eff list) msg =
 
 and assignTy_expr tyCns cname tyenv (expr_inner,()) : (ty*eff list) expr =
     match expr_inner with
-    | EpThis          ->    EpThis         , (TyCntrctInstance cname, [])
+    | EpThis          ->    EpThis         , (TyInstnce cname, [])
     | EpTrue          ->    EpTrue         , (TyBool,                 [])
     | EpFalse         ->    EpFalse        , (TyBool,                 [])
     | EpSender        ->    EpSender       , (TyAddr,                 [])
@@ -145,7 +145,7 @@ and assignTy_expr tyCns cname tyenv (expr_inner,()) : (ty*eff list) expr =
 
     | EpNew n         ->    let n',cname'   = assignTy_new_expr tyCns cname tyenv n in
                             if BS.starts_with cname' "pre_" then err "names that start with pre_ are reserved"; 
-                            EpNew n'       , (TyCntrctInstance cname',[External, Write])
+                            EpNew n'       , (TyInstnce cname',[External, Write])
     | EpLand (l, r)   ->    let l           = assignTy_expr tyCns cname tyenv l in
                             type_check (TyBool,l);
                             let r           = assignTy_expr tyCns cname tyenv r in

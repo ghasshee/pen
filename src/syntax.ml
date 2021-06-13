@@ -20,7 +20,7 @@ type ty                 = TyVoid
                         | TyTuple               of ty list
                         | TyMap                 of ty * ty 
                         | TyCntrctArch        of string   (* type of [bid(...)] where bid is a cntrct *) 
-                        | TyCntrctInstance    of string   (* type of [b] declared as [bid b] *) 
+                        | TyInstnce    of string   (* type of [b] declared as [bid b] *) 
 
 let rec string_of_ty    = function 
     | TyVoid                -> "void" 
@@ -33,7 +33,7 @@ let rec string_of_ty    = function
     | TyTuple            _  -> "tuple" 
     | TyMap(a,b)            -> "mapping" 
     | TyCntrctArch     s  -> "cntrctArch " ^ s
-    | TyCntrctInstance s  -> "cntrctInstance " ^ s
+    | TyInstnce s  -> "cntrctInstance " ^ s
 
 type arg                = 
                         { ty                    : ty
@@ -201,7 +201,7 @@ let mthd_head_arg_list (h:mthd_head) : arg list = match h with
     | Default                   -> []
 
 let cntrct_name_of_instance ((_,(t,_)):(ty*'a)expr) = match t with
-    | TyCntrctInstance s        -> s
+    | TyInstnce s        -> s
     | tyT                       -> err ("seeking cntrct_name_of non-cntrct "^(string_of_ty tyT))
 
 let string_of_expr_inner = function 
@@ -242,7 +242,7 @@ let is_mapping = function
     | TyRef _
     | TyTuple _
     | TyCntrctArch _
-    | TyCntrctInstance _
+    | TyInstnce _
     | TyVoid                    -> false
     | TyMap _                   -> true
 
@@ -254,7 +254,7 @@ let fits_in_one_stor_slot = function
     | TyBytes32
     | TyAddr
     | TyBool
-    | TyCntrctInstance _
+    | TyInstnce _
     | TyMap _                   -> true
     | TyRef _     
     | TyTuple _        
@@ -266,7 +266,7 @@ let size_of_ty (* in bytes *) = function
     | TyUint256                 -> 32
     | TyBytes32                 -> 32
     | TyAddr                    -> 20
-    | TyCntrctInstance _        -> 20 (* address as word *)
+    | TyInstnce _        -> 20 (* address as word *)
     | TyBool                    -> 32
     | TyRef _                   -> 32
     | TyVoid                    -> err "size_of_ty VoidType"
@@ -304,6 +304,6 @@ let non_mapping_arg (arg:arg)   = match arg.ty with
 
 let acceptable_as t0 t1     =   (t0 = t1) 
                             ||  ( match t0, t1 with
-                                | TyAddr, TyCntrctInstance _ -> true
+                                | TyAddr, TyInstnce _ -> true
                                 | _, _ -> false ) 
 
