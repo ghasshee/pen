@@ -39,7 +39,7 @@ let add_empty_locEnv le     = [] :: le
 
 
 
-
+(*
 let cnstrctr_args_locations idx (args:(string*ty)list) = 
     let total   = BL.sum (L.map size_of_ty (L.map snd args)) in
     let one_arg (name,offset,size) 
@@ -51,10 +51,11 @@ let cnstrctr_args_locations idx (args:(string*ty)list) =
                                     (offset + size_of_ty ty) t in
     [L.map one_arg (name_offset_size_list [] 0 args)]
 
+
 let cnstrctr_initial_env idx (cntrct : ty cntrct) =
     let args = Eth.cnstrctr_args cntrct in
     cnstrctr_args_locations idx args
-
+*)
 
 (** [rntime_initial_t cntrct]
  * is a location environment that contains

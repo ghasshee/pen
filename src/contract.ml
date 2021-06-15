@@ -3,6 +3,7 @@
 
 open Misc
 open Syntax 
+open Printf
 
 module Eth = Ethereum 
 module L   = List
@@ -35,17 +36,17 @@ type tyCntrct           =
 
 let rec collect_cont_stmt = function 
     | SmAbort             ->  []
+    | SmSelfDestruct _    ->  []
+    | SmExpr _            ->  []
+    | SmAssign (_,_)      ->  []
+    | SmVarDecl _         ->  []
+    | SmIfThen (_,s)      ->  collect_cont_stmts s
+    | SmIfThenElse (_,s,t)->  collect_cont_stmts s @ collect_cont_stmts t
+    | SmLog _             ->  []  
     | SmReturn r          ->  begin
          match cntrct_name_of_ret_cont r.ret_cont with
          | None                 -> []
          | Some name            -> [name]   end
-    | SmAssign (_,_)      ->  []
-    | SmVarDecl _         ->  []
-    | SmSelfDestruct _    ->  []
-    | SmIfThen (_,s)      ->  collect_cont_stmts s
-    | SmIfThenElse (_,s,t)    ->  collect_cont_stmts s @ collect_cont_stmts t
-    | SmExpr _            ->  []
-    | SmLog _             ->  []  
 
 and collect_cont_stmts s =  L.concat (L.map collect_cont_stmt s)
 

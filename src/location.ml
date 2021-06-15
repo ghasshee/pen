@@ -33,15 +33,11 @@ type calldata_range     =
 type location           =
                         | Code          of imm code_range
                         | Stor          of imm stor_range
-                        | CachedStor    of imm cached_stor
-                        | Volatile      of imm volatile_loc
                         | Calldata      of calldata_range
                         | Stack         of int
 
 let string_of_location           = function 
     | Stor _                -> "Storage ..."
-    | CachedStor _          -> "CachedStorage ..."
-    | Volatile _            -> "Volatile ..."
     | Code _                -> "Code ..."
     | Calldata c            -> Printf.sprintf "Calldata offset %d, size %d" c.calldata_start c.calldata_size
     | Stack i               -> Printf.sprintf "Stack %d" i

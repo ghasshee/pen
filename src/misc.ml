@@ -3,6 +3,9 @@ open List
 
 module Maybe = BatOption 
 
+exception StackUnderFlow
+exception StackOverFlow
+
 
 let rec getFstFilter f = function 
     | []        ->  None
