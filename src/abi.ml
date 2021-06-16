@@ -42,7 +42,7 @@ let prABI_outputs (tys:ty list) : string =
 
 let prABI_mthd_info u =
     sprintf "{\"type\":\"function\",\"name\":\"%s\",\"inputs\": [%s],\"outputs\": [%s],\"payable\": true}"
-        (u.mthd_name) (prABI_inputs u.mthd_args) (prABI_outputs u.mthd_ret_ty)
+        (u.mthd_name) (prABI_inputs u.mthd_args) (prABI_outputs u.mthd_retTy)
 
 let prABI_mthd (c:ty mthd) : string = match c.mthd_head with
     | Method u       ->  prABI_mthd_info u

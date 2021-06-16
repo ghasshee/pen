@@ -3,9 +3,24 @@ open List
 
 module Maybe = BatOption 
 
+(*****************************************)
+(**                                     **)
+(*****************************************)
+
+(*****************************************)
+(**         EXCPETIONS                  **)
+(*****************************************)
+
 exception StackUnderFlow
 exception StackOverFlow
 
+let err                     = failwith
+let errc str                = err("codegen_expr: " ^ str ^ " of unexpected type")
+
+
+(*****************************************)
+(**      LIST OPERATERS                 **)
+(*****************************************)
 
 let rec getFstFilter f = function 
     | []        ->  None
@@ -20,15 +35,28 @@ let rec changeFstFilter f = function
         | Some n    ->  Some (n::xs) end 
 
 
-let err                     = failwith
+let isNil x                 = x=[]
 
-let big                     = Big_int.big_int_of_int
+let foldl                   = fold_left
+
+
+
+(*****************************************)
+(**        POLYMORPHIC FUNCTIONS        **)
+(*****************************************)
 
 let ($) f g x               = f (g x) 
 let ($$$) a b c d           = ($)($)($) a b c d
 
 let konst x y               = x
 
-let isNil x                 = x=[]
 
-let foldl                   = fold_left
+
+
+
+let word_bits               = 256
+
+let sig_bits                = 32
+
+
+let big                     = Big_int.big_int_of_int

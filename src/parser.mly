@@ -74,8 +74,8 @@ block:
 
 mthd_head:
     | DEFAULT                               { Default }
-    | METHOD LPAR ty IDENT plist(arg) RPAR { Method { mthd_ret_ty = [$3];  mthd_name = $4; mthd_args = $5 } }
-    | METHOD LPAR VOID IDENT plist(arg)RPAR { Method { mthd_ret_ty = [];    mthd_name = $4; mthd_args = $5 } };
+    | METHOD LPAR ty IDENT plist(arg) RPAR { Method { mthd_retTy = [$3];  mthd_name = $4; mthd_args = $5 } }
+    | METHOD LPAR VOID IDENT plist(arg)RPAR { Method { mthd_retTy = [];    mthd_name = $4; mthd_args = $5 } };
 
 arg:
     | ty IDENT                                 { { ty = $1; id = $2; loc = None } }

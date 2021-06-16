@@ -30,9 +30,10 @@ type stor_layout            =
                                * |S[3]  := pod cntrct arg1
                                * |S[4]  := pod cntrct arg2
                                * | ...
-                                 |S[n]  := array0's seed
-                                 |S[n+1]:= array1's seed
-                                 | ... 
+                               * |S[k+1]:= pod cntrct argk-1
+                                 |S[k+2]:= array0's seed
+                                 | ...
+                                 |S[n+1]:= arraym's seed
                                  | *)
                               (* In addition, array elements are placed at the same location as in Solidity *)
                             }
@@ -220,7 +221,7 @@ let realize_program l init_idx p = L.map (realize_opcode l init_idx) p
 
 let stor_layout_of_cntrct (cn:ty cntrct) (cnstrctr_code : imm Evm.program) =
     { cntrct_cnstrctr_code_size = Evm.size_of_program cnstrctr_code
-    ; cntrct_arg_size           = Eth.total_size_of_tyArgs (L.map snd (Eth.cnstrctr_args cn))
+    ; cntrct_arg_size           = Eth.total_size_of_argTys (L.map snd (Eth.argTys_of_cntrct cn))
     ; cntrct_num_array_seeds    = L.length (Eth.getArr_of_cntrct cn)
     ; cntrct_args               = L.map (fun a->a.ty) (cn.cntrct_args)
     }
@@ -243,10 +244,10 @@ let arg_locations offset (cn:ty cntrct) : stor_addr list =
     ret 
 
 let array_locations (cn:ty cntrct) : stor_addr list =
-    let arg_tys       = L.map (fun a->a.ty) cn.cntrct_args in
+    let arg_tys       = L.map (fun a->a.ty) cn.cntrct_args  in
     assert (L.for_all fits_in_one_stor_slot arg_tys) ;
-    let num_of_plains = count_plain_args arg_tys  in
-    let total_num     = L.length arg_tys          in
+    let num_of_plains = count_plain_args arg_tys            in
+    let total_num     = L.length arg_tys                    in
     if total_num=num_of_plains 
         then []
         else BL.(range (2 + num_of_plains) `To (total_num + 1))

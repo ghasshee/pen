@@ -1,5 +1,6 @@
 (* intf := interface *) 
 
+open Misc
 open Location 
 open Syntax
 open IndexedList
@@ -11,16 +12,11 @@ module BS = BatString
 module BB = BatBig_int
 
 
-let err                     = failwith 
-let word_bits               = 256
-let sig_bits                = 32
-
 
 type tyMthd                 =
                             { tyRet       : ty list
                             ; name        : string
                             ; tyArgs      : ty list }
-
 
 type argTy                  = string * ty 
 type argArr                 = string * ty * ty 
@@ -28,13 +24,11 @@ type argArr                 = string * ty * ty
 let getTy_of_arg arg        = match arg.ty with
     | TyMap (_,_)               -> None
     | _                         -> Some(arg.id,arg.ty)
-
 let getTy_of_args           = BL.filter_map getTy_of_arg
 
 let getArr_of_arg arg       = match arg.ty with
     | TyMap(k,v)                ->  Some (arg.id, k, v)
     | _                         ->  None
-
 let getArr_of_cntrct cn     = BL.filter_map getArr_of_arg (cn.cntrct_args)
 
 let positions_of_argLens lens =
@@ -43,8 +37,6 @@ let positions_of_argLens lens =
         | alen::rest    ->  assert (alen>0 && alen<=32);
                             loop (used+32-alen::ret) (used+32) rest in 
     loop [] 4(* signature length *) lens
-
-let pr_argLoc r             = L.iter (fun(nm,loc) -> printf"arg %s at %s\n" nm (string_of_location loc)) r
 
 let argLocs_of_mthd m       = match m.mthd_head with
     | Default           ->  []
@@ -56,19 +48,12 @@ let argLocs_of_mthd m       = match m.mthd_head with
                             let locEnv      = L.combine names locations in
                             locEnv
 
+let argTys_of_cntrct cn : argTy list =  getTy_of_args cn.cntrct_args
 
-let cnstrctr_args (cn:ty cntrct) : (string*ty) list = 
-    getTy_of_args cn.cntrct_args
-
-let total_size_of_tyArgs tys = 
-    try     BL.sum (L.map size_of_ty tys) 
-    with    Invalid_argument _          -> 0
-
-let total_size_of_args args = 
-    try     BL.sum (L.map (fun arg-> size_of_ty arg.ty) args)
-    with    Invalid_argument _          -> 0 
-
-
+let total_size_of_argTys tys    =   try     BL.sum (L.map size_of_ty tys) 
+                                    with    Invalid_argument _          -> 0
+let total_size_of_args args     =   try     BL.sum (L.map (fun arg-> size_of_ty arg.ty) args)
+                                    with    Invalid_argument _          -> 0 
 
 
 
@@ -77,14 +62,14 @@ let total_size_of_args args =
 module Hash = Cryptokit.Hash
 
 
-let string_keccak str : string=
-  let sha3_256                      = Hash.keccak 256 in
-  let ()                            = sha3_256#add_string str in
-  let ret                           = sha3_256#result in
-  let tr                            = Cryptokit.Hexa.encode () in
-  let ()                            = tr#put_string ret in
-  let ()                            = tr#finish in
-  let ret                           = tr#get_string in
+let string_keccak str       =
+  let sha3_256                  = Hash.keccak 256           in
+  let ()                        = sha3_256#add_string str   in
+  let ret                       = sha3_256#result           in
+  let tr                        = Cryptokit.Hexa.encode ()  in
+  let ()                        = tr#put_string ret         in
+  let ()                        = tr#finish                 in
+  let ret                       = tr#get_string             in
   (* need to convert ret into hex *)
   ret
 
@@ -100,7 +85,7 @@ let add_hex sha3_256 h      =
         | a :: b :: rest            -> add_byte (Hex.to_char a b); work rest in
     work chars
 
-let hex_keccak h : string   =
+let hex_keccak h        =
     let sha3_256                = Hash.keccak 256           in
     let tr                      = Cryptokit.Hexa.encode()   in
     let ret                     = sha3_256#result           in
@@ -111,37 +96,27 @@ let hex_keccak h : string   =
     (* need to convert ret into hex *)
     ret
 
-let keccak_signature str : string  =  String.sub (string_keccak str) 0 8
+let keccak_signature str =  String.sub (string_keccak str) 0 8
 
-let string_of_mthd_info_ty m =
+let string_of_tyMthd m  =
     let name_of_mthd    = m.mthd_name                       in
-    let args            = getTy_of_args m.mthd_args          in
+    let args            = getTy_of_args m.mthd_args         in
     let arg_tys         = L.map snd args                    in
-    let str_tys         = L.map string_of_ty arg_tys   in
+    let str_tys         = L.map string_of_ty arg_tys        in
     let ty              = String.concat "," str_tys         in
     name_of_mthd ^ "(" ^ ty ^ ")"
 
-(* XXX: refactor with the above function *)
 let string_of_event e =
     (* do I consider indexed no? *)
-    let name            = e.event_name in
-    let args            = getTy_of_args (L.map arg_of_event_arg e.event_args) in
-    let arg_tys         = L.map snd args in
-    let list_of_tys     = L.map string_of_ty arg_tys in
-    let args            = String.concat "," list_of_tys in
+    let name            = e.event_name                      in
+    let args            = args_of_event_args e.event_args   in 
+    let argTys          = getTy_of_args args                in
+    let tys             = L.map snd argTys                  in
+    let tyNames         = L.map string_of_ty tys            in
+    let args            = String.concat "," tyNames         in
     name ^ "(" ^ args ^ ")"
 
-let hash_of_mthd_info_ty m =
-    let s               = string_of_mthd_info_ty m in
-    keccak_signature s
-
-let event_sig_hash e =
-    let sign            = string_of_event e in
-    keccak_signature sign
-
-
-let hex_to_big_int h    = BB.big_int_of_string ("0x"^h)
-
-
-
+let hash_ty_mthd  m     = keccak_signature (string_of_tyMthd m)
+let hash_of_evnt  e     = keccak_signature (string_of_event e)
+let big_of_hex    h     = BB.big_int_of_string ("0x"^h)
 

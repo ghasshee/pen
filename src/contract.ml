@@ -11,7 +11,7 @@ module L   = List
 type tyMthd     = Eth.tyMthd
 
 let typeof_mthd m    = match m.mthd_head with
-  | Method m    ->  Eth.{ tyRet     = m.mthd_ret_ty
+  | Method m    ->  Eth.{ tyRet     = m.mthd_retTy
                         ; name      = m.mthd_name
                         ; tyArgs    = L.map (fun x->x.ty) m.mthd_args }
   | Default     ->  Eth.{ tyRet     = []

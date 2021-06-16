@@ -34,7 +34,7 @@ let rec is_known_ty tyCns       =   function
     | TyRef l                       ->  BL.for_all (is_known_ty tyCns) l
     | TyTuple l                     ->  BL.for_all (is_known_ty tyCns) l
     | TyMap(a,b)                    ->  is_known_ty tyCns a && is_known_ty tyCns b
-    | TyCntrctArch cn               ->  is_known_cntrct tyCns cn
+    | TyCntrct cn               ->  is_known_cntrct tyCns cn
     | TyInstnce cn           ->  is_known_cntrct tyCns cn
     | TyUint256                     ->  true
     | TyUint8                       ->  true
@@ -47,11 +47,11 @@ let arg_has_known_ty tyCns arg  =   let ret = is_known_ty tyCns arg.ty in
                                         if not ret then eprintf"arg has Unknown Type %s\n"(string_of_ty arg.ty);
                                         ret
 
-let ret_ty_is_known tyCns m     =   BL.for_all (is_known_ty tyCns) m.mthd_ret_ty
+let retTy_is_known tyCns m     =   BL.for_all (is_known_ty tyCns) m.mthd_retTy
 
 let assignTy_mthd_head tyCns    =   function 
     | Method m                      ->  assert (BL.for_all(arg_has_known_ty tyCns)m.mthd_args) ; 
-                                        assert (ret_ty_is_known tyCns m) ;
+                                        assert (retTy_is_known tyCns m) ;
                                         Method m
     | Default                       ->  Default
 
@@ -112,7 +112,7 @@ let rec assignTy_call tyCns cname tyenv (fncall:unit fncall) : (ty*eff list)fnca
         | "iszero"                  -> begin match args with
             | [arg]                     -> TyBool
             | _                         -> err "should not happen" end 
-        | cn_name when true         -> TyCntrctArch cn_name (* check contract exists *) 
+        | cn_name when true         -> TyCntrct cn_name (* check contract exists *) 
         | _                         -> err "assignTy_call: should not happen" in
     ({call_head=fncall.call_head;call_args=args}, (reT,effs))
 
@@ -276,10 +276,10 @@ and assignTy_lexpr tyCns cname tyenv (src:unit lexpr) : (ty*eff list) lexpr =
 
 
 and assignTy_return tyCns cname tyenv (ret:unit return) : (ty*eff list) return =
-    let ret_ty_expr = BO.map (assignTy_expr tyCns cname tyenv) ret.ret_expr in
+    let retTy_expr = BO.map (assignTy_expr tyCns cname tyenv) ret.ret_expr in
     let retTyCheck  = lookup_retTyCheck tyenv in
-    assert (retTyCheck(BO.map get_ty ret_ty_expr)); 
-    { ret_expr  = ret_ty_expr
+    assert (retTyCheck(BO.map get_ty retTy_expr)); 
+    { ret_expr  = retTy_expr
     ; ret_cont  = assignTy_expr tyCns cname tyenv ret.ret_cont }
 
 
@@ -373,12 +373,12 @@ and are_terminating stmts =
 
 let mthd_is_returning_void (mthd : unit mthd) = match mthd.mthd_head with
     | Default       ->  true
-    | Method m      ->  m.mthd_ret_ty = []
+    | Method m      ->  m.mthd_retTy = []
 
 let retTyCheck_of_mthd m ty_inferred = match m, ty_inferred with
     | Default ,Some _    ->  false
     | Default ,None      ->  true
-    | Method u,   _      ->  begin match u.mthd_ret_ty, ty_inferred with
+    | Method u,   _      ->  begin match u.mthd_retTy, ty_inferred with
         | _::_::_ , _       -> false
         | [x], Some y       -> acceptable_as x y
         | [] , None         -> true
@@ -403,7 +403,7 @@ let assignTy_mthd tyCns cn_name tenv (m : unit mthd) =
 let has_distinct_sigs (cn:unit cntrct) =
     let mthds       =   cn.mthds in
     let sigs        =   L.map (fun m -> match m.mthd_head with
-                              | Method m' -> Some (Eth.string_of_mthd_info_ty m')
+                              | Method m' -> Some (Eth.string_of_tyMthd m')
                               | Default   -> None) mthds in
     let uniq_sigs   =   BL.unique sigs in
     L.length sigs=L.length uniq_sigs

@@ -19,7 +19,7 @@ type ty                 = TyVoid
                         | TyRef                 of ty list
                         | TyTuple               of ty list
                         | TyMap                 of ty * ty 
-                        | TyCntrctArch        of string   (* type of [bid(...)] where bid is a cntrct *) 
+                        | TyCntrct        of string   (* type of [bid(...)] where bid is a cntrct *) 
                         | TyInstnce    of string   (* type of [b] declared as [bid b] *) 
 
 let rec string_of_ty    = function 
@@ -32,7 +32,7 @@ let rec string_of_ty    = function
     | TyRef              _  -> "ref" 
     | TyTuple            _  -> "tuple" 
     | TyMap(a,b)            -> "mapping" 
-    | TyCntrctArch     s  -> "cntrctArch " ^ s
+    | TyCntrct     s  -> "cntrctArch " ^ s
     | TyInstnce s  -> "cntrctInstance " ^ s
 
 type arg                = 
@@ -144,6 +144,7 @@ let event_arg_of_arg arg isIndexed =
     ; event_arg_indexed     = isIndexed       }
 
 let arg_of_event_arg e  = e.event_arg_body
+let args_of_event_args  = L.map arg_of_event_arg
 
 let split_event_args ev (args:'a expr list) =
     let indexed : bool list = L.map (fun a->a.event_arg_indexed) ev.event_args in
@@ -160,7 +161,7 @@ let split_event_args ev (args:'a expr list) =
 type 'ty mthd_body      = 'ty stmt list
 
 type mthd_info          =
-                        { mthd_ret_ty       : ty list    (* empty or single type *) 
+                        { mthd_retTy       : ty list    (* empty or single type *) 
                         ; mthd_name         : string
                         ; mthd_args         : arg list   
                         }
@@ -196,7 +197,7 @@ let cntrct_name_of_ret_cont ((r,_):'ty expr) : string option = match r with
     | EpFnCall c                -> Some c.call_head
     | _                         -> None
 
-let mthd_head_arg_list (h:mthd_head) : arg list = match h with
+let mthd_head_arg_list    (h:mthd_head) : arg list = match h with
     | Method mthd               -> mthd.mthd_args
     | Default                   -> []
 
@@ -241,12 +242,12 @@ let is_mapping = function
     | TyBool
     | TyRef _
     | TyTuple _
-    | TyCntrctArch _
+    | TyCntrct _
     | TyInstnce _
     | TyVoid                    -> false
     | TyMap _                   -> true
 
-let count_plain_args (args:ty list) = L.length (L.filter (not $ is_mapping) args)
+let count_plain_args (tys:ty list) = L.length (L.filter (not $ is_mapping) tys)
 
 let fits_in_one_stor_slot = function 
     | TyUint8
@@ -258,7 +259,7 @@ let fits_in_one_stor_slot = function
     | TyMap _                   -> true
     | TyRef _     
     | TyTuple _        
-    | TyCntrctArch _ 
+    | TyCntrct _ 
     | TyVoid                    -> false
 
 let size_of_ty (* in bytes *) = function
@@ -266,13 +267,13 @@ let size_of_ty (* in bytes *) = function
     | TyUint256                 -> 32
     | TyBytes32                 -> 32
     | TyAddr                    -> 20
-    | TyInstnce _        -> 20 (* address as word *)
+    | TyInstnce _               -> 20 (* address as word *)
     | TyBool                    -> 32
     | TyRef _                   -> 32
     | TyVoid                    -> err "size_of_ty VoidType"
     | TyTuple _                 -> err "size_of_ty TyTuple"
     | TyMap   _                 -> err "size_of_ty TyMap" 
-    | TyCntrctArch     x        -> err ("size_of_ty TyCntrctArch: "^x)
+    | TyCntrct     x            -> err("size_of_ty TyCntrct: "^x)
 
 let size_of_tys (tys:ty list)   = BL.sum (L.map size_of_ty tys)
 
@@ -280,22 +281,18 @@ let calldata_size_of_ty         = function
     | TyMap _                   -> err "mapping cannot be a method arg"
     | TyRef _                   -> err "reference type cannot be a method arg"
     | TyTuple _                 -> err "tupletype not implemented"
-    | TyCntrctArch _            -> err "CntrctArchType cannot be a method arg"
+    | TyCntrct _                -> err "abstract cntrct type cannot be a method arg"
     | tyT                       -> size_of_ty tyT
 
-let calldata_size_of_arg(arg:arg)   = calldata_size_of_ty arg.ty
+let calldata_size_of_arg arg    = calldata_size_of_ty arg.ty
 
-let is_throw_only = function   (* :  ty stmt list -> bool *) 
+let is_throw_only = function    (* :  ty stmt list -> bool *) 
     | [SmAbort]                 -> true
     | _                         -> false
 
 let non_mapping_arg (arg:arg)   = match arg.ty with
     | TyMap _                   -> false
     | _                         -> true
-
-
-
-
 
 
 
