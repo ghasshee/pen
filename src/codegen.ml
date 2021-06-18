@@ -918,9 +918,9 @@ let empty_rntime_compiled lookup_cn_idx layouts =
 
 
 let initial_rntime_compiled lookup_cn_idx layouts : rntime_compiled =
-    let ce    = empty_ce lookup_cn_idx layouts in
-    let ce    = get_cntrct_pc                 ce  in
-    let ce    = JUMP                        >>ce  in
+    let ce    = empty_ce lookup_cn_idx layouts      in
+    let ce    = get_cntrct_pc                 ce    in
+    let ce    = JUMP                        >>ce    in
     { rntime_ce             = ce
     ; rntime_cn_offsets     = [] }
 
@@ -1194,7 +1194,7 @@ let append_rntime layout (prev:rntime_compiled) (idx,cn) : rntime_compiled =
 let compile_rntime layout (cns:ty cntrct idx_list) : rntime_compiled = 
     foldl (append_rntime layout) (initial_rntime_compiled (lookup_cn_idx_of_cns cns) cns) cns
 
-let stor_layout_from_cnstrctr_compiled (cc : cnstrctr_compiled) : SL.cntrct_stor_layout =
+let stor_layout_from_cnstrctr_compiled (cc : cnstrctr_compiled) : SL.cn_stor_layout =
     SL.stor_layout_of_cntrct cc.cnstrctr_cn (extract_program cc.cnstrctr_ce)
 
 let sizes_of_cnstrctrs (ccs : cnstrctr_compiled idx_list) : int list =
@@ -1202,21 +1202,21 @@ let sizes_of_cnstrctrs (ccs : cnstrctr_compiled idx_list) : int list =
     let lengths = L.sort (fun a b -> compare(fst a)(fst b)) lengths in
     L.map snd lengths
 
-let rec calculate_offsets_inner ret current = function
-    | []        -> L.rev ret
-    | hd::tl    -> calculate_offsets_inner (current::ret) (current + hd) tl
+let offsets_of_sizes init l    =
+    let rec loop offsets current = function 
+        | []            -> L.rev offsets
+        | size::rest    -> loop (current::offsets)(current+size) rest in 
+    loop [] init l 
 
-let calculate_offsets init l   = calculate_offsets_inner [] init l
-
-let stor_layout_from_rntime_compiled (rc:rntime_compiled) (cnstrctrs:cnstrctr_compiled idx_list) : SL.rntime_stor_layout =
+let stor_layout_from_rntime_compiled (rc:rntime_compiled) (cnstrctrs:cnstrctr_compiled idx_list) : SL.rn_stor_layout =
     let sizes_of_cnstrctrs       = sizes_of_cnstrctrs cnstrctrs in
-    let offsets_of_cnstrctrs     = calculate_offsets (code_len rc.rntime_ce) sizes_of_cnstrctrs in
+    let offsets_of_cnstrctrs     = offsets_of_sizes (code_len rc.rntime_ce) sizes_of_cnstrctrs in
     let sum_of_cnstrctr_sizes    = BL.sum sizes_of_cnstrctrs in
     SL.(
-        { rntime_code_size             = sum_of_cnstrctr_sizes + code_len rc.rntime_ce
-        ; rntime_offset_of_idx         = rc.rntime_cn_offsets
-        ; rntime_size_of_cnstrctr      = to_idx_list sizes_of_cnstrctrs
-        ; rntime_offset_of_cnstrctr    = to_idx_list offsets_of_cnstrctrs })
+        { rn_code_size             = sum_of_cnstrctr_sizes + code_len rc.rntime_ce
+        ; rn_offset_of_idx         = rc.rntime_cn_offsets
+        ; rn_size_of_cnstrctr      = to_idx_list sizes_of_cnstrctrs
+        ; rn_offset_of_cnstrctr    = to_idx_list offsets_of_cnstrctrs })
 
 let concat_programs_rev (programs : 'imm Evm.program list) =
     let rev_programs = L.rev programs in
@@ -1230,23 +1230,20 @@ let cnstrctrs_packed layout (cnstrctrs : cnstrctr_compiled idx_list) =
     let programs            = L.map snd programs in
     concat_programs_rev programs
 
-let compose_bytecode (cnstrctrs : cnstrctr_compiled idx_list)
-                     (rntime : rntime_compiled) idx : big_int Evm.program =
-    let cntrcts_stor_layout : (idx * SL.cntrct_stor_layout) list =
-      L.map (fun (id, const) -> (id, stor_layout_from_cnstrctr_compiled const)) cnstrctrs in
-    let rntime_layout       = stor_layout_from_rntime_compiled rntime cnstrctrs in
-    let layout              = SL.cnstrct_post_stor_layout cntrcts_stor_layout rntime_layout in
-    let pseudo_cnstrctr     = lookup_index idx cnstrctrs in
-    let imm_cnstrctr        = SL.realize_program layout idx (extract_program pseudo_cnstrctr.cnstrctr_ce) in
-    let pseudo_rntime_core  = extract_program rntime.rntime_ce in
-    (* Sicne the code is stored in the reverse order, the concatenation is also reversed. *)
-    let imm_rntime          = SL.realize_program layout idx ((cnstrctrs_packed layout cnstrctrs)@pseudo_rntime_core) in
+let compose_bytecode (ccs : cnstrctr_compiled idx_list) (rc : rntime_compiled) idx : big_int Evm.program =
+    let cn_layouts          = map stor_layout_from_cnstrctr_compiled ccs                                    in
+    let rn_layout           = stor_layout_from_rntime_compiled rc ccs                                       in
+    let layt                = SL.cnstrct_post_stor_layout cn_layouts rn_layout                              in
+    let pseudo_cnstrctr     = lookup_index idx ccs                                                          in
+    let imm_cnstrctr        = SL.realize_program layt idx (extract_program pseudo_cnstrctr.cnstrctr_ce)     in
+    let pseudo_rntime_core  = extract_program rc.rntime_ce                                                  in
+    let imm_rntime          = SL.realize_program layt idx ((cnstrctrs_packed layt ccs)@pseudo_rntime_core)  in
     (* the code is stored in the reverse order *)
     imm_rntime @ imm_cnstrctr
 
 let compose_rntime_bytecode (cnstrctrs : cnstrctr_compiled idx_list)
                      (rntime : rntime_compiled) : big_int Evm.program =
-    let cntrcts_stor_layout : (idx * SL.cntrct_stor_layout) list =
+    let cntrcts_stor_layout : (idx * SL.cn_stor_layout) list =
       L.map (fun (id, const) -> (id, stor_layout_from_cnstrctr_compiled const)) cnstrctrs in
     let rntime_layout  = stor_layout_from_rntime_compiled rntime cnstrctrs in
     let layout          = SL.cnstrct_post_stor_layout cntrcts_stor_layout rntime_layout in

@@ -14,66 +14,61 @@ type stor_addr = int
 
 (* Stor Layout that should be available after the cnstrctr compilation finishes *)
 type stor_layout            =
-                            { stor_program_counter      : int
-                            ; stor_array_counter        : int
-                            ; idxs                      : idx list
-                            ; cnstrctr_code_size        : idx -> int
-                            ; stor_cnstrctr_args_begin  : idx -> int
-                            ; stor_cnstrctr_args_size   : idx -> int
-                            ; stor_array_seeds_begin    : idx -> int
-                            ; stor_array_seeds_size     : idx -> int
-                              (* numbers about the storage *)
-                              (* The storage during the rntime looks like this: *)
-                              (* |S[0]  := PROGRAM COUNTER     
-                               * |S[1]  := ARRAY SEED COUNTER  
-                               * |S[2]  := pod cntrct arg0
-                               * |S[3]  := pod cntrct arg1
-                               * |S[4]  := pod cntrct arg2
-                               * | ...
-                               * |S[k+1]:= pod cntrct argk-1
-                                 |S[k+2]:= array0's seed
-                                 | ...
-                                 |S[n+1]:= arraym's seed
-                                 | *)
-                              (* In addition, array elements are placed at the same location as in Solidity *)
-                            }
+                            { stor_program_counter      : int           (* numbers about the storage                                     *)
+                            ; stor_array_counter        : int           (* The storage during the rntime looks like this:                *)    
+                            ; idxs                      : idx list      (* |S[0]  := PROGRAM COUNTER                                     *)
+                            ; cnstrctr_code_size        : idx -> int    (* |S[1]  := ARRAY SEED COUNTER                                  *)
+                            ; stor_cnstrctr_args_begin  : idx -> int    (* |S[2]  := pod cntrct arg0   --+                ---+           *)
+                            ; stor_cnstrctr_args_size   : idx -> int    (* |S[3]  := pod cntrct arg1     |                   |           *)
+                            ; stor_array_seeds_begin    : idx -> int    (* |S[4]  := pod cntrct arg2     | ( k ) args        |           *)
+                            ; stor_array_seeds_size     : idx -> int    (* | ...                         |                   | n args    *)
+                            }                                           (* |S[k+1]:= pod cntrct argk-1 --+                   |           *)
+                                                                        (* |S[k+2]:= array0's seed     --+                   |           *)
+                                                                        (* | ...                         | (n-k) arrSeeds    |           *)
+                                                                        (* |S[n+1]:= arraym's seed     --+                ---+           *)
+                                                                        (* |                                                             *)
+                                                                        (* array elements are placed at the same location as in Solidity *)
+                              
 
 (* Stor Layout that should be available after the rntime compilation finishes. *)
 (* rntime_code_offset = cnstrctr_code_size *)
 
-(* the rntime code is organized like this:                                                                *)
-(* +-----------------------------------------+          the rntime code for a particular cntrct           *)
-(* |dispatcher that jumps into the stored pc |        +-------------------------------------+             *)
-(* |rntime code for cntrct A   ---------------------->|dispatcher that jumps into a method  |             *)
-(* |rntime code for cntrct B                 |        |rntime code for method f             |             *)
-(* |rntime code for cntrct C                 |        |rntime code for method g|            |             *)
-(* +-----------------------------------------+        +-------------------------------------+             *)
-type post_stor_layout       =                                                   (* The initial data is organized like this: *)
-                            { init_data_size            : idx -> int            (* |cnstrctr code                           *)          
-                            ; rntime_code_size          : int                   (* |rntime  code                            *)
-                            ; rntime_cntrct_offsets     : int idx_list          (* |cnstrctr args|                          *)     
-                            ; rntime_cnstrctr_offsets   : int idx_list
-                            ; l : stor_layout
+(* init_data := Contract Creation Code                                                                          *) 
+(* The initial data is organized like this:                                                                     *)
+(* +---------------+                                                                                            *)
+(* | cnstrctr code |                                                                                            *)
+(* | rntime   code --+                                                                                          *)
+(* | cnstrctr args | |                                                                                          *)
+(* +---------------+ |                                                                                          *)
+(*                   |                                                                                          *)
+(*                   |  the rntime code is organized like this:                                                 *)
+(*                   |  +----------------------------------+       the rntime code for a particular cntrct      *)
+(*                   +->|dispatcher that jumps to StoredPC |      +--------------------------------------+      *)
+(*                      |rntime code for cntrct A   ------------->| dispatcher that jumps into a method  |      *)
+(*                      |rntime code for cntrct B          |      | rntime code for method f             |      *)
+(*                      |rntime code for cntrct C          |      | rntime code for method g             |      *)
+(*                      +----------------------------------+      +--------------------------------------+      *)
+
+type post_stor_layout       =                                                   
+                            { init_data_size            : idx -> int                      
+                            ; rn_code_size              : int                   
+                            ; rn_cntrct_offsets         : int idx_list               
+                            ; rn_cnstrctr_offsets       : int idx_list
+                            ; l                         : stor_layout
                             }
 
-
-let pr_stor_layout l        =   printf "stor_layout\n";
-                                printf "  init_data_size:\n"
-
-
-type cntrct_stor_layout     =
-                            { cntrct_cnstrctr_code_size     : int
-                            ; cntrct_arg_size               : int (** the number of words that the cntrct args occupy *)
-                            ; cntrct_num_array_seeds        : int (** the number of args that arrays *)
-                            ; cntrct_args                   : ty list (** the list of arg types *)
+type cn_stor_layout     =
+                            { cn_cnstrctr_code_size     : int
+                            ; cn_args_size              : int (** the number of words that the cntrct args occupy *)
+                            ; cn_num_array_seeds        : int (** the number of args that arrays *)
+                            ; cn_args                   : ty list (** the list of arg types *)
                             }
 
-
-type rntime_stor_layout     =
-                            { rntime_code_size             : int
-                            ; rntime_offset_of_idx         : int idx_list
-                            ; rntime_offset_of_cnstrctr    : int idx_list
-                            ; rntime_size_of_cnstrctr      : int idx_list
+type rn_stor_layout     =
+                            { rn_code_size              : int
+                            ; rn_offset_of_idx          : int idx_list
+                            ; rn_offset_of_cnstrctr     : int idx_list
+                            ; rn_size_of_cnstrctr       : int idx_list
                             }
 
 
@@ -81,15 +76,15 @@ type rntime_stor_layout     =
 
 
 let compute_cnstrctr_code_size l idx        =
-    let c : cntrct_stor_layout = lookup_index idx l in
-    c.cntrct_cnstrctr_code_size
+    let cnSL = lookup_index idx l in
+    cnSL.cn_cnstrctr_code_size
 
 let compute_cnstrctr_args_size l idx        =
-    let c : cntrct_stor_layout = lookup_index idx l in
-    c.cntrct_arg_size
+    let cnSL = lookup_index idx l in
+    cnSL.cn_args_size
 
 let compute_cnstrctr_args_begin l rntime idx =
-    compute_cnstrctr_code_size l idx + rntime.rntime_code_size
+    compute_cnstrctr_code_size l idx + rntime.rn_code_size
 
 let compute_init_data_size l rntime idx     =
     compute_cnstrctr_args_begin l rntime idx + compute_cnstrctr_args_size l idx
@@ -101,9 +96,9 @@ let compute_stor_array_seeds_begin l idx    =
 
 let compute_stor_array_seeds_size lst idx   =
     let c = lookup_index idx lst in
-    c.cntrct_num_array_seeds
+    c.cn_num_array_seeds
 
-let cnstrct_stor_layout(l:cntrct_stor_layout idx_list) : stor_layout =
+let cnstrct_stor_layout(l:cn_stor_layout idx_list) : stor_layout =
     { idxs                              = L.map fst l
     ; cnstrctr_code_size                = compute_cnstrctr_code_size l
     ; stor_program_counter              = 0     (* fixed constant. *)
@@ -114,11 +109,11 @@ let cnstrct_stor_layout(l:cntrct_stor_layout idx_list) : stor_layout =
     ; stor_array_seeds_size             = compute_stor_array_seeds_size l
     }
 
-let cnstrct_post_stor_layout (l:cntrct_stor_layout idx_list) (rntime:rntime_stor_layout) : post_stor_layout =
+let cnstrct_post_stor_layout (l:cn_stor_layout idx_list) (rntime:rn_stor_layout) : post_stor_layout =
     { init_data_size                    = compute_init_data_size l rntime
-    ; rntime_code_size                  = rntime.rntime_code_size
-    ; rntime_cntrct_offsets      = rntime.rntime_offset_of_idx
-    ; rntime_cnstrctr_offsets    = rntime.rntime_offset_of_cnstrctr
+    ; rn_code_size                      = rntime.rn_code_size
+    ; rn_cntrct_offsets                 = rntime.rn_offset_of_idx
+    ; rn_cnstrctr_offsets               = rntime.rn_offset_of_cnstrctr
     ; l                                 = cnstrct_stor_layout l
     }
 
@@ -135,10 +130,10 @@ let rec realize_imm(layout:post_stor_layout)(init_idx:idx) = function
     | StorCnstrctrArgsSize  idx     ->  big (layout.l.stor_cnstrctr_args_size idx)
     | InitDataSize          idx     ->  big (layout.init_data_size idx)
     | RntimeCodeOffset      idx     ->  big (rntime_code_offset layout.l idx)
-    | RntimeCodeSize                ->  big (layout.rntime_code_size)
+    | RntimeCodeSize                ->  big (layout.rn_code_size)
     | CnstrctrCodeSize      idx     ->  big (layout.l.cnstrctr_code_size idx)
-    | RntimeCnstrctrOffset  idx     ->  big (lookup_index idx layout.rntime_cnstrctr_offsets)
-    | RntimeCntrctOffset    idx     ->  big (lookup_index idx layout.rntime_cntrct_offsets)
+    | RntimeCnstrctrOffset  idx     ->  big (lookup_index idx layout.rn_cnstrctr_offsets)
+    | RntimeCntrctOffset    idx     ->  big (lookup_index idx layout.rn_cntrct_offsets)
     | RntimeMthdLabel(idx,mthd_hd)  ->  let label = lookup_entrypoint (Mthd (idx, mthd_hd)) in
                                         big (Label.lookup_label label)
     | Minus (a, b)                  ->  sub_big_int (realize_imm layout init_idx a) (realize_imm layout init_idx b)
@@ -220,10 +215,10 @@ let realize_opcode (l:post_stor_layout) (init_idx:idx) (i:imm Evm.opcode) = Evm.
 let realize_program l init_idx p = L.map (realize_opcode l init_idx) p
 
 let stor_layout_of_cntrct (cn:ty cntrct) (cnstrctr_code : imm Evm.program) =
-    { cntrct_cnstrctr_code_size = Evm.size_of_program cnstrctr_code
-    ; cntrct_arg_size           = Eth.total_size_of_argTys (L.map snd (Eth.argTys_of_cntrct cn))
-    ; cntrct_num_array_seeds    = L.length (Eth.getArr_of_cntrct cn)
-    ; cntrct_args               = L.map (fun a->a.ty) (cn.cntrct_args)
+    { cn_cnstrctr_code_size = Evm.size_of_program cnstrctr_code
+    ; cn_args_size          = Eth.total_size_of_argTys (L.map snd (Eth.argTys_of_cntrct cn))
+    ; cn_num_array_seeds    = L.length  (Eth.getArr_of_cntrct cn)
+    ; cn_args               = L.map     (fun a->a.ty) (cn.cntrct_args)
     }
 
 let rec arg_locations_inner offset used_plain_args used_mapping_seeds num_of_plains = function 

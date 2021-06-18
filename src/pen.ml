@@ -29,28 +29,29 @@ let toplevels   = parse_with_error lexbuf
 let toplevels'  = to_idx_list toplevels
 let toplevels'' = Type.assignTys toplevels'
 *)
+let e str = eprintf str; exit 1
 
 let () =
     Parser.add optparser 
         ~long_names:["abi"] 
         ~help:"print ABI" enable_abi ; 
-    let files                                                          = Parser.parse_argv optparser                                            in
-    if files <> [] then (eprintf "Pass the contents to stdin.\n"; exit 1) else 
-    let abi : bool                                                     = (Some true = enable_abi.Option.option_get ())                          in
-    let lexbuf                                                         = Lexing.from_channel stdin     in
-    let toplevels : unit toplevel list                                 = parse_with_error lexbuf       in
-    let toplevels                                                      = to_idx_list toplevels   in
-    let toplevels : ty toplevel idx_list                               = Type.assignTys toplevels      in
-    let cntrcts                                                        = filter_map (function 
-                                                                                    | Cntrct cn     -> Some cn
-                                                                                    | _             -> None     ) toplevels in
-    match cntrcts with
+    let files                                      = Parser.parse_argv optparser                    in
+    if files<>[] then e"Pass the contents to stdin.\n" else
+    let abi : bool                                 = (Some true = enable_abi.Option.option_get ())  in
+    let lexbuf                                     = Lexing.from_channel stdin                      in
+    let toplevels : unit toplevel list             = parse_with_error lexbuf                        in
+    let toplevels                                  = to_idx_list toplevels                          in
+    let toplevels : ty toplevel idx_list           = Type.assignTys toplevels                       in
+    let cns                                        = filter_map (function   | Cntrct cn     -> Some cn
+                                                                            | _             -> None     ) toplevels in
+    match cns with
     | []  ->  ()
-    | _   ->  let cnstrctrs : cnstrctr_compiled idx_list               = compile_cnstrctrs cntrcts in
-              let cntrcts_stor_layout : LI.cntrct_stor_layout idx_list = map stor_layout_from_cnstrctr_compiled cnstrctrs in
-              let layout                                               = LI.cnstrct_stor_layout cntrcts_stor_layout in
-              let rntime_compiled                                     = compile_rntime layout cntrcts in
-              let bytecode : big_int Evm.program                       = compose_bytecode cnstrctrs rntime_compiled (fst (L.hd cntrcts)) in
-              if abi 
+    | _   ->  let ccs : cnstrctr_compiled idx_list         = compile_cnstrctrs cns                          in
+              let cn_layouts : LI.cn_stor_layout idx_list  = map stor_layout_from_cnstrctr_compiled ccs     in
+              let layout                                   = LI.cnstrct_stor_layout cn_layouts              in
+              let rc  : rntime_compiled                    = compile_rntime layout cns                      in
+              let bytecode : big_int Evm.program           = compose_bytecode ccs rc (fst(L.hd cns))        in
+              if  abi 
                   then Abi.prABI toplevels 
                   else Evm.pr_encoded bytecode 
+
