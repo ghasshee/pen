@@ -229,7 +229,6 @@ let rec arg_locations_inner offset used_plain_args used_mapping_seeds num_of_pla
                     else (offset + used_plain_args) ::
                         arg_locations_inner offset(used_plain_args+1)used_mapping_seeds num_of_plains t
 
-
 (* this needs to take stor_cnstrctr_args_begin *)
 let arg_locations offset (cn:ty cntrct) : stor_addr list =
     let arg_tys       = L.map (fun a->a.ty) cn.cntrct_args in
@@ -246,4 +245,29 @@ let array_locations (cn:ty cntrct) : stor_addr list =
     if total_num=num_of_plains 
         then []
         else BL.(range (2 + num_of_plains) `To (total_num + 1))
+
+(*                                                                          *)
+(*            Storage of a contract                                         *)
+(*            +---+-----------------+                                       *)
+(*            |0  |PC               |                                       *)
+(*            |1  |ArraySeedCounter |                                       *)
+(*            |2  |arg1 ----+       |    ------+                            *)
+(*            |3  |arg2     |       |          |                            *)
+(*            |4  |arg3     + num of plains    |                            *)
+(*            |.. |         |       |          + total_num (of args)        *)
+(*            |k+1|argk ----+       |          |                            *)
+(*            |k+2|arr1             |          |                            *)
+(*            |.. | ..              |          |                            *)
+(*            |n+1|arrm   ---------------------+                            *)
+(*            |   |                 |                                       *)
+(*            +---+-----------------+                                       *)
+(*                                                                          *)
+(*                                                                          *)
+
+
+
+
+
+
+
 
