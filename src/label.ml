@@ -28,18 +28,18 @@ let lookup_label l              =   List.assoc l !labeltbl
 
 
 
-(* entrypoint Database *) 
+(* entry Database *) 
 
 
 open IndexedList
 
-type entrypoint =
+type entry =
                 | Cntrct  of idx
                 | Mthd    of idx * Syntax.mthd_head
 
-let store : (entrypoint*label)list ref          = ref []
-let register_entrypoint(k:entrypoint)(v:label)  = store := (k, v) :: !store
-let lookup_entrypoint (k : entrypoint) : label  = List.assoc k !store
+let entryTbl : (entry*label)list ref          = ref []
+let register_entry(k:entry)(v:label)  = entryTbl := (k,v)::!entryTbl
+let lookup_entry (k:entry)   = List.assoc k !entryTbl
 
 
 

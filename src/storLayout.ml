@@ -134,7 +134,7 @@ let rec realize_imm(layout:post_stor_layout)(init_idx:idx) = function
     | CnstrctrCodeSize      idx     ->  big (layout.l.cnstrctr_code_size idx)
     | RntimeCnstrctrOffset  idx     ->  big (lookup_index idx layout.rn_cnstrctr_offsets)
     | RntimeCntrctOffset    idx     ->  big (lookup_index idx layout.rn_cntrct_offsets)
-    | RntimeMthdLabel(idx,mthd_hd)  ->  let label = lookup_entrypoint (Mthd (idx, mthd_hd)) in
+    | RntimeMthdLabel(idx,mthd_hd)  ->  let label = lookup_entry (Mthd (idx, mthd_hd)) in
                                         big (Label.lookup_label label)
     | Minus (a, b)                  ->  sub_big_int (realize_imm layout init_idx a) (realize_imm layout init_idx b)
 
