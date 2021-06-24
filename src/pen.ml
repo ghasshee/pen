@@ -17,9 +17,9 @@ let enable_abi      = StdOpt.store_true ()
 
 let optparser : Parser.t 
                     = Parser.make 
-                            ~version:"0.0.02" 
-                            ~usage:"bamboo [options] < src.bbo" 
-                            ~description:"Bamboo compiles input from stdin and prints EVM bytecode in stdout. " ()
+                            ~version:"0.0.1" 
+                            ~usage:"pen [options] < src.bbo" 
+                            ~description:"Pen compiles input from stdin and prints EVM bytecode in stdout. " ()
 (*
 let man         = BatOptParse.OptParser.add optparser ~long_names:["abi"] ~help:"print ABI" enable_abi
 let files       = BatOptParse.OptParser.add optparser 
@@ -35,19 +35,19 @@ let ()      =
     Parser.add optparser 
         ~long_names:["abi"] 
         ~help:"print ABI" enable_abi ; 
-    let files                              = Parser.parse_argv optparser                            in
+    let files                              = Parser.parse_argv optparser                                in
     if files<>[] then e"Pass the contents to stdin.\n" else
-    let abi       : bool                   = (Some true = enable_abi.Option.option_get ())          in
-    let lexbuf                             = Lexing.from_channel stdin                              in
-    let toplevels : unit toplevel list     = parse_with_error lexbuf                                in
-    let toplevels                          = to_idx_list toplevels                                  in
-    let toplevels : ty toplevel idx_list   = Type.assignTys toplevels                               in
+    let abi       : bool                   = (Some true = enable_abi.Option.option_get ())              in
+    let lexbuf                             = Lexing.from_channel stdin                                  in
+    let toplevels : unit toplevel list     = parse_with_error lexbuf                                    in
+    let toplevels                          = to_idx_list toplevels                                      in
+    let toplevels : ty toplevel idx_list   = Type.assignTys toplevels                                   in
     let cns                                = filter_map (function   | Cntrct cn -> Some cn
-                                                                    | _         -> None ) toplevels in
+                                                                    | _         -> None ) toplevels     in
     match cns with
     | []  ->  ()
     | _   ->  let ccs       : cnstrctrCode idx_list         = compile_cnstrctrs cns                     in 
-              let cn_layts  : LI.cn_storLayout idx_list     = map storLayout_of_cnstrctrCode ccs     in
+              let cn_layts  : LI.cn_storLayout idx_list     = map storLayout_of_cnstrctrCode ccs        in
               let layt                                      = LI.cnstrct_storLayout cn_layts            in
               let rc        : rntimeCode                    = compile_rntime layt cns                   in
               let bytecode  : big_int Evm.program           = compose_bytecode ccs rc (fst(L.hd cns))   in
