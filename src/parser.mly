@@ -61,7 +61,7 @@ cntrct:
                                         { Cntrct { mthds       = $5
                                                    ; cntrct_name = $2
                                                    ; cntrct_args = $3 } }
-    | EVENT IDENT plist(event_arg) SEMI { Event    { event_args = $3; event_name = $2 } };
+    | EVENT IDENT plist(evnt_arg) SEMI { Event    { evnt_args = $3; evnt_name = $2 } };
 
 case:
     | mthd_head block         {   { mthd_head    = $1
@@ -74,19 +74,19 @@ block:
 
 mthd_head:
     | DEFAULT                               { Default }
-    | METHOD LPAR ty IDENT plist(arg) RPAR { Method { mthd_retTy = [$3];  mthd_name = $4; mthd_args = $5 } }
-    | METHOD LPAR VOID IDENT plist(arg)RPAR { Method { mthd_retTy = [];    mthd_name = $4; mthd_args = $5 } };
+    | METHOD LPAR ty IDENT plist(arg) RPAR  { Method { mthd_retTy = $3;     mthd_name = $4; mthd_args = $5 } }
+    | METHOD LPAR VOID IDENT plist(arg)RPAR { Method { mthd_retTy = TyVoid; mthd_name = $4; mthd_args = $5 } };
 
 arg:
     | ty IDENT                                 { { ty = $1; id = $2; loc = None } }
     
 
-event_arg:
-  | arg                                         { event_arg_of_arg $1 false }
-  | ty INDEXED IDENT                           { { event_arg_body =    { ty  = $1 
+evnt_arg:
+  | arg                                         { evnt_arg_of_arg $1 false }
+  | ty INDEXED IDENT                           { { arg =    { ty  = $1 
                                                                         ; id  = $3 
                                                                         ; loc = None }; 
-                                                                        event_arg_indexed = true } }
+                                                                        indexed = true } }
 
 ty:
   | UINT256                                     { TyUint256             }

@@ -1,9 +1,9 @@
 open Misc
 
 
-type eff_loc    = Stor | External (*| Balance*)
+type effector   = Stor | External (*| Balance*)
 type rw         = Read | Write
-type eff        = eff_loc * rw 
+type eff        = effector * rw 
 
 let isRead  eff     = snd eff=Read 
 let isWrite eff     = snd eff=Write

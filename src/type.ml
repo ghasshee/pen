@@ -31,11 +31,11 @@ let id_lookup_ty tenv id        =   match lookup tenv id with
 let is_known_cntrct tyCns nm    =   BL.exists (fun(_,i)->i.tyCntrct_name=nm) tyCns
 
 let rec is_known_ty tyCns       =   function 
-    | TyRef l                       ->  BL.for_all (is_known_ty tyCns) l
+    | TyRef l                       ->  is_known_ty tyCns l
     | TyTuple l                     ->  BL.for_all (is_known_ty tyCns) l
     | TyMap(a,b)                    ->  is_known_ty tyCns a && is_known_ty tyCns b
-    | TyCntrct cn               ->  is_known_cntrct tyCns cn
-    | TyInstnce cn           ->  is_known_cntrct tyCns cn
+    | TyCntrct cn                   ->  is_known_cntrct tyCns cn
+    | TyInstnce cn                  ->  is_known_cntrct tyCns cn
     | TyUint256                     ->  true
     | TyUint8                       ->  true
     | TyBytes32                     ->  true
@@ -47,7 +47,7 @@ let arg_has_known_ty tyCns arg  =   let ret = is_known_ty tyCns arg.ty in
                                         if not ret then eprintf"arg has Unknown Type %s\n"(string_of_ty arg.ty);
                                         ret
 
-let retTy_is_known tyCns m     =   BL.for_all (is_known_ty tyCns) m.mthd_retTy
+let retTy_is_known tyCns m      =   is_known_ty tyCns m.mthd_retTy
 
 let assignTy_mthd_head tyCns    =   function 
     | Method m                      ->  assert (BL.for_all(arg_has_known_ty tyCns)m.mthd_args) ; 
@@ -238,10 +238,11 @@ and assignTy_expr tyCns cname tyenv (expr_inner,()) : (ty*eff list) expr =
                                         let ref     =   EpSend  { send_cntrct   = cn'
                                                                 ; send_mthd     = send.send_mthd
                                                                 ; send_args     = args
-                                                                ; send_msg = msg},(TyRef tyRet,[External,Write])in
+                                                                ; send_msg      = msg           }, 
+                                                                (TyRef tyRet,[External,Write])          in
                                         (match tyRet with
-                                         | [ty]     -> EpSingleDeref ref, (ty, [External, Write])
-                                         | _        -> ref)
+                                         | TyVoid   -> ref 
+                                         | ty       -> EpSingleDeref ref, (ty, [External, Write]) )
                             | None ->
                                         assert (send.send_args = []) ; 
                                         EpSend { send_cntrct    = cn'
@@ -289,7 +290,7 @@ and assignTy_varDecl tyCns cname tyenv (vd:unit varDecl): (ty*eff list)varDecl *
     let ty      = vd.varDecl_ty     in
     if BS.starts_with id "pre_" then err "Names \"pre_..\" are reserved" ;
     assert (is_known_ty tyCns ty);
-    let tyenv'  = add_pair tyenv id ty None in
+    let tyenv'  = add_var tyenv id ty None in
     let vd'     =   { varDecl_ty    = ty
                     ; varDecl_id    = id
                     ; varDecl_val   = v  } in
@@ -325,8 +326,8 @@ and assignTy_stmt tyCns cname tyenv (src:unit stmt) : ((ty*eff list)stmt * tyEnv
                             SmExpr e, tyenv
     | SmLog(nm,args,_)->
                             let args    = L.map(assignTy_expr tyCns cname tyenv)args in
-                            let ev      = lookup_event tyenv nm in
-                            let tys     = L.map(fun ea->ea.event_arg_body.ty)ev.event_args in
+                            let ev      = lookup_evnt tyenv nm in
+                            let tys     = L.map(fun ea->ea.arg.ty)ev.evnt_args in
                             assert (typecheck_multiple tys args) ;
                             let effs    = get_effs args in
                             check_only_1_effect effs ; 
@@ -373,15 +374,14 @@ and are_terminating stmts =
 
 let mthd_is_returning_void (mthd : unit mthd) = match mthd.mthd_head with
     | Default       ->  true
-    | Method m      ->  m.mthd_retTy = []
+    | Method m      ->  m.mthd_retTy = TyVoid
 
 let retTyCheck_of_mthd m ty_inferred = match m, ty_inferred with
     | Default ,Some _    ->  false
     | Default ,None      ->  true
     | Method u,   _      ->  begin match u.mthd_retTy, ty_inferred with
-        | _::_::_ , _       -> false
-        | [x], Some y       -> acceptable_as x y
-        | [] , None         -> true
+        | tyVoid, None      -> true
+        | x, Some y         -> acceptable_as x y
         | _, _              -> false  end
 
 
@@ -392,7 +392,7 @@ let assignTy_mthd tyCns cn_name tenv (m : unit mthd) =
                          | ReturnValues 1   -> not (mthd_is_returning_void m)
                          | ReturnValues _   -> err "multiple vals return not supported yry"
                          | JustStop         -> true )  (are_terminating m.mthd_body)) ; 
-    let margs       = mthd_head_arg_list m.mthd_head in
+    let margs       = args_of_mthd m.mthd_head in
     if BL.exists (fun arg -> BS.starts_with arg.id "pre_") margs 
                 then err "names that start with pre_ are reserved"; 
     let retTyCheck  = retTyCheck_of_mthd m.mthd_head in
@@ -409,11 +409,11 @@ let has_distinct_sigs (cn:unit cntrct) =
     L.length sigs=L.length uniq_sigs
 
 
-let assignTy_cntrct tyCns (evs: event idx_list)(cn : unit cntrct) 
+let assignTy_cntrct tyCns (evs: evnt idx_list)(cn : unit cntrct) 
             : (ty*eff list) cntrct =
     assert (BL.for_all (arg_has_known_ty tyCns) cn.cntrct_args) ; 
     assert (has_distinct_sigs cn);
-    let tyenv  = add_block cn.cntrct_args (add_events evs empty_tyEnv) in
+    let tyenv  = add_block cn.cntrct_args (add_evnts evs empty_tyEnv) in
     if BS.starts_with cn.cntrct_name "pre_" 
         then err "names \"pre_..\" are reserved" ; 
     if BL.exists (fun arg -> BS.starts_with arg.id "pre_") cn.cntrct_args 
@@ -423,7 +423,7 @@ let assignTy_cntrct tyCns (evs: event idx_list)(cn : unit cntrct)
     ; mthds           = L.map(assignTy_mthd tyCns cn.cntrct_name tyenv)cn.mthds }
 
 
-let assignTy_toplevel tyCns (evs:event idx_list) (top:unit toplevel) : (ty*eff list)toplevel 
+let assignTy_toplevel tyCns (evs:evnt idx_list) (top:unit toplevel) : (ty*eff list)toplevel 
     = match top with
     | Cntrct c    -> Cntrct (assignTy_cntrct tyCns evs c)
     | Event  e    -> Event e
@@ -554,6 +554,6 @@ let assignTys (tops : unit toplevel idx_list) : ty toplevel idx_list =
                                                         | _        -> None   ) tops in
     assert(has_distinct_cntrct_names(cntrcts));
     let tys                     = map typeof_cntrct cntrcts in
-    let evs : event idx_list    = filter_map (function  | Event e  -> Some e
+    let evs : evnt idx_list    = filter_map (function  | Event e  -> Some e
                                                         | _        -> None   ) tops in
     map stripEffect (map (assignTy_toplevel tys evs) tops)

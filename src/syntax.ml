@@ -6,6 +6,7 @@ open Misc
 
 module L    = List 
 module BL   = BatList
+module Eff  = TypeEffect
 
 
 
@@ -16,11 +17,11 @@ type ty                 = TyVoid
                         | TyBytes32             (* 256 bits *) 
                         | TyAddr                (* 160 bits *) 
                         | TyBool 
-                        | TyRef                 of ty list
+                        | TyRef                 of ty 
                         | TyTuple               of ty list
                         | TyMap                 of ty * ty 
-                        | TyCntrct        of string   (* type of [bid(...)] where bid is a cntrct *) 
-                        | TyInstnce    of string   (* type of [b] declared as [bid b] *) 
+                        | TyCntrct              of string   (* type of [bid(...)] where bid is a cntrct *) 
+                        | TyInstnce             of string   (* type of [b] declared as [bid b] *) 
 
 let rec string_of_ty    = function 
     | TyVoid                -> "void" 
@@ -32,24 +33,21 @@ let rec string_of_ty    = function
     | TyRef              _  -> "ref" 
     | TyTuple            _  -> "tuple" 
     | TyMap(a,b)            -> "mapping" 
-    | TyCntrct     s  -> "cntrctArch " ^ s
-    | TyInstnce s  -> "cntrctInstance " ^ s
+    | TyCntrct      s       -> "contract arch "     ^ s
+    | TyInstnce     s       -> "contract instance " ^ s
 
-type arg                = 
+type var                = 
                         { ty                    : ty
                         ; id                    : string 
-                        ; loc                   : TypeEffect.eff_loc option
-                        } 
+                        ; loc                   : Eff.effector option   } 
 
-type event_arg          =
-                        { event_arg_body        : arg
-                        ; event_arg_indexed     : bool
-                        }
+type evnt_arg           =
+                        { arg                   : var
+                        ; indexed               : bool                  }
 
-type event              =        
-                        { event_name            : string
-                        ; event_args            : event_arg list
-                        }
+type evnt               =        
+                        { evnt_name             : string
+                        ; evnt_args             : evnt_arg list         }
 
 
 
@@ -57,24 +55,24 @@ type event              =
 (***      STATEMENTS & EXPRESSIONS     ***)
 (*****************************************)
 
-type 'ty fncall=
+type 'ty fncall         =
                         { call_head             : string
-                        ; call_args             : ('ty expr) list   }
+                        ; call_args             : ('ty expr) list       }
 
-and  'ty msg       =
-                        { msg_value        : 'ty expr option
-                        ; msg_reentrance   : 'ty stmt list     }
+and  'ty msg            =
+                        { msg_value             : 'ty expr option
+                        ; msg_reentrance        : 'ty stmt list         }
 
 and  'ty new_expr       =
                         { new_head              : string
                         ; new_args              : 'ty expr list
-                        ; new_msg          : 'ty msg      }
+                        ; new_msg               : 'ty msg               }
 
 and  'ty send_expr      =
                         { send_cntrct           : 'ty expr
                         ; send_mthd             : string option
                         ; send_args             : 'ty expr list
-                        ; send_msg         : 'ty msg      }
+                        ; send_msg              : 'ty msg               }
 
 and  'ty stmt           =
                         | SmAbort
@@ -85,7 +83,7 @@ and  'ty stmt           =
                         | SmIfThenElse          of 'ty expr * 'ty stmt list * 'ty stmt list
                         | SmSelfDestruct        of 'ty expr
                         | SmExpr                of 'ty expr
-                        | SmLog                 of string * 'ty expr list * event option
+                        | SmLog                 of string   * 'ty expr list * evnt option
 
 and  'ty expr           = 'ty expr_tm * 'ty
 
@@ -121,11 +119,11 @@ and  'ty expr_tm        =
 and 'ty lexpr           =
                         | LEpArray              of 'ty array
 
-and 'ty array    =
-                        { array_name    : 'ty expr
-                        ; array_index    : 'ty expr          }
+and 'ty array           =
+                        { array_name            : 'ty expr
+                        ; array_index           : 'ty expr          }
 
-and 'ty varDecl     =
+and 'ty varDecl         =
                         { varDecl_ty            : ty
                         ; varDecl_id            : string
                         ; varDecl_val           : 'ty expr          }
@@ -137,17 +135,17 @@ and 'ty return          =
 
 
 let read_array   = function 
-    | LEpArray a    -> a
+    | LEpArray a        -> a
 
-let event_arg_of_arg arg isIndexed =
-    { event_arg_body        = arg
-    ; event_arg_indexed     = isIndexed       }
+let evnt_arg_of_arg arg isIndexed =
+    { arg                   = arg
+    ; indexed               = isIndexed       }
 
-let arg_of_event_arg e  = e.event_arg_body
-let args_of_event_args  = L.map arg_of_event_arg
+let arg_of_evnt_arg e   = e.arg
+let args_of_evnt_args   = L.map arg_of_evnt_arg
 
-let split_event_args ev (args:'a expr list) =
-    let indexed : bool list = L.map (fun a->a.event_arg_indexed) ev.event_args in
+let split_evnt_args ev (args:'a expr list) =
+    let indexed : bool list = L.map (fun ev_arg->ev_arg.indexed) ev.evnt_args in
     let combined            = L.combine args indexed in
     let is,ns               = BL.partition snd combined in
     L.map fst is, L.map fst ns
@@ -161,10 +159,9 @@ let split_event_args ev (args:'a expr list) =
 type 'ty mthd_body      = 'ty stmt list
 
 type mthd_info          =
-                        { mthd_retTy       : ty list    (* empty or single type *) 
+                        { mthd_retTy        : ty            (* empty or single type *) 
                         ; mthd_name         : string
-                        ; mthd_args         : arg list   
-                        }
+                        ; mthd_args         : var list      }
 
 type mthd_head          =      
                         | Method of mthd_info
@@ -172,15 +169,13 @@ type mthd_head          =
 
 type 'ty mthd           =
                         { mthd_head         :     mthd_head
-                        ; mthd_body         : 'ty mthd_body
-                        }
+                        ; mthd_body         : 'ty mthd_body }
 
 
 type 'ty cntrct         =
                         { cntrct_name       : string
-                        ; cntrct_args       : arg list
-                        ; mthds             : 'ty mthd list
-                        }
+                        ; cntrct_args       : var list
+                        ; mthds             : 'ty mthd list }
 
 
 (*****************************************)
@@ -189,72 +184,72 @@ type 'ty cntrct         =
 
 type 'ty toplevel       =
                         | Cntrct        of 'ty cntrct
-                        | Event         of event
+                        | Event         of evnt
 
 
-let filter_usualMthd    = BL.filter_map (function   | Default   -> None 
-                                                    | Method m  -> Some m )  
-let default_exists      = L.exists      (function   | Default   -> true
-                                                    | _         -> false  )
+let filter_usualMthd            = BL.filter_map (function   | Default   -> None 
+                                                            | Method m  -> Some m )  
+let default_exists              = L.exists      (function   | Default   -> true
+                                                            | _         -> false  )
 
 
-let cntrct_name_of_ret_cont ((r,_):'ty expr) : string option = match r with
-    | EpFnCall c                -> Some c.call_head
-    | _                         -> None
+let cntrct_name_of_ret_cont     = function 
+    | EpFnCall c,_              -> Some c.call_head
+    | _,_                       -> None
 
-let mthd_head_arg_list    (h:mthd_head) : arg list = match h with
-    | Method mthd               -> mthd.mthd_args
+let args_of_mthd                = function 
+    | Method m                  -> m.mthd_args
     | Default                   -> []
 
-let cntrct_name_of_instance ((_,(t,_)):(ty*'a)expr) = match t with
-    | TyInstnce s        -> s
-    | tyT                       -> err ("seeking cntrct_name_of non-cntrct "^(string_of_ty tyT))
+let cntrct_name_of_instance     = function
+    | _,(TyInstnce s,_)         -> s
+    | _,(tyT,_)                 -> err ("seeking cntrct_name_of non-cntrct "^(string_of_ty tyT))
 
-let string_of_expr_inner = function 
+let string_of_expr_inner        = function 
     | EpThis                    -> "this"
-    | EpArray _                 -> "a[idx]"
-    | EpSend _                  -> "send"
-    | EpNew _                   -> "new"
-    | EpParen _                 -> "()"
-    | EpIdent str               -> "ident "^str
-    | EpFnCall _                -> "call"
+    | EpArray       _           -> "a[idx]"
+    | EpSend        _           -> "send"
+    | EpNew         _           -> "new"
+    | EpParen       _           -> "()"
+    | EpIdent     str           -> "ident "^str
+    | EpFnCall      _           -> "call"
     | EpNow                     -> "now"
     | EpSender                  -> "sender"
     | EpTrue                    -> "true"
     | EpFalse                   -> "false"
-    | EpDecLit256 d             -> "declit "^(string_of_big_int d)
-    | EpDecLit8 d               -> "declit "^(string_of_big_int d)
-    | EpNot _                   -> "not"
-    | EpNeq _                   -> "neq"
-    | EpLand _                  -> "_ && _"
-    | EpLt _                    -> "lt"
-    | EpGt _                    -> "gt"
+    | EpDecLit256   d           -> "declit "^(string_of_big_int d)
+    | EpDecLit8     d           -> "declit "^(string_of_big_int d)
+    | EpNot         _           -> "not"
+    | EpNeq         _           -> "neq"
+    | EpLand        _           -> "_ && _"
+    | EpLt          _           -> "lt"
+    | EpGt          _           -> "gt"
     | EpValue                   -> "value"
-    | EpEq _                    -> "equality"
-    | EpAddr _                  -> "address"
+    | EpEq          _           -> "equality"
+    | EpAddr        _           -> "address"
     | EpSingleDeref _           -> "dereference of ..."
-    | EpTupleDeref _            -> "dereference of tuple..."
-    | EpPlus (a, b)             -> "... + ..."
-    | EpMinus (a, b)            -> "... - ..."
-    | EpMult (a, b)             -> "... * ..."
-    | EpBalance _               -> "balance"
+    | EpTupleDeref  _           -> "dereference of tuple..."
+    | EpPlus     (a,b)          -> "... + ..."
+    | EpMinus    (a,b)          -> "... - ..."
+    | EpMult     (a,b)          -> "... * ..."
+    | EpBalance     _           -> "balance"
 
-let is_mapping = function 
+let is_mapping                  = function 
     | TyUint256
     | TyUint8
     | TyBytes32
     | TyAddr
     | TyBool
-    | TyRef _
-    | TyTuple _
-    | TyCntrct _
-    | TyInstnce _
+    | TyRef         _
+    | TyTuple       _
+    | TyCntrct      _
+    | TyInstnce     _
     | TyVoid                    -> false
-    | TyMap _                   -> true
+    | TyMap         _           -> true
 
-let count_plain_args (tys:ty list) = L.length (L.filter (not $ is_mapping) tys)
+let count_plain_args            = L.length $ (L.filter (not $ is_mapping)) 
 
-let fits_in_one_stor_slot = function 
+let fits_in_one_stor_slot       = function 
     | TyUint8
     | TyUint256
     | TyBytes32
@@ -267,7 +262,7 @@ let fits_in_one_stor_slot = function
     | TyCntrct _ 
     | TyVoid                    -> false
 
-let size_of_ty (* in bytes *) = function
+let size_of_ty (* in bytes *)   = function
     | TyUint8                   ->  1
     | TyUint256                 -> 32
     | TyBytes32                 -> 32
@@ -275,12 +270,12 @@ let size_of_ty (* in bytes *) = function
     | TyInstnce _               -> 20 (* address as word *)
     | TyBool                    -> 32
     | TyRef _                   -> 32
-    | TyVoid                    -> err "size_of_ty VoidType"
+    | TyVoid                    -> err "size_of_ty TyVoid"   
     | TyTuple _                 -> err "size_of_ty TyTuple"
     | TyMap   _                 -> err "size_of_ty TyMap" 
     | TyCntrct     x            -> err("size_of_ty TyCntrct: "^x)
 
-let size_of_tys (tys:ty list)   = BL.sum (L.map size_of_ty tys)
+let size_of_tys                 = BL.sum $ (L.map size_of_ty) 
 
 let calldata_size_of_ty         = function 
     | TyMap _                   -> err "mapping cannot be a method arg"
@@ -291,21 +286,16 @@ let calldata_size_of_ty         = function
 
 let calldata_size_of_arg arg    = calldata_size_of_ty arg.ty
 
-let is_throw_only = function    (* :  ty stmt list -> bool *) 
+let is_throw_only               = function    (* :  ty stmt list -> bool *) 
     | [SmAbort]                 -> true
     | _                         -> false
 
-let non_mapping_arg (arg:arg)   = match arg.ty with
+let non_mapping_arg arg         = match arg.ty with
     | TyMap _                   -> false
     | _                         -> true
 
-
-
-
-
-
 let acceptable_as t0 t1     =   (t0 = t1) 
                             ||  ( match t0, t1 with
-                                | TyAddr, TyInstnce _ -> true
-                                | _, _ -> false ) 
+                                | TyAddr, TyInstnce _   -> true
+                                | _     , _             -> false ) 
 

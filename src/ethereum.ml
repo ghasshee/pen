@@ -14,7 +14,7 @@ module BB = BatBig_int
 
 
 type tyMthd                 =
-                            { tyRet       : ty list
+                            { tyRet       : ty 
                             ; name        : string
                             ; tyArgs      : ty list }
 
@@ -106,10 +106,10 @@ let string_of_tyMthd m  =
     let ty              = String.concat "," str_tys         in
     name_of_mthd ^ "(" ^ ty ^ ")"
 
-let string_of_event e =
+let string_of_evnt e =
     (* do I consider indexed no? *)
-    let name            = e.event_name                      in
-    let args            = args_of_event_args e.event_args   in 
+    let name            = e.evnt_name                      in
+    let args            = args_of_evnt_args e.evnt_args   in 
     let argTys          = getTy_of_args args                in
     let tys             = L.map snd argTys                  in
     let tyNames         = L.map string_of_ty tys            in
@@ -117,6 +117,6 @@ let string_of_event e =
     name ^ "(" ^ args ^ ")"
 
 let hash_ty_mthd  m     = keccak_signature (string_of_tyMthd m)
-let hash_of_evnt  e     = keccak_signature (string_of_event e)
+let hash_of_evnt  e     = keccak_signature (string_of_evnt e)
 let big_of_hex    h     = BB.big_int_of_string ("0x"^h)
 

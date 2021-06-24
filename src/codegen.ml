@@ -505,7 +505,7 @@ and codegen_expr le ce aln = function
                                                     align_bool ce aln      
     | EpFnCall fncall,reT           ->  codegen_fncall_expr le ce aln fncall reT
     | EpSingleDeref(ref,tyR),ty     ->  let size = size_of_ty ty in
-                                        assert (size <= 32 && tyR=TyRef[ty] && aln=R) ;   (* assuming word-size *)
+                                        assert (size <= 32 && tyR=TyRef ty && aln=R) ;   (* assuming word-size *)
                                         let ce  =   (ref,tyR)       >>>>(R,le,ce)    in (* pushes the pointer *)
                                                     MLOAD           >>ce 
 
@@ -578,8 +578,8 @@ and codegen_send_expr le ce (e:ty send_expr) =
         let callee  = cntrct_lookup ce idx                  in
         begin match m with | Some name  -> 
         let m       = lookup_mthd_info ce callee name       in
-        let retSize = size_of_tys m.mthd_retTy              in (* [pc_bkp] *)
-        let ce  = reset_storPC                ce           in (* [pc_bkp] *)
+        let retSize = size_of_ty m.mthd_retTy              in (* [pc_bkp] *)
+        let ce  = reset_storPC                ce            in (* [pc_bkp] *)
         let ce  = PUSH1(Int retSize)         >>ce           in (* [pc_bkp, retsize] *)
         let ce  = DUP1                       >>ce           in (* [pc_bkp, retsize, retsize] *)
         let ce  = mem_alloc                    ce           in (* [pc_bkp, retsize, alloc(retsize)] *)
@@ -1146,7 +1146,7 @@ and codegen_stmt layout (le,ce)     = function
     | SmLog(name,args,None)         ->  err "add_stmt: type check first"
 
 and codegen_log_stmt le ce name args evnt =
-    let idxArgs,args= split_event_args evnt args                in
+    let idxArgs,args= split_evnt_args evnt args                in
     let le,ce   = push_args le ce idxArgs                       in
     let ce      = push_evnt_hash  evnt            ce            in
     let le,ce   = mstore_exprs le ce ABIPack args               in (* stack : [..., size, offset] *)

@@ -298,7 +298,7 @@ let log = function
   | 2               -> LOG2
   | 3               -> LOG3
   | 4               -> LOG4
-  | _               -> failwith "too many indexed args for an event"
+  | _               -> failwith "too many indexed args for an evnt"
 
 (*let rev_append_op (h:hex)(i:big_int opcode) = concat_hex (hex_of_opcode i) h *)
 let hex_of_program      (p : big_int program) = List.fold_left (fun h i->concat_hex(hex_of_opcode i)h) empty_hex p
