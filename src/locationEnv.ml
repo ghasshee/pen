@@ -35,7 +35,7 @@ let add_mthd_argLocs mthd le        =   add_pairs le (Eth.argLocs_of_mthd mthd)
  * is a location environment that contains
  * the cnstrctr args
  * after StorConstrutorArgumentBegin *)
-let rntime_initial_env (cn : ty cntrct) =
+let rntime_initEnv (cn : ty cntrct) =
     let plain               = Eth.argTys_of_cntrct cn  in
     let init                = add_emptyEnv empty_le in
     let f (le,word_idx) (nm,ty) =

@@ -11,16 +11,16 @@ open Misc
 type ce                             =
                                     { stack_size    : int
                                     ; program       : Imm.imm program
-                                    ; lookup_cn_idx : string -> idx
+                                    ; lookup_cn     : string -> idx
                                     ; cntrcts       : ty cntrct idx_list }
 
-let extract_program ce              =   ce.program
-let lookup_cn_idx_of_ce  ce  name   =   ce.lookup_cn_idx name 
-let lookup_cn_idx_of_cns cns name   =   lookup_idx (fun cn->cn.cntrct_name=name) cns
+let extract_program ce          =   ce.program
+let lookup_cn_of_ce  ce  name   =   ce.lookup_cn name 
+let lookup_cn_of_cns cns name   =   lookup_idx (fun cn->cn.cntrct_name=name) cns
 
-let empty_ce lookup_cn_idx cns      =   { stack_size        = 0
+let empty_ce lookup_cn cns      =   { stack_size        = 0
                                         ; program           = empty_program
-                                        ; lookup_cn_idx     = lookup_cn_idx
+                                        ; lookup_cn     = lookup_cn
                                         ; cntrcts           = cns           }
     
 
@@ -32,7 +32,7 @@ let cntrct_lookup ce idx            =   try lookup_index idx ce.cntrcts
                                         with e ->   Printf.eprintf "cntrct_lookup failed on %d\n%!" idx; 
                                                     pr_idx_mapping(fun x->x)(idxs ce.cntrcts); raise e;;
 
-let cntrct_of_name  ce              =   ( cntrct_lookup ce ) $ ( lookup_cn_idx_of_ce ce )   
+let cntrct_of_name  ce              =   ( cntrct_lookup ce ) $ ( lookup_cn_of_ce ce )   
 
 
 (***************************************)
@@ -49,7 +49,7 @@ let append_opcode ce opcode         =
     if new_stack_size > 1024 then raise StackOverFlow else    
     { stack_size        = new_stack_size
     ; program           = opcode :: ce.program 
-    ; lookup_cn_idx     = ce.lookup_cn_idx
+    ; lookup_cn     = ce.lookup_cn
     ; cntrcts           = ce.cntrcts        }
 
 let (>>) op ce                 = append_opcode ce op  

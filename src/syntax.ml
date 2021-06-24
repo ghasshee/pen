@@ -192,6 +192,11 @@ type 'ty toplevel       =
                         | Event         of event
 
 
+let filter_usualMthd    = BL.filter_map (function   | Default   -> None 
+                                                    | Method m  -> Some m )  
+let default_exists      = L.exists      (function   | Default   -> true
+                                                    | _         -> false  )
+
 
 let cntrct_name_of_ret_cont ((r,_):'ty expr) : string option = match r with
     | EpFnCall c                -> Some c.call_head

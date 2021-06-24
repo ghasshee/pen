@@ -14,6 +14,7 @@ let to_idx_list       =   function
     | []                    -> [] 
     | l                     -> L.combine BL.(range 0 `To (L.length l - 1)) l  
 
+let idx_sort         l  =   L.sort (fun a b -> compare (fst a)(fst b)) l 
 let map              f  =   L.map (fun(i,x)->i,f x) 
 let idxmap           f  =   L.map (fun(i,x)->i,f i) 
 let filter_map       f  =   BL.filter_map (fun(i,x)->BO.map(fun y->i,y)(f x))

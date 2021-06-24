@@ -46,11 +46,11 @@ let ()      =
                                                                     | _         -> None ) toplevels in
     match cns with
     | []  ->  ()
-    | _   ->  let ccs       : cnstrctr_compiled idx_list    = compile_cnstrctrs cns                         in 
-              let cn_layts  : LI.cn_stor_layout idx_list    = map stor_layout_from_cnstrctr_compiled ccs    in
-              let layt                                      = LI.cnstrct_stor_layout cn_layts               in
-              let rc        : rntime_compiled               = compile_rntime layt cns                       in
-              let bytecode  : big_int Evm.program           = compose_bytecode ccs rc (fst(L.hd cns))       in
+    | _   ->  let ccs       : cnstrctrCode idx_list         = compile_cnstrctrs cns                     in 
+              let cn_layts  : LI.cn_storLayout idx_list     = map storLayout_of_cnstrctrCode ccs     in
+              let layt                                      = LI.cnstrct_storLayout cn_layts            in
+              let rc        : rntimeCode                    = compile_rntime layt cns                   in
+              let bytecode  : big_int Evm.program           = compose_bytecode ccs rc (fst(L.hd cns))   in
               if  abi 
                   then Abi.prABI toplevels 
                   else Evm.pr_encoded bytecode 
@@ -63,25 +63,22 @@ let ()      =
 (*          compile_constrctrs                |                                                                                    *)
 (*                  |                         |                                                                                    *)
 (*                  v                         |                                                                                    *)
-(*       +----------+-----------+             |                                                                                    *)
-(*       | compiled_constrctrs  +---------+   |                                                                                    *)
-(*       +----------+-----------+         |   |                                                                                    *)
-(*                  |                     |   |    compile_rntime    +-------------------+                                         *)
-(*   stor_layout_from_cnstrctr_compiled   |   +--------------------->+  rntime_compiled  |                                         *)
-(*                  |                     |   |                      +---------+---------+                                         *)                  
-(*                  v                     |   |                                |                                                   *)
-(*       +----------+-----------+         +----------------------------+-------+                                                   *)
-(*       | cntrct_stor_layout   |             |                        |                                                           *)
+(*       +----------+-----------+             |   compile_rntime     +---------------+                                             *)
+(*       |   constructor_codes  +-------+     +--------------------->+   rntimeCode  |                                             *)
+(*       +----------+-----------+       |     |                      +-------+-------+                                             *)
+(*                  |                   |     |                              |                                                     *)
+(*      storLayout_of_cnstrctrCode      |     |                              |                                                     *)
+(*                  |                   |     |                              |                                                     *)                  
+(*                  v                   +------------------------------+-----+                                                     *)
+(*       +----------+-----------+             |                        |                                                           *)
+(*       | cntrct_storLayout    |             |                        |                                                           *)
 (*       +----------+-----------+             |                 compose_bytecode                                                   *)
 (*                  |                         |                        |                                                           *)                  
-(*         cnstrct_stor_layout                |                        v                                                           *)
+(*         cnstrct_storLayout                 |                        v                                                           *)
 (*                  |                         |              +---------+---------+                                                 *)
 (*                  v                         |              |      bytecode     |                                                 *)
 (*       +----------+-----------+             |              +-------------------+                                                 *)
-(*       |    stor_layout       +-------------+                                                                                    *)                  
-(*       +----------+-----------+                                                                                                  *)
+(*       |    storLayout        +-------------+                                                                                    *)                  
+(*       +----------------------+                                                                                                  *)
 (*                                                                                                                                 *)                  
 (*                                                                                                                                 *)
-(*                                                                                                                                 *)                  
-(*                                                                                                                                 *)
-(*                                                                                                                                 *)                  
