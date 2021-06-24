@@ -6,15 +6,15 @@ open Misc
 
 (** The first element is the context for the innermost block *)
 
-type tyEnv                     = 
+type tyEnv                      = 
     { idents                    : arg list list
     ; events                    : event list
-    ; retTyCheck_fn             : (ty option -> bool) option    }
+    ; retTyChecker              : (ty option -> bool) option    }
 
-let empty_tyEnv                =
+let empty_tyEnv                 =
     { idents                    = []
     ; events                    = []
-    ; retTyCheck_fn             = None  }
+    ; retTyChecker              = None  }
 
 let add_pair tyenv id ty loc    =   match tyenv.idents with
     | t::ts                 ->  { tyenv with idents = ({id=id;ty=ty;loc=loc}::t)::ts}
@@ -29,10 +29,10 @@ let lookup_event tenv name      =
     with  Not_found -> eprintf "Unknown Event %s\n" name; raise Not_found
 
 let add_events evs tyenv        =   { tyenv with events = (values evs) @ tyenv.events }
-let set_retTyCheck tyenv tyChk  =  match tyenv.retTyCheck_fn with
+let set_retTyCheck tyenv tyChk  =  match tyenv.retTyChecker with
     | Some _                ->  err "Trying to overwrite the expectations about the return values"
-    | None                  ->  { tyenv with retTyCheck_fn = Some tyChk }
+    | None                  ->  { tyenv with retTyChecker = Some tyChk }
 
-let lookup_retTyCheck tyenv     =   match tyenv.retTyCheck_fn with
+let lookup_retTyCheck tyenv     =   match tyenv.retTyChecker with
     | None                  ->  err "undefined"
     | Some tyChk            ->  tyChk

@@ -38,7 +38,7 @@ let rec string_of_ty    = function
 type arg                = 
                         { ty                    : ty
                         ; id                    : string 
-                        ; loc                   : SideEffect.eff_loc option
+                        ; loc                   : TypeEffect.eff_loc option
                         } 
 
 type event_arg          =
