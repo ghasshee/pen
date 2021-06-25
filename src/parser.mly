@@ -75,7 +75,7 @@ block:
 mthd_head:
     | DEFAULT                               { Default }
     | METHOD LPAR ty IDENT plist(arg) RPAR  { Method { mthd_retTy = $3;     mthd_name = $4; mthd_args = $5 } }
-    | METHOD LPAR VOID IDENT plist(arg)RPAR { Method { mthd_retTy = TyVoid; mthd_name = $4; mthd_args = $5 } };
+    | METHOD LPAR VOID IDENT plist(arg)RPAR { Method { mthd_retTy = TyUnit; mthd_name = $4; mthd_args = $5 } };
 
 arg:
     | ty IDENT                                 { { ty = $1; id = $2; loc = None } }
@@ -107,7 +107,7 @@ stmt:
   | lexpr EQ expr SEMI                          { SmAssign($1,$3) }
   | ty IDENT EQ expr SEMI                       { SmVarDecl{ varDecl_ty=$1; varDecl_id=$2; varDecl_val=$4 } }
   | VOID EQ expr SEMI                           { SmExpr $3 }
-  | IF expr THEN body ELSE  body                { SmIfThenElse($2,$4,$6) }
+  | IF expr THEN body ELSE  body                { SmIf($2,$4,$6) }
   | IF expr THEN body                           { SmIfThen ($2, $4) }
   | LOG IDENT expr_list SEMI                    { SmLog($2,$3,None)}
   | SELFDESTRUCT expr SEMI                      { SmSelfDestruct $2 }

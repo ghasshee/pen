@@ -12,6 +12,7 @@ module Eff  = TypeEffect
 
 
 type ty                 = TyVoid
+                        | TyUnit
                         | TyUint256             (* 256 bits *) 
                         | TyUint8               (*   8 bits *) 
                         | TyBytes32             (* 256 bits *) 
@@ -25,6 +26,7 @@ type ty                 = TyVoid
 
 let rec string_of_ty    = function 
     | TyVoid                -> "void" 
+    | TyUnit                -> "()"
     | TyUint256             -> "uint256"
     | TyUint8               -> "uint8" 
     | TyBytes32             -> "bytes32" 
@@ -80,7 +82,7 @@ and  'ty stmt           =
                         | SmAssign              of 'ty lexpr * 'ty expr
                         | SmVarDecl             of 'ty varDecl
                         | SmIfThen              of 'ty expr * 'ty stmt list
-                        | SmIfThenElse          of 'ty expr * 'ty stmt list * 'ty stmt list
+                        | SmIf          of 'ty expr * 'ty stmt list * 'ty stmt list
                         | SmSelfDestruct        of 'ty expr
                         | SmExpr                of 'ty expr
                         | SmLog                 of string   * 'ty expr list * evnt option
@@ -244,6 +246,7 @@ let is_mapping                  = function
     | TyTuple       _
     | TyCntrct      _
     | TyInstnce     _
+    | TyUnit 
     | TyVoid                    -> false
     | TyMap         _           -> true
 
@@ -260,6 +263,7 @@ let fits_in_one_stor_slot       = function
     | TyRef _     
     | TyTuple _        
     | TyCntrct _ 
+    | TyUnit
     | TyVoid                    -> false
 
 let size_of_ty (* in bytes *)   = function
@@ -270,6 +274,7 @@ let size_of_ty (* in bytes *)   = function
     | TyInstnce _               -> 20 (* address as word *)
     | TyBool                    -> 32
     | TyRef _                   -> 32
+    | TyUnit                    -> err "size_of_ty TyUnit"
     | TyVoid                    -> err "size_of_ty TyVoid"   
     | TyTuple _                 -> err "size_of_ty TyTuple"
     | TyMap   _                 -> err "size_of_ty TyMap" 
@@ -294,7 +299,7 @@ let non_mapping_arg arg         = match arg.ty with
     | TyMap _                   -> false
     | _                         -> true
 
-let acceptable_as t0 t1     =   (t0 = t1) 
+let acceptable_as t0 t1     =   ( t0 = t1 ) 
                             ||  ( match t0, t1 with
                                 | TyAddr, TyInstnce _   -> true
                                 | _     , _             -> false ) 

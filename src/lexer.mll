@@ -66,7 +66,7 @@ rule read = parse
   | "+"             { PLUS                          }
   | "-"             { MINUS                         }
   | "*"             { MULT                          }
-  | "evnt"         { EVENT                         }
+  | "event"         { EVENT                         }
   | "log"           { LOG                           }
   | "indexed"       { INDEXED                       }
   | digit+ as i     { DECLIT256 (Big_int.big_int_of_string i) }

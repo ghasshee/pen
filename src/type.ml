@@ -41,6 +41,7 @@ let rec is_known_ty tyCns       =   function
     | TyBytes32                     ->  true
     | TyAddr                        ->  true
     | TyBool                        ->  true
+    | TyUnit                        ->  true
     | TyVoid                        ->  true
 
 let arg_has_known_ty tyCns arg  =   let ret = is_known_ty tyCns arg.ty in
@@ -133,10 +134,8 @@ and assignTy_expr tyCns cname tyenv (expr_inner,()) : (ty*eff list) expr =
     | EpNow           ->    EpNow          , (TyUint256,              [])
     | EpDecLit256 d   ->    EpDecLit256 d  , (TyUint256,              [])
     | EpDecLit8   d   ->    EpDecLit8   d  , (TyUint8,                [])
-
-    | EpFnCall   c    ->    let c,ty = assignTy_call tyCns cname tyenv c in
+    | EpFnCall    c   ->    let c,ty = assignTy_call tyCns cname tyenv c in
                             EpFnCall c    , ty
-
     | EpIdent     s   ->    (* Maybe introduce a type called CallableType *)
                             if BS.starts_with s "pre_" then err "names that start with pre_ are reserved" ; 
                             id_lookup_ty tyenv s
@@ -241,14 +240,14 @@ and assignTy_expr tyCns cname tyenv (expr_inner,()) : (ty*eff list) expr =
                                                                 ; send_msg      = msg           }, 
                                                                 (TyRef tyRet,[External,Write])          in
                                         (match tyRet with
-                                         | TyVoid   -> ref 
+                                         | TyUnit   -> ref 
                                          | ty       -> EpSingleDeref ref, (ty, [External, Write]) )
                             | None ->
                                         assert (send.send_args = []) ; 
                                         EpSend { send_cntrct    = cn'
                                                ; send_mthd      = None
                                                ; send_args      = []
-                                               ; send_msg  = msg }, (TyVoid, [External, Write]) end
+                                               ; send_msg  = msg }, (TyUnit, [External, Write]) end
     | EpValue         ->    EpValue, (TyUint256,[])
     | EpSingleDeref _
     | EpTupleDeref  _ ->    err "DerefEp not supposed (Bamboo Bad Designing)"
@@ -277,11 +276,11 @@ and assignTy_lexpr tyCns cname tyenv (src:unit lexpr) : (ty*eff list) lexpr =
 
 
 and assignTy_return tyCns cname tyenv (ret:unit return) : (ty*eff list) return =
-    let retTy_expr = BO.map (assignTy_expr tyCns cname tyenv) ret.ret_expr in
+    let ret_tyexpr  = BO.map (assignTy_expr tyCns cname tyenv) ret.ret_expr in
     let retTyCheck  = lookup_retTyCheck tyenv in
-    assert (retTyCheck(BO.map get_ty retTy_expr)); 
-    { ret_expr  = retTy_expr
-    ; ret_cont  = assignTy_expr tyCns cname tyenv ret.ret_cont }
+    assert (retTyCheck(BO.map get_ty ret_tyexpr)); 
+    { ret_expr      = ret_tyexpr
+    ; ret_cont      = assignTy_expr tyCns cname tyenv ret.ret_cont }
 
 
 and assignTy_varDecl tyCns cname tyenv (vd:unit varDecl): (ty*eff list)varDecl * tyEnv =
@@ -299,35 +298,30 @@ and assignTy_varDecl tyCns cname tyenv (vd:unit varDecl): (ty*eff list)varDecl *
 
 and assignTy_stmt tyCns cname tyenv (src:unit stmt) : ((ty*eff list)stmt * tyEnv) =
     match src with
-    | SmAbort         ->    SmAbort, tyenv
-    | SmReturn r      ->    let r = assignTy_return tyCns cname tyenv r in
-                            SmReturn r, tyenv
-    | SmAssign(l,r)   ->    let l = assignTy_lexpr tyCns cname tyenv l in
-                            let r = assignTy_expr  tyCns cname tyenv r in
-                            SmAssign(l,r), tyenv
-    | SmIfThen(b,t)   ->    let b = assignTy_expr  tyCns cname tyenv b in
-                            let t = assignTy_stmts tyCns cname tyenv t in
-                            SmIfThen(b,t), tyenv
-    | SmIfThenElse(b,t,f) ->
-                            let b = assignTy_expr  tyCns cname tyenv b in
-                            let t = assignTy_stmts tyCns cname tyenv t in
-                            let f = assignTy_stmts tyCns cname tyenv f in
-                            SmIfThenElse(b,t,f), tyenv
-    | SmSelfDestruct e ->
-                            let e = assignTy_expr  tyCns cname tyenv e in
+    | SmAbort           ->  SmAbort         , tyenv
+    | SmReturn r        ->  let r       = assignTy_return   tyCns cname tyenv r in
+                            SmReturn r      , tyenv
+    | SmAssign(l,r)     ->  let l       = assignTy_lexpr    tyCns cname tyenv l in
+                            let r       = assignTy_expr     tyCns cname tyenv r in
+                            SmAssign(l,r)   , tyenv
+    | SmIfThen(b,t)     ->  let b       = assignTy_expr     tyCns cname tyenv b in
+                            let t       = assignTy_stmts    tyCns cname tyenv t in
+                            SmIfThen(b,t)   , tyenv
+    | SmIf(b,t,f)       ->  let b       = assignTy_expr     tyCns cname tyenv b in
+                            let t       = assignTy_stmts    tyCns cname tyenv t in
+                            let f       = assignTy_stmts    tyCns cname tyenv f in
+                            SmIf(b,t,f)     , tyenv
+    | SmSelfDestruct e  ->  let e       = assignTy_expr     tyCns cname tyenv e in
                             SmSelfDestruct e, tyenv
-    | SmVarDecl vd    ->
-                            let vd,tyenv = assignTy_varDecl tyCns cname tyenv vd in
-                            SmVarDecl vd, tyenv
-    | SmExpr e        ->
-                            let e = assignTy_expr  tyCns cname tyenv e in
-                            assert(get_ty e = TyVoid) ;
+    | SmVarDecl v       ->  let v,tyenv = assignTy_varDecl  tyCns cname tyenv v in
+                            SmVarDecl v     , tyenv
+    | SmExpr e          ->  let e       = assignTy_expr     tyCns cname tyenv e in
+                            assert(get_ty e = TyUnit) ;
                             assert(BL.exists isWrite (get_eff e)) ; 
-                            SmExpr e, tyenv
-    | SmLog(nm,args,_)->
-                            let args    = L.map(assignTy_expr tyCns cname tyenv)args in
+                            SmExpr e        , tyenv
+    | SmLog(nm,args,_)  ->  let args    = L.map(assignTy_expr tyCns cname tyenv) args in
                             let ev      = lookup_evnt tyenv nm in
-                            let tys     = L.map(fun ea->ea.arg.ty)ev.evnt_args in
+                            let tys     = L.map(fun ea -> ea.arg.ty) ev.evnt_args in
                             assert (typecheck_multiple tys args) ;
                             let effs    = get_effs args in
                             check_only_1_effect effs ; 
@@ -344,21 +338,21 @@ and assignTy_stmts tyCns cname tyenv = function (* unit stmt list -> (ty*eff lis
 
 type termination            =
                             | OnTheWay 
-                            | ReturnValues of int 
+                            | ReturnBySize of int 
                             | JustStop
 
-let rec is_terminating = function 
-    | SmAbort                 -> [JustStop]
-    | SmSelfDestruct _        -> [JustStop]
-    | SmReturn ret            -> begin match ret.ret_expr with
-        | Some _                    -> [ReturnValues 1]
-        | None                      -> [ReturnValues 0] end
-    | SmIfThen(_,b)           -> (are_terminating b) @ [OnTheWay] (* there is a continuation if the condition does not hold. *)
-    | SmIfThenElse(_,bT,bF)       -> are_terminating bT @ (are_terminating bF)
-    | SmAssign _              -> [OnTheWay]
-    | SmVarDecl _             -> [OnTheWay]
-    | SmExpr _                -> [OnTheWay]
-    | SmLog _                 -> [OnTheWay]
+let rec is_terminating      = function 
+    | SmAbort                   -> [JustStop]
+    | SmSelfDestruct _          -> [JustStop]
+    | SmReturn ret              -> begin match ret.ret_expr with
+        | Some _                    -> [ReturnBySize 1]
+        | None                      -> [ReturnBySize 0] end
+    | SmIfThen(_,b)             -> are_terminating b  @ [OnTheWay] (* there is a continuation if the condition does not hold. *)
+    | SmIf(_,bT,bF)     -> are_terminating bT @ (are_terminating bF)
+    | SmAssign _                -> [OnTheWay]
+    | SmVarDecl _               -> [OnTheWay]
+    | SmExpr _                  -> [OnTheWay]
+    | SmLog _                   -> [OnTheWay]
 
 and are_terminating stmts =
   let last_stmt = BL.last stmts in
@@ -372,25 +366,25 @@ and are_terminating stmts =
 
 (* Default Method Returns Void is a specification *) 
 
-let mthd_is_returning_void (mthd : unit mthd) = match mthd.mthd_head with
-    | Default       ->  true
-    | Method m      ->  m.mthd_retTy = TyVoid
+let mthd_is_returning_void (mthd:unit mthd) = match mthd.mthd_head with
+    | Default               ->  true
+    | Method m              ->  m.mthd_retTy = TyUnit
 
 let retTyCheck_of_mthd m ty_inferred = match m, ty_inferred with
-    | Default ,Some _    ->  false
-    | Default ,None      ->  true
-    | Method u,   _      ->  begin match u.mthd_retTy, ty_inferred with
-        | tyVoid, None      -> true
-        | x, Some y         -> acceptable_as x y
-        | _, _              -> false  end
+    | Default ,Some _       ->  false
+    | Default ,None         ->  true
+    | Method u,   _         ->  begin match u.mthd_retTy, ty_inferred with
+        | tyVoid, None          -> true
+        | x, Some y             -> acceptable_as x y
+        | _, _                  -> false  end
 
 
 let assignTy_mthd tyCns cn_name tenv (m : unit mthd) =
     assert (L.for_all (function 
                          | OnTheWay         -> false
-                         | ReturnValues 0   -> mthd_is_returning_void m
-                         | ReturnValues 1   -> not (mthd_is_returning_void m)
-                         | ReturnValues _   -> err "multiple vals return not supported yry"
+                         | ReturnBySize 0   -> mthd_is_returning_void m
+                         | ReturnBySize 1   -> not (mthd_is_returning_void m)
+                         | ReturnBySize _   -> err "multiple vals return not supported yry"
                          | JustStop         -> true )  (are_terminating m.mthd_body)) ; 
     let margs       = args_of_mthd m.mthd_head in
     if BL.exists (fun arg -> BS.starts_with arg.id "pre_") margs 
@@ -448,7 +442,7 @@ let rec stripEffect_stmt (raw:(ty*'a)stmt): ty stmt =
     | SmAssign(l,r)         -> SmAssign (stripEffect_lexpr l, stripEffect_expr r)
     | SmVarDecl v           -> SmVarDecl(stripEffect_varDecl v)
     | SmIfThen(b,blk)       -> SmIfThen (stripEffect_expr b, stripEffect_mthd_body blk)
-    | SmIfThenElse(b,t,u)   -> SmIfThenElse (stripEffect_expr b,stripEffect_mthd_body t,stripEffect_mthd_body u)
+    | SmIf(b,t,u)   -> SmIf (stripEffect_expr b,stripEffect_mthd_body t,stripEffect_mthd_body u)
     | SmSelfDestruct e      -> SmSelfDestruct (stripEffect_expr e)
     | SmExpr e              -> SmExpr   (stripEffect_expr e)
     | SmLog(str,args,eopt)  -> SmLog (str, L.map stripEffect_expr args, eopt)

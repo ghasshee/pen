@@ -14,7 +14,7 @@ let typeof_mthd m    = match m.mthd_head with
   | Method m    ->  Eth.{ tyRet     = m.mthd_retTy
                         ; name      = m.mthd_name
                         ; tyArgs    = L.map (fun x->x.ty) m.mthd_args }
-  | Default     ->  Eth.{ tyRet     = TyVoid
+  | Default     ->  Eth.{ tyRet     = TyUnit
                         ; name      = "" 
                         ; tyArgs    = []    }
 
@@ -41,7 +41,7 @@ let rec collect_cont_stmt = function
     | SmAssign (_,_)      ->  []
     | SmVarDecl _         ->  []
     | SmIfThen (_,s)      ->  collect_cont_stmts s
-    | SmIfThenElse (_,s,t)->  collect_cont_stmts s @ collect_cont_stmts t
+    | SmIf (_,s,t)->  collect_cont_stmts s @ collect_cont_stmts t
     | SmLog _             ->  []  
     | SmReturn r          ->  begin
          match cntrct_name_of_ret_cont r.ret_cont with

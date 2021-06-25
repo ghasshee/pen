@@ -76,7 +76,7 @@ let rec stmt_might_become       =   function
     | SmVarDecl      v          ->  expr_might_become v.varDecl_val
     | SmAssign(LEpArray a,r)    ->  expr_might_become a.array_index @ expr_might_become r
     | SmIfThen(c,b)             ->  expr_might_become c @ stmts_might_become b
-    | SmIfThenElse(c,b0,b1)     ->  expr_might_become c @ stmts_might_become b0 @ stmts_might_become b1
+    | SmIf(c,b0,b1)     ->  expr_might_become c @ stmts_might_become b0 @ stmts_might_become b1
     | SmLog(_,l,_)              ->  exprs_might_become l
     | SmReturn r                ->  (match r.ret_expr with
                                     | Some e        -> expr_might_become e

@@ -1139,7 +1139,7 @@ and codegen_stmt layout (le,ce)     = function
     | SmAssign (l,r)                ->  codegen_assign        le ce layout l r
     | SmVarDecl i                   ->  codegen_varDecl       le ce i
     | SmIfThen(cond,e)              ->  codegen_if_then       le ce layout cond e 
-    | SmIfThenElse(cond,e1,e2)      ->  codegen_if            le ce layout cond e1 e2
+    | SmIf(cond,e1,e2)      ->  codegen_if            le ce layout cond e1 e2
     | SmSelfDestruct expr           ->  codegen_selfDestruct  le ce expr
     | SmExpr expr                   ->  codegen_expr_stmt     le ce expr
     | SmLog(name,args,Some ev)      ->  codegen_log_stmt      le ce name args ev
