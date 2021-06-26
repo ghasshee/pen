@@ -1,6 +1,5 @@
 (*                                                                                                                                              *)
 (*                                                                                                                                              *)
-(*                                                                                                                                              *)
 (*         ------------------------------------------                                                                                           *)
 (*              sgm*pi           sgm                                                                                                            *)
 (*              x : Addr   |-  cn : Addr                                                                                                        *)
@@ -31,25 +30,21 @@
 (*                                                                                                                                              *)
 (*                                                                                                                                              *)
 (*                                                                                                                                              *)
-(*                                                                                                                                              *)
 (* contract WalletLibrary {                                                                                                                     *)
 (*      address owner;                                                                                                                          *)
 (*                                                                                                                                              *)
 (*      // called by constructor                                                                                                                *)
-(*      fun{1} initWallet(address _owner) {                                                                                                     *)
+(*      fun{1} initWallet(address _owner) {      /// `fun{n} foo(){}`  means " function foo can be called at most n times "                     *)
 (*          owner = _owner;                                                                                                                     *)
 (*          // ... more setup ...                                                                                                               *)
 (*      }                                                                                                                                       *)
 (*                                                                                                                                              *)
-(*      fun{2} changeOwner(address _new_owner) external {  // we can use this function only twice                                               *)
+(*      fun changeOwner(address _new_owner) external {  // we can use this function only twice                                                  *)
 (*          if (msg.sender == owner) {                                                                                                          *)
 (*              owner = _new_owner;                                                                                                             *)
 (*          }                                                                                                                                   *)
 (*      }                                                                                                                                       *)
 (*                                                                                                                                              *)
-(*      function () payable {                                                                                                                   *)
-(*          // ... receive money, log events, ...                                                                                               *)
-(*      }                                                                                                                                       *)
 (*                                                                                                                                              *)
 (*                                                                                                                                              *)
 (*                                                                                                                                              *)
@@ -87,26 +82,23 @@
 (*                                                                                                                                              *)
 (*                                                                                                                                              *)
 (*                                                                                                                                              *)
-(*                        -------------------------------------------                                                                           *)
-(*                                  |-  create myaddr :  Addr                                                                                   *)
-(*                               ---------------------------------------------- zeta                                                            *)
-(*                                    |- let a  = myaddr in create a : Addr                                                                     *)
 (*                                                                                                                                              *)
 (*                                                                                                                                              *)
-(*                                                                                                                                              *)
-(*                                                                                                                                              *)
-(*                                                                                                                                              *)
-(*                                                                                                                                              *)
-(*                                                                                                                                              *)
-(*                                                                                                                                              *)
-(*                                                                                                                                              *)
-(*                                                                                                                                              *)
-(*                                                                                                                                              *)
-(*                                                                                                                                              *)
-(*                                                                                                                                              *)
-(*                                                                                                                                              *)
-(*                                                                                                                                              *)
-(*                                                                                                                                              *)
+open Misc
+open Codegen 
+
+let reentrance_guard n mhash ce = 
+    let ce = PUSH4(Int n)           >> ce in  (*                                              n >> .. *)
+    let ce = PUSH4(Int mhash)       >> ce in  (*                                        3 >>  n >> .. *)
+    let ce = SSTORE                 >> ce in  (* S[mhash] := n                                  .. *)
+    ce ;;
+
+let dispatch_to_mthd mhash ce = 
+    let ce = PUSH(Int mhash)        >> ce in 
+    let ce = SLOAD                  >> ce in 
+    let ce = if_zero_throw             ce in 
+    ce 
+
 (*                                                                                                                                              *)
 (*                                                                                                                                              *)
 (*                                                                                                                                              *)
