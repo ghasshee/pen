@@ -1,2 +1,0 @@
-parse/parser.ml: Big_int Lexing Syntax
-parse/parser.mli: Big_int Lexing Syntax

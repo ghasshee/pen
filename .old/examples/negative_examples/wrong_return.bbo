@@ -1,5 +1,0 @@
-contract A () {
-   case(bool f(uint256 x)) {
-       return x then become A();
-   }
-}

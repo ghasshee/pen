@@ -1,9 +1,0 @@
-
-
-contract C() {
-	default
-    {
-		abort;
-    }
-}
-
