@@ -6,7 +6,6 @@ open Misc
 
 module L    = List 
 module BL   = BatList
-module Eff  = SideEffect
 
 
 
@@ -41,8 +40,7 @@ let rec string_of_ty    = function
 
 type var                = 
                         { ty                    : ty
-                        ; id                    : string 
-                        ; loc                   : Eff.effector option   } 
+                        ; id                    : string  } 
 
 type evnt_arg           =
                         { arg                   : var

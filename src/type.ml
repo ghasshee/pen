@@ -23,8 +23,7 @@ module Eth  = Ethereum
 
 
 let id_lookup_ty tenv id        =   match lookup tenv id with
-    | Some (tyT, Some loc)          -> EpIdent id, tyT
-    | Some (tyT, None)              -> EpIdent id, tyT
+    | Some tyT                      -> EpIdent id, tyT
     | None                          -> err ("unknown identifier "^id)
 
 let is_known_cntrct tyCns nm    =   BL.exists (fun(_,i)->i.tyCntrct_name=nm) tyCns
@@ -249,7 +248,7 @@ and assignTy_varDecl tyCns cname tyenv (vd:unit varDecl): ty varDecl * tyEnv =
     let ty      = vd.varDecl_ty     in
     if BS.starts_with id "pre_" then err "Names \"pre_..\" are reserved" ;
     assert (is_known_ty tyCns ty);
-    let tyenv'  = add_var tyenv id ty None in
+    let tyenv'  = add_var tyenv id ty in
     let vd'     =   { varDecl_ty    = ty
                     ; varDecl_id    = id
                     ; varDecl_val   = v  } in

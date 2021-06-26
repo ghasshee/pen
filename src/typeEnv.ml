@@ -16,12 +16,12 @@ let empty_tyEnv                 =
     ; evnts                     = []
     ; retTyChecker              = None  }
 
-let add_var tyenv id ty loc     =   match tyenv.idents with
+let add_var tyenv id ty      =   match tyenv.idents with
     | t :: ts               ->  {   tyenv   with 
-                                    idents  = ({id=id;ty=ty;loc=loc}::t) :: ts }
+                                    idents  = ({id=id;ty=ty}::t) :: ts }
     | _                     ->  err "no current scope in type env"
 
-let lookup_block name blk       =   getFstFilter (fun a -> if a.id=name then Some(a.ty,a.loc) else None) blk
+let lookup_block name blk       =   getFstFilter (fun a -> if a.id=name then Some a.ty else None) blk
 
 let lookup env name             =   getFstFilter (lookup_block name) env.idents
 let add_block h tenv            =   { tenv with idents = h :: tenv.idents }

@@ -1,6 +1,6 @@
 DEPEND += lexer.ml parser.ml
 OBJS = 	misc.cmo indexedList.cmo \
-		hexa.cmo sideEffect.cmo \
+		hexa.cmo \
 		syntax.cmo \
 		label.cmo \
 		typeEnv.cmo \

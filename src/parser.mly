@@ -78,14 +78,12 @@ mthd_head:
     | METHOD LPAR VOID IDENT plist(arg)RPAR { Method { mthd_retTy = TyTuple([]); mthd_name = $4; mthd_args = $5 } };
 
 arg:
-    | ty IDENT                                 { { ty = $1; id = $2; loc = None } }
+    | ty IDENT                                 { { ty = $1; id = $2 } }
     
 
 evnt_arg:
   | arg                                         { evnt_arg_of_arg $1 false }
-  | ty INDEXED IDENT                           { { arg =    { ty  = $1 
-                                                                        ; id  = $3 
-                                                                        ; loc = None }; 
+  | ty INDEXED IDENT                           { { arg =    { ty  = $1 ; id  = $3 }; 
                                                                         indexed = true } }
 
 ty:
