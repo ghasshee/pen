@@ -35,23 +35,23 @@ let add_mthd_argLocs mthd le        =   add_pairs le (Eth.argLocs_of_mthd mthd)
  * is a location environment that contains
  * the cnstrctr args
  * after StorConstrutorArgumentBegin *)
-let rntime_initEnv (cn : ty cntrct) =
-    let plain               = Eth.argTys_of_cntrct cn  in
-    let init                = add_emptyEnv empty_le in
-    let f (le,word_idx) (nm,ty) =
-        let size_in_word    = size_of_ty ty / 32 in
-        let loc             = Stor  { stor_start    = Int word_idx
-                                    ; stor_size     = Int size_in_word } in
+let rntime_initEnv (cn:ty cntrct) =
+    let plain               = Eth.argTys_of_cntrct cn   in
+    let init                = add_emptyEnv empty_le     in
+    let f (le,idx) (nm,ty) =
+        let size            = size_of_ty ty / 32        in
+        let loc             = Stor { stor_start = Int idx
+                                   ; stor_size  = Int size } in
         let le'             = add_pair le (nm,loc) in
-        le' , word_idx + size_in_word  in
+        le' , idx + size  in
 
     let le, mid             = L.fold_left f (init,2) plain  in  (* XXX: remove the hard coded 2 *)
-    let arrays              = Eth.getArr_of_cntrct cn   in  (* XXX: refactor the repetition *)
+    let arrays              = Eth.getArr_of_cntrct cn       in  (* XXX: refactor the repetition *)
 
     let g (le,word_idx) (nm,_,_) =
         let size_in_word    = 1 in
-        let loc             = Stor  { stor_start    = Int word_idx
-                                    ; stor_size     = Int size_in_word } in
+        let loc             = Stor { stor_start = Int word_idx
+                                   ; stor_size  = Int size_in_word } in
         let le'             = add_pair le (nm,loc) in
         le' , word_idx + size_in_word in
 

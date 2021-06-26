@@ -14,7 +14,7 @@ let typeof_mthd m    = match m.mthd_head with
   | Method m    ->  Eth.{ tyRet     = m.mthd_retTy
                         ; name      = m.mthd_name
                         ; tyArgs    = L.map (fun x->x.ty) m.mthd_args }
-  | Default     ->  Eth.{ tyRet     = TyUnit
+  | Default     ->  Eth.{ tyRet     = TyTuple([])
                         ; name      = "" 
                         ; tyArgs    = []    }
 

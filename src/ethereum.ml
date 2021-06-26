@@ -21,15 +21,15 @@ type tyMthd                 =
 type argTy                  = string * ty 
 type argArr                 = string * ty * ty 
 
-let getTy_of_arg arg        = match arg.ty with
+let getTy_of_var var        = match var.ty with
     | TyMap (_,_)               -> None
-    | _                         -> Some(arg.id,arg.ty)
-let getTy_of_args           = BL.filter_map getTy_of_arg
+    | _                         -> Some(var.id,var.ty)
+let getTy_of_vars           = BL.filter_map getTy_of_var
 
-let getArr_of_arg arg       = match arg.ty with
-    | TyMap(k,v)                ->  Some (arg.id, k, v)
+let getArr_of_var var       = match var.ty with
+    | TyMap(k,v)                ->  Some (var.id, k, v)
     | _                         ->  None
-let getArr_of_cntrct cn     = BL.filter_map getArr_of_arg (cn.cntrct_args)
+let getArr_of_cntrct cn     = BL.filter_map getArr_of_var (cn.cntrct_args)
 
 let positions_of_argLens lens =
     let rec loop ret used = function 
@@ -48,7 +48,7 @@ let argLocs_of_mthd m       = match m.mthd_head with
                             let locEnv      = L.combine names locations in
                             locEnv
 
-let argTys_of_cntrct cn : argTy list =  getTy_of_args cn.cntrct_args
+let argTys_of_cntrct cn         =  getTy_of_vars cn.cntrct_args
 
 let total_size_of_argTys tys    =   try     BL.sum (L.map size_of_ty tys) 
                                     with    Invalid_argument _          -> 0
@@ -100,7 +100,7 @@ let keccak_signature str =  String.sub (string_keccak str) 0 8
 
 let string_of_tyMthd m  =
     let name_of_mthd    = m.mthd_name                       in
-    let args            = getTy_of_args m.mthd_args         in
+    let args            = getTy_of_vars m.mthd_args         in
     let arg_tys         = L.map snd args                    in
     let str_tys         = L.map string_of_ty arg_tys        in
     let ty              = String.concat "," str_tys         in
@@ -110,7 +110,7 @@ let string_of_evnt e =
     (* do I consider indexed no? *)
     let name            = e.evnt_name                      in
     let args            = args_of_evnt_args e.evnt_args   in 
-    let argTys          = getTy_of_args args                in
+    let argTys          = getTy_of_vars args                in
     let tys             = L.map snd argTys                  in
     let tyNames         = L.map string_of_ty tys            in
     let args            = String.concat "," tyNames         in

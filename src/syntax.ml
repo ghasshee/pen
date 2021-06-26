@@ -33,6 +33,7 @@ let rec string_of_ty    = function
     | TyAddr                -> "address" 
     | TyBool                -> "bool" 
     | TyRef              _  -> "ref" 
+    | TyTuple []            -> "()"
     | TyTuple            _  -> "tuple" 
     | TyMap(a,b)            -> "mapping" 
     | TyCntrct      s       -> "contract arch "     ^ s
@@ -274,8 +275,9 @@ let size_of_ty (* in bytes *)   = function
     | TyInstnce _               -> 20 (* address as word *)
     | TyBool                    -> 32
     | TyRef _                   -> 32
-    | TyUnit                    -> err "size_of_ty TyUnit"
     | TyVoid                    -> err "size_of_ty TyVoid"   
+    | TyUnit                    -> err "size_of_ty TyUnit"
+    | TyTuple []                -> err "size_of_ty TyUnit" 
     | TyTuple _                 -> err "size_of_ty TyTuple"
     | TyMap   _                 -> err "size_of_ty TyMap" 
     | TyCntrct     x            -> err("size_of_ty TyCntrct: "^x)

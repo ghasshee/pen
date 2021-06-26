@@ -9,6 +9,7 @@ module R = Rope
 
 
 type hex                                =   R.t
+
 let empty_hex                           =   R.empty
 let concat_hex                          =   R.concat2
 let string_of_hex ?prefix:(prefix="")h  =   R.to_string(concat_hex(R.of_string prefix)h)

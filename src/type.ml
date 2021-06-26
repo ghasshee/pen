@@ -32,6 +32,7 @@ let is_known_cntrct tyCns nm    =   BL.exists (fun(_,i)->i.tyCntrct_name=nm) tyC
 
 let rec is_known_ty tyCns       =   function 
     | TyRef l                       ->  is_known_ty tyCns l
+    | TyTuple []                    ->  true
     | TyTuple l                     ->  BL.for_all (is_known_ty tyCns) l
     | TyMap(a,b)                    ->  is_known_ty tyCns a && is_known_ty tyCns b
     | TyCntrct cn                   ->  is_known_cntrct tyCns cn
@@ -127,24 +128,24 @@ and assignTy_msg tyCns cname tyenv (msg:unit msg) : (ty*eff list) msg =
 
 and assignTy_expr tyCns cname tyenv (expr_inner,()) : (ty*eff list) expr =
     match expr_inner with
-    | EpThis          ->    EpThis         , (TyInstnce cname, [])
-    | EpTrue          ->    EpTrue         , (TyBool,                 [])
-    | EpFalse         ->    EpFalse        , (TyBool,                 [])
-    | EpSender        ->    EpSender       , (TyAddr,                 [])
-    | EpNow           ->    EpNow          , (TyUint256,              [])
-    | EpDecLit256 d   ->    EpDecLit256 d  , (TyUint256,              [])
-    | EpDecLit8   d   ->    EpDecLit8   d  , (TyUint8,                [])
+    | EpThis          ->    EpThis          , (TyInstnce cname, [])
+    | EpTrue          ->    EpTrue          , (TyBool,                 [])
+    | EpFalse         ->    EpFalse         , (TyBool,                 [])
+    | EpSender        ->    EpSender        , (TyAddr,                 [])
+    | EpNow           ->    EpNow           , (TyUint256,              [])
+    | EpDecLit256 d   ->    EpDecLit256 d   , (TyUint256,              [])
+    | EpDecLit8   d   ->    EpDecLit8   d   , (TyUint8,                [])
     | EpFnCall    c   ->    let c,ty = assignTy_call tyCns cname tyenv c in
-                            EpFnCall c    , ty
-    | EpIdent     s   ->    (* Maybe introduce a type called CallableType *)
-                            if BS.starts_with s "pre_" then err "names that start with pre_ are reserved" ; 
-                            id_lookup_ty tyenv s
+                            EpFnCall c      , ty
+    | EpIdent     s   ->    if BS.starts_with s "pre_" 
+                                then err "names that start with pre_ are reserved" 
+                                else id_lookup_ty tyenv s
 
-    | EpParen e       ->    assignTy_expr tyCns cname tyenv e (* omit the parenthesis at this place*)
+    | EpParen e       ->    assignTy_expr tyCns cname tyenv e 
 
     | EpNew n         ->    let n',cname'   = assignTy_new_expr tyCns cname tyenv n in
                             if BS.starts_with cname' "pre_" then err "names that start with pre_ are reserved"; 
-                            EpNew n'       , (TyInstnce cname',[External, Write])
+                            EpNew n'        , (TyInstnce cname',[External, Write])
     | EpLand (l, r)   ->    let l           = assignTy_expr tyCns cname tyenv l in
                             type_check (TyBool,l);
                             let r           = assignTy_expr tyCns cname tyenv r in
@@ -240,14 +241,14 @@ and assignTy_expr tyCns cname tyenv (expr_inner,()) : (ty*eff list) expr =
                                                                 ; send_msg      = msg           }, 
                                                                 (TyRef tyRet,[External,Write])          in
                                         (match tyRet with
-                                         | TyUnit   -> ref 
-                                         | ty       -> EpSingleDeref ref, (ty, [External, Write]) )
+                                         | TyTuple([])  -> ref 
+                                         | ty           -> EpSingleDeref ref, (ty, [External, Write]) )
                             | None ->
                                         assert (send.send_args = []) ; 
                                         EpSend { send_cntrct    = cn'
                                                ; send_mthd      = None
                                                ; send_args      = []
-                                               ; send_msg  = msg }, (TyUnit, [External, Write]) end
+                                               ; send_msg  = msg }, (TyTuple([]), [External, Write]) end
     | EpValue         ->    EpValue, (TyUint256,[])
     | EpSingleDeref _
     | EpTupleDeref  _ ->    err "DerefEp not supposed (Bamboo Bad Designing)"
@@ -316,7 +317,7 @@ and assignTy_stmt tyCns cname tyenv (src:unit stmt) : ((ty*eff list)stmt * tyEnv
     | SmVarDecl v       ->  let v,tyenv = assignTy_varDecl  tyCns cname tyenv v in
                             SmVarDecl v     , tyenv
     | SmExpr e          ->  let e       = assignTy_expr     tyCns cname tyenv e in
-                            assert(get_ty e = TyUnit) ;
+                            assert(get_ty e = TyTuple([])) ;
                             assert(BL.exists isWrite (get_eff e)) ; 
                             SmExpr e        , tyenv
     | SmLog(nm,args,_)  ->  let args    = L.map(assignTy_expr tyCns cname tyenv) args in
@@ -368,7 +369,7 @@ and are_terminating stmts =
 
 let mthd_is_returning_void (mthd:unit mthd) = match mthd.mthd_head with
     | Default               ->  true
-    | Method m              ->  m.mthd_retTy = TyUnit
+    | Method m              ->  m.mthd_retTy = TyTuple([])
 
 let retTyCheck_of_mthd m ty_inferred = match m, ty_inferred with
     | Default ,Some _       ->  false
