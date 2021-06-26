@@ -6,7 +6,7 @@ open Misc
 
 module L    = List 
 module BL   = BatList
-module Eff  = TypeEffect
+module Eff  = SideEffect
 
 
 

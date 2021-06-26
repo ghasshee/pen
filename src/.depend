@@ -76,22 +76,22 @@ parser_test.cmx : parser.cmx lexer.cmx
 pseudoImm.cmo : syntax.cmi label.cmi assoc.cmi pseudoImm.cmi
 pseudoImm.cmx : syntax.cmx label.cmx assoc.cmx pseudoImm.cmi
 pseudoImm.cmi : syntax.cmi label.cmi assoc.cmi
-typeEffect.cmo : typeEffect.cmi
-typeEffect.cmx : typeEffect.cmi
-typeEffect.cmi :
+sideEffect.cmo : sideEffect.cmi
+sideEffect.cmx : sideEffect.cmi
+sideEffect.cmi :
 storage.cmo : storage.cmi
 storage.cmx : storage.cmi
 storage.cmi :
 support.cmo : parser.cmi lexer.cmo
 support.cmx : parser.cmx lexer.cmx
-syntax.cmo : typeEffect.cmi syntax.cmi
-syntax.cmx : typeEffect.cmx syntax.cmi
-syntax.cmi : typeEffect.cmi
-type.cmo : typeEnv.cmi syntax.cmi typeEffect.cmi ethereum.cmi cntrct.cmi \
+syntax.cmo : sideEffect.cmi syntax.cmi
+syntax.cmx : sideEffect.cmx syntax.cmi
+syntax.cmi : sideEffect.cmi
+type.cmo : typeEnv.cmi syntax.cmi sideEffect.cmi ethereum.cmi cntrct.cmi \
     assoc.cmi type.cmi
-type.cmx : typeEnv.cmx syntax.cmx typeEffect.cmx ethereum.cmx cntrct.cmx \
+type.cmx : typeEnv.cmx syntax.cmx sideEffect.cmx ethereum.cmx cntrct.cmx \
     assoc.cmx type.cmi
 type.cmi : syntax.cmi assoc.cmi
 typeEnv.cmo : syntax.cmi misc.cmi assoc.cmi typeEnv.cmi
 typeEnv.cmx : syntax.cmx misc.cmx assoc.cmx typeEnv.cmi
-typeEnv.cmi : syntax.cmi typeEffect.cmi assoc.cmi
+typeEnv.cmi : syntax.cmi sideEffect.cmi assoc.cmi

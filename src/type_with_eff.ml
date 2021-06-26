@@ -13,7 +13,7 @@ open Syntax
 open IndexedList
 open Contract
 open TypeEnv
-open TypeEffect 
+open SideEffect 
 
 module BL   = BatList
 module BS   = BatString
