@@ -8,12 +8,8 @@ pen is a high-level language compiled into EVM bytecodes.
 pen is written by OCaml Programming Language, 
 whose package manager is OPAM. 
 So you need to install opam first of all.  
-And after installation, switch to version `4.04.2` as; 
 
-```
-$ opam switch 4.04.2
-```
-and then install all dependencies; 
+After opam init, install all dependencies with; 
 
 * opam install batteries
 * opam install cryptokit (>= 1.12)
@@ -33,9 +29,6 @@ $ ./pen < ../examples/erc20.pen
 ```
 
 
-## The Original Model Bamboo Motivations 
-
-See [manifest](doc/manifest.md) for the motivation, or [tutorial](doc/tutorial.md) if you want to deploy something first, or [semantics](doc/semantics.md) if you need something resembling a definition.
 
 ## Examples
 
@@ -47,8 +40,6 @@ See [manifest](doc/manifest.md) for the motivation, or [tutorial](doc/tutorial.m
 
 ## Test
 
-* install [opam](http://opam.ocaml.org/doc/Install.html) with OCaml 4.04.1
-* opam install bamboo
 
 ```
 ./pen < ../examples/erc20.pen
