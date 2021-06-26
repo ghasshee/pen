@@ -81,7 +81,7 @@ and  'ty stmt           =
                         | SmAssign              of 'ty lexpr * 'ty expr
                         | SmVarDecl             of 'ty varDecl
                         | SmIfThen              of 'ty expr * 'ty stmt list
-                        | SmIf          of 'ty expr * 'ty stmt list * 'ty stmt list
+                        | SmIf                  of 'ty expr * 'ty stmt list * 'ty stmt list
                         | SmSelfDestruct        of 'ty expr
                         | SmExpr                of 'ty expr
                         | SmLog                 of string   * 'ty expr list * evnt option
@@ -121,8 +121,8 @@ and 'ty lexpr           =
                         | LEpArray              of 'ty array
 
 and 'ty array           =
-                        { array_name            : 'ty expr
-                        ; array_index           : 'ty expr          }
+                        { arrIdent              : 'ty expr
+                        ; arrIndex              : 'ty expr          }
 
 and 'ty varDecl         =
                         { varDecl_ty            : ty
@@ -137,6 +137,7 @@ and 'ty return          =
 
 let read_array   = function 
     | LEpArray a        -> a
+    | _                 -> err "read_array err" 
 
 let evnt_arg_of_arg arg isIndexed =
     { arg                   = arg

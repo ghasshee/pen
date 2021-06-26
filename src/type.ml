@@ -106,8 +106,8 @@ and assignTy_msg tyCns cname tyenv (msg:unit msg) : ty msg =
     ; msg_reentrance = stmts }
 
 
-and assignTy_expr tyCns cname tyenv (expr_inner,()) : ty expr =
-    match expr_inner with
+and assignTy_expr tyCns cname tyenv (expr_tm,()) : ty expr =
+    match expr_tm with
     | EpThis          ->    EpThis          , TyInstnce cname
     | EpTrue          ->    EpTrue          , TyBool
     | EpFalse         ->    EpFalse         , TyBool
@@ -167,24 +167,24 @@ and assignTy_expr tyCns cname tyenv (expr_inner,()) : ty expr =
                             assert_tyeqv l r; 
                             EpMult (l, r), snd l
     | EpNot  e        ->
-                            let e = assignTy_expr tyCns cname tyenv e in
+                            let e       = assignTy_expr tyCns cname tyenv e in
                             assert (get_ty e = TyBool) ; 
                             EpNot e       , TyBool
     | EpAddr e        ->
-                            let e = assignTy_expr tyCns cname tyenv e in
+                            let e       = assignTy_expr tyCns cname tyenv e in
                             EpAddr e      , TyAddr
     | EpBalance e     ->
-                            let e = assignTy_expr tyCns cname tyenv e in
+                            let e       = assignTy_expr tyCns cname tyenv e in
                             assert (acceptable_as TyAddr (get_ty e));
                             EpBalance e   , TyUint256
     | EpArray aa->
-                            let e = assignTy_expr tyCns cname tyenv (read_array aa).array_name in
+                            let e       = assignTy_expr tyCns cname tyenv (read_array aa).arrIdent in
                             begin match get_ty e with
-                            | TyMap(kT,vT)-> let aaidx              = (read_array aa).array_index in 
+                            | TyMap(kT,vT)-> let aaidx              = (read_array aa).arrIndex in 
                                              let idx,idxTy = assignTy_expr tyCns cname tyenv aaidx in 
                                              assert (acceptable_as kT idxTy) ; 
-                                             EpArray(LEpArray{ array_name  = e
-                                                             ; array_index = idx,idxTy }), vT
+                                             EpArray(LEpArray{ arrIdent = e
+                                                             ; arrIndex = idx,idxTy }), vT
                             | _           -> err "index access has to be on mappings"   end
     | EpSend send     ->
                             let msg         = assignTy_msg tyCns cname tyenv send.send_msg in
@@ -225,12 +225,12 @@ and assignTy_new_expr tyCns cname tenv e : ty new_expr*string (* name of the cnt
   
 and assignTy_lexpr tyCns cname tyenv (src:unit lexpr) : ty lexpr =
     match src with
-    | LEpArray aa ->let e = assignTy_expr tyCns cname tyenv aa.array_name in
+    | LEpArray aa ->let e = assignTy_expr tyCns cname tyenv aa.arrIdent in
                             begin match get_ty e with
                             | TyMap (kT,vT) ->
-                               let idx,idx_ty = assignTy_expr tyCns cname tyenv aa.array_index in
-                               LEpArray { array_name    = e 
-                                        ; array_index   = idx,idx_ty  }
+                               let idx,idx_ty = assignTy_expr tyCns cname tyenv aa.arrIndex in
+                               LEpArray { arrIdent    = e 
+                                        ; arrIndex   = idx,idx_ty  }
                             | _             -> err ("unknown array") end
 
 

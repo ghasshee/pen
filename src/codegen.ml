@@ -341,8 +341,8 @@ and codegen_new_expr le ce n =
                 restore_pc                        ce                (*                                                   CreateResult >> .. *)
 
 and gen_array_storLoc le ce aa =
-    let arr   = aa.array_name                                   in
-    let idx   = aa.array_index                                  in
+    let arr   = aa.arrIdent                                   in
+    let idx   = aa.arrIndex                                  in
     let ce    = idx                             >>>>(R,le,ce)   in  (*                                 index >> .. *)    
     let ce    = arr                             >>>>(R,le,ce)   in  (*                    array_loc >> index >> .. *)
                 keccak_cat ce                                       (*                sha3(array_loc++index) >> .. *) 
@@ -794,7 +794,7 @@ let reset_array_seed_counter ce =
                   JUMPDEST label                    >>ce        (*                                           .. *)
 
 
-let setup_array_seeds ce (cn:ty cntrct) =
+let setup_arraySeeds ce (cn:ty cntrct) =
     let ce            = reset_array_seed_counter ce         in   
     let arrLocs       = SL.array_locations cn               in  
                         foldl setup_seed ce arrLocs 
@@ -902,7 +902,7 @@ let codegen_cnstrctr_bytecode cns idx = (* return ce which contains the program 
     let ce      = init_mem_alloc          ce               in (* M[64] := 96                                                                     *)
     let ce      = mstore_cnstr_args       ce cn            in (*                                            alloc(argssize) << argssize << ..    *)
     let ce      = sstore_args_from_mem    ce idx           in (* S[i .. i+size-1] := argCodes          i << alloc(argssize) << argssize << ..    *)
-    let ce      = setup_array_seeds       ce cn            in (* S[1]  := #array                        i << alloc(argssize) << argssize << ..    *)
+    let ce      = setup_arraySeeds       ce cn            in (* S[1]  := #array                        i << alloc(argssize) << argssize << ..    *)
     let ce      = set_cntrct_pc           ce idx           in (* S[PC] := rntime_cn_offst (returned body)                                    *)
     let ce      = mstore_rntimeCode      ce idx           in (*                                      alloc(codesize) << codesize << i <<  ..    *)
                   RETURN                >>ce                  (*                                                                     i <<  ..    *)
@@ -1019,7 +1019,7 @@ let set_cont_to_fncall le ce (lyt:SL.storLayout) (fncall, ty_expr) =
     let hd      =   fncall.call_head                    in
     let args    =   fncall.call_args                    in
     let idx     =   lookup_cn_of_ce ce hd               in 
-    let offset  =   lyt.stor_cnstrctr_args_begin idx    in  
+    let offset  =   lyt.stor_cnstrctrArgs_begin idx    in  
     let ce      =   set_cntrct_pc ce idx                in  (* S[PC] := rntime_offset_of_cntrct *) 
                     sstore_args le ce offset idx args
 
@@ -1089,8 +1089,8 @@ let codegen_return le ce layout ret =
     le,ce
 
 let sstore_to_array le ce layout (aa : ty array) = 
-    let arr     = aa.array_name                             in
-    let idx     = aa.array_index                            in
+    let arr     = aa.arrIdent                             in
+    let idx     = aa.arrIndex                            in
     let ce      = idx                       >>>>(R,le,ce)   in   (* stack : [value, index] *)
     let ce      = arr                       >>>>(R,le,ce)   in   (* stack : [value, index, array_seed] *)
     let ce      = keccak_cat                  ce            in   (* stack : [value, kec(array_seed ^ index)] *)

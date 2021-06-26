@@ -74,7 +74,7 @@ let rec stmt_might_become       =   function
     | SmSelfDestruct e        
     | SmExpr         e          ->  expr_might_become e
     | SmVarDecl      v          ->  expr_might_become v.varDecl_val
-    | SmAssign(LEpArray a,r)    ->  expr_might_become a.array_index @ expr_might_become r
+    | SmAssign(LEpArray a,r)    ->  expr_might_become a.arrIndex @ expr_might_become r
     | SmIfThen(c,b)             ->  expr_might_become c @ stmts_might_become b
     | SmIf(c,b0,b1)     ->  expr_might_become c @ stmts_might_become b0 @ stmts_might_become b1
     | SmLog(_,l,_)              ->  exprs_might_become l
@@ -122,7 +122,7 @@ and expr_might_become e         =   match fst e with
     | EpMinus     (l,r)
     | EpMult      (l,r)
     | EpPlus      (l,r)         ->  (expr_might_become l) @ (expr_might_become r)
-    | EpArray(LEpArray a)       ->  expr_might_become a.array_index
+    | EpArray(LEpArray a)       ->  expr_might_become a.arrIndex
     | EpFnCall f                ->  fncall_might_become f
     | EpNew n                   ->  new_expr_might_become n
     | EpSend s                  ->  send_expr_might_become s

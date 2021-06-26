@@ -156,5 +156,5 @@ reentrance_info:
   | REENTRANCE; block                           { $2 }
   ;
   lexpr:                                        (* expr '[' expr ']' *) 
-  | expr;LSQBR;expr;RSQBR                       { LEpArray{array_name=$1; array_index=$3} }
+  | expr;LSQBR;expr;RSQBR                       { LEpArray{arrIdent=$1; arrIndex=$3} }
   ;
