@@ -74,5 +74,5 @@ rule read = parse
   | digit digit? digit? "u8" as i {
       let last = String.length i - 2 in
       DECLIT8 (Big_int.big_int_of_string (String.sub i 0 last)) }
-  | id              { IDENT (lexeme lexbuf) }
+  | id              { ID (lexeme lexbuf) }
   | eof             { EOF           }

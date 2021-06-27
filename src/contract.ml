@@ -14,12 +14,12 @@ let typeof_mthd m    = match m.mthd_head with
   | Method m    ->  Eth.{ tyRet     = m.mthd_retTy
                         ; name      = m.mthd_name
                         ; tyArgs    = L.map (fun x->x.ty) m.mthd_args }
-  | Default     ->  Eth.{ tyRet     = TyTuple([])
+  | Default     ->  Eth.{ tyRet     = TyTuple[]
                         ; name      = "" 
                         ; tyArgs    = []    }
 
 type tyCntrct           =
-                        { tyCntrct_name     : string   (* the name of the cntrct. *)
+                        { tyCntrct_name     : string   
                         ; tyCntrct_args     : ty list
                         ; tyCntrct_mthds    : tyMthd list
                         ; tyCntrct_conts    : string list (** this lists the names of cntrcts that this one can continue into *) }
@@ -34,16 +34,16 @@ type tyCntrct           =
 (*    contract becomes what ?    *)
 (*********************************)
 
-let rec collect_cont_stmt = function 
-    | SmAbort             ->  []
-    | SmSelfDestruct _    ->  []
-    | SmExpr _            ->  []
-    | SmAssign (_,_)      ->  []
-    | SmVarDecl _         ->  []
-    | SmIfThen (_,s)      ->  collect_cont_stmts s
-    | SmIf (_,s,t)->  collect_cont_stmts s @ collect_cont_stmts t
-    | SmLog _             ->  []  
-    | SmReturn r          ->  begin
+let rec collect_cont_stmt   = function 
+    | SmAbort               ->  []
+    | SmSelfDestruct _      ->  []
+    | SmExpr _              ->  []
+    | SmAssign (_,_)        ->  []
+    | SmVarDecl _           ->  []
+    | SmIfThen (_,s)        ->  collect_cont_stmts s
+    | SmIf (_,s,t)          ->  collect_cont_stmts s @ collect_cont_stmts t
+    | SmLog _               ->  []  
+    | SmReturn r            ->  begin
          match cntrct_name_of_ret_cont r.ret_cont with
          | None                 -> []
          | Some name            -> [name]   end
@@ -80,7 +80,9 @@ let find_tyMthd_in_cntrct mname tyCntrct : tyMthd option =
     getFstFilter (fun mi -> if mi.Eth.name=mname then Some mi else None) tyCntrct.tyCntrct_mthds
 
 let find_tyMthd tyCntrcts mname = 
-    getFstFilter (find_tyMthd_in_cntrct mname) (L.map snd tyCntrcts)
+    match getFstFilter (find_tyMthd_in_cntrct mname) (L.map snd tyCntrcts) with 
+    | Some ty   -> ty
+    | None      -> err ("find_tyMthd: "^mname^"Not found")
 
 
 

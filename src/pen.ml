@@ -51,7 +51,7 @@ let _           = if files <> [] then (eprintf "Pass the contents to stdin.\n"; 
 let abi:bool    = (Some true = enable_abi.BatOptParse.Opt.option_get ()) 
 let toplevels   = parse_with_error lexbuf 
 Aet toplevels'  = to_idx_list toplevels
-let toplevels'' = Type.assignTys toplevels'
+let toplevels'' = Type.addTys toplevels'
 *)
 let e str   = eprintf str; exit 1
 
@@ -65,7 +65,7 @@ let ()      =
     let lexbuf                             = Lexing.from_channel stdin                                  in
     let toplevels : unit toplevel list     = parse_with_error lexbuf                                    in
     let toplevels                          = to_idx_list toplevels                                      in
-    let toplevels : ty toplevel idx_list   = Type.assignTys toplevels                                   in
+    let toplevels : ty toplevel idx_list   = Type.addTys toplevels                                   in
     let cns                                = filter_map (function   | Cntrct cn -> Some cn
                                                                     | _         -> None ) toplevels     in
     match cns with
