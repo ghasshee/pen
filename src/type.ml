@@ -308,12 +308,16 @@ and are_terminating stmts =
 
 
 
-
-  
 (* AssignTy Method / Contract / Toplevel  *) 
 
 (* Default Method Returns Void is a specification *) 
 
+let reserved x              = BS.starts_with x "pre_" 
+let reserved_var var        = reserved var.id
+let reserved_cn  cn         = reserved cn.cntrct_name 
+let reserved_exists         = BL.exists reserved_var 
+let reserved_arg_exists cn  = BL.exists reserved_var cn.cntrct_args  
+  
 let mthd_is_returning_void (mthd:unit mthd) = match mthd.mthd_head with
     | Default               ->  true
     | Method m              ->  m.mthd_retTy = TyTuple[]
@@ -335,8 +339,7 @@ let addTy_mthd tyCns cn_name tenv (m : unit mthd) =
                          | ReturnBySize _   -> err "multiple vals return not supported yry"
                          | JustStop         -> true )  (are_terminating m.mthd_body)) ; 
     let margs       = args_of_mthd m.mthd_head in
-    if BL.exists (fun arg -> BS.starts_with arg.id "pre_") margs 
-                then err "names that start with pre_ are reserved"; 
+    if reserved_exists margs then err "names that start with pre_ are reserved"; 
     let retTyCheck  = retTyCheck_of_mthd m.mthd_head in
     let tyenv'      = set_retTyCheck (add_block margs tenv) retTyCheck in 
     { mthd_head = addTy_mthd_head tyCns m.mthd_head
@@ -355,23 +358,16 @@ let addTy_cntrct tyCns (evs: evnt idx_list)(cn : unit cntrct)
             : ty cntrct =
     assert (BL.for_all (arg_has_known_ty tyCns) cn.cntrct_args) ; 
     assert (has_distinct_sigs cn);
-    let tyenv  = add_block cn.cntrct_args (add_evnts evs empty_tyEnv) in
-    if BS.starts_with cn.cntrct_name "pre_" 
-        then err "names \"pre_..\" are reserved" ; 
-    if BL.exists (fun arg -> BS.starts_with arg.id "pre_") cn.cntrct_args 
-        then err "names \"pre_..\" are reserved" ; 
+    let tyenv  = add_block cn.cntrct_args (add_evnts empty_tyEnv evs) in
+    if reserved_cn          cn  then err "names \"pre_..\" are reserved" ; 
+    if reserved_arg_exists  cn  then err "names \"pre_..\" are reserved" ; 
     { cntrct_name     = cn.cntrct_name
     ; cntrct_args     = cn.cntrct_args
     ; mthds           = L.map(addTy_mthd tyCns cn.cntrct_name tyenv)cn.mthds }
 
-
-let addTy_toplevel tyCns (evs:evnt idx_list) (top:unit toplevel) : ty toplevel 
-    = match top with
+let addTy_toplevel tyCns (evs:evnt idx_list) = function 
     | Cntrct c    -> Cntrct (addTy_cntrct tyCns evs c)
     | Event  e    -> Event e
-
-
-
 
 
 
