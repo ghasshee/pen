@@ -47,7 +47,7 @@ rule read = parse
   | "<"             { LT                            }
   | ">"             { GT                            }
   | "="             { EQ                            }
-  | "deploy"        { DEPLOY                        }
+  | "new"           { NEW                           }
   | "with"          { ALONG                         }
   | "reentrance"    { REENTRANCE                    }
   | "selfdestruct"  { SELFDESTRUCT                  }
@@ -62,7 +62,7 @@ rule read = parse
   | "block"         { BLOCK                         }
   | "void"          { VOID                          }
   | "&&"            { LAND                          }
-  | "=>"            { RARROW                        }
+  | "=>"            { DARROW                        }
   | "+"             { PLUS                          }
   | "-"             { MINUS                         }
   | "*"             { MULT                          }

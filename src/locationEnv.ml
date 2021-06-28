@@ -1,17 +1,21 @@
-(* le := location environment *) 
-
-
 open Misc
 open Syntax 
-open Imm
+open Location
 open IndexedList
-open Location 
 
 module L    = List
 module BL   = BatList
 module Eth  = Ethereum
 
 
+open Big_int
+open Misc
+open IndexedList
+
+
+(**********************************)
+(*   LE := LOCATION ENVIRONMENT   *) 
+(**********************************)
 type locEnv                         =   (string * location) list 
 type le                             =   locEnv list
 
@@ -29,8 +33,6 @@ let add_pairs le pairs              =   L.fold_left add_pair le pairs
 let add_mthd_argLocs mthd le        =   add_pairs le (Eth.argLocs_of_mthd mthd)
 
 
-
-
 (** [rntime_initial_t cntrct]
  * is a location environment that contains
  * the cnstrctr args
@@ -38,22 +40,22 @@ let add_mthd_argLocs mthd le        =   add_pairs le (Eth.argLocs_of_mthd mthd)
 let rntime_initEnv (cn:ty cntrct) =
     let plain               = Eth.argTys_of_cntrct cn           in
     let init                = add_emptyEnv empty_le             in
-    let f (le,idx) (nm,ty)  =
+    let addArg(le,idx)(nm,ty)  =
         let size            = size_of_ty ty / 32                in
         let loc             = Stor { stor_start = Int idx
                                    ; stor_size  = Int size }    in
         let le'             = add_pair le (nm,loc)              in
         le' , idx + size  in
 
-    let le, mid             = L.fold_left f (init,2) plain  in  
-    let arrays              = Eth.getArr_of_cntrct cn       in  
+    let le, mid             = L.fold_left addArg (init,2) plain in  
+    let arrays              = Eth.getArr_of_cntrct cn           in  
 
-    let g (le,idx) (nm,_,_) =
+    let addArr(le,idx)(nm,_,_)  =
         let size            = 1 in
         let loc             = Stor { stor_start = Int idx
-                                   ; stor_size  = Int size } in
-        let le'             = add_pair le (nm,loc) in
-        le' , idx + size in
+                                   ; stor_size  = Int size }    in
+        let le'             = add_pair le (nm,loc)              in
+        le' , idx + size                                        in
 
-    let le, _   = L.fold_left g (le,mid) arrays in
+    let le, _   = L.fold_left addArr (le,mid) arrays            in
     le

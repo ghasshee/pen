@@ -60,3 +60,6 @@ let sig_bits                = 32
 
 
 let big                     = Big_int.big_int_of_int
+let string_of_big           = Big_int.string_of_big_int
+let big_0                   = Big_int.zero_big_int
+let big_1                   = Big_int.unit_big_int

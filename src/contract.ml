@@ -36,10 +36,10 @@ type tyCntrct           =
 
 let rec collect_cont_stmt   = function 
     | SmAbort               ->  []
-    | SmSelfDestruct _      ->  []
+    | SmSlfDstrct _      ->  []
     | SmExpr _              ->  []
     | SmAssign (_,_)        ->  []
-    | SmVarDecl _           ->  []
+    | SmDecl _           ->  []
     | SmIfThen (_,s)        ->  collect_cont_stmts s
     | SmIf (_,s,t)          ->  collect_cont_stmts s @ collect_cont_stmts t
     | SmLog _               ->  []  

@@ -4,13 +4,12 @@ open Misc
 open Syntax
 open Label
 open IndexedList
-open Imm
+open Location
 
 module Eth  = Ethereum
 module BL   = BatList
 module L    = List
 
-type stor_addr = int
 
 (* Stor Layout that should be available after the cnstrctr compilation finishes *)
 type storLayout            =
@@ -51,24 +50,24 @@ type storLayout            =
 
 type post_storLayout       =                                                   
                             { init_data_size            : idx -> int                      
-                            ; rn_codesize              : int                   
+                            ; rn_codesize               : int                   
                             ; rn_cntrct_offsets         : int idx_list               
                             ; rn_cnstrctr_offsets       : int idx_list
                             ; l                         : storLayout
                             }
 
 type cn_storLayout     =
-                            { cn_cnstrctrCode_size     : int
+                            { cn_cnstrctrCode_size      : int
                             ; cn_args_size              : int (** the number of words that the cntrct args occupy *)
-                            ; cn_num_arraySeeds        : int (** the number of args that arrays *)
+                            ; cn_num_arraySeeds         : int (** the number of args that arrays *)
                             ; cn_args                   : ty list (** the list of arg types *)
                             }
 
 type rn_storLayout     =
-                            { rn_codesize              : int
-                            ; rn_cn_offsets          : int idx_list
-                            ; rn_cnstrctr_offsets     : int idx_list
-                            ; rn_cnstrctr_sizes       : int idx_list
+                            { rn_codesize               : int
+                            ; rn_cn_offsets             : int idx_list
+                            ; rn_cnstrctr_offsets       : int idx_list
+                            ; rn_cnstrctr_sizes         : int idx_list
                             }
 
 
@@ -100,18 +99,18 @@ let compute_stor_arraySeeds_size lst idx   =
 
 let cnstrct_storLayout(l:cn_storLayout idx_list) : storLayout =
     { idxs                              = L.map fst l
-    ; cnstrctrCode_size                = compute_cnstrctrCode_size l
-    ; program_counter              = 0     (* fixed constant. *)
+    ; cnstrctrCode_size                 = compute_cnstrctrCode_size l
+    ; program_counter                   = 0     (* fixed constant. *)
     ; arraySeeds_counter                = 1     (* fixed constant. *) 
-    ; stor_cnstrctrArgs_begin          = compute_stor_cnstrctrArgs_begin
-    ; stor_cnstrctrArgs_size           = compute_cnstrctrArgs_size l
-    ; stor_arraySeeds_begin            = compute_stor_arraySeeds_begin l
-    ; stor_arraySeeds_size             = compute_stor_arraySeeds_size l
+    ; stor_cnstrctrArgs_begin           = compute_stor_cnstrctrArgs_begin
+    ; stor_cnstrctrArgs_size            = compute_cnstrctrArgs_size l
+    ; stor_arraySeeds_begin             = compute_stor_arraySeeds_begin l
+    ; stor_arraySeeds_size              = compute_stor_arraySeeds_size l
     }
 
 let cnstrct_post_storLayout (l:cn_storLayout idx_list) (rntime:rn_storLayout) : post_storLayout =
     { init_data_size                    = compute_init_data_size l rntime
-    ; rn_codesize                      = rntime.rn_codesize
+    ; rn_codesize                       = rntime.rn_codesize
     ; rn_cntrct_offsets                 = rntime.rn_cn_offsets
     ; rn_cnstrctr_offsets               = rntime.rn_cnstrctr_offsets
     ; l                                 = cnstrct_storLayout l
@@ -230,14 +229,14 @@ let rec arg_locations_inner offset used_plain_args used_mapping_seeds num_of_pla
                         arg_locations_inner offset(used_plain_args+1)used_mapping_seeds num_of_plains t
 
 (* this needs to take stor_cnstrctrArgs_begin *)
-let arg_locations offset (cn:ty cntrct) : stor_addr list =
+let arg_locations offset (cn:ty cntrct) : int list =
     let arg_tys       = L.map (fun a->a.ty) cn.cntrct_args in
     assert (L.for_all fits_in_one_stor_slot arg_tys) ; 
     let num_of_plains = count_plain_args arg_tys  in
     let ret           = arg_locations_inner offset 0 0 num_of_plains arg_tys in 
     ret 
 
-let array_locations (cn:ty cntrct) : stor_addr list =
+let array_locations (cn:ty cntrct) : int list =
     let arg_tys       = L.map (fun a->a.ty) cn.cntrct_args  in
     assert (L.for_all fits_in_one_stor_slot arg_tys) ;
     let num_of_plains = count_plain_args arg_tys            in

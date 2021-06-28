@@ -10,7 +10,7 @@ open Big_int
 open Printf 
 
 open Misc
-open Imm
+open Location
 open CodegenEnv
 open LocationEnv
 open Evm
@@ -18,7 +18,6 @@ open Syntax
 open IndexedList
 open Contract
 
-module Loc  = Location 
 module Eth  = Ethereum 
 module BL   = BatList
 module L    = List
@@ -32,9 +31,11 @@ let goto la   ce =
     let ce      = PUSH4(Label la)                       >>ce    in 
                   JUMP                                  >>ce 
 
-let push_storRange ce (range : imm Loc.stor_range) =
-    assert (is_const_int 1 range.Loc.stor_size) ; 
-    let offset:imm  = range.Loc.stor_start in
+let push_storRange ce (range : imm stor_range) =
+    let i = match range.stor_size with | Big b -> string_of_big b | Int i -> string_of_int i in 
+    printf "stor_size is %s\n" i ; 
+    assert (is_const_int 1 range.stor_size) ; 
+    let offset:imm  = range.stor_start in
     let ce    = PUSH32 offset     >> ce in
                 SLOAD             >> ce 
 
@@ -62,7 +63,7 @@ let shiftLtop ce bits =
     let ce    = EXP                             >> ce   in   (*      2**bits >> x >> .. *) 
                 MUL                             >> ce        (*       (2**bits)*x >> .. *) 
 
-let calldataload ce (range : Loc.calldata_range) =
+let calldataload ce (range : calldata_range) =
     let start = range.calldata_start                    in 
     let size  = range.calldata_size                     in 
     assert (0 < size && size <= 32);
@@ -88,7 +89,7 @@ let align_to_L ce align ty = match align with
                     assert (size <= 32) ;
                     shiftLtop ce ((32-size)*8) 
 
-let push_loc ce align ty = Loc.(function 
+let push_loc ce align ty = (function 
     | Calldata rng  ->  calldataload  ce rng
     | Stor     rng  ->  let ce = push_storRange ce rng in 
                         align_to_L ce align ty 
@@ -254,10 +255,12 @@ let incr_top (inc : int) ce =
  *
  *              ADDRESS              MEMORY 
  *          +---------------------+-----------------+                         
- *          |                  0  | rntimeCode     |                                   
+ *          |                  0  | rntimeCode      |                                   
  *          |                ...  |  ...            |                                   
- *          |               size  | cnstrctrCode   |
+ *          |                ...  | RETURN          |                                   
+ *          |               size  | cnstrctrCode    |
  *          |                ...  |  ...            |
+ *          |                ...  | RETURN          |
  *          |         size+wsize  | arg1            |                                   
  *          |                     |  ...            |
  *          |                     | arg2            |
@@ -283,27 +286,25 @@ let rec mstore_new_instance le ce n =
     let ce    = SWAP1                               >>ce   in (*                                       alloc(size) >>   totalsize >> .. *)
     ce
 
-and codegen_fncall_expr le ce align (fncall:ty fncall) (reT:ty) =
-    if      fncall.call_head = "pre_ecdsarecover" then (
-                assert (align = R) ; 
-                codegen_ECDSArecover le ce fncall.call_args )   
-    else if fncall.call_head = "keccak256" then (
-                assert (align = R) ; 
-                codegen_keccak256    le ce fncall.call_args )   
-    else if fncall.call_head = "iszero" then 
-                codegen_iszero le ce align fncall.call_args reT
-    else        err "codegen_fncall_expr: unknown function head."
+and codegen_call le ce align (fncall:ty _call) (reT:ty) = 
+    match fncall.call_head with 
+    | "pre_ecdsarecover"    ->  assert (align = R) ; 
+                                codegen_ECDSArecover le ce fncall.call_args
+    | "keccak256"           ->  assert (align = R) ; 
+                                codegen_keccak256    le ce fncall.call_args    
+    | "iszero"              ->  codegen_iszero le ce align fncall.call_args reT
+    | _                     ->  err "codegen_call: Contract Function Call is Not supported yet."
 
-and codegen_iszero le ce align args reT = match args with
-    | [arg] ->  assert (reT = TyBool) ; 
-                let ce =  arg       >>>> (align,le,ce) in
+and codegen_iszero le ce aln args reT = match args with
+    | [arg] ->  assert (reT=TyBool) ; 
+                let ce =  arg                   >>>>(aln,le,ce) in
                           ISZERO    >>         ce 
     | _     ->  err "codegen_iszero: Wrong number of args"
        
 and codegen_keccak256 le ce args =
-    let ce    = get_alloc ce                                    in (* stack: [..., offset] *)
-    let ce    = mstore_mthd_args TightPack args le ce           in (* stack: [..., offset, size] *)
-    let ce    = SWAP1                           >>ce            in (* stack: [..., size, offset] *)
+    let ce    = get_alloc ce                                    in  (* stack: [..., offset] *)
+    let ce    = mstore_mthd_args TightPack args le ce           in  (* stack: [..., offset, size] *)
+    let ce    = SWAP1                           >>ce            in  (* stack: [..., size, offset] *)
     let ce    = SHA3                            >>ce            in
     ce
 
@@ -328,21 +329,21 @@ and codegen_ECDSArecover le ce args = match args with
                  MLOAD                          >>ce                (* stack: [output] *)
     | _ -> err "pre_ecdsarecover has a wrong number of args"
 
-and codegen_new_expr le ce n =    
+and codegen_new le ce n =    
     assert(is_throw_only n.new_msg.msg_reentrance) ;                (* This is NOT a REENTRANCE GUARD, which MUST be modified *) 
-    let ce    = reset_storPC ce                                in  (*                                                          PCbkp >> .. *)
+    let ce    = reset_storPC ce                                 in  (*                                                          PCbkp >> .. *)
     let ce    = mstore_new_instance le ce n                     in  (*                                   alloc(size) >> size >> PCbkp >> .. *)
     let ce    = match n.new_msg.msg_value with                      (* value is the amount sent at the contract creation                    *) 
-       | None     -> PUSH1 (Int 0)              >>ce                (*                                                                      *)
-       | Some e   -> e                          >>>>(R,le,ce)   in  (*                          value >> alloc(size) >> size >> PCbkp >> .. *)
+        | None     -> PUSH1 (Int 0)             >>ce                (*                                                                      *)
+        | Some e   -> e                         >>>>(R,le,ce)   in  (*                          value >> alloc(size) >> size >> PCbkp >> .. *)
     let ce    = CREATE                          >>ce            in  (*                                          createResult >> PCbkp >> .. *)
     let ce    = throw_if_zero                     ce            in  (*                                          createResult >> PCbkp >> .. *)
     let ce    = SWAP1                           >>ce            in  (*                                          PCbkp >> CreateResult >> .. *)
                 restore_pc                        ce                (*                                                   CreateResult >> .. *)
 
 and gen_array_storLoc le ce aa =
-    let arr   = aa.arrIdent                                   in
-    let idx   = aa.arrIndex                                  in
+    let arr   = aa.arrIdent                                     in
+    let idx   = aa.arrIndex                                     in
     let ce    = idx                             >>>>(R,le,ce)   in  (*                                 index >> .. *)    
     let ce    = arr                             >>>>(R,le,ce)   in  (*                    array_loc >> index >> .. *)
                 keccak_cat ce                                       (*                sha3(array_loc++index) >> .. *) 
@@ -355,31 +356,30 @@ and codegen_array le ce (aa:ty array) =
  *      then set up an array seed at aa, 
  *           replace the zero with the new seed *)
 and setup_array_storLoc le ce aa =
-    let label = fresh_label ()                                 in       (* stack: [result, result] *)
-    let ce    = DUP1                            >>ce           in       (* stack: [result, result] *)
-    let ce    = PUSH4(Label label)              >>ce           in       (* stack: [result, result, shortcut] *)
-    let ce    = JUMPI                           >>ce           in       (* stack: [result] *)
-    let ce    = POP                             >>ce           in       (* stack: [] *)
-    let ce    = gen_array_storLoc le ce aa                     in       (* stack: [stor_index] *)
-    let ce    = PUSH1 (Int 1)                   >>ce           in       (* stack: [stor_index, 1] *)
-    let ce    = SLOAD                           >>ce           in       (* stack: [stor_index, orig_seed] *)
-    let ce    = DUP1                            >>ce           in       (* stack: [stor_index, orig_seed, orig_seed] *)
-    let ce    = incr_top 1                        ce           in       (* stack: [stor_index, orig_seed, orig_seed + 1] *)
-    let ce    = PUSH1 (Int 1)                   >>ce           in       (* stack: [stor_index, orig_seed, orig_seed + 1, 1] *)
-    let ce    = SSTORE                          >>ce           in       (* stack: [stor_index, orig_seed] *)
-    let ce    = DUP1                            >>ce           in       (* stack: [stor_index, orig_seed, orig_seed] *)
-    let ce    = SWAP2                           >>ce           in       (* stack: [orig_seed, orig_seed, stor_index] *)
-    let ce    = SSTORE                          >>ce           in       (* stack: [orig_seed] *)
-                JUMPDEST label                  >>ce                    (* stack: [result] *)
+    let label = fresh_label ()                                  in  (* stack: [result, result] *)
+    let ce    = DUP1                            >>ce            in  (* stack: [result, result] *)
+    let ce    = PUSH4(Label label)              >>ce            in  (* stack: [result, result, shortcut] *)
+    let ce    = JUMPI                           >>ce            in  (* stack: [result] *)
+    let ce    = POP                             >>ce            in  (* stack: [] *)
+    let ce    = gen_array_storLoc le ce aa                      in  (* stack: [stor_index] *)
+    let ce    = PUSH1 (Int 1)                   >>ce            in  (* stack: [stor_index, 1] *)
+    let ce    = SLOAD                           >>ce            in  (* stack: [stor_index, orig_seed] *)
+    let ce    = DUP1                            >>ce            in  (* stack: [stor_index, orig_seed, orig_seed] *)
+    let ce    = incr_top 1                        ce            in  (* stack: [stor_index, orig_seed, orig_seed + 1] *)
+    let ce    = PUSH1 (Int 1)                   >>ce            in  (* stack: [stor_index, orig_seed, orig_seed + 1, 1] *)
+    let ce    = SSTORE                          >>ce            in  (* stack: [stor_index, orig_seed] *)
+    let ce    = DUP1                            >>ce            in  (* stack: [stor_index, orig_seed, orig_seed] *)
+    let ce    = SWAP2                           >>ce            in  (* stack: [orig_seed, orig_seed, stor_index] *)
+    let ce    = SSTORE                          >>ce            in  (* stack: [orig_seed] *)
+                JUMPDEST label                  >>ce                (* stack: [result] *)
 
 (*   if the stack top is zero, 
  *      then  1.  set up an array seed at aa, 
  *            2.  replace the zero with the new seed *)
-and setup_array_storLoc_of_loc le ce loc =
-    let stor_idx = (match loc with
-      | Loc.Stor stor_range     ->  assert (stor_range.Loc.stor_size = (Int 1)) ;
-                                    stor_range.Loc.stor_start
-      | _                       ->  err "setup array seed at non-storage") in
+and setup_array_storLoc_of_loc le ce = function 
+    | Stor storRange    -> 
+    assert (storRange.stor_size = Int 1) ;
+    let stor_idx = storRange.stor_start                        in       
     let label = fresh_label ()                                 in    (* stack: [result, result] *)
     let ce    = DUP1                            >>ce           in    (* stack: [result, result] *)
     let ce    = PUSH4(Label label)              >>ce           in    (* stack: [result, result, shortcut] *)
@@ -405,124 +405,116 @@ and setup_array_storLoc_of_loc le ce loc =
 (* le is not updated here.  It can be only updated in
  * a variable initialization *)
 
-and codegen_expr le ce aln = function 
-    | EpAddr(c,TyInstnce i),TyAddr  ->              (c,TyInstnce i)         >>>>(aln,le,ce) 
-    | EpAddr _, _                   ->  errc"EpAddr"
-    | EpValue,TyUint256             ->              CALLVALUE               >>ce      (* Value (wei) Transferred to the account *) 
-    | EpValue,_                     ->  errc"EpValue"
-    | EpSender,TyAddr               ->  let ce  =   CALLER                  >>ce        in
-                                                    align_addr ce aln
-    | EpSender,_                    ->  errc"EpSender"
-    | EpArray a,ty                  ->  assert(aln=R); 
-                                        let ce  =   codegen_array le ce (read_array a)  in
+and codegen_expr le ce aln      = function 
+    | EpAddr(c,TyInstnce i),TyAddr  ->                  (c,TyInstnce i)         >>>>(aln,le,ce) 
+    | EpAddr _      ,_              ->  errc"EpAddr"
+    | EpValue       ,TyUint256      ->                  CALLVALUE               >>ce      (* Value (wei) Transferred to the account *) 
+    | EpValue       ,_              ->  errc"EpValue"
+    | EpSender      ,TyAddr         ->  let ce      =   CALLER                  >>ce        in
+                                                        align_addr ce aln
+    | EpSender      ,_              ->  errc"EpSender"
+    | EpArray a     ,ty             ->  assert(aln=R); 
+                                        let ce      =   codegen_array le ce (read_array a)  in
                                         begin match ty with
-                                        | TyMap _-> setup_array_storLoc le ce (read_array a)
-                                        | _      -> ce                                  end 
-    | EpThis,_                      ->  let ce  =   ADDRESS                 >>ce        in
-                                                    align_addr ce aln     
-    | EpIdent id,ty                 ->  (match lookup le id with
+                                        | TyMap _   ->  setup_array_storLoc le ce (read_array a)
+                                        | _         ->  ce                                  end 
+    | EpThis        ,_              ->  let ce      =   ADDRESS                 >>ce        in
+                                                        align_addr ce aln     
+    | EpIdent id    ,ty             ->  (match lookup le id with
                                         | Some loc  ->  let ce = push_loc ce aln ty loc in
                                                         begin match ty with
                                                         | TyMap _   -> setup_array_storLoc_of_loc le ce loc
                                                         | _         -> ce                       end
                                         | None      ->  err ("codegen_expr: identifier's location not found: "^id) )
-    | EpSend s, _                   ->  assert(aln=R); 
-                                                    codegen_send_expr le ce s
-    | EpNew n,TyInstnce c           ->  assert(aln=R); 
-                                                    codegen_new_expr le ce n 
-    | EpFalse,TyBool                ->  assert(aln=R);
-                                                    PUSH1(Big zero_big_int) >>ce  
-    | EpFalse, _                    ->  errc"EpFalse"
-    | EpTrue,TyBool                 ->  assert(aln=R); 
-                                                    PUSH1(Big unit_big_int) >>ce  
-    | EpTrue, _                     ->  errc"EpTrue"
-    | EpDecLit256 d,TyUint256       -> assert(aln=R); 
-                                                    PUSH32(Big d)  >> ce  
-    | EpDecLit256 d, _              ->  errc("EpDecLit256 "^(string_of_big_int d))
-    | EpDecLit8 d, TyUint8          ->  assert(aln=R); 
-                                                    PUSH1(Big d)   >> ce  
-    | EpDecLit8 d, _                ->  errc("EpDecLit8 "^(string_of_big_int d))
-    | EpLand(l,r),TyBool            ->  assert(aln=R); 
-                                        let la  =   fresh_label ()                  in
-                                        let ce  =   l              >>>>(R,le,ce)    in (* stack: [..., l] *)
-                                        let ce  =   DUP1           >>ce             in (* stack: [..., l, l] *)
-                                        let ce  =   if_zero_GOTO la  ce             in (* stack: [..., l] *) 
-                                        let ce  =   POP            >>ce             in (* stack: [...] *)
-                                        let ce  =   r              >>>>(R,le,ce)    in (* stack: [..., r] *)
-                                        let ce  =   JUMPDEST la    >>ce             in
-                                        let ce  =   ISZERO         >>ce             in
-                                                    ISZERO         >>ce             
+    | EpFnCall call ,retTy          ->                  codegen_call le ce aln call retTy
+    | EpSend s      ,_              ->  assert(aln=R);  codegen_send le ce s
+    | EpNew n       ,TyInstnce _    ->  assert(aln=R);  codegen_new  le ce n 
+    | EpFalse       ,TyBool         ->  assert(aln=R);  PUSH1(Big big_0)        >>ce  
+    | EpFalse       ,_              ->  errc"EpFalse"
+    | EpTrue        ,TyBool         ->  assert(aln=R);  PUSH1(Big big_1)        >>ce  
+    | EpTrue        ,_              ->  errc"EpTrue"
+    | EpDecLit256 d ,TyUint256      ->  assert(aln=R);  PUSH32(Big d)           >>ce  
+    | EpDecLit256 d ,_              ->  errc("EpDecLit256 "^(string_of_big_int d))
+    | EpDecLit8 d   ,TyUint8        ->  assert(aln=R);  PUSH1(Big d)            >>ce  
+    | EpDecLit8 d   ,_              ->  errc("EpDecLit8 "^(string_of_big_int d))
+    | EpLand(l,r)   ,TyBool         ->  assert(aln=R); 
+                                        let la      =   fresh_label ()                          in (*                         .. *)
+                                        let ce      =   l                       >>>>(R,le,ce)   in (*                    l >> .. *)
+                                        let ce      =   DUP1                    >>ce            in (*               l >> l >> .. *)
+                                        let ce      =   if_zero_GOTO la           ce            in (*                    l >> .. *)
+                                        let ce      =   POP                     >>ce            in (*                         .. *)
+                                        let ce      =   r                       >>>>(R,le,ce)   in (*                    r >> .. *)
+                                        let ce  =   JUMPDEST la                 >>ce            in (*                    r >> .. *)
+                                        let ce      =   ISZERO                  >>ce            in (*             iszero r >> .. *) 
+                                                        ISZERO                  >>ce               (*                 l&&r >> .. *)
     | EpLand (_, _), _              ->  errc"EpLand"
-    | EpNot expr, TyBool            ->  let ce  =   expr           >>>>(aln,le,ce)in
-                                        let ce  =   ISZERO         >>ce             in 
-                                                    align_bool ce aln   
+    | EpNot expr, TyBool            ->  let ce      =   expr                    >>>>(aln,le,ce) in
+                                        let ce      =   ISZERO                  >>ce            in 
+                                                        align_bool ce aln   
     | EpNot sub, _                  ->  errc"EpNot"
-    | EpNow,TyUint256               ->              TIMESTAMP      >>ce 
+    | EpNow,TyUint256               ->                  TIMESTAMP               >>ce 
     | EpNow,_                       ->  errc"EpNow"
-    | EpNeq(l,r),TyBool             ->  let ce  =   r              >>>>(R,le,ce)    in
-                                        let ce  =   l              >>>>(R,le,ce)    in
-                                        let ce  =   EQ             >>ce             in
-                                        let ce  =   ISZERO         >>ce             in
-                                                    align_bool ce aln  
+    | EpNeq(l,r),TyBool             ->  let ce      =   r                       >>>>(R,le,ce)   in
+                                        let ce      =   l                       >>>>(R,le,ce)   in
+                                        let ce      =   EQ                      >>ce            in
+                                        let ce      =   ISZERO                  >>ce            in
+                                                        align_bool ce aln  
     | EpNeq _, _                    ->  errc"EpNeq"
-    | EpLt(l,r),TyBool              ->  let ce  =   r              >>>>(R,le,ce)    in
-                                        let ce  =   l              >>>>(R,le,ce)    in
-                                        let ce  =   LT             >>ce             in
-                                                    align_bool ce aln            
+    | EpLt(l,r),TyBool              ->  let ce      =   r                       >>>>(R,le,ce)   in
+                                        let ce      =   l                       >>>>(R,le,ce)   in
+                                        let ce      =   LT                      >>ce            in
+                                                        align_bool ce aln            
     | EpLt _, _                     ->  errc"EpLt"
-    | EpPlus(l,r),TyUint256         ->  let ce  =   r              >>>>(R,le,ce)    in
-                                        let ce  =   l              >>>>(R,le,ce)    in
-                                                    ADD            >>ce 
-    | EpPlus(l,r),TyUint8           ->  let ce  =   r              >>>>(R,le,ce)    in
-                                        let ce  =   l              >>>>(R,le,ce)    in
-                                                    ADD            >>ce 
+    | EpPlus(l,r),TyUint256         ->  let ce      =   r                       >>>>(R,le,ce)   in
+                                        let ce      =   l                       >>>>(R,le,ce)   in
+                                                        ADD                     >>ce 
+    | EpPlus(l,r),TyUint8           ->  let ce      =   r                       >>>>(R,le,ce)   in
+                                        let ce      =   l                       >>>>(R,le,ce)   in
+                                                        ADD                     >>ce 
     | EpPlus(l,r),_                 ->  errc"EpPlus"
-    | EpMinus(l,r),TyUint256        ->  let ce  =   r              >>>>(R,le,ce)    in
-                                        let ce  =   l              >>>>(R,le,ce)    in
-                                                    SUB            >>ce 
-    | EpMinus(l,r),TyUint8          ->  let ce  =   r              >>>>(R,le,ce)    in
-                                        let ce  =   l              >>>>(R,le,ce)    in
-                                                    SUB            >>ce 
+    | EpMinus(l,r),TyUint256        ->  let ce      =   r                       >>>>(R,le,ce)   in
+                                        let ce      =   l                       >>>>(R,le,ce)   in
+                                                        SUB                     >>ce 
+    | EpMinus(l,r),TyUint8          ->  let ce      =   r                       >>>>(R,le,ce)   in
+                                        let ce      =   l                       >>>>(R,le,ce)   in
+                                                        SUB                     >>ce 
     | EpMinus(l,r),_                ->  errc"EpMinus"
-    | EpMult(l,r),TyUint256         ->  let ce  =   r              >>>>(R,le,ce)    in
-                                        let ce  =   l              >>>>(R,le,ce)    in
-                                                    MUL            >>ce
-    | EpMult(l,r),TyUint8           ->  let ce  =   r              >>>>(R,le,ce)    in
-                                        let ce  =   l              >>>>(R,le,ce)    in
-                                                    MUL            >>ce
+    | EpMult(l,r),TyUint256         ->  let ce      =   r                       >>>>(R,le,ce)   in
+                                        let ce      =   l                       >>>>(R,le,ce)   in
+                                                        MUL                     >>ce
+    | EpMult(l,r),TyUint8           ->  let ce      =   r                       >>>>(R,le,ce)   in
+                                        let ce      =   l                       >>>>(R,le,ce)   in
+                                                        MUL                     >>ce
     | EpMult (l, r), _              ->  errc"EpMult"
-    | EpGt(l,r),TyBool              ->  let ce  =   r              >>>>(R,le,ce)    in
-                                        let ce  =   l              >>>>(R,le,ce)    in
-                                        let ce  =   GT             >>ce             in
-                                                    align_bool ce aln   
+    | EpGt(l,r),TyBool              ->  let ce      =   r                       >>>>(R,le,ce)   in
+                                        let ce      =   l                       >>>>(R,le,ce)   in
+                                        let ce      =   GT                      >>ce            in
+                                                        align_bool ce aln   
     | EpGt _, _                     ->  errc"EpGt"
-    | EpBalance e,TyUint256         ->  let ce  =   e              >>>>(R,le,ce)    in
-                                                    BALANCE        >>ce
+    | EpBalance e,TyUint256         ->  let ce      =   e                       >>>>(R,le,ce)   in
+                                                        BALANCE                 >>ce
     | EpBalance inner, _            ->  errc"EpBalance"
-    | EpEq(l,r),TyBool              ->  let ce  =   r              >>>>(R,le,ce)    in
-                                        let ce  =   l              >>>>(R,le,ce)    in
-                                        let ce  =   EQ             >>ce             in
-                                                    align_bool ce aln      
-    | EpFnCall fncall,reT           ->  codegen_fncall_expr le ce aln fncall reT
-    | EpSingleDeref(ref,tyR),ty     ->  let size = size_of_ty ty in
-                                        assert (size <= 32 && tyR=TyRef ty && aln=R) ;   (* assuming word-size *)
-                                        let ce  =   (ref,tyR)       >>>>(R,le,ce)    in (* pushes the pointer *)
-                                                    MLOAD           >>ce 
-
+    | EpEq(l,r),TyBool              ->  let ce      =   r                       >>>>(R,le,ce)   in
+                                        let ce      =   l                       >>>>(R,le,ce)   in
+                                        let ce      =   EQ                      >>ce            in
+                                                        align_bool ce aln      
+    | EpDeref(ref,tyR),ty           ->  let size    =   size_of_ty ty                           in
+                                        assert (size<=32 && tyR=TyRef ty && aln=R) ;   (* assuming word-size *)
+                                        let ce      =   (ref,tyR)               >>>>(R,le,ce)   in (* pushes the pointer *)
+                                                        MLOAD                   >>ce 
     | EpEq _, _                     ->  errc"EpEq"
     | EpParen _, _                  ->  errc"EpParen"
     | EpNew n, _                    ->  errc"EpNew"
-    | EpTupleDeref _,_              ->  errc"EpTupleDeref"
 
 and (>>>>) expr (aln,le,ce)  = codegen_expr le ce aln expr 
 
 
 
-and mstore_mthd_args pack (args:ty expr list) le ce =
+and mstore_mthd_args pack (args:ty expr_ty list) le ce =
     let ce    = PUSH1(Int 0)           >>ce           in  (*                  0 >> ..   *)
                 foldl(mstore_mthd_arg le pack)ce args     (*            sumsize >> ..   *) 
 
-and mstore_mthd_arg le pack ce (arg:ty expr) =
+and mstore_mthd_arg le pack ce (arg:ty expr_ty) =
     let ty = snd arg in 
     assert (fits_in_one_stor_slot ty) ; 
     let i,a     = match pack with 
@@ -567,39 +559,39 @@ and obtain_ret_values_from_mem ce =                     (* stack : out size, out
     let ce      = SWAP1              >>ce           in  (* stack : out, out size *)
                   POP                >>ce               (* stack : out *)
       
-and codegen_send_expr le ce (e:ty send_expr) =
-    let msg     = e.send_msg    in 
-    let cn      = e.send_cntrct in 
-    let m       = e.send_mthd   in 
+and codegen_send le ce (s:ty _send) =
+    let msg     = s.send_msg    in 
+    let cn      = s.send_cntrct in 
+    let m       = s.send_mthd   in 
     assert (is_throw_only msg.msg_reentrance) ; 
     match snd cn with
     | TyInstnce cnname -> 
-        let idx     = lookup_cn_of_ce ce cnname         in 
+        let idx     = lookup_cn_of_ce ce cnname             in 
         let callee  = cntrct_lookup ce idx                  in
         begin match m with | Some name  -> 
         let m       = lookup_mthd_info ce callee name       in
-        let retSize = size_of_ty m.mthd_retTy              in (* [pc_bkp] *)
-        let ce  = reset_storPC                ce            in (* [pc_bkp] *)
+        let retSize = size_of_ty m.mthd_retTy               in (* [pc_bkp] *)
+        let ce  = reset_storPC                 ce           in (* [pc_bkp] *)
         let ce  = PUSH1(Int retSize)         >>ce           in (* [pc_bkp, retsize] *)
         let ce  = DUP1                       >>ce           in (* [pc_bkp, retsize, retsize] *)
         let ce  = mem_alloc                    ce           in (* [pc_bkp, retsize, alloc(retsize)] *)
         let ce  = DUP2                       >>ce           in (* [pc_bkp, retsize, alloc(retsize), retsize] *)
         let ce  = DUP2                       >>ce           in (* [pc_bkp, retsize, alloc(retsize), retsize, alloc(retsize)] *)
-        let ce  = prepare_input_in_mem le ce e m            in (* [pc_bkp, retsize, alloc(retsize), retsize, alloc(retsize), insize, alloc(insize)] *)
-        let ce  = push_msg_and_gas e        le ce           in (* [alloc(retsize), retsize] *)
+        let ce  = prepare_input_in_mem le ce s m            in (* [pc_bkp, retsize, alloc(retsize), retsize, alloc(retsize), insize, alloc(insize)] *)
+        let ce  = push_msg_and_gas s        le ce           in (* [alloc(retsize), retsize] *)
         let ce  = call_and_restore_pc          ce           in 
         let ce  = SWAP1                      >>ce           in (* [retsize,alloc(retsize)] *)
                   obtain_ret_values_from_mem   ce           end(* [ret] *)
     | TyAddr        ->  
         let retSize    = 0                                  in 
-        let ce  = reset_storPC                ce           in (* [pc_bkp] *)
+        let ce  = reset_storPC                 ce           in (* [pc_bkp] *)
         let ce  = PUSH1(Int retSize)         >>ce           in (* [pc_bkp, 0] *)
         let ce  = DUP1                       >>ce           in (* [pc_bkp, 0, 0] *)
         let ce  = DUP2                       >>ce           in (* [pc_bkp, 0, 0, 0] *)
         let ce  = DUP2                       >>ce           in (* [pc_bkp, 0, 0, 0, 0] *)
         let ce  = DUP2                       >>ce           in (* [pc_bkp, 0, 0, 0, 0, 0] *)
         let ce  = DUP2                       >>ce           in (* [pc_bkp, 0, 0, 0, 0, 0, 0] *)
-        let ce  = push_msg_and_gas e        le ce           in 
+        let ce  = push_msg_and_gas s        le ce           in 
         let ce  = call_and_restore_pc          ce           in 
                   POP                        >>ce               (* [0] *)
     | _             -> err "send expr with Wrong type"
@@ -759,13 +751,11 @@ let mstore_cnstr_args ce (cn:ty cntrct) =
 
 
 
-
-
 (* S[1]     := ARRAY SEED COUNTER *) 
 (*
  * S[loc]   := old seed 
  * S[1]     := S[1] + 1       *)
-let setup_seed ce (arrLoc: SL.stor_addr) =
+let setup_seed ce (arrLoc: int) =
     let label   = fresh_label()                             in  (*                                                .. *) 
     let ce      = PUSH4 (Int arrLoc)                >>ce    in  (*                                         loc >> .. *)
     let ce      = PUSH4 (Label label)               >>ce    in  (*                                label >> loc >> .. *)
@@ -1058,7 +1048,7 @@ let mstore_word ty le ce =
     let ce      = SWAP1                     >>ce            in  (*                       alloc(32) >> 32 >> .. *)
     ce
 
-let mstore_expr le ce pack ((e,ty):ty expr) =
+let mstore_expr le ce pack ((e,ty):ty expr_ty) =
     let a       = match pack with | ABIPack   -> R
                                   | TightPack -> L          in
     let ce      = (e,ty)                    >>>>(a,le,ce)   in  (*                                value >> .. *)
@@ -1105,11 +1095,11 @@ let codegen_assign le ce layout l r =
     let ce      = sstore_to_lexpr le ce layout l            in
     le, ce
 
-let codegen_varDecl le ce i  = 
+let codegen_decl le ce i  = 
     let pos     = stack_size ce                             in
-    let name    = i.varDecl_id                              in
-    let ce      = i.varDecl_val             >>>>(R,le,ce)   in
-    let le      = add_pair le(name, Loc.Stack(pos+1))       in
+    let name    = i.declId                              in
+    let ce      = i.declVal             >>>>(R,le,ce)   in
+    let le      = add_pair le(name, Stack(pos+1))       in
     le, ce
 
 let rec codegen_if_then le ce lyt cond stmts =
@@ -1137,10 +1127,10 @@ and codegen_stmt layout (le,ce)     = function
     | SmAbort                       ->  le, add_throw ce
     | SmReturn ret                  ->  codegen_return        le ce layout ret
     | SmAssign (l,r)                ->  codegen_assign        le ce layout l r
-    | SmVarDecl i                   ->  codegen_varDecl       le ce i
+    | SmDecl i                   ->  codegen_decl       le ce i
     | SmIfThen(cond,e)              ->  codegen_if_then       le ce layout cond e 
     | SmIf(cond,e1,e2)      ->  codegen_if            le ce layout cond e1 e2
-    | SmSelfDestruct expr           ->  codegen_selfDestruct  le ce expr
+    | SmSlfDstrct expr           ->  codegen_selfDestruct  le ce expr
     | SmExpr expr                   ->  codegen_expr_stmt     le ce expr
     | SmLog(name,args,Some ev)      ->  codegen_log_stmt      le ce name args ev
     | SmLog(name,args,None)         ->  err "add_stmt: type check first"

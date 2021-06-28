@@ -10,7 +10,7 @@ open Misc
 
 type ce                             =
                                     { stack_size    : int
-                                    ; program       : Imm.imm program
+                                    ; program       : Location.imm program
                                     ; lookup_cn     : string -> idx
                                     ; cntrcts       : ty cntrct idx_list }
 
@@ -71,12 +71,12 @@ let (>>) op ce                 = append_opcode ce op
     
 let rec stmt_might_become       =   function 
     | SmAbort                   ->  []
-    | SmSelfDestruct e        
-    | SmExpr         e          ->  expr_might_become e
-    | SmVarDecl      v          ->  expr_might_become v.varDecl_val
+    | SmSlfDstrct   e        
+    | SmExpr        e           ->  expr_might_become e
+    | SmDecl        v           ->  expr_might_become v.declVal
     | SmAssign(LEpArray a,r)    ->  expr_might_become a.arrIndex @ expr_might_become r
     | SmIfThen(c,b)             ->  expr_might_become c @ stmts_might_become b
-    | SmIf(c,b0,b1)     ->  expr_might_become c @ stmts_might_become b0 @ stmts_might_become b1
+    | SmIf(c,b0,b1)             ->  expr_might_become c @ stmts_might_become b0 @ stmts_might_become b1
     | SmLog(_,l,_)              ->  exprs_might_become l
     | SmReturn r                ->  (match r.ret_expr with
                                     | Some e        -> expr_might_become e
@@ -87,7 +87,7 @@ let rec stmt_might_become       =   function
                                     | None          -> [] )
 and stmts_might_become ss       =   L.concat (L.map stmt_might_become ss)
 
-and fncall_might_become f   =   exprs_might_become      f.call_args
+and fncall_might_become f       =   exprs_might_become      f.call_args
 and new_expr_might_become n     =   exprs_might_become      n.new_args 
                                 @   msg_might_become   n.new_msg
 and msg_might_become m          =   ( match m.msg_value with
@@ -111,8 +111,7 @@ and expr_might_become e         =   match fst e with
     | EpParen       e         
     | EpAddr        e         
     | EpNot         e         
-    | EpSingleDeref e         
-    | EpTupleDeref  e         
+    | EpDeref       e         
     | EpBalance     e           ->  expr_might_become e
     | EpLand      (l,r)           
     | EpLt        (l,r)           

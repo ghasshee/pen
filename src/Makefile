@@ -4,12 +4,11 @@ OBJS = 	misc.cmo indexedList.cmo \
 		syntax.cmo \
 		label.cmo \
 		typeEnv.cmo \
-		imm.cmo \
 		location.cmo \
 		evm.cmo \
 		ethereum.cmo \
-		abi.cmo \
 		locationEnv.cmo \
+		abi.cmo \
 		storLayout.cmo \
 		contract.cmo \
 		type.cmo \

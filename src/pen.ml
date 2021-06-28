@@ -77,7 +77,7 @@ let ()      =
               let bytecode  : big_int Evm.program           = compose_bytecode ccs rc (fst(L.hd cns))   in
               if  abi 
                   then Abi.prABI toplevels 
-                  else Evm.pr_encoded bytecode 
+                  else Evm.prLn_encoded bytecode 
 
 (*                                                                                                                                 *)
 (*       +----------------------+                                                                                                  *)

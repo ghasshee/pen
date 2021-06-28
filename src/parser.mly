@@ -10,7 +10,7 @@
 %token BOOL TRUE FALSE
 %token PLUS MINUS MULT 
 %token LT GT NOT NEQ EQ EQEQ LAND
-%token RARROW
+%token DARROW
 %token COMMA DOT SEMI
 %token LPAR RPAR    LSQBR RSQBR     LBRACE RBRACE 
 %token METHOD DEFAULT
@@ -18,7 +18,7 @@
 %token ALONG
 %token RETURN BECOME
 %token ABORT REENTRANCE
-%token DEPLOY SELFDESTRUCT
+%token NEW SELFDESTRUCT
 %token SENDER MSG VALUE BALANCE
 %token THIS NOW VOID
 %token EVENT LOG 
@@ -26,7 +26,7 @@
 %token INDEXED
 %token EOF
 
-%right RARROW
+%right DARROW
 
 %left LAND
 %left NEQ EQEQ LT GT
@@ -37,14 +37,14 @@
 %%
 
 %inline plist(X):
-    delimited(LPAR,separated_list(COMMA,X),RPAR)    { $1 }
+    delimited(LPAR,separated_list(COMMA,X),RPAR)    { $1                                                        }
 
 file:
-    | list(cntrct) EOF                              { $1 }
+    | list(cntrct) EOF                              { $1                                                        }
 
 cntrct:
     | CONTRACT ID plist(arg)LBRACE list(mthd)RBRACE { Cntrct{mthds=$5; cntrct_name=$2; cntrct_args=$3}          }
-    | EVENT    ID plist(evnt_arg) SEMI              { Event {evnt_args=$3; evnt_name=$2}                        }
+    | EVENT    ID plist(evnt_arg) SEMI              { Event {            evnt_name=$2;   evnt_args=$3}          }
 
 mthd:
     | mthd_head block                               { {mthd_head=$1; mthd_body=$2}                              }
@@ -70,7 +70,7 @@ ty:
     | BYTES32                                       { TyBytes32                                                 }
     | ADDRESS                                       { TyAddr                                                    }
     | BOOL                                          { TyBool                                                    }
-    | ty RARROW ty                                  { TyMap($1,$3)                                              }
+    | ty DARROW ty                                  { TyMap($1,$3)                                              }
     | ID                                            { TyInstnce $1                                              }
 
 %inline body:
@@ -81,12 +81,12 @@ stmt:
     | ABORT SEMI                                    { SmAbort                                                   }
     | RETURN option(expr) THEN BECOME expr SEMI     { SmReturn{ret_expr=$2; ret_cont=$5}                        }
     | lexpr EQ expr SEMI                            { SmAssign($1,$3)                                           }
-    | ty ID EQ expr SEMI                            { SmVarDecl{varDecl_ty=$1; varDecl_id=$2; varDecl_val=$4}   }
+    | ty ID EQ expr SEMI                            { SmDecl{declTy=$1; declId=$2; declVal=$4}   }
     | VOID EQ expr SEMI                             { SmExpr $3                                                 }
     | IF expr THEN body ELSE body                   { SmIf($2,$4,$6)                                            }
     | IF expr THEN body                             { SmIfThen ($2, $4)                                         }
     | LOG ID expr_list SEMI                         { SmLog($2,$3,None)                                         }
-    | SELFDESTRUCT expr SEMI                        { SmSelfDestruct $2                                         }
+    | SELFDESTRUCT expr SEMI                        { SmSlfDstrct $2                                            }
 
 %inline op:
     | PLUS                                          { fun(l,r)-> EpPlus(l,r)                                    }
@@ -112,8 +112,8 @@ expr:
     | NOW     LPAR BLOCK RPAR                       { EpNow,                                                            ()  }
     | ADDRESS LPAR  expr RPAR                       { EpAddr $3,                                                        ()  }
     | ID                                            { EpIdent $1,                                                       ()  }
-    | ID  expr_list                                 { EpFnCall{call_head=$1;call_args=$2},                              ()  }
-    | DEPLOY ID expr_list msg                       { EpNew {new_head=$2;new_args=$3; new_msg=$4},                      ()  }
+    | ID  expr_list                                 { Printf.printf "\n%s\n" $1; EpFnCall{call_head=$1;call_args=$2},                              ()  }
+    | NEW ID expr_list msg                          { EpNew {new_head=$2;new_args=$3; new_msg=$4},                      ()  }
     | expr DOT DEFAULT LPAR RPAR msg                { EpSend{send_cntrct=$1;send_mthd=None   ;send_args=[];send_msg=$6},()  }
     | expr DOT ID   expr_list msg                   { EpSend{send_cntrct=$1;send_mthd=Some $3;send_args=$4;send_msg=$5},()  }
     | THIS                                          { EpThis,                                                           ()  }

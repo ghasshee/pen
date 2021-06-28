@@ -1,5 +1,6 @@
 open Hexa 
 open Big_int
+open Misc
 
 type 'imm opcode = 
     | STOP      | ADD       | MUL       | SUB       | DIV       | SDIV              (*   0s *)
@@ -143,9 +144,9 @@ let stack_pushed = function
   | SELFDESTRUCT                        -> 0
 
 let string_of_opcode = function 
-  | PUSH1 v         -> "PUSH1 " ^(Imm.string_of_imm v)
-  | PUSH4 v         -> "PUSH4 " ^(Imm.string_of_imm v)
-  | PUSH32 v        -> "PUSH32 "^(Imm.string_of_imm v)
+  | PUSH1 v         -> "PUSH1 " ^(Location.string_of_imm v)
+  | PUSH4 v         -> "PUSH4 " ^(Location.string_of_imm v)
+  | PUSH32 v        -> "PUSH32 "^(Location.string_of_imm v)
   | NOT             -> "NOT"
   | TIMESTAMP       -> "TIMESTAMP"
   | ISZERO          -> "ISZERO"
@@ -300,9 +301,13 @@ let log = function
   | 4               -> LOG4
   | _               -> failwith "too many indexed args for an evnt"
 
+let endline h = 
+    hex_of_string ( string_of_hex h ^ "\n")
 (*let rev_append_op (h:hex)(i:big_int opcode) = concat_hex (hex_of_opcode i) h *)
 let hex_of_program      (p : big_int program) = List.fold_left (fun h i->concat_hex(hex_of_opcode i)h) empty_hex p
+let hex_of_program_ln   (p : big_int program) = List.fold_left (fun h i->concat_hex(endline (hex_of_opcode i))h) empty_hex p
 let pr_encoded          (p : big_int program) = pr_hex        ~prefix:"0x" (hex_of_program p) 
+let prLn_encoded        (p : big_int program) = pr_hex        ~prefix:"0x" (hex_of_program_ln p) 
 let encode_program      (p : big_int program) = string_of_hex ~prefix:"0x" (hex_of_program p) 
 
 let size_of_opcode  = function 

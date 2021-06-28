@@ -56,82 +56,81 @@ type evnt               =
 (***      STATEMENTS & EXPRESSIONS     ***)
 (*****************************************)
 
-type 'ty fncall         =
+type 'ty _call        =
                         { call_head             : string
-                        ; call_args             : ('ty expr) list       }
+                        ; call_args             : ('ty expr_ty) list       }
 
-and  'ty msg            =
-                        { msg_value             : 'ty expr option
+and  'ty _msg            =
+                        { msg_value             : 'ty expr_ty option
                         ; msg_reentrance        : 'ty stmt list         }
 
-and  'ty new_expr       =
+and  'ty _new       =
                         { new_head              : string
-                        ; new_args              : 'ty expr list
-                        ; new_msg               : 'ty msg               }
+                        ; new_args              : 'ty expr_ty list
+                        ; new_msg               : 'ty _msg               }
 
-and  'ty send_expr      =
-                        { send_cntrct           : 'ty expr
+and  'ty _send      =
+                        { send_cntrct           : 'ty expr_ty
                         ; send_mthd             : string option
-                        ; send_args             : 'ty expr list
-                        ; send_msg              : 'ty msg               }
+                        ; send_args             : 'ty expr_ty list
+                        ; send_msg              : 'ty _msg              }
 
 and  'ty stmt           =
                         | SmAbort
                         | SmReturn              of 'ty return
-                        | SmAssign              of 'ty lexpr * 'ty expr
-                        | SmVarDecl             of 'ty varDecl
-                        | SmIfThen              of 'ty expr * 'ty stmt list
-                        | SmIf                  of 'ty expr * 'ty stmt list * 'ty stmt list
-                        | SmSelfDestruct        of 'ty expr
-                        | SmExpr                of 'ty expr
-                        | SmLog                 of string   * 'ty expr list * evnt option
+                        | SmAssign              of 'ty lexpr * 'ty expr_ty
+                        | SmDecl                of 'ty decl
+                        | SmIfThen              of 'ty expr_ty * 'ty stmt list
+                        | SmIf                  of 'ty expr_ty * 'ty stmt list * 'ty stmt list
+                        | SmSlfDstrct           of 'ty expr_ty
+                        | SmExpr                of 'ty expr_ty
+                        | SmLog                 of string   * 'ty expr_ty list * evnt option
 
-and  'ty expr           = 'ty expr_tm * 'ty
+and  'ty expr_ty        = 'ty expr * 'ty
 
-and  'ty expr_tm        =
-                        | EpParen               of 'ty expr
+and  'ty expr           =
+                        | EpParen               of 'ty expr_ty
                         | EpTrue
                         | EpFalse
                         | EpDecLit256           of big_int
                         | EpDecLit8             of big_int
                         | EpNow
                         | EpIdent               of string
-                        | EpFnCall              of 'ty fncall
-                        | EpNew                 of 'ty new_expr
-                        | EpSend                of 'ty send_expr
-                        | EpLand                of 'ty expr * 'ty expr
-                        | EpLt                  of 'ty expr * 'ty expr
-                        | EpGt                  of 'ty expr * 'ty expr
-                        | EpNeq                 of 'ty expr * 'ty expr
-                        | EpEq                  of 'ty expr * 'ty expr
-                        | EpAddr                of 'ty expr
-                        | EpNot                 of 'ty expr
+                        | EpFnCall              of 'ty _call
+                        | EpNew                 of 'ty _new
+                        | EpSend                of 'ty _send
+                        | EpLand                of 'ty expr_ty * 'ty expr_ty
+                        | EpLt                  of 'ty expr_ty * 'ty expr_ty
+                        | EpGt                  of 'ty expr_ty * 'ty expr_ty
+                        | EpNeq                 of 'ty expr_ty * 'ty expr_ty
+                        | EpEq                  of 'ty expr_ty * 'ty expr_ty
+                        | EpAddr                of 'ty expr_ty
+                        | EpNot                 of 'ty expr_ty
                         | EpArray               of 'ty lexpr
                         | EpValue
                         | EpSender
                         | EpThis
-                        | EpSingleDeref         of 'ty expr
-                        | EpTupleDeref          of 'ty expr
-                        | EpPlus                of 'ty expr * 'ty expr
-                        | EpMinus               of 'ty expr * 'ty expr
-                        | EpMult                of 'ty expr * 'ty expr
-                        | EpBalance             of 'ty expr
+                        | EpDeref               of 'ty expr_ty
+                        | EpPlus                of 'ty expr_ty * 'ty expr_ty
+                        | EpMinus               of 'ty expr_ty * 'ty expr_ty
+                        | EpMult                of 'ty expr_ty * 'ty expr_ty
+                        | EpBalance             of 'ty expr_ty
 
 and 'ty lexpr           =
                         | LEpArray              of 'ty array
 
 and 'ty array           =
-                        { arrIdent              : 'ty expr
-                        ; arrIndex              : 'ty expr          }
+                        { arrIdent              : 'ty expr_ty
+                        ; arrIndex              : 'ty expr_ty          }
 
-and 'ty varDecl         =
-                        { varDecl_ty            : ty
-                        ; varDecl_id            : string
-                        ; varDecl_val           : 'ty expr          }
+and 'ty decl         =
+                        { declTy            : ty
+                        ; declId            : string
+                        ; declVal           : 'ty expr_ty          }
 
 and 'ty return          =
-                        { ret_expr              : 'ty expr option
-                        ; ret_cont              : 'ty expr          }
+                        { ret_expr              : 'ty expr_ty option
+                        ; ret_cont              : 'ty expr_ty          }
 
 
 
@@ -146,7 +145,7 @@ let evnt_arg_of_arg arg isIndexed =
 let arg_of_evnt_arg e   = e.arg
 let args_of_evnt_args   = L.map arg_of_evnt_arg
 
-let split_evnt_args ev (args:'a expr list) =
+let split_evnt_args ev (args:'a expr_ty list) =
     let indexed : bool list = L.map (fun ev_arg->ev_arg.indexed) ev.evnt_args in
     let combined            = L.combine args indexed in
     let is,ns               = BL.partition snd combined in
@@ -229,8 +228,7 @@ let string_of_expr_inner        = function
     | EpValue                   -> "value"
     | EpEq          _           -> "equality"
     | EpAddr        _           -> "address"
-    | EpSingleDeref _           -> "dereference of ..."
-    | EpTupleDeref  _           -> "dereference of tuple..."
+    | EpDeref _                 -> "dereference of ..."
     | EpPlus     (a,b)          -> "... + ..."
     | EpMinus    (a,b)          -> "... - ..."
     | EpMult     (a,b)          -> "... * ..."

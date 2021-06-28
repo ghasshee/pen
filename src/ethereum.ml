@@ -1,7 +1,7 @@
 (* intf := interface *) 
 
 open Misc
-open Location 
+open Location
 open Syntax
 open IndexedList
 open Printf 
