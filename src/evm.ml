@@ -144,9 +144,9 @@ let stack_pushed = function
   | SELFDESTRUCT                        -> 0
 
 let string_of_opcode = function 
-  | PUSH1 v         -> "PUSH1 " ^(Location.string_of_imm v)
-  | PUSH4 v         -> "PUSH4 " ^(Location.string_of_imm v)
-  | PUSH32 v        -> "PUSH32 "^(Location.string_of_imm v)
+  | PUSH1 v         -> "PUSH1 " ^(Abstract.string_of_imm v)
+  | PUSH4 v         -> "PUSH4 " ^(Abstract.string_of_imm v)
+  | PUSH32 v        -> "PUSH32 "^(Abstract.string_of_imm v)
   | NOT             -> "NOT"
   | TIMESTAMP       -> "TIMESTAMP"
   | ISZERO          -> "ISZERO"

@@ -8,20 +8,20 @@ open Evm
 open Misc
 
 
-type ce                             =
-                                    { stack_size    : int
-                                    ; program       : Location.imm program
-                                    ; lookup_cn     : string -> idx
-                                    ; cntrcts       : ty cntrct idx_list }
+type ce                             =   { stack_size    : int
+                                        ; program       : Abstract.imm program
+                                        ; lookup_cn     : string -> idx
+                                        ; cntrcts       : ty cntrct idx_list }
+                                    
 
-let extract_program ce          =   ce.program
-let lookup_cn_of_ce  ce  name   =   ce.lookup_cn name 
-let lookup_cn_of_cns cns name   =   lookup_idx (fun cn->cn.cntrct_name=name) cns
+let extract_program ce              =   ce.program
+let lookup_cn_of_ce  ce  name       =   ce.lookup_cn name 
+let lookup_cn_of_cns cns name       =   lookup_idx (fun cn->cn.cntrct_name=name) cns
 
-let empty_ce lookup_cn cns      =   { stack_size        = 0
-                                        ; program           = empty_program
+let empty_ce lookup_cn cns          =   { stack_size    = 0
+                                        ; program       = empty_program
                                         ; lookup_cn     = lookup_cn
-                                        ; cntrcts           = cns           }
+                                        ; cntrcts       = cns               }
     
 
 let code_len       ce               =   size_of_program ce.program
@@ -49,7 +49,7 @@ let append_opcode ce opcode         =
     if new_stack_size > 1024 then raise StackOverFlow else    
     { stack_size        = new_stack_size
     ; program           = opcode :: ce.program 
-    ; lookup_cn     = ce.lookup_cn
+    ; lookup_cn         = ce.lookup_cn
     ; cntrcts           = ce.cntrcts        }
 
 let (>>) op ce                 = append_opcode ce op  

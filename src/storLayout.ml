@@ -4,7 +4,7 @@ open Misc
 open Syntax
 open Label
 open IndexedList
-open Location
+open Abstract
 
 module Eth  = Ethereum
 module BL   = BatList

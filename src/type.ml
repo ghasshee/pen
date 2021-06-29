@@ -26,10 +26,10 @@ let reserved_var var            =   reserved var.id
 let reserved_cn  cn             =   reserved cn.cntrct_name 
 let reserved_exists             =   BL.exists reserved_var 
 let reserved_args cn            =   BL.exists reserved_var cn.cntrct_args  
-let check_reserved x            =   if reserved x         then err "Names beginning with pre_ is reserved."
-let check_reserved_exists l     =   if reserved_exists l  then err "Names beginning with pre_ is reserved."
-let check_reserved_args cn      =   if reserved_args cn   then err "Names beginning with pre_ is reserved."
-let check_reserved_cn   cn      =   if reserved_cn cn     then err "Names beginning with pre_ is reserved."
+let check_reserved x            =   if reserved x         then err "Names 'pre_..' are reserved."
+let check_reserved_exists l     =   if reserved_exists l  then err "Names 'pre_..' are reserved."
+let check_reserved_args cn      =   if reserved_args cn   then err "Names 'pre_..' are reserved."
+let check_reserved_cn   cn      =   if reserved_cn cn     then err "Names 'pre_..' are reserved."
   
 
 let id_lookup_ty tenv id        =   match lookup tenv id with
@@ -54,8 +54,9 @@ let rec is_known_ty cns         =   function
     | TyVoid                        ->  true
 
 let arg_has_known_ty cns arg    =   let ret = is_known_ty cns arg.ty in
-                                        if not ret then eprintf"arg has Unknown Type %s\n"(string_of_ty arg.ty);
-                                        ret
+                                    if not ret 
+                                        then err("Unknown Type Arg "^string_of_ty arg.ty)
+                                        else ret
 
 let retTy_is_known cns m        =   is_known_ty cns m.mthd_retTy
 
@@ -86,8 +87,8 @@ let check_args_match cns args   =   function
 
 
 
-let rec addTy_call cns cname tyenv c =
-    let args   = L.map (addTy_expr cns cname tyenv) c.call_args in
+let rec addTy_call cns cname ctx c =
+    let args   = L.map (addTy_expr cns cname ctx) c.call_args in
     check_args_match cns args (Some c.call_head) ; 
     let reT    = match c.call_head with
         | "value" when true         -> TyUint256 (* check the arg is 'msg' *) 
@@ -100,14 +101,15 @@ let rec addTy_call cns cname tyenv c =
         | _                         -> err "addTy_call: should not happen" in
     {call_head=c.call_head;call_args=args},reT
 
-and addTy_msg cns cname tyenv msg =
-    let expr    = BO.map (addTy_expr cns cname tyenv) msg.msg_value in
-    let stmts   = addTy_stmts cns cname tyenv msg.msg_reentrance in
+and addTy_msg cns cname ctx msg =
+    let expr    = BO.map (addTy_expr cns cname ctx) msg.msg_value in
+    let stmts   = addTy_stmts cns cname ctx msg.msg_reentrance in
     { msg_value      = expr
     ; msg_reentrance = stmts }
 
-and addTy_expr cns cname tyenv (expr,()) = 
+and addTy_expr cns cname ctx (expr,()) = 
     match expr with
+    | EpParen e         ->  addTy_expr cns cname ctx e 
     | EpDeref _         ->  err "Deref not supposed" 
     | EpThis            ->  EpThis          , TyInstnce cname
     | EpTrue            ->  EpTrue          , TyBool
@@ -116,70 +118,69 @@ and addTy_expr cns cname tyenv (expr,()) =
     | EpNow             ->  EpNow           , TyUint256
     | EpDecLit256 d     ->  EpDecLit256 d   , TyUint256
     | EpDecLit8   d     ->  EpDecLit8   d   , TyUint8
-    | EpFnCall    c     ->  let c,ty= addTy_call cns cname tyenv c in
-                            EpFnCall c      , ty
-    | EpIdent     s     ->  check_reserved s ; 
-                            id_lookup_ty tyenv s
-    | EpParen e         ->  addTy_expr cns cname tyenv e 
-    | EpNew n           ->  let n,nm= addTy_new_expr cns cname tyenv n in
-                            check_reserved nm;  
-                            EpNew n         , TyInstnce nm
-    | EpLand (l, r)     ->  let l   = addTy_expr cns cname tyenv l          in
-                            typecheck (TyBool,l);
-                            let r   = addTy_expr cns cname tyenv r          in
-                            typecheck (TyBool,r); 
-                            EpLand(l,r)     , TyBool
-    | EpLt (l, r)       ->  let l   = addTy_expr cns cname tyenv l          in
-                            let r   = addTy_expr cns cname tyenv r          in
-                            assert_tyeqv l r ; 
-                            EpLt(l,r)       , TyBool
-    | EpGt (l, r)       ->  let l   = addTy_expr cns cname tyenv l          in
-                            let r   = addTy_expr cns cname tyenv r          in
-                            assert_tyeqv l r ; 
-                            EpGt (l, r)     , TyBool
-    | EpNeq (l, r)      ->  let l   = addTy_expr cns cname tyenv l          in
-                            let r   = addTy_expr cns cname tyenv r          in
-                            assert_tyeqv l r ;
-                            EpNeq (l, r)    , TyBool
-    | EpEq (l, r)       ->  let l   = addTy_expr cns cname tyenv l          in
-                            let r   = addTy_expr cns cname tyenv r          in
-                            assert_tyeqv l r ; 
-                            EpEq (l, r)     , TyBool
-    | EpPlus (l, r)     ->  let l   = addTy_expr cns cname tyenv l          in
-                            let r   = addTy_expr cns cname tyenv r          in
-                            assert_tyeqv l r ;
-                            EpPlus (l, r)   , get_ty l
-    | EpMinus (l, r)    ->  let l   = addTy_expr cns cname tyenv l          in
-                            let r   = addTy_expr cns cname tyenv r          in
-                            assert_tyeqv l r; 
-                            EpMinus (l, r)  , get_ty l
-    | EpMult (l, r)     ->  let l   = addTy_expr cns cname tyenv l          in
-                            let r   = addTy_expr cns cname tyenv r          in
-                            assert_tyeqv l r; 
-                            EpMult (l, r)   , snd l
-    | EpNot  e          ->  let e   = addTy_expr cns cname tyenv e          in
-                            assert (get_ty e=TyBool) ; 
-                            EpNot e         , TyBool
     | EpValue           ->  EpValue         , TyUint256
-    | EpAddr e          ->  let e   = addTy_expr cns cname tyenv e          in
+    | EpAddr e          ->  let e   = addTy_expr cns cname ctx e          in
                             EpAddr e        , TyAddr
-    | EpBalance e       ->  let e   = addTy_expr cns cname tyenv e          in
+    | EpBalance e       ->  let e   = addTy_expr cns cname ctx e          in
                             assert (acceptable_as TyAddr (get_ty e));
                             EpBalance e     , TyUint256
-    | EpArray aa        ->  let e   = addTy_expr cns cname tyenv (read_array aa).arrIdent in
+    | EpFnCall    c     ->  let c,ty= addTy_call cns cname ctx c in
+                            EpFnCall c      , ty
+    | EpIdent     s     ->  check_reserved s ; 
+                            id_lookup_ty ctx s
+    | EpNew n           ->  let n,nm= addTy_new_expr cns cname ctx n in
+                            check_reserved nm;  
+                            EpNew n         , TyInstnce nm
+    | EpLand (l, r)     ->  let l   = addTy_expr cns cname ctx l          in
+                            typecheck (TyBool,l);
+                            let r   = addTy_expr cns cname ctx r          in
+                            typecheck (TyBool,r); 
+                            EpLand(l,r)     , TyBool
+    | EpLt (l, r)       ->  let l   = addTy_expr cns cname ctx l          in
+                            let r   = addTy_expr cns cname ctx r          in
+                            assert_tyeqv l r ; 
+                            EpLt(l,r)       , TyBool
+    | EpGt (l, r)       ->  let l   = addTy_expr cns cname ctx l          in
+                            let r   = addTy_expr cns cname ctx r          in
+                            assert_tyeqv l r ; 
+                            EpGt (l, r)     , TyBool
+    | EpNeq (l, r)      ->  let l   = addTy_expr cns cname ctx l          in
+                            let r   = addTy_expr cns cname ctx r          in
+                            assert_tyeqv l r ;
+                            EpNeq (l, r)    , TyBool
+    | EpEq (l, r)       ->  let l   = addTy_expr cns cname ctx l          in
+                            let r   = addTy_expr cns cname ctx r          in
+                            assert_tyeqv l r ; 
+                            EpEq (l, r)     , TyBool
+    | EpPlus (l, r)     ->  let l   = addTy_expr cns cname ctx l          in
+                            let r   = addTy_expr cns cname ctx r          in
+                            assert_tyeqv l r ;
+                            EpPlus (l, r)   , get_ty l
+    | EpMinus (l, r)    ->  let l   = addTy_expr cns cname ctx l          in
+                            let r   = addTy_expr cns cname ctx r          in
+                            assert_tyeqv l r; 
+                            EpMinus (l, r)  , get_ty l
+    | EpMult (l, r)     ->  let l   = addTy_expr cns cname ctx l          in
+                            let r   = addTy_expr cns cname ctx r          in
+                            assert_tyeqv l r; 
+                            EpMult (l, r)   , snd l
+    | EpNot  e          ->  let e   = addTy_expr cns cname ctx e          in
+                            assert (get_ty e=TyBool) ; 
+                            EpNot e         , TyBool
+    | EpArray aa        ->  let e   = addTy_expr cns cname ctx (read_array aa).arrIdent in
                             begin match get_ty e with
                             | TyMap(kT,vT)-> let aaidx              = (read_array aa).arrIndex  in 
-                                             let idx,idxTy = addTy_expr cns cname tyenv aaidx   in 
+                                             let idx,idxTy = addTy_expr cns cname ctx aaidx   in 
                                              assert (acceptable_as kT idxTy) ; 
                                              EpArray(LEpArray{ arrIdent = e
                                                              ; arrIndex = idx,idxTy }), vT
                             | _           -> err "index access has to be on mappings"   end
-    | EpSend send       ->  let msg = addTy_msg  cns cname tyenv send.send_msg          in
-                            let cn' = addTy_expr cns cname tyenv send.send_cntrct       in
+    | EpSend send       ->  let msg = addTy_msg  cns cname ctx send.send_msg          in
+                            let cn' = addTy_expr cns cname ctx send.send_cntrct       in
                             begin match send.send_mthd with
                             | Some m -> let tyMthd  =   find_tyMthd cns m                                   in 
                                         let tyRet   =   tyMthd.tyRet                                        in
-                                        let args    =   L.map (addTy_expr cns cname tyenv) send.send_args   in
+                                        let args    =   L.map (addTy_expr cns cname ctx) send.send_args   in
                                         let ref     =   EpSend  { send_cntrct   = cn'
                                                                 ; send_mthd     = send.send_mthd
                                                                 ; send_args     = args
@@ -196,69 +197,68 @@ and addTy_expr cns cname tyenv (expr,()) =
 and addTy_new_expr cns cname tenv e =
     let msg'        =   addTy_msg cns cname tenv e.new_msg in
     let args'       =   L.map (addTy_expr cns cname tenv) e.new_args in
-    { new_head      = e.new_head
-    ; new_args      = args'
-    ; new_msg       = msg'          }, e.new_head 
+    { new_head      =   e.new_head
+    ; new_args      =   args'
+    ; new_msg       =   msg'          }, e.new_head 
 
-and addTy_lexpr cns cname tyenv = function 
-    | LEpArray aa ->let e = addTy_expr cns cname tyenv aa.arrIdent in
-                            begin match get_ty e with
-                            | TyMap (kT,vT) ->
-                               let idx,ty = addTy_expr cns cname tyenv aa.arrIndex in
-                               LEpArray { arrIdent    = e 
-                                        ; arrIndex   = idx,ty  }
-                            | _             -> err ("unknown array") end
+and addTy_lexpr cns cname ctx = function 
+    | LEpArray aa       ->
+    let e = addTy_expr cns cname ctx aa.arrIdent in
+    begin match get_ty e with
+    | TyMap (kT,vT)     ->  let idx,ty = addTy_expr cns cname ctx aa.arrIndex in
+                            LEpArray { arrIdent=e; arrIndex=idx,ty }
+    | _                 ->  err ("unknown array") end
 
-and addTy_return cns cname tyenv ret =
-    let retTyexpr   = BO.map (addTy_expr cns cname tyenv) ret.ret_expr in
-    let retTyCheck  = lookup_retTyCheck tyenv in
+and addTy_return cns cname ctx ret =
+    let retTyexpr   =   BO.map (addTy_expr cns cname ctx) ret.ret_expr in
+    let retTyCheck  =   lookup_retTyCheck ctx in
     assert (retTyCheck(BO.map get_ty retTyexpr)); 
-    { ret_expr      = retTyexpr
-    ; ret_cont      = addTy_expr cns cname tyenv ret.ret_cont }
+    { ret_expr      =   retTyexpr
+    ; ret_cont      =   addTy_expr cns cname ctx ret.ret_cont }
 
-and addTy_decl cns cname tyenv vd =
-    let v       = addTy_expr cns cname tyenv vd.declVal in
-    let id      = vd.declId     in
-    let ty      = vd.declTy     in
+and addTy_decl cns cname ctx vd =
+    let v           =   addTy_expr cns cname ctx vd.declVal in
+    let id          =   vd.declId     in
+    let ty          =   vd.declTy     in
     check_reserved id ;
     assert (is_known_ty cns ty);
-    let tyenv'  = add_var tyenv id ty in
-    let vd'     =   { declTy    = ty
-                    ; declId    = id
-                    ; declVal   = v  } in
-    vd', tyenv'
+    let ctx'        =   add_var ctx id ty in
+    let vd'         =   { declTy    = ty
+                        ; declId    = id
+                        ; declVal   = v  } in
+    vd', ctx'
 
-and addTy_stmt cns cname tyenv = function 
-    | SmAbort           ->  SmAbort         , tyenv
-    | SmReturn r        ->  let r       = addTy_return   cns cname tyenv r in
-                            SmReturn r      , tyenv
-    | SmAssign(l,r)     ->  let l       = addTy_lexpr    cns cname tyenv l in
-                            let r       = addTy_expr     cns cname tyenv r in
-                            SmAssign(l,r)   , tyenv
-    | SmIfThen(b,t)     ->  let b       = addTy_expr     cns cname tyenv b in
-                            let t       = addTy_stmts    cns cname tyenv t in
-                            SmIfThen(b,t)   , tyenv
-    | SmIf(b,t,f)       ->  let b       = addTy_expr     cns cname tyenv b in
-                            let t       = addTy_stmts    cns cname tyenv t in
-                            let f       = addTy_stmts    cns cname tyenv f in
-                            SmIf(b,t,f)     , tyenv
-    | SmSlfDstrct e     ->  let e       = addTy_expr     cns cname tyenv e in
-                            SmSlfDstrct e   , tyenv
-    | SmDecl v          ->  let v,tyenv = addTy_decl  cns cname tyenv v in
-                            SmDecl v        , tyenv
-    | SmExpr e          ->  let e       = addTy_expr     cns cname tyenv e in
+and addTy_stmt cns cname ctx = function 
+    | SmAbort           ->  SmAbort         , ctx
+    | SmReturn r        ->  let r       = addTy_return      cns cname ctx  r        in
+                            SmReturn r      , ctx
+    | SmAssign(l,r)     ->  let l       = addTy_lexpr       cns cname ctx  l        in
+                            let r       = addTy_expr        cns cname ctx  r        in
+                            SmAssign(l,r)   , ctx
+    | SmIfThen(b,t)     ->  let b       = addTy_expr        cns cname ctx  b        in
+                            let t       = addTy_stmts       cns cname ctx  t        in
+                            SmIfThen(b,t)   , ctx
+    | SmIf(b,t,f)       ->  let b       = addTy_expr        cns cname ctx  b        in
+                            let t       = addTy_stmts       cns cname ctx  t        in
+                            let f       = addTy_stmts       cns cname ctx  f        in
+                            SmIf(b,t,f)     , ctx
+    | SmSlfDstrct e     ->  let e       = addTy_expr        cns cname ctx  e        in
+                            SmSlfDstrct e   , ctx
+    | SmDecl v          ->  let v,ctx   = addTy_decl        cns cname ctx  v        in
+                            SmDecl v        , ctx
+    | SmExpr e          ->  let e       = addTy_expr        cns cname ctx  e        in
                             assert(get_ty e=TyTuple[]) ;
-                            SmExpr e        , tyenv
-    | SmLog(nm,args,_)  ->  let args    = L.map(addTy_expr cns cname tyenv) args in
-                            let ev      = lookup_evnt tyenv nm in
-                            let tys     = L.map(fun ea -> ea.arg.ty) ev.evnt_args in
-                            assert (typechecks tys args) ;
-                            SmLog(nm,args,Some ev), tyenv
+                            SmExpr e        , ctx
+    | SmLog(nm,args,_)  ->  let args    = L.map (addTy_expr cns cname ctx) args     in
+                            let ev      = lookup_evnt nm ctx                        in
+                            let tys     = L.map(fun ea -> ea.arg.ty)ev.evnt_args    in
+                            assert(typechecks tys args) ;
+                            SmLog(nm,args,Some ev), ctx
 
-and addTy_stmts cns cname tyenv = function 
+and addTy_stmts cns cname ctx = function 
     | []                ->  []
-    | stmt::rest        ->  let stmt,tyenv = addTy_stmt cns cname tyenv stmt in
-                            stmt :: addTy_stmts cns cname tyenv rest
+    | stmt::rest        ->  let stmt,ctx = addTy_stmt cns cname ctx stmt in
+                            stmt :: addTy_stmts cns cname ctx rest
 
 
 (* Termination *) 
@@ -271,15 +271,15 @@ type termination            =
 let rec is_terminating      = function 
     | SmAbort                   -> [JustStop]
     | SmSlfDstrct _             -> [JustStop]
+    | SmAssign    _             -> [OnTheWay]
+    | SmDecl      _             -> [OnTheWay]
+    | SmExpr      _             -> [OnTheWay]
+    | SmLog       _             -> [OnTheWay]
+    | SmIfThen(_,b)             -> are_terminating b  @ [OnTheWay] (* there is a continuation if the condition does not hold. *)
+    | SmIf(_,bT,bF)             -> are_terminating bT @ (are_terminating bF)
     | SmReturn ret              -> begin match ret.ret_expr with
         | Some _                    -> [ReturnBySize 1]
         | None                      -> [ReturnBySize 0] end
-    | SmIfThen(_,b)             -> are_terminating b  @ [OnTheWay] (* there is a continuation if the condition does not hold. *)
-    | SmIf(_,bT,bF)             -> are_terminating bT @ (are_terminating bF)
-    | SmAssign _                -> [OnTheWay]
-    | SmDecl _                  -> [OnTheWay]
-    | SmExpr _                  -> [OnTheWay]
-    | SmLog _                   -> [OnTheWay]
 
 and are_terminating stmts =
   let last_stmt = BL.last stmts in
@@ -289,7 +289,7 @@ and are_terminating stmts =
 
 (* AssignTy Method / Contract / Toplevel  *) 
 
-(* Default Method Returns Void is a specification *) 
+(* Default Method Returns Unit(==EmptyTuple) is a specification *) 
 
 let mthd_is_returning_void (mthd:unit mthd) = match mthd.mthd_head with
     | Default               ->  true
@@ -314,9 +314,9 @@ let addTy_mthd cns cn_name tenv (m : unit mthd) =
     let margs       = args_of_mthd m.mthd_head in
     check_reserved_exists margs; 
     let retTyCheck  = retTyCheck_of_mthd m.mthd_head in
-    let tyenv'      = set_retTyCheck (add_block margs tenv) retTyCheck in 
+    let ctx'        = add_retTyCheck (add_block margs tenv) retTyCheck in 
     { mthd_head         = addTy_mthd_head cns m.mthd_head
-    ; mthd_body         = addTy_stmts cns cn_name tyenv' m.mthd_body }
+    ; mthd_body         = addTy_stmts cns cn_name ctx' m.mthd_body }
 
 let has_distinct_sigs (cn:unit cntrct) =
     let mthds       =   cn.mthds in
@@ -331,14 +331,14 @@ let addTy_cntrct cns (evs: evnt idx_list) cn =
     check_reserved_cn    cn; 
     check_reserved_args  cn; 
     assert (BL.for_all(arg_has_known_ty cns)cn.cntrct_args && has_distinct_sigs cn)  ; 
-    let tyenv  = add_block cn.cntrct_args (add_evnts empty_tyEnv evs) in
-    { cntrct_name     = cn.cntrct_name
-    ; cntrct_args     = cn.cntrct_args
-    ; mthds           = L.map(addTy_mthd cns cn.cntrct_name tyenv)cn.mthds }
+    let ctx  = add_block cn.cntrct_args (add_evnts empty_ctx evs) in
+    { cntrct_name   = cn.cntrct_name
+    ; cntrct_args   = cn.cntrct_args
+    ; mthds         = L.map(addTy_mthd cns cn.cntrct_name ctx)cn.mthds }
 
 let addTy_toplevel cns (evs:evnt idx_list) = function 
-    | Cntrct c    -> Cntrct (addTy_cntrct cns evs c)
-    | Event  e    -> Event e
+    | Cntrct c      -> Cntrct (addTy_cntrct cns evs c)
+    | Event  e      -> Event e
 
 
 

@@ -3,7 +3,7 @@ open Ethereum
 (*************************) 
 (*      PRINT ABI        *) 
 (*************************) 
-open Location 
+open Abstract 
 open Syntax
 open IndexedList
 open Printf 

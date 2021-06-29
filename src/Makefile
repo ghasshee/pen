@@ -4,7 +4,7 @@ OBJS = 	misc.cmo indexedList.cmo \
 		syntax.cmo \
 		label.cmo \
 		typeEnv.cmo \
-		location.cmo \
+		abstract.cmo \
 		evm.cmo \
 		ethereum.cmo \
 		locationEnv.cmo \
