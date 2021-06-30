@@ -99,6 +99,17 @@ let dispatch_to_mthd mhash ce =
     let ce = if_zero_throw             ce in 
     ce 
 
+
+let whileLOOP ce cond body = 
+    let label   = fresh_label()                             in 
+    let exit    = fresh_label()                             in 
+    let ce      = JUMPDEST label                    >>ce    in 
+    let ce      = cond exit                           ce    in 
+    let ce      = body                                ce    in 
+    let ce      = goto label                          ce    in  (*                                 idx+1 >> mem_start+32 >> size-32 >> .. *)
+                  JUMPDEST exit                     >>ce   
+    
+
 (*                                                                                                                                              *)
 (*                                                                                                                                              *)
 (*                                                                                                                                              *)
