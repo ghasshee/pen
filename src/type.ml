@@ -136,14 +136,14 @@ and addTy_expr cns cname ctx (expr,()) =
                             let r   = addTy_expr cns cname ctx r          in
                             typecheck (TyBool,r); 
                             EpLAnd(l,r)     , TyBool
-    | EpLt (l, r)       ->  let l   = addTy_expr cns cname ctx l          in
+    | EpLT (l, r)       ->  let l   = addTy_expr cns cname ctx l          in
                             let r   = addTy_expr cns cname ctx r          in
                             assert_tyeqv l r ; 
-                            EpLt(l,r)       , TyBool
-    | EpGt (l, r)       ->  let l   = addTy_expr cns cname ctx l          in
+                            EpLT(l,r)       , TyBool
+    | EpGT (l, r)       ->  let l   = addTy_expr cns cname ctx l          in
                             let r   = addTy_expr cns cname ctx r          in
                             assert_tyeqv l r ; 
-                            EpGt (l, r)     , TyBool
+                            EpGT (l, r)     , TyBool
     | EpNeq (l, r)      ->  let l   = addTy_expr cns cname ctx l          in
                             let r   = addTy_expr cns cname ctx r          in
                             assert_tyeqv l r ;

@@ -114,8 +114,8 @@ and expr_might_become e         =   match fst e with
     | EpDeref       e         
     | EpBalance     e           ->  expr_might_become e
     | EpLAnd      (l,r)           
-    | EpLt        (l,r)           
-    | EpGt        (l,r)           
+    | EpLT        (l,r)           
+    | EpGT        (l,r)           
     | EpNeq       (l,r)           
     | EpEq        (l,r)           
     | EpMinus     (l,r)

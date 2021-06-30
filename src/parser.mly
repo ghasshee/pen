@@ -92,8 +92,8 @@ stmt:
     | PLUS                                          { fun(l,r)-> EpPlus(l,r)                                    }
     | MINUS                                         { fun(l,r)-> EpMinus(l,r)                                   }
     | MULT                                          { fun(l,r)-> EpMult(l,r)                                    }
-    | LT                                            { fun(l,r)-> EpLt(l,r)                                      }
-    | GT                                            { fun(l,r)-> EpGt(l,r)                                      }
+    | LT                                            { fun(l,r)-> EpLT(l,r)                                      }
+    | GT                                            { fun(l,r)-> EpGT(l,r)                                      }
     | EQEQ                                          { fun(l,r)-> EpEq(l,r)                                      }
     | NEQ                                           { fun(l,r)-> EpNeq(l,r)                                     }
     | LAND                                          { fun(l,r)-> EpLAnd(l,r)                                    } 

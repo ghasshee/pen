@@ -100,8 +100,8 @@ and  'ty expr           =
                         | EpNew                 of 'ty _new
                         | EpSend                of 'ty _send
                         | EpLAnd                of 'ty expr_ty * 'ty expr_ty
-                        | EpLt                  of 'ty expr_ty * 'ty expr_ty
-                        | EpGt                  of 'ty expr_ty * 'ty expr_ty
+                        | EpLT                  of 'ty expr_ty * 'ty expr_ty
+                        | EpGT                  of 'ty expr_ty * 'ty expr_ty
                         | EpNeq                 of 'ty expr_ty * 'ty expr_ty
                         | EpEq                  of 'ty expr_ty * 'ty expr_ty
                         | EpAddr                of 'ty expr_ty
@@ -223,8 +223,8 @@ let string_of_expr_inner        = function
     | EpNot         _           -> "not"
     | EpNeq         _           -> "neq"
     | EpLAnd        _           -> "_ && _"
-    | EpLt          _           -> "lt"
-    | EpGt          _           -> "gt"
+    | EpLT          _           -> "lt"
+    | EpGT          _           -> "gt"
     | EpValue                   -> "value"
     | EpEq          _           -> "equality"
     | EpAddr        _           -> "address"
