@@ -35,20 +35,19 @@ let throw ce         = (* the same with solc. *)
 let throw_if_0 ce    =                                          (*                        i >> .. *)   
     let ce      =   DUP1                            >>ce    in  (*                   i >> i >> .. *)
     let ce      =   ISZERO                          >>ce    in  (*                   b >> i >> .. *)
-    let ce      =   PUSH1(Int 2)                    >>ce    in  (*              0 >> b >> i >> .. *)
-                    JUMPI                           >>ce        (* {GOTO 2 if b}          i >> .. *)
+    let ce      =   PUSH1(Int 0)                    >>ce    in  (*              0 >> b >> i >> .. *)
+                    JUMPI                           >>ce        (* {GOTO 0 if b}          i >> .. *)
       
 let throw_if_NEQ ce   =                                         (*                      a >> b >> .. *) 
     let ce      =   EQ                              >>ce    in  (*                        a==b >> .. *)
     let ce      =   ISZERO                          >>ce    in  (*                        a!=b >> .. *)    
-    let ce      =   PUSH1(Int 2)                    >>ce    in  (*                   0 >> a!=b >> .. *)
+    let ce      =   PUSH1(Int 0)                    >>ce    in  (*                   0 >> a!=b >> .. *)
                     JUMPI                           >>ce        (* {IF a!=b THEN GOTO 0}          .. *)
 
 let if_0_GOTO lbl ce = 
     let ce      =   ISZERO                          >>ce    in 
     let ce      =   PUSH4(Label lbl)                >>ce    in 
                     JUMPI                           >>ce    
-
 let goto la   ce    = 
     let ce      =   PUSH4(Label la)                 >>ce    in 
                     JUMP                            >>ce 
@@ -103,12 +102,12 @@ let incr_top (inc : int) ce =
                 ADD                                 >>ce      
 
 let sincr (idx : int) ce = 
-    let ce    = PUSH1(Int idx)                  >>ce            in   (*                                      i >>               *) (* stack: [stor_index, 1] *)
-    let ce    = SLOAD                           >>ce            in   (*                                   S[i] >>               *) (* stack: [stor_index, orig_seed] *)
-    let ce    = DUP1                            >>ce            in   (*                           S[i] >> S[i] >>               *) (* stack: [stor_index, orig_seed, orig_seed] *)
-    let ce    = incr_top 1                        ce            in   (*                         S[i]+1 >> S[i] >>               *) (* stack: [stor_index, orig_seed, orig_seed + 1] *)
-    let ce    = PUSH1(Int idx)                  >>ce            in   (*                    i >> S[i]+1 >> S[i] >>               *) (* stack: [stor_index, orig_seed, orig_seed + 1, 1] *)
-                SSTORE                          >>ce                 (* S[i]:=S[i]+1                      S[i] >>               *) (* stack: [stor_index, orig_seed] *)
+    let ce    = PUSH1(Int idx)                  >>ce            in   (*                                      i >> .. *) 
+    let ce    = SLOAD                           >>ce            in   (*                                   S[i] >> .. *) 
+    let ce    = DUP1                            >>ce            in   (*                           S[i] >> S[i] >> .. *) 
+    let ce    = incr_top 1                        ce            in   (*                         S[i]+1 >> S[i] >> .. *) 
+    let ce    = PUSH1(Int idx)                  >>ce            in   (*                    i >> S[i]+1 >> S[i] >> .. *) 
+                SSTORE                          >>ce                 (* S[i]:=S[i]+1                      S[i] >> .. *) 
 
 let calldataload ce (range : calldata_range) =
     let start = range.calldata_start                        in 
@@ -176,7 +175,6 @@ let restore_PC ce       =                                        (*             
                 SSTORE                              >>ce         (* S'[0]=bkp_pc                .. *)             
 
 
-
 (****************************************)
 (***     5. MEMORY OPERATIONS         ***)
 (****************************************)
@@ -193,8 +191,7 @@ let restore_PC ce       =                                        (*             
  *  mem_alloc :=                           +--------+--------+       +--------+--------+
  *      size := pop();                     | a+size |        |     --> a+size |        |
  *      a    := alloc(size);               +--------+--------+       +--------+--------+
- *      push(a)                                BEFORE MEM                AFTER MEM 
- *)
+ *      push(a)                                BEFORE MEM                AFTER MEM      *)
 
 let mem_alloc ce    =                                       (*  STACK                                            len >> .. *)
     let ce    = PUSH1 (Int 64)                  >>ce    in  (*                                             64 >> len >> .. *)
@@ -206,7 +203,7 @@ let mem_alloc ce    =                                       (*  STACK           
     let ce    = SWAP1                           >>ce    in  (*                              64 >> M[64+len] >> M[64] >> .. *)
                 MSTORE                          >>ce        (*                                                 M[64] >> .. *) 
 
-let get_alloc ce    =
+let get_alloc ce    =   (* 64 == 0x40 *)                           
     let ce    = PUSH1 (Int 64)                  >>ce    in  (* 64    >> .. *) 
                 MLOAD                           >>ce        (* M[64] >> .. *) 
       
@@ -250,8 +247,6 @@ type memoryPack             = TightPack   (* [Tight] uses [size_of_ty] bytes    
 
 
 
-
-
 (*********************************************)
 (***     6.    CODEGEN  EXPR               ***)
 (*********************************************)
@@ -272,8 +267,7 @@ type memoryPack             = TightPack   (* [Tight] uses [size_of_ty] bytes    
  *          |                     |  ...            |
  *          |---------------------|-----------------|
  *          | argsize+size+wsize  |                 |
- *          |                ...  |                 |                         
- *)                                                                 
+ *          |                ...  |                 |             *)                                                                 
 
 let rec mstore_new_instance le ce n =
     let cn_name   =  n.new_head in
@@ -290,120 +284,92 @@ let rec mstore_new_instance le ce n =
     let ce    = ADD                                 >>ce   in (*                               argssize+wsize+size >> alloc(size) >> .. *)
                 SWAP1                               >>ce      (*                                       alloc(size) >>   totalsize >> .. *)
 
-and codegen_call le ce align (fncall:ty _call) (reT:ty) = 
+and codegen_call le ce aln fncall reT = 
     match fncall.call_head with 
-    | "pre_ecdsarecover"    ->  assert (align = R) ; 
+    | "pre_ecdsarecover"    ->  assert(aln=R); 
                                 codegen_ECDSArecover le ce fncall.call_args
-    | "keccak256"           ->  assert (align = R) ; 
+    | "keccak256"           ->  assert(aln=R); 
                                 codegen_keccak256    le ce fncall.call_args    
-    | "iszero"              ->  codegen_iszero le ce align fncall.call_args reT
-    | _                     ->  err "codegen_call: Contract Function Call is Not supported yet."
+    | "iszero"              ->  codegen_iszero le ce aln fncall.call_args reT
+    | _                     ->  err "codegen_call: Contract Method Call is Not supported yet."
 
 and codegen_iszero le ce aln args reT = match args with
-    | [arg] ->  assert (reT=TyBool) ; 
+    | [arg] ->  assert(reT=TyBool) ; 
                 let ce =  arg                   >>>>(aln,le,ce) in
-                          ISZERO    >>         ce 
-    | _     ->  err "codegen_iszero: Wrong number of args"
+                          ISZERO                >>ce 
        
 and codegen_keccak256 le ce args =
-    let ce    = get_alloc ce                                    in  (* stack: [..., offset] *)
-    let ce    = mstore_mthd_args TightPack args le ce           in  (* stack: [..., offset, size] *)
-    let ce    = SWAP1                           >>ce            in  (* stack: [..., size, offset] *)
+    let ce    = get_alloc ce                                    in  
+    let ce    = mstore_mthd_args TightPack args le ce           in  
+    let ce    = SWAP1                           >>ce            in  
                 SHA3                            >>ce              
 
 and codegen_ECDSArecover le ce args = match args with
     | [h; v; r; s] ->
-        let ce = PUSH1 (Int 32)                 >>ce            in  (* stack: [out size] *)
-        let ce = DUP1                           >>ce            in  (* stack: [out size, out size] *)
-        let ce = mem_alloc                        ce            in  (* stack: [out size, out address] *)
-        let ce = DUP2                           >>ce            in  (* stack: [out size, out address, out size] *)
-        let ce = DUP2                           >>ce            in  (* stack: [out size, out address, out size, out address] *)
+        let ce = PUSH1 (Int 32)                 >>ce            in  
+        let ce = DUP1                           >>ce            in  
+        let ce = mem_alloc                        ce            in  
+        let ce = DUP2                           >>ce            in  
+        let ce = DUP2                           >>ce            in  
         let ce = get_alloc                        ce            in
-        let ce = mstore_mthd_args ABIPack args le ce            in  (* stack: [out size, out address, out size, out address, mem_offset, mem_total_size] *)
-        let ce = SWAP1                          >>ce            in  (* stack: [out size, out address, out size, out address, in size, in offset] *)
-        let ce = PUSH1 (Int 0)                  >>ce            in  (* stack: [out size, out address, out size, out address, in size, in offset, value] *)
-        let ce = PUSH1 (Int 1)                  >>ce            in  (* stack: [out size, out address, out size, out address, in size, in offset, value, to] *)
-        let ce = PUSH4 (Int 10000)              >>ce            in  (* stack: [out size, out address, out size, out offset, in size, in offset, value, to, gas] *)
-        let ce = CALL                           >>ce            in  (* stack: [out size, out address, success?] *)
+        let ce = mstore_mthd_args ABIPack args le ce            in  
+        let ce = SWAP1                          >>ce            in  
+        let ce = PUSH1 (Int 0)                  >>ce            in  
+        let ce = PUSH1 (Int 1)                  >>ce            in  
+        let ce = PUSH4 (Int 10000)              >>ce            in  
+        let ce = CALL                           >>ce            in  
         let ce = throw_if_0 ce                                  in
-        let ce = POP                            >>ce            in  (* stack: [out size, out address] *)
-        let ce = SWAP1                          >>ce            in  (* stack: [out address, out size] *)
-        let ce = POP                            >>ce            in  (* we know it's 32 *) (* stack: [out address] *)
+        let ce = POP                            >>ce            in  
+        let ce = SWAP1                          >>ce            in  
+        let ce = POP                            >>ce            in  
                  MLOAD                          >>ce                (* stack: [output] *)
     | _ -> err "pre_ecdsarecover has a wrong number of args"
 
 and codegen_new le ce n =    
-    assert(is_throw_only n.new_msg.msg_reentrance) ;                (* This is NOT a REENTRANCE GUARD, which MUST be modified *) 
-    let ce    = reset_PC ce                                     in  (*                                                          PCbkp >> .. *)
-    let ce    = mstore_new_instance le ce n                     in  (*                                   alloc(size) >> size >> PCbkp >> .. *)
-    let ce    = match n.new_msg.msg_value with                      (* value is the amount sent at the contract creation                    *) 
-        | None     -> PUSH1 (Int 0)             >>ce                (*                                                                      *)
-        | Some e   -> e                         >>>>(R,le,ce)   in  (*                          value >> alloc(size) >> size >> PCbkp >> .. *)
-    let ce    = CREATE                          >>ce            in  (*                                          createResult >> PCbkp >> .. *)
-    let ce    = throw_if_0                        ce            in  (*                                          createResult >> PCbkp >> .. *)
-    let ce    = SWAP1                           >>ce            in  (*                                          PCbkp >> CreateResult >> .. *)
-                restore_PC                        ce                (*                                                   CreateResult >> .. *)
+    assert(is_throw_only n.new_msg.msg_reentrance) ;                (* This is NOT a REENTRANCE GUARD                          *) 
+    let ce    = reset_PC ce                                     in  (*                                             PCbkp >> .. *)
+    let ce    = mstore_new_instance le ce n                     in  (*                      alloc(size) >> size >> PCbkp >> .. *)
+    let ce    = match n.new_msg.msg_value with                      (* value is the amount sent                                *) 
+        | None     -> PUSH1 (Int 0)             >>ce                (*                                                         *)
+        | Some e   -> e                         >>>>(R,le,ce)   in  (*             value >> alloc(size) >> size >> PCbkp >> .. *)
+    let ce    = CREATE                          >>ce            in  (*                             createResult >> PCbkp >> .. *)
+    let ce    = throw_if_0                        ce            in  (*                             createResult >> PCbkp >> .. *)
+    let ce    = SWAP1                           >>ce            in  (*                             PCbkp >> CreateResult >> .. *)
+                restore_PC                        ce                (*                                      CreateResult >> .. *)
 
-and gen_array_storLoc le ce aa =
+and keccak_of_aa aa le ce           =                               (* S[keccak(a[i])] := the seed of array *) 
     let arr   = aa.arrIdent                                     in
     let idx   = aa.arrIndex                                     in
-    let ce    = idx                             >>>>(R,le,ce)   in  (*                                 index >> .. *)    
-    let ce    = arr                             >>>>(R,le,ce)   in  (*                    array_loc >> index >> .. *)
-                keccak_cat ce                                       (*                sha3(array_loc++index) >> .. *) 
+    let ce    = idx                             >>>>(R,le,ce)   in  (*                                             index >> .. *)    
+    let ce    = arr                             >>>>(R,le,ce)   in  (*                                array_loc >> index >> .. *)
+                keccak_cat ce                                       (*                            sha3(array_loc++index) >> .. *) 
       
-and codegen_array le ce (aa:ty array) =
-    let ce    = gen_array_storLoc le ce aa in
-                SLOAD                           >>ce 
+and codegen_array aa le ce          =
+    let ce    = keccak_of_aa aa                le ce            in  (*                                      keccak(a[i]) >> .. *)
+                SLOAD                           >>ce                (*                                                         *) 
 
-(* if the stack top is zero, 
- *      then set up an array seed at aa, 
- *           replace the zero with the new seed *)
-and setup_array_storLoc le ce aa =
-    let label = fresh_label ()                                  in  (* stack: [result, result] *)
-    let ce    = DUP1                            >>ce            in  (* stack: [result, result] *)
-    let ce    = PUSH4(Label label)              >>ce            in  (* stack: [result, result, shortcut] *)
-    let ce    = JUMPI                           >>ce            in  (* stack: [result] *)
-    let ce    = POP                             >>ce            in  (* stack: [] *)
+and sto_alloc_array aa le ce        =
+    let push  = keccak_of_aa aa le                              in
+                sto_alloc_array_of_push push ce                     (* S[storIdx]:= newSeed                      newSeed >> .. *)     
+                                                                    
+and sto_alloc_array_of_loc le ce    = function 
+    | Stor rge  -> assert(rge.stor_size=Int 1) ;
+    let storIdx =  rge.stor_start                               in  (*                                        S[storIdx] >> .. *)     
+    let push ce =  PUSH32 storIdx              >>ce             in 
+                sto_alloc_array_of_push push     ce                 (* S[storIdx]:= newSeed                      newSeed >> .. *)     
 
-    let ce    = gen_array_storLoc le ce aa                      in  (* stack: [stor_index] *)
-    let ce    = sincr 1                           ce            in  (* stack: [stor_index, S[1]++ ] *)
-    let ce    = DUP1                            >>ce            in  (* stack: [stor_index, orig_seed, orig_seed] *)
-    let ce    = SWAP2                           >>ce            in  (* stack: [orig_seed, orig_seed, stor_index] *)
-    let ce    = SSTORE                          >>ce            in  (* stack: [orig_seed] *)
-                JUMPDEST label                  >>ce                (* stack: [result] *)
-
-(*   if the stack top is zero, 
- *      then  1.  set up an array seed at aa, 
- *            2.  replace the zero with the new seed *)
-and setup_array_storLoc_of_loc le ce = function 
-    | Stor storRange    -> 
-    assert (storRange.stor_size = Int 1) ;
-    let stor_idx = storRange.stor_start                         in       
-    let label = fresh_label ()                                  in   (*                                           oldseed >> .. *) (* stack: [result, result] *)
-    let ce    = DUP1                            >>ce            in   (*                                oldseed >> oldseed >> .. *) (* stack: [result, result] *)
-    let ce    = PUSH4(Label label)              >>ce            in   (*                       label >> oldseed >> oldseed >> .. *) (* stack: [result, result, shortcut] *)
-    let ce    = JUMPI                           >>ce            in   (* {IF oldseed=1 GOTO label}                 oldseed >> .. *) (* stack: [result] *)
-    let ce    = POP                             >>ce            in   (*                                                      .. *) (* stack: [] *)
-
-    let ce    = PUSH32 stor_idx                 >>ce            in   (*                                           storIdx >> .. *) (* stack: [stor_index] *)
-    let ce    = sincr 1                           ce            in   (*                                 S[1]++ >> storIdx >> .. *)  
-    let ce    = DUP1                            >>ce            in   (*                     newseed >> newseed >> storIdx >> .. *) (* stack: [stor_index, orig_seed, orig_seed] *)
-    let ce    = SWAP2                           >>ce            in   (*                     storIdx >> newseed >> newseed >> .. *) (* stack: [orig_seed, orig_seed, stor_index] *)
-    let ce    = SSTORE                          >>ce            in   (* S[storIdx]:= newseed                      newseed >> .. *) (* stack: [orig_seed] *)
-                JUMPDEST label                  >>ce                 (*                                                         *) (* stack: [result] *)
-
-and checked_codegen_LAnd l r le ce aln = 
-    assert(aln=R);         
-    let la      =   fresh_label ()                          in (*                         .. *)
-    let ce      =   l                       >>>>(R,le,ce)   in (*                    l >> .. *)
-    let ce      =   DUP1                    >>ce            in (*               l >> l >> .. *)
-    let ce      =   if_0_GOTO la              ce            in (*                    l >> .. *)
-    let ce      =   POP                     >>ce            in (*                         .. *)
-    let ce      =   r                       >>>>(R,le,ce)   in (*                    r >> .. *)
-    let ce      = JUMPDEST la               >>ce            in (*                    r >> .. *)
-    let ce      =   ISZERO                  >>ce            in (*             iszero r >> .. *) 
-                    ISZERO                  >>ce               (*                 l&&r >> .. *)  
-
+and sto_alloc_array_of_push push_array_seed ce =   
+    let label = fresh_label ()                                  in  (*                                        S[storIdx] >> .. *) 
+    let ce    = DUP1                            >>ce            in  (*                          S[storIdx] >> S[storIdx] >> .. *) 
+    let ce    = PUSH4(Label label)              >>ce            in  (*                 label >> S[storIdx] >> S[storIdx] >> .. *) 
+    let ce    = JUMPI                           >>ce            in  (* {IF S[storIdx]!=0 GOTO label}          S[storIdx] >> .. *) 
+    let ce    = POP                             >>ce            in  (*                                                      .. *) 
+    let ce    = push_array_seed                   ce            in  
+    let ce    = sincr 1                           ce            in  (*                                 S[1]++ >> storIdx >> .. *) 
+    let ce    = DUP1                            >>ce            in  (*                     newseed >> newseed >> storIdx >> .. *) 
+    let ce    = SWAP2                           >>ce            in  (*                     storIdx >> newseed >> newseed >> .. *) 
+    let ce    = SSTORE                          >>ce            in  (* S[storIdx]:= newseed                      newseed >> .. *)
+                JUMPDEST label                  >>ce                (*                                                         *)
 
 (* le is not updated here.  It can be only updated in
  * a variable initialization *)
@@ -444,16 +410,15 @@ and codegen_expr le ce aln      = function
     | EpThis        ,_              ->  let ce      =   ADDRESS                 >>ce            in
                                                         align_addr ce aln     
     | EpArray a     ,ty             ->  assert(aln=R); 
-                                        let ce      =   codegen_array le ce (read_array a)      in
-                                        begin match ty      with
-                                        | TyMap _   ->  setup_array_storLoc le ce (read_array a)
+                                        let ce      =   codegen_array   (read_array a) le ce    in  (*            S[keccak(a[i])] >> .. *)
+                                        begin match ty  with                                        (*                arrSeed           *)  
+                                        | TyMap _   ->  sto_alloc_array (read_array a) le ce        (*                            >> .. *)
                                         | _         ->  ce                                      end 
-    | EpIdent id    ,ty             ->  (match lookup le id with
-                                        | Some loc  ->  let ce = push_loc ce aln ty loc         in
-                                                        begin match ty with
-                                                        | TyMap _   -> setup_array_storLoc_of_loc le ce loc
-                                                        | _         -> ce                       end
-                                        | None      ->  err ("codegen_expr: identifier's location not found: "^id) )
+    | EpIdent id    ,ty             ->  (match lookup le id with | Some loc  ->  
+                                        let ce      =   push_loc ce aln ty loc                  in  (*                        loc >> .. *)
+                                        begin match ty  with
+                                        | TyMap _   ->  sto_alloc_array_of_loc le ce loc            (*                               .. *)
+                                        | _         ->  ce                                      end)
     | EpDeref(ref,tyR),ty           ->  let size    =   size_of_ty ty                           in
                                         assert (size<=32 && tyR=TyRef ty && aln=R) ;                (* assuming word-size *)
                                         let ce      =   (ref,tyR)               >>>>(R,le,ce)   in  (* pushes the pointer *)
@@ -467,13 +432,25 @@ and op operator l r le ce =
 
 and (>>>>) expr (aln,le,ce)  = codegen_expr le ce aln expr 
 
-and mstore_mthd_args pack args le ce =
-    let ce    = PUSH1(Int 0)                    >>ce            in  (*                                                   0 >> .. *)
-                foldl (mstore_mthd_arg pack le) ce args             (*                                             sumsize >> .. *) 
+and checked_codegen_LAnd l r le ce aln = 
+    assert(aln=R);         
+    let la      =   fresh_label ()                              in  (*                                                        .. *)
+    let ce      =   l                           >>>>(R,le,ce)   in  (*                                                   l >> .. *)
+    let ce      =   DUP1                        >>ce            in  (*                                              l >> l >> .. *)
+    let ce      =   if_0_GOTO la                  ce            in  (*                                                   l >> .. *)
+    let ce      =   POP                         >>ce            in  (*                                                        .. *)
+    let ce      =   r                           >>>>(R,le,ce)   in  (*                                                   r >> .. *)
+    let ce      = JUMPDEST la                   >>ce            in  (*                                                   r >> .. *)
+    let ce      =   ISZERO                      >>ce            in  (*                                            iszero r >> .. *) 
+                    ISZERO                      >>ce                (*                                                l&&r >> .. *)  
 
-and mstore_mthd_arg pack le ce arg  =
+and mstore_mthd_args pck args le ce =
+    let ce    = PUSH1(Int 0)                    >>ce            in  (*                                                   0 >> .. *)
+                foldl (mstore_mthd_arg pck le) ce args              (*                                             sumsize >> .. *) 
+
+and mstore_mthd_arg pck le ce arg  =
     let ty      = snd arg in  assert (fits_in_one_stor_slot ty) ; 
-    let i,a     = match pack with| ABIPack   -> 32           ,R
+    let i,a     = match pck with | ABIPack   -> 32           ,R
                                  | TightPack -> size_of_ty ty,L in  (*                                                 sum >> .. *)
     let ce      = PUSH1 (Int i)                 >>ce            in  (*                                         size >> sum >> .. *)
     let ce      = arg                           >>>>(a,le,ce)   in  (*                                  arg >> size >> sum >> .. *)
@@ -491,7 +468,7 @@ and mstore_mthd_hash_args s mthd le ce =
     let ce      = ADD                           >>ce            in  (*                                 argsize+4 >> &mhash >> .. *)
                   SWAP1                         >>ce                (*                                 &mhash >> argsize+4 >> .. *)
 
-and mload_ret_value ce =                                 (* stack : out size, out offset *)
+and mload_ret_value ce =                                            (* stack : out size, out offset *)
     let ce      = DUP2                          >>ce            in  (* stack : out size, out offset, out size *)
     let ce      = PUSH1 (Int 32)                >>ce            in  (* stack : out size, out offset, out size, 32 *)
     let ce      = throw_if_NEQ                    ce            in 
@@ -500,10 +477,10 @@ and mload_ret_value ce =                                 (* stack : out size, ou
                   POP                           >>ce                (* stack : out *)
       
 and codegen_send le ce (s:ty _send) =
-    let msg     = s.send_msg    in 
-    let cn      = s.send_cntrct in 
-    let m       = s.send_mthd   in 
-    assert (is_throw_only msg.msg_reentrance    ) ; 
+    let msg     = s.send_msg                                    in 
+    let cn      = s.send_cntrct                                 in 
+    let m       = s.send_mthd                                   in 
+    assert (is_throw_only msg.msg_reentrance) ; 
     match snd cn with
     | TyInstnce cnname -> 
         let idx     = lookup_cn_of_ce ce cnname                 in 
@@ -561,19 +538,17 @@ and call_and_restore_PC ce =
 
 (*  7.1. Init MemAlloc           *)
 
-let init_mem_alloc ce =                         (* initialize as M[64] := 96 *)
+let init_mem_alloc ce =                                         (* initialize as M[64] := 96  ( M[0x40] := 0x60 ) *)
     let ce = PUSH1 (Int 96)                         >>ce    in
     let ce = PUSH1 (Int 64)                         >>ce    in
-    let ce = MSTORE                                 >>ce    in
-    ce
+             MSTORE                                 >>ce    
 
 (*  7.2. CONTRACT PC         *) 
 
 let set_cntrct_pc ce idx =                                      (*                                                       .. *)
     let ce = PUSH32(RntimeCntrctOffset idx)         >>ce    in  (*                                       rn_cn_offset >> .. *) 
     let ce = PUSH32 StorPCIndex                     >>ce    in  (*                             storPC >> rn_cn_offset >> .. *) 
-    let ce = SSTORE                                 >>ce    in  (* S[storPC] := rn_cn_offset                             .. *) 
-    ce
+             SSTORE                                 >>ce        (* S[storPC] := rn_cn_offset                             .. *) 
 
 let get_cntrct_pc ce =
     let ce = PUSH32 StorPCIndex                     >>ce    in
@@ -627,12 +602,11 @@ let sstore_cnstrArgs ce idx     =
     let ce   = JUMPDEST exit                        >>ce    in  (*                                         idx >> mem_start >> size >> .. *)
     let ce      = POP                               >>ce    in  (*                                                mem_start >> size >> .. *) 
     let ce      = POP                               >>ce    in  (*                                                             size >> .. *) 
-    let ce      = POP                               >>ce    in  (*                                                                     .. *)
-    ce
+                  POP                               >>ce        (*                                                                     .. *)
+      
 (*  S[0]   : PC                                                               *)  
 (*  S[1]   := m   <- array seed                                               *)  
 (*  S[2]   := the value of arg1 is stored in message call                     *)  
-(*  S[3]   := the value of arg2 is stored in message call                     *)  
 (*            ..                                                              *)  
 (*  S[k+1] := the value of argk is stored in message call                     *)  
 (*  S[k+2] := 1   <- array1                                                   *)  
@@ -641,28 +615,19 @@ let sstore_cnstrArgs ce idx     =
 (*  S[n+1] := m                                                               *)  
 
 
-
-
-
-
 (*  7.4. setup ARRAYs *)                   
 
 (* S[1]     := ARRAY SEED COUNTER   *) 
 (* S[loc]   := old seed             *)
 (* S[1]     := S[1] + 1             *)
-let setup_arraySeed ce (arrLoc: int) =
+let setup_arraySeed ce (arrLoc:int) =
     let label   = fresh_label()                             in  (*                                                .. *) 
     let ce      = PUSH4 (Int arrLoc)                >>ce    in  (*                                         loc >> .. *)
     let ce      = PUSH4 (Label label)               >>ce    in  (*                                label >> loc >> .. *)
     let ce      = JUMPI                             >>ce    in  (* IF loc != 0 GOTO label                            *) 
-    let ce      = PUSH1 (Int 1)                     >>ce    in  (*                                          1  >> .. *)
-    let ce      = SLOAD                             >>ce    in  (*                                        S[1] >> .. *)
-    let ce      = DUP1                              >>ce    in  (*                                S[1] >> S[1] >> .. *)
-    let ce      = PUSH4 (Int arrLoc)                >>ce    in  (*                         loc >> S[1] >> S[1] >> .. *)
-    let ce      = SSTORE                            >>ce    in  (* S[loc]:=S[1]                           S[1] >> .. *)
-    let ce      = incr_top 1                          ce    in  (*                                      S[1]+1 >> .. *)
-    let ce      = PUSH1 (Int 1)                     >>ce    in  (*                                1  >> S[1]+1 >> .. *)
-    let ce      = SSTORE                            >>ce    in  (* S[1]:=S[1]+1                                   .. *)
+    let ce      = sincr 1                             ce    in  (*                                      S[1]++ >> .. *)      
+    let ce      = PUSH4 (Int arrLoc)                >>ce    in  (*                                 loc >> S[1] >> .. *)
+    let ce      = SSTORE                            >>ce    in  (* S[loc]:=S[1]                                   .. *)
                   JUMPDEST label                    >>ce        (*                                                .. *)
 
 let reset_arraySeed ce = 
