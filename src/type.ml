@@ -131,11 +131,11 @@ and addTy_expr cns cname ctx (expr,()) =
     | EpNew n           ->  let n,nm= addTy_new_expr cns cname ctx n in
                             check_reserved nm;  
                             EpNew n         , TyInstnce nm
-    | EpLand (l, r)     ->  let l   = addTy_expr cns cname ctx l          in
+    | EpLAnd (l, r)     ->  let l   = addTy_expr cns cname ctx l          in
                             typecheck (TyBool,l);
                             let r   = addTy_expr cns cname ctx r          in
                             typecheck (TyBool,r); 
-                            EpLand(l,r)     , TyBool
+                            EpLAnd(l,r)     , TyBool
     | EpLt (l, r)       ->  let l   = addTy_expr cns cname ctx l          in
                             let r   = addTy_expr cns cname ctx r          in
                             assert_tyeqv l r ; 

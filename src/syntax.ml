@@ -99,7 +99,7 @@ and  'ty expr           =
                         | EpFnCall              of 'ty _call
                         | EpNew                 of 'ty _new
                         | EpSend                of 'ty _send
-                        | EpLand                of 'ty expr_ty * 'ty expr_ty
+                        | EpLAnd                of 'ty expr_ty * 'ty expr_ty
                         | EpLt                  of 'ty expr_ty * 'ty expr_ty
                         | EpGt                  of 'ty expr_ty * 'ty expr_ty
                         | EpNeq                 of 'ty expr_ty * 'ty expr_ty
@@ -222,7 +222,7 @@ let string_of_expr_inner        = function
     | EpDecLit8     d           -> "declit "^(string_of_big_int d)
     | EpNot         _           -> "not"
     | EpNeq         _           -> "neq"
-    | EpLand        _           -> "_ && _"
+    | EpLAnd        _           -> "_ && _"
     | EpLt          _           -> "lt"
     | EpGt          _           -> "gt"
     | EpValue                   -> "value"

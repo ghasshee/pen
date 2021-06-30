@@ -96,7 +96,7 @@ stmt:
     | GT                                            { fun(l,r)-> EpGt(l,r)                                      }
     | EQEQ                                          { fun(l,r)-> EpEq(l,r)                                      }
     | NEQ                                           { fun(l,r)-> EpNeq(l,r)                                     }
-    | LAND                                          { fun(l,r)-> EpLand(l,r)                                    } 
+    | LAND                                          { fun(l,r)-> EpLAnd(l,r)                                    } 
 
 expr:
     | TRUE                                          { EpTrue,                                                           ()  }
