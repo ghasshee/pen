@@ -3,10 +3,10 @@ open Printf
 open Misc
 open Syntax
 open Label
-open IndexedList
+open IndexList
 open Abstract
+open Context 
 
-module Eth  = Ethereum
 module BL   = BatList
 module L    = List
 
@@ -215,8 +215,8 @@ let realize_program l init_idx p = L.map (realize_opcode l init_idx) p
 
 let storLayout_of_cntrct (cn:ty cntrct) (cnstrctrCode : imm Evm.program) =
     { cn_cnstrctrCode_size = Evm.size_of_program cnstrctrCode
-    ; cn_args_size          = Eth.total_size_of_argTys (L.map snd (Eth.argTys_of_cntrct cn))
-    ; cn_num_arraySeeds    = L.length  (Eth.getArr_of_cntrct cn)
+    ; cn_args_size          = total_size_of_argTys (L.map snd (argTys_of_cntrct cn))
+    ; cn_num_arraySeeds    = L.length  (getArr_cntrct cn)
     ; cn_args               = L.map     (fun a->a.ty) (cn.cntrct_args)
     }
 

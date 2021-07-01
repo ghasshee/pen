@@ -31,7 +31,7 @@ let lookup_label l              =   List.assoc l !labeltbl
 (* entry Database *) 
 
 
-open IndexedList
+open IndexList
 
 type entry =
                 | Cntrct  of idx

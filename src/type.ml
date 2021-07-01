@@ -10,15 +10,14 @@ open Printf
 
 open Misc 
 open Syntax
-open IndexedList
-open Contract
-open TypeEnv
+open IndexList
+open Context
 
 module BL   = BatList
 module BS   = BatString
 module BO   = BatOption
 module L    = List
-module Eth  = Ethereum
+module Eth  = Crypto
 
 
 let reserved x                  =   BS.starts_with x "pre_" 
@@ -26,13 +25,13 @@ let reserved_var var            =   reserved var.id
 let reserved_cn  cn             =   reserved cn.cntrct_name 
 let reserved_exists             =   BL.exists reserved_var 
 let reserved_args cn            =   BL.exists reserved_var cn.cntrct_args  
-let check_reserved x            =   if reserved x         then err "Names 'pre_..' are reserved."
-let check_reserved_exists l     =   if reserved_exists l  then err "Names 'pre_..' are reserved."
-let check_reserved_args cn      =   if reserved_args cn   then err "Names 'pre_..' are reserved."
-let check_reserved_cn   cn      =   if reserved_cn cn     then err "Names 'pre_..' are reserved."
+let check_reserved x            =   if reserved x           then err "Names 'pre_..' are reserved."
+let check_reserved_exists vars  =   if reserved_exists vars then err "Names 'pre_..' are reserved."
+let check_reserved_args cn      =   if reserved_args cn     then err "Names 'pre_..' are reserved."
+let check_reserved_cn   cn      =   if reserved_cn cn       then err "Names 'pre_..' are reserved."
   
 
-let id_lookup_ty tenv id        =   match lookup tenv id with
+let id_lookup_ty ctx id         =   match lookup_id id ctx with
     | Some tyT                      -> EpIdent id, tyT
     | None                          -> err ("unknown identifier "^id)
 
@@ -77,14 +76,11 @@ let call_arg_expectations cns   =   function
 let typecheck  (ty,(_,t))       =   assert (ty = t)
 let typechecks tys actual       =   L.for_all2 (fun ty (_,a)-> ty=a) tys actual
 
-let get_ty  (_,ty)              =   ty
-let get_tm  (x,_)               =   x
 let assert_tyeqv l r            =   assert (get_ty l=get_ty r) 
 
 let check_args_match cns args   =   function 
-    | Some m        ->  assert (call_arg_expectations cns m (L.map get_ty args))
-    | None          ->  assert (isNil (L.map get_ty args))
-
+    | Some m                        ->  assert (call_arg_expectations cns m (L.map get_ty args))
+    | None                          ->  assert (isNil (L.map get_ty args))
 
 
 let rec addTy_call cns cname ctx c =
@@ -304,7 +300,7 @@ let retTyCheck_of_mthd m ty_inferred = match m, ty_inferred with
         | _, _                  -> false  end
 
 
-let addTy_mthd cns cn_name tenv (m : unit mthd) =
+let addTy_mthd cns cn_name ctx (m:unit mthd) =
     assert (L.for_all (function 
                          | OnTheWay         -> false
                          | ReturnBySize 0   -> mthd_is_returning_void m
@@ -314,7 +310,7 @@ let addTy_mthd cns cn_name tenv (m : unit mthd) =
     let margs       = args_of_mthd m.mthd_head in
     check_reserved_exists margs; 
     let retTyCheck  = retTyCheck_of_mthd m.mthd_head in
-    let ctx'        = add_retTyCheck (add_block margs tenv) retTyCheck in 
+    let ctx'        = add_retTyCheck (add_block ctx margs) retTyCheck in 
     { mthd_head         = addTy_mthd_head cns m.mthd_head
     ; mthd_body         = addTy_stmts cns cn_name ctx' m.mthd_body }
 
@@ -331,7 +327,7 @@ let addTy_cntrct cns (evs: evnt idx_list) cn =
     check_reserved_cn    cn; 
     check_reserved_args  cn; 
     assert (BL.for_all(arg_has_known_ty cns)cn.cntrct_args && has_distinct_sigs cn)  ; 
-    let ctx  = add_block cn.cntrct_args (add_evnts empty_ctx evs) in
+    let ctx  = add_block (add_evnts empty_ctx evs) cn.cntrct_args in
     { cntrct_name   = cn.cntrct_name
     ; cntrct_args   = cn.cntrct_args
     ; mthds         = L.map(addTy_mthd cns cn.cntrct_name ctx)cn.mthds }

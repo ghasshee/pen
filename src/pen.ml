@@ -3,7 +3,7 @@ open Lexing
 open Printf
 open Syntax
 open Codegen
-open IndexedList
+open IndexList
 open Big_int
 
 module Psr    = BatOptParse.OptParser
