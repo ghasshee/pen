@@ -42,7 +42,7 @@ let prABI_outputs (tys:ty list) : string =
 
 let prABI_mthd_info u =
     sprintf "{\"type\":\"function\",\"name\":\"%s\",\"inputs\": [%s],\"outputs\": [%s],\"payable\": true}"
-        (u.mthd_name) (prABI_inputs u.mthd_args) (prABI_output u.mthd_retTy)
+        (u.mthd_id) (prABI_inputs u.mthd_args) (prABI_output u.mthd_retTy)
 
 let prABI_mthd (c:ty mthd) : string = match c.mthd_head with
     | Method u       ->  prABI_mthd_info u
@@ -62,13 +62,13 @@ let prABI_cntrct seen_cnstrctr (c:ty cntrct) : string =
     BS.concat "," strs
 
 
-let prABI_evnt_arg (a:evnt_arg) : string =
+let prABI_evnt_arg (a:tyEvntArg) : string =
     sprintf "{\"name\":\"%s\",\"type\":\"%s\",\"indexed\":%s}"
                  (a.arg.id)
                  (abi_string_of_ty (a.arg.ty))
                  (string_of_bool a.indexed)
 
-let prABI_evnt_inputs (is:evnt_arg list) : string =
+let prABI_evnt_inputs (is:tyEvntArg list) : string =
     let strs : string list  = L.map prABI_evnt_arg is in
     BS.concat "," strs
 

@@ -1,6 +1,5 @@
 (* CE := Codegen Environment *)
 
-
 open Printf 
 open Syntax
 open IndexList
@@ -12,7 +11,6 @@ type ce                             =   { stack_size    : int
                                         ; program       : Location.imm program
                                         ; lookup_cn     : string -> idx
                                         ; cntrcts       : ty cntrct idx_list }
-                                    
 
 let extract_program ce              =   ce.program
 let lookup_cn_of_ce  ce  name       =   ce.lookup_cn name 
@@ -22,7 +20,6 @@ let empty_ce lookup_cn cns          =   { stack_size    = 0
                                         ; program       = empty_program
                                         ; lookup_cn     = lookup_cn
                                         ; cntrcts       = cns               }
-    
 
 let code_len       ce               =   size_of_program ce.program
 let stack_size     ce               =   ce.stack_size
@@ -58,78 +55,59 @@ let (>>) op ce                 = append_opcode ce op
 
 
 
-
-
-
 (*************************************************)
 (* MIGHT BECOME := lookup continuation contracts *) 
 (*************************************************)
 
-(* returns 
- *   the list of cont contract names 
- *   might_become : term -> [string] *)
+(* returns the list of cont contract names *)
     
-let rec stmt_might_become       =   function 
+let rec stmt_become             =   function 
     | SmAbort                   ->  []
     | SmSlfDstrct   e        
-    | SmExpr        e           ->  expr_might_become e
-    | SmDecl        v           ->  expr_might_become v.declVal
-    | SmAssign(LEpArray a,r)    ->  expr_might_become a.arrIndex @ expr_might_become r
-    | SmIfThen(c,b)             ->  expr_might_become c @ stmts_might_become b
-    | SmIf(c,b0,b1)             ->  expr_might_become c @ stmts_might_become b0 @ stmts_might_become b1
-    | SmLog(_,l,_)              ->  exprs_might_become l
+    | SmExpr        e           ->  expr_become e
+    | SmDecl        v           ->  expr_become v.declVal
+    | SmAssign(LEpArray a,r)    ->  expr_become a.arrIndex @ expr_become r
+    | SmIfThen(c,b)             ->  expr_become c @ stmts_become b
+    | SmIf(c,b0,b1)             ->  expr_become c @ stmts_become b0 @ stmts_become b1
+    | SmLog(_,l,_)              ->  exprs_become l
     | SmReturn r                ->  (match r.ret_expr with
-                                    | Some e        -> expr_might_become e
+                                    | Some e        -> expr_become e
                                     | None          -> [] ) 
-                                @   ( expr_might_become r.ret_cont ) 
+                                @   ( expr_become r.ret_cont ) 
                                 @   ( match cntrct_name_of_ret_cont r.ret_cont with
                                     | Some name     -> [name]
                                     | None          -> [] )
-and stmts_might_become ss       =   L.concat (L.map stmt_might_become ss)
-
-and fncall_might_become f       =   exprs_might_become      f.call_args
-and new_expr_might_become n     =   exprs_might_become      n.new_args 
-                                @   msg_might_become   n.new_msg
-and msg_might_become m          =   ( match m.msg_value with
+and stmts_become ss             =   L.concat (L.map stmt_become ss)
+and fncall_become f             =   exprs_become f.call_args
+and new_become n                =   exprs_become n.new_args @ msg_become n.new_msg
+and msg_become m                =   ( match m.msg_value with
                                     | None    -> []
-                                    | Some e  -> expr_might_become e) 
-                                @   [(* TODO: m.msg_reentrance *)]
-and send_expr_might_become s    =   expr_might_become       s.send_cntrct
-                                @   exprs_might_become      s.send_args
-                                @   msg_might_become   s.send_msg
-and exprs_might_become es       =   L.concat (L.map expr_might_become es)
-and expr_might_become e         =   match fst e with
-    | EpTrue                  
-    | EpFalse                 
-    | EpNow                   
-    | EpValue                 
-    | EpSender               
-    | EpThis                  
-    | EpDecLit256   _         
-    | EpDecLit8     _         
+                                    | Some e  -> expr_become e) @ [(* TODO: m.msg_reentrance *)]
+and send_expr_become s          =   expr_become s.send_cntrct @ exprs_become s.send_args @ msg_become s.send_msg
+and exprs_become es             =   L.concat (L.map expr_become es)
+and expr_become e               =   match fst e with
+    | EpTrue | EpFalse | EpNow 
+    | EpThis | EpValue | EpSender 
+    | EpDecLit256   _  | EpDecLit8 _ 
     | EpIdent       _           ->  []
     | EpParen       e         
     | EpAddr        e         
     | EpNot         e         
     | EpDeref       e         
-    | EpBalance     e           ->  expr_might_become e
-    | EpLAnd      (l,r)           
-    | EpLT        (l,r)           
-    | EpGT        (l,r)           
-    | EpNeq       (l,r)           
-    | EpEq        (l,r)           
-    | EpMinus     (l,r)
-    | EpMult      (l,r)
-    | EpPlus      (l,r)         ->  (expr_might_become l) @ (expr_might_become r)
-    | EpArray(LEpArray a)       ->  expr_might_become a.arrIndex
-    | EpFnCall f                ->  fncall_might_become f
-    | EpNew n                   ->  new_expr_might_become n
-    | EpSend s                  ->  send_expr_might_become s
+    | EpBalance     e           ->  expr_become e
+    | EpLT       (l,r) | EpGT       (l,r)           
+    | EpNeq      (l,r) | EpEq       (l,r)           
+    | EpMult     (l,r) | EpPlus     (l,r)         
+    | EpLAnd     (l,r)           
+    | EpMinus    (l,r)          ->  (expr_become l) @ (expr_become r)
+    | EpArray(LEpArray a)       ->  expr_become a.arrIndex
+    | EpFnCall f                ->  fncall_become f
+    | EpNew n                   ->  new_become n
+    | EpSend s                  ->  send_expr_become s
 
-let mthd_might_become  m        =   stmts_might_become m.mthd_body
-let mthds_might_become ms       =   L.concat (L.map mthd_might_become ms)
-let might_become cn             =   mthds_might_become cn.mthds
-
+let mthd_become  m        =   stmts_become m.mthd_body
+let mthds_become ms       =   L.concat (L.map mthd_become ms)
+let become cn             =   mthds_become cn.mthds
 
 
 (* LOOKUP_USUALMETHOD *) 
@@ -137,7 +115,7 @@ let might_become cn             =   mthds_might_become cn.mthds
 let lookup_mthd_info_in_cntrct cn mname =
     let mthd = L.filter (fun c -> match c.mthd_head with
                         | Default  -> false
-                        | Method m -> m.mthd_name=mname) cn.mthds in
+                        | Method m -> m.mthd_id=mname) cn.mthds in
     match mthd with
     | []            ->  raise Not_found
     | _::_::_       ->  eprintf "method %s duplicated\n%!" mname;err "lookup_mthd_info_in_cntrct" 
@@ -148,7 +126,7 @@ let rec lookup_mthd_info_inner ce (seen:ty cntrct list) cn mname : mthd_info =
     if L.mem cn seen then raise Not_found else
     try  lookup_mthd_info_in_cntrct cn mname
     with Not_found  ->  let seen        = cn :: seen in
-                        let becomes     = L.map (cntrct_of_name ce)(might_become cn) in
+                        let becomes     = L.map (cntrct_of_name ce)(become cn) in
                         let rec lookup_becomes seen = function 
                            | []         ->  raise Not_found
                            | b::bs      ->  try lookup_mthd_info_inner ce seen b mname 
@@ -156,10 +134,6 @@ let rec lookup_mthd_info_inner ce (seen:ty cntrct list) cn mname : mthd_info =
                         lookup_becomes seen becomes
 
 let lookup_mthd_info ce cn mname = lookup_mthd_info_inner ce [] cn mname 
-
-
-
-    
 
 
 

@@ -32,7 +32,7 @@ let check_reserved_cn   cn      =   if reserved_cn cn       then err "Names 'pre
   
 let typeof_mthd m               =   match m.mthd_head with
   | Method m                    ->  { tyRet             = m.mthd_retTy
-                                    ; id                = m.mthd_name
+                                    ; id                = m.mthd_id
                                     ; tyArgs            = L.map (fun x->x.ty) m.mthd_args }
   | Default                     ->  { tyRet             = TyTuple[]
                                     ; id                = "" 
@@ -136,7 +136,7 @@ and addTy_expr cns cname ctx (expr,()) =
                             EpFnCall c      , ty
     | EpIdent     s     ->  check_reserved s ; 
                             id_lookup_ty ctx s
-    | EpNew n           ->  let n,nm= addTy_new_expr cns cname ctx n in
+    | EpNew n           ->  let n,nm= addTy_new cns cname ctx n in
                             check_reserved nm;  
                             EpNew n         , TyInstnce nm
     | EpLAnd (l, r)     ->  let l   = addTy_expr cns cname ctx l          in
@@ -202,7 +202,7 @@ and addTy_expr cns cname ctx (expr,()) =
                                                ; send_args      = []
                                                ; send_msg  = msg }, TyTuple[]  end
 
-and addTy_new_expr cns cname tenv e =
+and addTy_new cns cname tenv e =
     let msg'        =   addTy_msg cns cname tenv e.new_msg in
     let args'       =   L.map (addTy_expr cns cname tenv) e.new_args in
     { new_head      =   e.new_head
@@ -362,6 +362,6 @@ let addTys (tops : unit toplevel idx_list) : ty toplevel idx_list =
                                                         | _        -> None   ) tops in
     assert(has_distinct_cntrct_names(cntrcts));
     let tys                     = map typeof_cntrct cntrcts in
-    let evs : tyEvnt idx_list    = filter_map (function   | Event e  -> Some e
+    let evs : tyEvnt idx_list   = filter_map (function  | Event e  -> Some e
                                                         | _        -> None   ) tops in
     map (addTy_toplevel tys evs) tops

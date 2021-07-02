@@ -58,7 +58,7 @@ let hex_keccak h        =
 let keccak_signature str =  String.sub (string_keccak str) 0 8
 
 let string_of_tyMthd m  =
-    let name_of_mthd    = m.mthd_name                       in
+    let name_of_mthd    = m.mthd_id                         in
     let args            = getArgTys m.mthd_args             in
     let arg_tys         = L.map snd args                    in
     let str_tys         = L.map string_of_ty arg_tys        in

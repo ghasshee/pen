@@ -54,8 +54,8 @@ block:
 
 mthd_head:
     | DEFAULT                                       { Default                                                   }
-    | METHOD LPAR   ty ID plist(arg) RPAR           { Method{mthd_retTy=$3;       mthd_name=$4; mthd_args=$5}   }
-    | METHOD LPAR VOID ID plist(arg) RPAR           { Method{mthd_retTy=TyTuple[];mthd_name=$4; mthd_args=$5}   }
+    | METHOD LPAR   ty ID plist(arg) RPAR           { Method{mthd_retTy=$3;       mthd_id=$4; mthd_args=$5}   }
+    | METHOD LPAR VOID ID plist(arg) RPAR           { Method{mthd_retTy=TyTuple[];mthd_id=$4; mthd_args=$5}   }
 
 arg:
     | ty ID                                         { {ty=$1; id=$2}                                            }
