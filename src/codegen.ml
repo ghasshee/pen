@@ -8,7 +8,7 @@ open Big_int
 open Printf 
 open Misc
 open IndexList
-open Abstract
+open Location
 open CodegenEnv
 open LocationEnv
 open Evm

@@ -3,7 +3,7 @@ OBJS = 	misc.cmo indexList.cmo \
 		hexa.cmo \
 		syntax.cmo \
 		label.cmo \
-		abstract.cmo \
+		location.cmo \
 		evm.cmo \
 		context.cmo \
 		crypto.cmo \

@@ -4,7 +4,7 @@ open Misc
 open Syntax
 open Label
 open IndexList
-open Abstract
+open Location
 open Context 
 
 module BL   = BatList

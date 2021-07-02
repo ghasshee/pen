@@ -9,7 +9,7 @@ open Misc
 
 
 type ce                             =   { stack_size    : int
-                                        ; program       : Abstract.imm program
+                                        ; program       : Location.imm program
                                         ; lookup_cn     : string -> idx
                                         ; cntrcts       : ty cntrct idx_list }
                                     

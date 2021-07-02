@@ -1,7 +1,7 @@
 open Big_int
 open Misc
 open Syntax 
-open Abstract
+open Location
 open Context
 open IndexList
 

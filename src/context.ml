@@ -3,7 +3,7 @@ open Printf
 open Misc
 open Syntax
 open IndexList
-open Abstract
+open Location
 
 module L    = List
 module BL   = BatList
