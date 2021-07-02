@@ -80,10 +80,8 @@ let rec stmt_become             =   function
 and stmts_become ss             =   L.concat (L.map stmt_become ss)
 and fncall_become f             =   exprs_become f.call_args
 and new_become n                =   exprs_become n.new_args @ msg_become n.new_msg
-and msg_become m                =   ( match m.msg_value with
-                                    | None    -> []
-                                    | Some e  -> expr_become e) @ [(* TODO: m.msg_reentrance *)]
-and send_expr_become s          =   expr_become s.send_cntrct @ exprs_become s.send_args @ msg_become s.send_msg
+and msg_become m                =   expr_become m.value 
+and send_expr_become s          =   expr_become s.sd_cn @ exprs_become s.sd_args @ msg_become s.sd_msg
 and exprs_become es             =   L.concat (L.map expr_become es)
 and expr_become e               =   match fst e with
     | EpTrue | EpFalse | EpNow 
@@ -100,7 +98,7 @@ and expr_become e               =   match fst e with
     | EpMult     (l,r) | EpPlus     (l,r)         
     | EpLAnd     (l,r)           
     | EpMinus    (l,r)          ->  (expr_become l) @ (expr_become r)
-    | EpArray(LEpArray a)       ->  expr_become a.arrIndex
+    | EpArray a                 ->  expr_become a.arrIndex
     | EpFnCall f                ->  fncall_become f
     | EpNew n                   ->  new_become n
     | EpSend s                  ->  send_expr_become s

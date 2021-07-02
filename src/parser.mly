@@ -61,7 +61,7 @@ arg:
     | ty ID                                         { {ty=$1; id=$2}                                            }
 
 evnt_arg:
-    | arg                                           { evnt_arg_of_arg $1 false                                  }
+    | arg                                           { tyEvntArg_of_arg $1 false                                  }
     | ty INDEXED ID                                 { {arg={ty=$1; id=$3}; indexed=true}                        }
 
 ty:
@@ -112,26 +112,23 @@ expr:
     | NOW     LPAR BLOCK RPAR                       { EpNow,                                                            ()  }
     | ADDRESS LPAR  expr RPAR                       { EpAddr $3,                                                        ()  }
     | ID                                            { EpIdent $1,                                                       ()  }
-    | ID  expr_list                                 { Printf.printf "\n%s\n" $1; EpFnCall{call_head=$1;call_args=$2},                              ()  }
-    | NEW ID expr_list msg                          { EpNew {new_head=$2;new_args=$3; new_msg=$4},                      ()  }
-    | expr DOT DEFAULT LPAR RPAR msg                { EpSend{send_cntrct=$1;send_mthd=None   ;send_args=[];send_msg=$6},()  }
-    | expr DOT ID   expr_list msg                   { EpSend{send_cntrct=$1;send_mthd=Some $3;send_args=$4;send_msg=$5},()  }
+    | ID  expr_list                                 { Printf.printf "\n%s\n" $1; EpFnCall{call_id=$1;call_args=$2},     ()  }
+    | NEW ID expr_list msg                          { EpNew {new_id=$2;new_args=$3; new_msg=$4},                        ()  }
+    | expr DOT DEFAULT LPAR RPAR msg                { EpSend{sd_cn=$1;sd_mthd=None   ;sd_args=[];sd_msg=$6},            ()  }
+    | expr DOT ID   expr_list msg                   { EpSend{sd_cn=$1;sd_mthd=Some $3;sd_args=$4;sd_msg=$5},            ()  }
     | THIS                                          { EpThis,                                                           ()  }
-    | lexpr;                                        { EpArray $1,                                                       ()  }
+    | expr LSQBR expr RSQBR                         { EpArray{arrId=$1;arrIndex=$3},                                    ()  }
      
 %inline expr_list:
     | plist(expr)                                   { $1                                                                    }
 
 msg:
-    | value_info reentrance_info                    { {msg_value=$1; msg_reentrance=$2}                                     }
+    | value_info                                    { {value=$1}                                                            }
      
 value_info:
-    | (* empty *)                                   { None                                                                  }
-    | ALONG expr                                    { Some $2                                                               }
-     
-reentrance_info:
-    | REENTRANCE block                              { $2                                                                    }
+    | (* empty *)                                   { EpFalse,()                                                            }
+    | ALONG expr                                    { $2                                                                    }
      
 lexpr:                                              (* expr '[' expr ']' *) 
-    | expr LSQBR expr RSQBR                         { LEpArray{arrIdent=$1; arrIndex=$3}                                    }
+    | expr LSQBR expr RSQBR                         { LEpArray{arrId=$1; arrIndex=$3}                                       }
      

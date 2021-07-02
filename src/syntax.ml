@@ -1,5 +1,3 @@
-(* ret_cont := what a contract become after calling it *) 
-
 open Big_int
 open Printf
 open Misc
@@ -8,22 +6,18 @@ module L    = List
 module BL   = BatList
 
 
-type ty                         =   TyVoid
-                                |   TyUnit
-                                |   TyUint256             (* 256 bits *) 
-                                |   TyUint8               (*   8 bits *) 
-                                |   TyBytes32             (* 256 bits *) 
-                                |   TyAddr                (* 160 bits *) 
+type ty                         =   TyUint256           (* 256 bits *) 
+                                |   TyUint8             (*   8 bits *) 
+                                |   TyBytes32           (* 256 bits *) 
+                                |   TyAddr              (* 160 bits *) 
                                 |   TyBool 
-                                |   TyRef                 of ty 
-                                |   TyTuple               of ty list
-                                |   TyMap                 of ty * ty 
-                                |   TyCntrct              of string   (* type of [bid(...)] where bid is a cntrct *) 
-                                |   TyInstnce             of string   (* type of [b] declared as [bid b] *) 
+                                |   TyRef               of ty 
+                                |   TyTuple             of ty list
+                                |   TyMap               of ty * ty 
+                                |   TyCntrct            of string   (* type of [bid(...)] where bid is a cntrct *) 
+                                |   TyInstnce           of string   (* type of [b] declared as [bid b] *) 
 
 let rec string_of_ty            =   function 
-    | TyVoid                    ->  "void" 
-    | TyUnit                    ->  "()"
     | TyUint256                 ->  "uint256"
     | TyUint8                   ->  "uint8" 
     | TyBytes32                 ->  "bytes32" 
@@ -37,85 +31,94 @@ let rec string_of_ty            =   function
     | TyInstnce     s           ->  "contract instance " ^ s
 
 type tyVar                      =   { ty                : ty
-                                    ; id                : string  } 
+                                    ; id                : string            } 
 
 type tyEvntArg                  =   { arg               : tyVar
-                                    ; indexed           : bool                  }
+                                    ; indexed           : bool              }
 
 type tyEvnt                     =   { id                : string
-                                    ; tyEvArgs          : tyEvntArg list         }
+                                    ; tyEvArgs          : tyEvntArg list    }
 
 type tyMthd                     =   { id                : string
                                     ; tyArgs            : ty list 
-                                    ; tyRet             : ty        }
+                                    ; tyRet             : ty                }
 
 type tyCntrct                   =   { id                : string   
                                     ; tyCnArgs          : ty list
-                                    ; tyCnMthds         : tyMthd list } 
+                                    ; tyCnMthds         : tyMthd list       } 
 
+let tyEvntArg_of_arg arg isIdxd =   { arg               = arg
+                                    ; indexed           = isIdxd            }
+    
+let  arg_of_evnt_arg e          =   e.arg
+let args_of_evnt_args           =   L.map arg_of_evnt_arg
 
+let split_evnt_args tyEv args =
+    let indexed : bool list     =   L.map (fun arg->arg.indexed) tyEv.tyEvArgs in
+    let combined                =   L.combine args indexed in
+    let is,ns                   =   BL.partition snd combined in
+    L.map fst is, L.map fst ns
 
 (*****************************************)
 (***      STATEMENTS & EXPRESSIONS     ***)
 (*****************************************)
 
-type 'ty _call                  =   { call_head             : string
-                                    ; call_args             : ('ty expr_ty) list       }
+type 'ty _call                  =   { call_id           : string
+                                    ; call_args         : ('ty expr_ty) list    }
                                 
-and  'ty _msg                   =   { msg_value             : 'ty expr_ty option
-                                    ; msg_reentrance        : 'ty stmt list         }
+and  'ty _msg                   =   { value             : 'ty expr_ty    }
                                 
-and  'ty _new                   =   { new_head              : string
-                                    ; new_args              : 'ty expr_ty list
-                                    ; new_msg               : 'ty _msg               }
+and  'ty _new                   =   { new_id            : string
+                                    ; new_args          : 'ty expr_ty list
+                                    ; new_msg           : 'ty _msg              }
                                 
-and  'ty _send                  =   { send_cntrct           : 'ty expr_ty
-                                    ; send_mthd             : string option
-                                    ; send_args             : 'ty expr_ty list
-                                    ; send_msg              : 'ty _msg              }
+and  'ty _send                  =   { sd_cn             : 'ty expr_ty
+                                    ; sd_mthd           : string option
+                                    ; sd_args           : 'ty expr_ty list
+                                    ; sd_msg            : 'ty _msg              }
 
 and  'ty stmt                   =   SmAbort
-                                |   SmReturn              of 'ty return
-                                |   SmAssign              of 'ty lexpr * 'ty expr_ty
-                                |   SmDecl                of 'ty decl
-                                |   SmIfThen              of 'ty expr_ty * 'ty stmt list
-                                |   SmIf                  of 'ty expr_ty * 'ty stmt list * 'ty stmt list
-                                |   SmSlfDstrct           of 'ty expr_ty
-                                |   SmExpr                of 'ty expr_ty
-                                |   SmLog                 of string   * 'ty expr_ty list * tyEvnt option
+                                |   SmReturn            of 'ty return
+                                |   SmAssign            of 'ty lexpr * 'ty expr_ty
+                                |   SmDecl              of 'ty decl
+                                |   SmIfThen            of 'ty expr_ty * 'ty stmt list
+                                |   SmIf                of 'ty expr_ty * 'ty stmt list * 'ty stmt list
+                                |   SmSlfDstrct         of 'ty expr_ty
+                                |   SmExpr              of 'ty expr_ty
+                                |   SmLog               of string   * 'ty expr_ty list * tyEvnt option
 
 and  'ty expr_ty                =   'ty expr * 'ty
 
-and  'ty expr                   =   EpParen               of 'ty expr_ty
+and  'ty expr                   =   EpParen             of 'ty expr_ty
                                 |   EpTrue
                                 |   EpFalse
-                                |   EpDecLit256           of big_int
-                                |   EpDecLit8             of big_int
+                                |   EpDecLit256         of big_int
+                                |   EpDecLit8           of big_int
                                 |   EpNow
-                                |   EpIdent               of string
-                                |   EpFnCall              of 'ty _call
-                                |   EpNew                 of 'ty _new
-                                |   EpSend                of 'ty _send
-                                |   EpLAnd                of 'ty expr_ty * 'ty expr_ty
-                                |   EpLT                  of 'ty expr_ty * 'ty expr_ty
-                                |   EpGT                  of 'ty expr_ty * 'ty expr_ty
-                                |   EpNeq                 of 'ty expr_ty * 'ty expr_ty
-                                |   EpEq                  of 'ty expr_ty * 'ty expr_ty
-                                |   EpAddr                of 'ty expr_ty
-                                |   EpNot                 of 'ty expr_ty
-                                |   EpArray               of 'ty lexpr
+                                |   EpIdent             of string
+                                |   EpFnCall            of 'ty _call
+                                |   EpNew               of 'ty _new
+                                |   EpSend              of 'ty _send
+                                |   EpLAnd              of 'ty expr_ty * 'ty expr_ty
+                                |   EpLT                of 'ty expr_ty * 'ty expr_ty
+                                |   EpGT                of 'ty expr_ty * 'ty expr_ty
+                                |   EpNeq               of 'ty expr_ty * 'ty expr_ty
+                                |   EpEq                of 'ty expr_ty * 'ty expr_ty
+                                |   EpAddr              of 'ty expr_ty
+                                |   EpNot               of 'ty expr_ty
+                                |   EpArray             of 'ty array
                                 |   EpValue
                                 |   EpSender
                                 |   EpThis
-                                |   EpDeref               of 'ty expr_ty
-                                |   EpPlus                of 'ty expr_ty * 'ty expr_ty
-                                |   EpMinus               of 'ty expr_ty * 'ty expr_ty
-                                |   EpMult                of 'ty expr_ty * 'ty expr_ty
-                                |   EpBalance             of 'ty expr_ty
+                                |   EpDeref             of 'ty expr_ty
+                                |   EpPlus              of 'ty expr_ty * 'ty expr_ty
+                                |   EpMinus             of 'ty expr_ty * 'ty expr_ty
+                                |   EpMult              of 'ty expr_ty * 'ty expr_ty
+                                |   EpBalance           of 'ty expr_ty
 
-and 'ty lexpr                   =   LEpArray              of 'ty array
+and 'ty lexpr                   =   LEpArray            of 'ty array
 
-and 'ty array                   =   { arrIdent          : 'ty expr_ty
+and 'ty array                   =   { arrId             : 'ty expr_ty
                                     ; arrIndex          : 'ty expr_ty          }
 
 and 'ty decl                    =   { declTy            : ty
@@ -125,20 +128,6 @@ and 'ty decl                    =   { declTy            : ty
 and 'ty return                  =   { ret_expr          : 'ty expr_ty option
                                     ; ret_cont          : 'ty expr_ty          }
                                 
-let read_array  (LEpArray a)    =   a
-
-let evnt_arg_of_arg arg isIdxed =   { arg               = arg
-                                    ; indexed           = isIdxed       }
-    
-let arg_of_evnt_arg e           =   e.arg
-let args_of_evnt_args           =   L.map arg_of_evnt_arg
-
-let split_evnt_args ev (args:'a expr_ty list) =
-    let indexed : bool list = L.map (fun ev_arg->ev_arg.indexed) ev.tyEvArgs in
-    let combined            = L.combine args indexed in
-    let is,ns               = BL.partition snd combined in
-    L.map fst is, L.map fst ns
-
 
 (*****************************************)
 (***    METHODs      &    CONTRACTS    ***)
@@ -174,7 +163,7 @@ let default_exists              =   L.exists      (function   | Default   -> tru
                                                               | _         -> false  )
 
 let cntrct_name_of_ret_cont     = function 
-    | EpFnCall c,_              -> Some c.call_head
+    | EpFnCall c,_              -> Some c.call_id
     | _,_                       -> None
 
 let args_of_mthd                = function 
@@ -222,9 +211,7 @@ let is_mapping                  = function
     | TyRef         _
     | TyTuple       _
     | TyCntrct      _
-    | TyInstnce     _
-    | TyUnit 
-    | TyVoid                    -> false
+    | TyInstnce     _           -> false
     | TyMap         _           -> true
 
 let count_plain_args            = L.length $ (L.filter (not $ is_mapping)) 
@@ -239,9 +226,7 @@ let fits_in_one_stor_slot       = function
     | TyMap _                   -> true
     | TyRef _     
     | TyTuple _        
-    | TyCntrct _ 
-    | TyUnit
-    | TyVoid                    -> false
+    | TyCntrct _                -> false
 
 let size_of_ty (* in bytes *)   = function
     | TyUint8                   ->  1
@@ -251,8 +236,6 @@ let size_of_ty (* in bytes *)   = function
     | TyInstnce _               -> 20 (* address as word *)
     | TyBool                    -> 32
     | TyRef _                   -> 32
-    | TyVoid                    -> err "size_of_ty TyVoid"   
-    | TyUnit                    -> err "size_of_ty TyUnit"
     | TyTuple []                -> err "size_of_ty TyUnit" 
     | TyTuple _                 -> err "size_of_ty TyTuple"
     | TyMap   _                 -> err "size_of_ty TyMap" 
@@ -280,4 +263,3 @@ let non_mapping_arg arg         = match arg.ty with
 let acceptable_as t0 t1     =   ( t0 = t1 )  ||  ( match t0, t1 with
                                 | TyAddr, TyInstnce _   -> true
                                 | _     , _             -> false ) 
-

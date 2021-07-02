@@ -2,7 +2,6 @@
 (* MSTORE :=   x=pop() ; y=pop() ; M[x]=y   *) 
 (* MLOAD  :=   x=pop() ; push M[x]          *) 
 (* CODECOPY  to from len :=  M[to .. to+len-1]=I_b[from .. from+len-1]  *)
-
 open Label
 open Big_int
 open Printf 
@@ -231,7 +230,6 @@ type memoryPack             = TightPack   (* [Tight] uses [size_of_ty] bytes    
                             | ABIPack     (* [ABI]   uses multiples of 32 bytes on mem *) 
 
 
-
 (*********************************************)
 (***     6.    CODEGEN  EXPR               ***)
 (*********************************************)
@@ -253,7 +251,7 @@ type memoryPack             = TightPack   (* [Tight] uses [size_of_ty] bytes    
  *          |                ...  |                 |             *)                                                                 
 
 let rec mstore_new_instance le ce n =
-    let cn_name   =  n.new_head in
+    let cn_name   =  n.new_id in
     let cn_idx    =  lookup_cn_of_ce ce cn_name in 
     let ce    = PUSH32(CnstrctrCodeSize cn_idx)     >>ce    in  (*                                                             size >> .. *) 
     let ce    = PUSH32(RntimeCnstrctrOffset cn_idx) >>ce    in  (*                                                  cn_idx  >> size >> .. *)
@@ -268,7 +266,7 @@ let rec mstore_new_instance le ce n =
                 SWAP1                               >>ce        (*                                       alloc(size) >>   totalsize >> .. *)
 
 and codegen_call le ce aln fncall reT = 
-    match fncall.call_head with 
+    match fncall.call_id with 
     | "pre_ecdsarecover"    ->  assert(aln=R); 
                                 codegen_ECDSArecover le ce fncall.call_args
     | "keccak256"           ->  assert(aln=R); 
@@ -309,12 +307,11 @@ and codegen_ECDSArecover le ce args = match args with
     | _ -> err "pre_ecdsarecover has a wrong number of args"
 
 and codegen_new le ce n =    
-    assert(is_throw_only n.new_msg.msg_reentrance) ;                (* This is NOT a REENTRANCE GUARD                          *) 
     let ce    = reset_PC ce                                     in  (*                                             PCbkp >> .. *)
     let ce    = mstore_new_instance le ce n                     in  (*                      alloc(size) >> size >> PCbkp >> .. *)
-    let ce    = match n.new_msg.msg_value with                      (* value is the amount sent                                *) 
-        | None     -> PUSH1 (Int 0)             >>ce                (*                                                         *)
-        | Some e   -> e                         >>>>(R,le,ce)   in  (*             value >> alloc(size) >> size >> PCbkp >> .. *)
+    let ce    = match n.new_msg.value with                          (* value is the amount sent                                *) 
+        | EpFalse,_ -> PUSH1 (Int 0)            >>ce                (*                                                         *)
+        | e         -> e                        >>>>(R,le,ce)   in  (*             value >> alloc(size) >> size >> PCbkp >> .. *)
     let ce    = CREATE                          >>ce            in  (*                             createResult >> PCbkp >> .. *)
     let ce    = throw_if_0                        ce            in  (*                             createResult >> PCbkp >> .. *)
     let ce    = SWAP1                           >>ce            in  (*                             PCbkp >> CreateResult >> .. *)
@@ -325,7 +322,7 @@ and codegen_array aa le ce          =
                 SLOAD                           >>ce                (*                                                         *) 
 
 and keccak_of_aa aa le ce           =                               (* S[keccak(a[i])] := the seed of array *) 
-    let arr   = aa.arrIdent                                     in
+    let arr   = aa.arrId                                     in
     let idx   = aa.arrIndex                                     in
     let ce    = idx                             >>>>(R,le,ce)   in  (*                                             index >> .. *)    
     let ce    = arr                             >>>>(R,le,ce)   in  (*                                array_loc >> index >> .. *)
@@ -393,14 +390,14 @@ and codegen_expr le ce aln      = function
     | EpThis        ,_              ->  let ce      =   ADDRESS                 >>ce            in
                                                         align_addr ce aln     
     | EpArray a     ,ty             ->  assert(aln=R); 
-                                        let ce      =   codegen_array   (read_array a) le ce    in  (*            S[keccak(a[i])] >> .. *)
+                                        let ce      =   codegen_array a le ce                   in  (*            S[keccak(a[i])] >> .. *)
                                         begin match ty  with                                        (*                arrSeed           *)  
-                                        | TyMap _   ->  salloc_array (read_array a) le ce        (*                            >> .. *)
+                                        | TyMap _   ->  salloc_array a le ce                        (*                            >> .. *)
                                         | _         ->  ce                                      end 
-    | EpIdent id    ,ty             ->  (match lookup le id with | Some loc  ->  
+    | EpIdent id    ,ty             ->  (match lookup le id with | Some loc     ->  
                                         let ce      =   push_loc ce aln ty loc                  in  (*                        loc >> .. *)
                                         begin match ty  with
-                                        | TyMap _   ->  salloc_array_of_loc le ce loc            (*                               .. *)
+                                        | TyMap _   ->  salloc_array_of_loc le ce loc               (*                               .. *)
                                         | _         ->  ce                                      end)
     | EpDeref(ref,tyR),ty           ->  let size    =   size_of_ty ty                           in
                                         assert (size<=32 && tyR=TyRef ty && aln=R) ;                (* assuming word-size *)
@@ -443,7 +440,7 @@ and mstore_mthd_arg pck le ce arg  =
                   ADD                           >>ce                (*                                            size+sum >> .. *)
 
 and mstore_mthd_hash_args s mthd le ce =
-    let args    = s.send_args                                   in  (*                                                     >> .. *)   
+    let args    = s.sd_args                                   in  (*                                                     >> .. *)   
     let ce      = mstore_mthd_hash mthd           ce            in  (*                                         &mhash >> 4 >> .. *)
     let ce      = mstore_mthd_args ABIPack args le ce           in  (*                              argsize >> &mhash >> 4 >> .. *)
     let ce      = SWAP1                         >>ce            in  (*                              4 >> argsize >> &mhash >> .. *)
@@ -460,10 +457,9 @@ and mload_ret_value ce =                                            (* stack : o
                   POP                           >>ce                (* stack : out *)
       
 and codegen_send le ce (s:ty _send) =
-    let msg     = s.send_msg                                    in 
-    let cn      = s.send_cntrct                                 in 
-    let m       = s.send_mthd                                   in 
-    assert (is_throw_only msg.msg_reentrance) ; 
+    let msg     = s.sd_msg                                    in 
+    let cn      = s.sd_cn                                 in 
+    let m       = s.sd_mthd                                   in 
     match snd cn with
     | TyInstnce cnname -> 
         let idx     = lookup_cn_of_ce ce cnname                 in 
@@ -497,10 +493,10 @@ and codegen_send le ce (s:ty _send) =
     | _             -> err "send expr with Wrong type"
 
 and push_msg_and_gas s le ce = 
-    let ce = match s.send_msg.msg_value with     
-        | None      -> PUSH1(Int 0)             >>ce 
-        | Some e    -> e                        >>>>(R,le,ce)   in 
-    let ce      = s.send_cntrct                 >>>>(R,le,ce)   in
+    let ce = match s.sd_msg.value with     
+        | EpFalse,_ -> PUSH1(Int 0)             >>ce 
+        | e         -> e                        >>>>(R,le,ce)   in 
+    let ce      = s.sd_cn                       >>>>(R,le,ce)   in
     let ce      = PUSH4(Int 3000)               >>ce            in
     let ce      = GAS                           >>ce            in
                   SUB                           >>ce           
@@ -511,7 +507,6 @@ and call_and_restore_PC ce =
     let ce      = JUMPI                         >>ce            in 
     let ce      = SWAP2                         >>ce            in 
                   restore_PC ce 
-
 
 
 (*****************************************)
@@ -583,13 +578,11 @@ let sstore_cnstrArgs ce idx     =
     let ce      = POP                               >>ce    in  (*                                                             size >> .. *) 
                   POP                               >>ce        (*                                                                     .. *)
       
-(*  S[0]   : PC                                                               *)  
 (*  S[1]   := m   <- array seed                                               *)  
 (*  S[2]   := the value of arg1 is stored in message call                     *)  
 (*            ..                                                              *)  
 (*  S[k+1] := the value of argk is stored in message call                     *)  
 (*  S[k+2] := 1   <- array1                                                   *)  
-(*  S[k+3] := 2                                                               *)  
 (*   ..                                                                       *)  
 (*  S[n+1] := m                                                               *)  
 
@@ -631,8 +624,7 @@ let setup_argArrays ce cn =
 (*            ..                                    *)  
 (*  S[k+1] :      <- argk                           *)  
 (*  S[k+2] := 1    ----+                            *)  
-(*  S[k+3] := 2        |                            *)  
-(*  S[k+4] := 3        | arrays                     *)  
+(*  S[k+3] := 2        | arrays                     *)  
 (*   ..                |                            *)  
 (*  S[n+1] := m    ----+                            *)  
 
@@ -758,7 +750,7 @@ let sstore_args le ce offset idx args =
     le,ce
 
 let set_cont_to_fncall le ce (lyt:SL.storLayout) (fncall, ty_expr) =
-    let hd      =   fncall.call_head                    in
+    let hd      =   fncall.call_id                    in
     let args    =   fncall.call_args                    in
     let idx     =   lookup_cn_of_ce ce hd               in 
     let offset  =   lyt.stor_cnstrctrArgs_begin idx    in  
@@ -770,7 +762,6 @@ let set_cont_to_fncall le ce (lyt:SL.storLayout) (fncall, ty_expr) =
 let set_cont le ce layout (cont, ty) = match cont with
     | EpFnCall fncall    -> set_cont_to_fncall le ce layout (fncall,ty)
     | _                  -> err "strange continuation" 
-
 
 
 (*************************************)
@@ -827,7 +818,7 @@ let codegen_return le ce layt ret =
     le,ce
 
 let sstore_to_array le ce layt aa = 
-    let arr     = aa.arrIdent                               in
+    let arr     = aa.arrId                               in
     let idx     = aa.arrIndex                               in
     let ce      = idx                       >>>>(R,le,ce)   in   (* stack : [value, index] *)
     let ce      = arr                       >>>>(R,le,ce)   in   (* stack : [value, index, array_seed] *)
