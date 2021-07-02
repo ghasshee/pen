@@ -5,7 +5,7 @@ OBJS = 	misc.cmo indexList.cmo \
 		label.cmo \
 		location.cmo \
 		evm.cmo \
-		context.cmo \
+		typeEnv.cmo \
 		crypto.cmo \
 		locationEnv.cmo \
 		abi.cmo \

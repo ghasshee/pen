@@ -24,11 +24,11 @@ let abi_string_of_ty       = function
 let prABI_default_mthd   =
   "{\"type\":\"fallback\",\"inputs\": [],\"outputs\": [],\"payable\": true}"
 
-let prABI_input (arg:var) : string =
+let prABI_input (arg:tyVar) : string =
     sprintf "{\"name\": \"%s\", \"type\": \"%s\"}" (arg.id)
                  (abi_string_of_ty arg.ty)
 
-let prABI_inputs (args:var list) : string =
+let prABI_inputs (args:tyVar list) : string =
     let strings         = L.map prABI_input args in
     BS.concat "," strings
 
@@ -51,7 +51,7 @@ let prABI_mthd (c:ty mthd) : string = match c.mthd_head with
 let prABI_cnstrctr (c:ty cntrct) : string =
     sprintf
         "{\"type\": \"constructor\", \"inputs\":[%s], \"name\": \"%s\", \"outputs\":[], \"payable\": true}"
-        (prABI_inputs (L.filter non_mapping_arg c.cntrct_args)) (c.cntrct_name)
+        (prABI_inputs (L.filter non_mapping_arg c.cntrct_args)) (c.cntrct_id)
 
 let prABI_cntrct seen_cnstrctr (c:ty cntrct) : string =
     let cases               =   c.mthds in
@@ -72,9 +72,9 @@ let prABI_evnt_inputs (is:evnt_arg list) : string =
     let strs : string list  = L.map prABI_evnt_arg is in
     BS.concat "," strs
 
-let prABI_evnt (e:evnt) : string =
+let prABI_evnt (e:tyEvnt) : string =
     sprintf "{\"type\":\"evnt\",\"inputs\":[%s],\"name\":\"%s\"}"
-        (prABI_evnt_inputs e.evnt_args) (e.evnt_name)
+        (prABI_evnt_inputs e.tyEvArgs) (e.id)
 
 let prABI_toplevel seen_cnstrctr (t:ty toplevel) : string = match t with
     | Cntrct c                  -> prABI_cntrct seen_cnstrctr c

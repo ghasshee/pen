@@ -5,7 +5,7 @@ open Location
 open Syntax
 open IndexList
 open Printf 
-open Context
+open TypeEnv
 
 module L  = List
 module BL = BatList
@@ -59,17 +59,17 @@ let keccak_signature str =  String.sub (string_keccak str) 0 8
 
 let string_of_tyMthd m  =
     let name_of_mthd    = m.mthd_name                       in
-    let args            = getTy_vars m.mthd_args         in
+    let args            = getArgTys m.mthd_args             in
     let arg_tys         = L.map snd args                    in
     let str_tys         = L.map string_of_ty arg_tys        in
     let ty              = String.concat "," str_tys         in
     name_of_mthd ^ "(" ^ ty ^ ")"
 
-let string_of_evnt e =
+let string_of_evnt (ev:tyEvnt) =
     (* do I consider indexed no? *)
-    let name            = e.evnt_name                      in
-    let args            = args_of_evnt_args e.evnt_args   in 
-    let argTys          = getTy_vars args                in
+    let name            = ev.id                             in
+    let args            = args_of_evnt_args ev.tyEvArgs     in 
+    let argTys          = getArgTys args                    in
     let tys             = L.map snd argTys                  in
     let tyNames         = L.map string_of_ty tys            in
     let args            = String.concat "," tyNames         in

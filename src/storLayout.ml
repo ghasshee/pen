@@ -5,7 +5,7 @@ open Syntax
 open Label
 open IndexList
 open Location
-open Context 
+open TypeEnv 
 
 module BL   = BatList
 module L    = List
@@ -216,7 +216,7 @@ let realize_program l init_idx p = L.map (realize_opcode l init_idx) p
 let storLayout_of_cntrct (cn:ty cntrct) (cnstrctrCode : imm Evm.program) =
     { cn_cnstrctrCode_size = Evm.size_of_program cnstrctrCode
     ; cn_args_size          = total_size_of_argTys (L.map snd (argTys_of_cntrct cn))
-    ; cn_num_arraySeeds    = L.length  (getArr_cntrct cn)
+    ; cn_num_arraySeeds    = L.length  (getArrTy_cntrct cn)
     ; cn_args               = L.map     (fun a->a.ty) (cn.cntrct_args)
     }
 

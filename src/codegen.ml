@@ -13,7 +13,8 @@ open CodegenEnv
 open LocationEnv
 open Evm
 open Syntax
-open Context
+open TypeEnv
+open Type
 
 module Eth  = Crypto 
 module BL   = BatList

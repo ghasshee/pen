@@ -11,7 +11,7 @@ open Printf
 open Misc 
 open Syntax
 open IndexList
-open Context
+open TypeEnv
 
 module BL   = BatList
 module BS   = BatString
@@ -21,21 +21,33 @@ module Eth  = Crypto
 
 
 let reserved x                  =   BS.starts_with x "pre_" 
-let reserved_var var            =   reserved var.id
-let reserved_cn  cn             =   reserved cn.cntrct_name 
+let reserved_var (var:tyVar)            =   reserved var.id
+let reserved_cn  cn             =   reserved cn.cntrct_id
 let reserved_exists             =   BL.exists reserved_var 
-let reserved_args cn            =   BL.exists reserved_var cn.cntrct_args  
+let reserved_args (cn:'a cntrct)            =   BL.exists reserved_var cn.cntrct_args  
 let check_reserved x            =   if reserved x           then err "Names 'pre_..' are reserved."
 let check_reserved_exists vars  =   if reserved_exists vars then err "Names 'pre_..' are reserved."
 let check_reserved_args cn      =   if reserved_args cn     then err "Names 'pre_..' are reserved."
 let check_reserved_cn   cn      =   if reserved_cn cn       then err "Names 'pre_..' are reserved."
   
+let typeof_mthd m               =   match m.mthd_head with
+  | Method m                    ->  { tyRet             = m.mthd_retTy
+                                    ; id                = m.mthd_name
+                                    ; tyArgs            = L.map (fun x->x.ty) m.mthd_args }
+  | Default                     ->  { tyRet             = TyTuple[]
+                                    ; id                = "" 
+                                    ; tyArgs            = []    }
+
+let typeof_cntrct (cn:'a cntrct)            =   { id                = cn.cntrct_id
+                                    ; tyCnArgs          = L.map (fun x -> x.ty) cn.cntrct_args
+                                    ; tyCnMthds         = L.map typeof_mthd cn.mthds  } 
+    
 
 let id_lookup_ty ctx id         =   match lookup_id id ctx with
     | Some tyT                      -> EpIdent id, tyT
     | None                          -> err ("unknown identifier "^id)
 
-let is_known_cntrct cns nm      =   BL.exists (fun(_,i)->i.tyCntrct_name=nm) cns
+let is_known_cntrct cns nm      =   BL.exists (fun(_,(tycn:tyCntrct))->tycn.id=nm) cns
 
 let rec is_known_ty cns         =   function 
     | TyRef l                       ->  is_known_ty cns l
@@ -69,9 +81,9 @@ let call_arg_expectations cns   =   function
     | "pre_ecdsarecover"            ->  (=) [TyBytes32;TyUint8;TyBytes32;TyBytes32]
     | "keccak256"                   ->  konst true
     | "iszero"                      ->  fun x -> x=[TyBytes32]||x=[TyUint8]||x=[TyUint256]||x=[TyBool]||x=[TyAddr]
-    | cnname                        ->  let cnIdx   = lookup_idx (fun c->c.tyCntrct_name=cnname) cns in
+    | cnname                        ->  let cnIdx   = lookup_idx (fun (tycn:tyCntrct)->tycn.id=cnname) cns in
                                         let tyCn    = lookup_index cnIdx cns in
-                                        (=) tyCn.tyCntrct_args
+                                        (=) tyCn.tyCnArgs
 
 let typecheck  (ty,(_,t))       =   assert (ty = t)
 let typechecks tys actual       =   L.for_all2 (fun ty (_,a)-> ty=a) tys actual
@@ -247,7 +259,7 @@ and addTy_stmt cns cname ctx = function
                             SmExpr e        , ctx
     | SmLog(nm,args,_)  ->  let args    = L.map (addTy_expr cns cname ctx) args     in
                             let ev      = lookup_evnt nm ctx                        in
-                            let tys     = L.map(fun ea -> ea.arg.ty)ev.evnt_args    in
+                            let tys     = L.map(fun ea -> ea.arg.ty)ev.tyEvArgs    in
                             assert(typechecks tys args) ;
                             SmLog(nm,args,Some ev), ctx
 
@@ -310,7 +322,7 @@ let addTy_mthd cns cn_name ctx (m:unit mthd) =
     let margs       = args_of_mthd m.mthd_head in
     check_reserved_exists margs; 
     let retTyCheck  = retTyCheck_of_mthd m.mthd_head in
-    let ctx'        = add_retTyCheck (add_block ctx margs) retTyCheck in 
+    let ctx'        = add_retTyChkr (add_block ctx margs) retTyCheck in 
     { mthd_head         = addTy_mthd_head cns m.mthd_head
     ; mthd_body         = addTy_stmts cns cn_name ctx' m.mthd_body }
 
@@ -323,16 +335,16 @@ let has_distinct_sigs (cn:unit cntrct) =
     L.length sigs=L.length uniq_sigs
 
 
-let addTy_cntrct cns (evs: evnt idx_list) cn =
+let addTy_cntrct cns (evs: tyEvnt idx_list) cn =
     check_reserved_cn    cn; 
     check_reserved_args  cn; 
     assert (BL.for_all(arg_has_known_ty cns)cn.cntrct_args && has_distinct_sigs cn)  ; 
     let ctx  = add_block (add_evnts empty_ctx evs) cn.cntrct_args in
-    { cntrct_name   = cn.cntrct_name
+    { cntrct_id     = cn.cntrct_id
     ; cntrct_args   = cn.cntrct_args
-    ; mthds         = L.map(addTy_mthd cns cn.cntrct_name ctx)cn.mthds }
+    ; mthds         = L.map(addTy_mthd cns cn.cntrct_id ctx)cn.mthds }
 
-let addTy_toplevel cns (evs:evnt idx_list) = function 
+let addTy_toplevel cns (evs:tyEvnt idx_list) = function 
     | Cntrct c      -> Cntrct (addTy_cntrct cns evs c)
     | Event  e      -> Event e
 
@@ -341,7 +353,7 @@ let addTy_toplevel cns (evs:evnt idx_list) = function
 (* Assign Type *) 
 
 let has_distinct_cntrct_names (cns : unit cntrct idx_list) : bool =
-    let cn_names    = (L.map(fun(_,b)->b.cntrct_name)cns) in
+    let cn_names    = (L.map(fun(_,b)->b.cntrct_id)cns) in
     L.length cns=L.length(BL.unique cn_names)
 
 
@@ -350,6 +362,6 @@ let addTys (tops : unit toplevel idx_list) : ty toplevel idx_list =
                                                         | _        -> None   ) tops in
     assert(has_distinct_cntrct_names(cntrcts));
     let tys                     = map typeof_cntrct cntrcts in
-    let evs : evnt idx_list    = filter_map (function   | Event e  -> Some e
+    let evs : tyEvnt idx_list    = filter_map (function   | Event e  -> Some e
                                                         | _        -> None   ) tops in
     map (addTy_toplevel tys evs) tops

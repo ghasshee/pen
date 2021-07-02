@@ -38,17 +38,25 @@ let rec string_of_ty    = function
     | TyCntrct      s       -> "contract arch "     ^ s
     | TyInstnce     s       -> "contract instance " ^ s
 
-type var                = 
+type tyVar              = 
                         { ty                    : ty
                         ; id                    : string  } 
 
 type evnt_arg           =
-                        { arg                   : var
+                        { arg                   : tyVar
                         ; indexed               : bool                  }
 
-type evnt               =        
-                        { evnt_name             : string
-                        ; evnt_args             : evnt_arg list         }
+type tyEvnt             =        
+                        { id                    : string
+                        ; tyEvArgs              : evnt_arg list         }
+
+type tyMthd                     =   { tyRet             : ty 
+                                    ; id                : string
+                                    ; tyArgs            : ty list }
+
+type tyCntrct                   =   { id                : string   
+                                    ; tyCnArgs          : ty list
+                                    ; tyCnMthds         : tyMthd list } 
 
 
 
@@ -84,7 +92,7 @@ and  'ty stmt           =
                         | SmIf                  of 'ty expr_ty * 'ty stmt list * 'ty stmt list
                         | SmSlfDstrct           of 'ty expr_ty
                         | SmExpr                of 'ty expr_ty
-                        | SmLog                 of string   * 'ty expr_ty list * evnt option
+                        | SmLog                 of string   * 'ty expr_ty list * tyEvnt option
 
 and  'ty expr_ty        = 'ty expr * 'ty
 
@@ -146,7 +154,7 @@ let arg_of_evnt_arg e   = e.arg
 let args_of_evnt_args   = L.map arg_of_evnt_arg
 
 let split_evnt_args ev (args:'a expr_ty list) =
-    let indexed : bool list = L.map (fun ev_arg->ev_arg.indexed) ev.evnt_args in
+    let indexed : bool list = L.map (fun ev_arg->ev_arg.indexed) ev.tyEvArgs in
     let combined            = L.combine args indexed in
     let is,ns               = BL.partition snd combined in
     L.map fst is, L.map fst ns
@@ -162,7 +170,7 @@ type 'ty mthd_body      = 'ty stmt list
 type mthd_info          =
                         { mthd_retTy        : ty            (* empty or single type *) 
                         ; mthd_name         : string
-                        ; mthd_args         : var list      }
+                        ; mthd_args         : tyVar list      }
 
 type mthd_head          =      
                         | Method of mthd_info
@@ -174,8 +182,8 @@ type 'ty mthd           =
 
 
 type 'ty cntrct         =
-                        { cntrct_name       : string
-                        ; cntrct_args       : var list
+                        { cntrct_id       : string
+                        ; cntrct_args       : tyVar list
                         ; mthds             : 'ty mthd list }
 
 
@@ -185,7 +193,7 @@ type 'ty cntrct         =
 
 type 'ty toplevel       =
                         | Cntrct        of 'ty cntrct
-                        | Event         of evnt
+                        | Event         of tyEvnt
 
 
 let filter_usualMthd            = BL.filter_map (function   | Default   -> None 

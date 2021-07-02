@@ -16,7 +16,7 @@ type ce                             =   { stack_size    : int
 
 let extract_program ce              =   ce.program
 let lookup_cn_of_ce  ce  name       =   ce.lookup_cn name 
-let lookup_cn_of_cns cns name       =   lookup_idx (fun cn->cn.cntrct_name=name) cns
+let lookup_cn_of_cns cns name       =   lookup_idx (fun cn->cn.cntrct_id=name) cns
 
 let empty_ce lookup_cn cns          =   { stack_size    = 0
                                         ; program       = empty_program

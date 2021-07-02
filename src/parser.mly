@@ -43,8 +43,8 @@ file:
     | list(cntrct) EOF                              { $1                                                        }
 
 cntrct:
-    | CONTRACT ID plist(arg)LBRACE list(mthd)RBRACE { Cntrct{mthds=$5; cntrct_name=$2; cntrct_args=$3}          }
-    | EVENT    ID plist(evnt_arg) SEMI              { Event {            evnt_name=$2;   evnt_args=$3}          }
+    | CONTRACT ID plist(arg)LBRACE list(mthd)RBRACE { Cntrct{mthds=$5; cntrct_id=$2; cntrct_args=$3}          }
+    | EVENT    ID plist(evnt_arg) SEMI              { Event {                 id=$2;    tyEvArgs=$3}          }
 
 mthd:
     | mthd_head block                               { {mthd_head=$1; mthd_body=$2}                              }

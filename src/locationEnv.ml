@@ -2,7 +2,7 @@ open Big_int
 open Misc
 open Syntax 
 open Location
-open Context
+open TypeEnv
 open IndexList
 
 module L    = List
@@ -37,19 +37,19 @@ let addArg(le,idx)(nm,ty)       =
     let size                = size_of_ty ty / 32                in
     let loc                 = Stor  { stor_start = Int idx
                                     ; stor_size  = Int size }   in
-    let le'                 = add_loc le (nm,loc)              in
+    let le'                 = add_loc le (nm,loc)               in
     le' , idx + size  
 let addArr(le,idx)(nm,_,_)      =
     let size                = 1                                 in
-    let loc                 = Stor { stor_start = Int idx
-                               ; stor_size  = Int size }    in
-    let le'                 = add_loc le (nm,loc)              in
+    let loc                 = Stor  { stor_start = Int idx
+                                    ; stor_size  = Int size }   in
+    let le'                 = add_loc le (nm,loc)               in
     le' , idx + size                                        
 let rntime_init_le (cn:ty cntrct) =
-    let argTys              = argTys_of_cntrct cn           in
+    let argTys              = argTys_of_cntrct cn               in
     let init                = add_emptyEnv empty_le             in
     let le, mid             = L.fold_left addArg (init,2)argTys in  
-    let arrays              = getArr_cntrct cn           in  
+    let arrays              = getArrTy_cntrct cn                in  
     let le, _   = L.fold_left addArr (le,mid) arrays            in
     le
 
