@@ -439,8 +439,7 @@ and mstore_mthd_arg pck le ce arg  =
     let ce      = MSTORE                        >>ce            in  (* M[alloc(size)] := arg                   size >> sum >> .. *)
                   ADD                           >>ce                (*                                            size+sum >> .. *)
 
-and mstore_mthd_hash_args s mthd le ce =
-    let args    = s.sd_args                                   in  (*                                                     >> .. *)   
+and mstore_mthd_hash_args mthd args le ce =
     let ce      = mstore_mthd_hash mthd           ce            in  (*                                         &mhash >> 4 >> .. *)
     let ce      = mstore_mthd_args ABIPack args le ce           in  (*                              argsize >> &mhash >> 4 >> .. *)
     let ce      = SWAP1                         >>ce            in  (*                              4 >> argsize >> &mhash >> .. *)
@@ -457,9 +456,9 @@ and mload_ret_value ce =                                            (* stack : o
                   POP                           >>ce                (* stack : out *)
       
 and codegen_send le ce (s:ty _send) =
-    let msg     = s.sd_msg                                    in 
-    let cn      = s.sd_cn                                 in 
-    let m       = s.sd_mthd                                   in 
+    let args    = s.sd_args                                     in
+    let cn      = s.sd_cn                                       in 
+    let m       = s.sd_mthd                                     in 
     match snd cn with
     | TyInstnce cnname -> 
         let idx     = lookup_cn_of_ce ce cnname                 in 
@@ -470,10 +469,10 @@ and codegen_send le ce (s:ty _send) =
         let ce  = reset_PC                        ce            in  (* [pc_bkp] *)
         let ce  = PUSH1(Int retSize)            >>ce            in  (* [pc_bkp, retsize] *)
         let ce  = DUP1                          >>ce            in  (* [pc_bkp, retsize, retsize] *)
-        let ce  = malloc                       ce            in  (* [pc_bkp, retsize, alloc(retsize)] *)
+        let ce  = malloc                          ce            in  (* [pc_bkp, retsize, alloc(retsize)] *)
         let ce  = DUP2                          >>ce            in  (* [pc_bkp, retsize, alloc(retsize), retsize] *)
         let ce  = DUP2                          >>ce            in  (* [pc_bkp, retsize, alloc(retsize), retsize, alloc(retsize)] *)
-        let ce  = mstore_mthd_hash_args s m    le ce            in  (* [pc_bkp, retsize, alloc(retsize), retsize, alloc(retsize), insize, alloc(insize)] *)
+        let ce  = mstore_mthd_hash_args m args le ce            in  (* [pc_bkp, retsize, alloc(retsize), retsize, alloc(retsize), insize, alloc(insize)] *)
         let ce  = push_msg_and_gas s           le ce            in  (* [alloc(retsize), retsize] *)
         let ce  = call_and_restore_PC             ce            in  
         let ce  = SWAP1                         >>ce            in  (* [retsize,alloc(retsize)] *)

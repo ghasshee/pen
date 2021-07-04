@@ -19,24 +19,29 @@ let check_reserved x            =   if reserved x           then err "Names 'pre
 let check_reserved_exists vars  =   if reserved_exists vars then err "Names 'pre_..' are reserved."
 let check_reserved_args cn      =   if reserved_args cn     then err "Names 'pre_..' are reserved."
 let check_reserved_cn   cn      =   if reserved_cn cn       then err "Names 'pre_..' are reserved."
+
+let assert_tyeqv l r            =   assert (get_ty l=get_ty r) 
+
   
 let typeof_mthd m               =   match m.mthd_head with
-  | Method m                    ->  { id                = m.mthd_id
-                                    ; tyArgs            = L.map (fun x->x.ty) m.mthd_args
-                                    ; tyRet             = m.mthd_retTy                          }
-  | Default                     ->  { id                = "" 
-                                    ; tyArgs            = []    
-                                    ; tyRet             = TyTuple[] }
+  | Method m                        ->  { id                = m.mthd_id
+                                        ; tyArgs            = L.map (fun x->x.ty) m.mthd_args
+                                        ; tyRet             = m.mthd_retTy                          }
+  | Default                         ->  { id                = "" 
+                                        ; tyArgs            = []    
+                                        ; tyRet             = TyTuple[] }
 
 let typeof_cntrct(cn:'a cntrct) =   { id                = cn.cntrct_id
                                     ; tyCnArgs          = L.map (fun x -> x.ty) cn.cntrct_args
                                     ; tyCnMthds         = L.map typeof_mthd cn.mthds            }
 
 let id_lookup_ty ctx id         =   match lookup_id id ctx with
-    | Some tyT                      -> EpIdent id, tyT
-    | None                          -> err ("unknown identifier "^id)
+    | Some tyT                      ->  EpIdent id, tyT
+    | None                          ->  err ("unknown identifier "^id)
 
-let is_known_cntrct cns nm      =   BL.exists (fun(_,(tycn:tyCntrct))->tycn.id=nm) cns
+let tycn_has_name  name  tycn   =             tycn.id = name 
+let itycn_has_name name itycn   =   (get_ty itycn).id = name 
+let is_known_cntrct tycns nm    =   BL.exists (itycn_has_name nm) tycns
 
 let rec is_known_ty cns         =   function 
     | TyUint256 | TyUint8           ->  true
@@ -66,14 +71,12 @@ let call_arg_expectations cns   =   function
     | "pre_ecdsarecover"            ->  (=) [TyBytes32;TyUint8;TyBytes32;TyBytes32]
     | "keccak256"                   ->  konst true
     | "iszero"                      ->  fun x -> x=[TyBytes32]||x=[TyUint8]||x=[TyUint256]||x=[TyBool]||x=[TyAddr]
-    | cnname                        ->  let cnIdx   = lookup_idx (fun (tycn:tyCntrct)->tycn.id=cnname) cns in
+    | name                          ->  let cnIdx   = lookup_idx (tycn_has_name name) cns in
                                         let tyCn    = lookup_index cnIdx cns in
                                         (=) tyCn.tyCnArgs
 
 let typecheck  (ty,(_,t))       =   assert (ty = t)
 let typechecks tys actual       =   L.for_all2 (fun ty (_,a)-> ty=a) tys actual
-
-let assert_tyeqv l r            =   assert (get_ty l=get_ty r) 
 
 let check_args_match cns args   =   function 
     | Some m                        ->  assert (call_arg_expectations cns m (L.map get_ty args))
@@ -83,24 +86,23 @@ let rec addTy_call cns cname ctx c =
     let args   = L.map (addTy_expr cns cname ctx) c.call_args in
     check_args_match cns args (Some c.call_id) ; 
     let reT    = match c.call_id with
-        | "value" when true         -> TyUint256 (* check the arg is 'msg' *) 
-        | "pre_ecdsarecover"        -> TyAddr
-        | "keccak256"               -> TyBytes32
-        | "iszero"                  -> begin match args with
-            | [arg]                     -> TyBool
-            | _                         -> err "should not happen" end 
-        | cnname when true          -> TyCntrct cnname (* check contract exists *) 
-        | _                         -> err "addTy_call: should not happen" in
+        | "value" when true         ->  TyUint256 (* check the arg is 'msg' *) 
+        | "pre_ecdsarecover"        ->  TyAddr
+        | "keccak256"               ->  TyBytes32
+        | "iszero"                  ->  begin match args with
+            | [arg]                     ->  TyBool
+            | _                         ->  err "should not happen" end 
+        | cnname when true          ->  TyCntrct cnname (* check contract exists *) 
+        | _                         ->  err "addTy_call: should not happen" in
     { call_id   = c.call_id 
     ; call_args = args      }, reT
 
 and addTy_msg cns cname ctx msg =
     let expr    = addTy_expr cns cname ctx msg.value in
-    { value     = expr } 
+    { value     = expr      } 
 
 and addTy_expr cns cname ctx (expr,()) =    match expr with
-    | EpParen e         ->  addTy_expr cns cname ctx e 
-    | EpDeref _         ->  err "Deref not supposed" 
+    | EpParen     e     ->  addTy_expr cns cname ctx e 
     | EpThis            ->  EpThis          , TyInstnce cname
     | EpTrue            ->  EpTrue          , TyBool
     | EpFalse           ->  EpFalse         , TyBool
@@ -109,16 +111,16 @@ and addTy_expr cns cname ctx (expr,()) =    match expr with
     | EpDecLit256 d     ->  EpDecLit256 d   , TyUint256
     | EpDecLit8   d     ->  EpDecLit8   d   , TyUint8
     | EpValue           ->  EpValue         , TyUint256
-    | EpAddr e          ->  let e       = addTy_expr cns cname ctx e          in
+    | EpAddr      e     ->  let e       = addTy_expr cns cname ctx e          in
                             EpAddr e        , TyAddr
-    | EpBalance e       ->  let e       = addTy_expr cns cname ctx e          in
-                            assert (acceptable_as TyAddr (get_ty e));
-                            EpBalance e     , TyUint256
     | EpFnCall    c     ->  let c,ty    = addTy_call cns cname ctx c          in
                             EpFnCall c      , ty
     | EpIdent     s     ->  check_reserved s ; 
                             id_lookup_ty ctx s
-    | EpNew n           ->  let n,nm    = addTy_new cns cname ctx n           in
+    | EpBalance   e     ->  let e       = addTy_expr cns cname ctx e          in
+                            assert (acceptable_as TyAddr (get_ty e));
+                            EpBalance e     , TyUint256
+    | EpNew       n     ->  let n,nm    = addTy_new cns cname ctx n           in
                             check_reserved nm;  
                             EpNew n         , TyInstnce nm
     | EpLAnd (l, r)     ->  let l       = addTy_expr cns cname ctx l          in
@@ -167,8 +169,7 @@ and addTy_expr cns cname ctx (expr,()) =    match expr with
                             let cn      = addTy_expr cns cname ctx sd.sd_cn   in
                             begin match sd.sd_mthd with
                             | Some m ->  
-                            let tyMthd  =   find_tyMthd cns m                         in
-                            let tyRet   =   tyMthd.tyRet                              in            
+                            let tyRet   =   (find_tyMthd cns m).tyRet                 in            
                             let args    =   L.map(addTy_expr cns cname ctx)sd.sd_args in                
                             let ref     =   EpSend  { sd_cn     = cn                                        
                                                     ; sd_mthd   = sd.sd_mthd                                
@@ -190,8 +191,7 @@ and addTy_new cns cname tenv e =
     ; new_args      =   args'
     ; new_msg       =   msg'          }, e.new_id 
 
-and addTy_lexpr cns cname ctx = function 
-    | LEpArray aa       ->
+and addTy_lexpr cns cname ctx (LEpArray aa) = 
     let e = addTy_expr cns cname ctx aa.arrId in
     begin match get_ty e with
     | TyMap (kT,vT)     ->  let idx,ty = addTy_expr cns cname ctx aa.arrIndex in
@@ -209,13 +209,10 @@ and addTy_decl cns cname ctx vd =
     let v           =   addTy_expr cns cname ctx vd.declVal in
     let id          =   vd.declId     in
     let ty          =   vd.declTy     in
-    check_reserved id ;
-    assert (is_known_ty cns ty);
-    let ctx'        =   add_var ctx id ty in
-    let vd'         =   { declTy    = ty
-                        ; declId    = id
-                        ; declVal   = v  } in
-    vd', ctx'
+    check_reserved id ; assert (is_known_ty cns ty);
+    { declTy    = ty
+    ; declId    = id
+    ; declVal   = v  }, add_var ctx id ty  
 
 and addTy_stmt cns cname ctx = function 
     | SmAbort           ->  SmAbort         , ctx
