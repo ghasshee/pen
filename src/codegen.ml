@@ -309,7 +309,7 @@ and codegen_ECDSArecover le ce args = match args with
 and codegen_new le ce n =    
     let ce    = reset_PC ce                                     in  (*                                             PCbkp >> .. *)
     let ce    = mstore_new_instance le ce n                     in  (*                      alloc(size) >> size >> PCbkp >> .. *)
-    let ce    = match n.new_msg.value with                          (* value is the amount sent                                *) 
+    let ce    = match n.new_msg with                                (* msg is the amount sent                                  *) 
         | EpFalse,_ -> PUSH1 (Int 0)            >>ce                (*                                                         *)
         | e         -> e                        >>>>(R,le,ce)   in  (*             value >> alloc(size) >> size >> PCbkp >> .. *)
     let ce    = CREATE                          >>ce            in  (*                             createResult >> PCbkp >> .. *)
@@ -492,7 +492,7 @@ and codegen_send le ce (s:ty _send) =
     | _             -> err "send expr with Wrong type"
 
 and push_msg_and_gas s le ce = 
-    let ce = match s.sd_msg.value with     
+    let ce = match s.sd_msg with     
         | EpFalse,_ -> PUSH1(Int 0)             >>ce 
         | e         -> e                        >>>>(R,le,ce)   in 
     let ce      = s.sd_cn                       >>>>(R,le,ce)   in

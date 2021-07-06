@@ -123,7 +123,7 @@ expr:
     | plist(expr)                                   { $1                                                                    }
 
 msg:
-    | value_info                                    { {value=$1}                                                            }
+    | value_info                                    { $1                                                                    }
      
 value_info:
     | (* empty *)                                   { EpFalse,()                                                            }

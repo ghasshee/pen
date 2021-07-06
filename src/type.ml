@@ -91,9 +91,6 @@ let rec addTy_call cns cname ctx c =
     { call_id   = c.call_id 
     ; call_args = args      }, reT
 
-and addTy_msg cns cname ctx msg =
-    let expr    = addTy_expr cns cname ctx msg.value in
-    { value     = expr      } 
 
 and addTy_expr cns cname ctx (expr,()) =    match expr with
     | EpParen     e                 ->  addTy_expr cns cname ctx e 
@@ -159,7 +156,7 @@ and addTy_expr cns cname ctx (expr,()) =    match expr with
                                         assert (acceptable_as kT ty) ; 
                                         EpArray { arrId    = e
                                                 ; arrIndex = idx,ty }, vT end  
-    | EpSend sd                     ->  let msg     = addTy_msg  cns cname ctx sd.sd_msg  in
+    | EpSend sd                     ->  let msg     = addTy_expr  cns cname ctx sd.sd_msg  in
                                         let cn      = addTy_expr cns cname ctx sd.sd_cn   in
                                         begin match sd.sd_mthd with
                                         | Some m ->  
@@ -179,7 +176,7 @@ and addTy_expr cns cname ctx (expr,()) =    match expr with
                                                            ; sd_msg     = msg }, TyTuple[]  end
 
 and addTy_new cns cname tenv e =
-    let msg'        =   addTy_msg cns cname tenv e.new_msg in
+    let msg'        =   addTy_expr cns cname tenv e.new_msg in
     let args'       =   L.map (addTy_expr cns cname tenv) e.new_args in
     { new_id        =   e.new_id
     ; new_args      =   args'

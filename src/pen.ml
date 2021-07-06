@@ -16,7 +16,9 @@ module L      = List
  * https://github.com/realworldocaml/examples/tree/master/code/parsing-test
  * which is under UNLICENSE *)
 
-let pr_pos outx lexbuf =
+let e str                   = eprintf str; exit 1
+
+let pr_pos outx lexbuf      =
     let pos = lexbuf.lex_curr_p in
     fprintf outx "%s:%d:%d" pos.pos_fname pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
 
@@ -31,58 +33,40 @@ let parse_with_error lexbuf =
 
 
 
+let enable_abi              = StdOpt.store_true () 
 
-
-
-
-
-
-let enable_abi      = StdOpt.store_true () 
-
-let optparser : Psr   .t 
-                    = Psr   .make 
-                            ~version:"0.0.1" 
-                            ~usage:"pen [options] < src.bbo" 
-                            ~description:"Pen compiles input from stdin and prints EVM bytecode in stdout. " ()
-(*
-let man         = BatOptParse.OptParser.add optparser ~long_names:["abi"] ~help:"print ABI" enable_abi
-let files       = BatOptParse.OptParser.add optparser 
-let _           = if files <> [] then (eprintf "Pass the contents to stdin.\n"; exit 1) 
-let abi:bool    = (Some true = enable_abi.BatOptParse.Opt.option_get ()) 
-let toplevels   = parse_with_error lexbuf 
-Aet toplevels'  = to_idx_list toplevels
-let toplevels'' = Type.addTys toplevels'
+let optparser : Psr.t       = Psr.make 
+                                ~version:"0.0.1" 
+                                ~usage:"pen [options] < src.bbo" 
+                                ~description:"Pen compiles input from stdin and prints EVM bytecode in stdout. " ()
+                                (*
+let man                     = BatOptParse.OptParser.add optparser ~long_names:["abi"] ~help:"print ABI" enable_abi
+let files                   = BatOptParse.OptParser.add optparser 
+let _                       = if files <> [] then (eprintf "Pass the contents to stdin.\n"; exit 1) 
+let abi:bool                = (Some true = enable_abi.BatOptParse.Opt.option_get ()) 
 *)
-let e str   = eprintf str; exit 1
-
 let ()      =
-    Psr   .add optparser 
-        ~long_names:["abi"] 
-        ~help:"print ABI" enable_abi ; 
-    let files                              = Psr   .parse_argv optparser                                in
+    Psr.add optparser ~long_names:["abi"] ~help:"print ABI" enable_abi ; 
+    let files                               = Psr.parse_argv optparser                                   in
     if files<>[] then e"Pass the contents to stdin.\n" else
-    let abi       : bool                   = (Some true = enable_abi.Option.option_get ())              in
-    let lexbuf                             = Lexing.from_channel stdin                                  in
-    let toplevels : unit toplevel list     = parse_with_error lexbuf                                    in
-    let toplevels                          = to_idx_list toplevels                                      in
-    let toplevels : ty toplevel idx_list   = Type.addTys toplevels                                   in
-    let cns                                = filter_map (function   | Cntrct cn -> Some cn
-                                                                    | _         -> None ) toplevels     in
+    let abi       : bool                    = (Some true = enable_abi.Option.option_get ())              in
+    let lexbuf                      = Lexing.from_channel stdin                                 in
+    let _ASTs : unit toplevel list  = parse_with_error lexbuf                                   in
+    let idx_ASTs                    = to_idx_list _ASTs                                         in
+    let idx_typed_ASTs              = Type.addTys idx_ASTs                                      in
+    let cns                         = filter_map (function Cntrct cn -> Some cn
+                                                         | _         -> None ) idx_typed_ASTs   in
     match cns with
     | []  ->  ()
-    | _   ->  let ccs       : cnstrctrCode idx_list         = compile_cnstrctrs cns                     in 
-              let cn_layts  : LI.cn_storLayout idx_list     = map storLayout_of_cnstrctrCode ccs        in
-              let layt                                      = LI.cnstrct_storLayout cn_layts            in
-              let rc        : rntimeCode                    = compile_rntime layt cns                   in
-              let bytecode  : big_int Evm.program           = compose_bytecode ccs rc (fst(L.hd cns))   in
-              if  abi 
-                  then Abi.prABI toplevels 
-                  else Evm.prLn_encoded bytecode 
-
-(*                                                                                                                                 *)
-(*                                                                                                                                 *)
-(*                                                                                                                                 *)
-(*                                                                                                                                 *)
+    | _   ->   
+    let ccs       : cnstrctrCode idx_list         = compile_cnstrctrs cns                     in          
+    let cn_layts  : LI.cn_storLayout idx_list     = map storLayout_of_cnstrctrCode ccs        in          
+    let layt                                      = LI.cnstrct_storLayout cn_layts            in          
+    let rc        : rntimeCode                    = compile_rntime layt cns                   in          
+    let bytecode  : big_int Evm.program           = compose_bytecode ccs rc (fst(L.hd cns))   in          
+    if  abi                                                                                               
+        then Abi.prABI idx_typed_ASTs                                                                          
+        else Evm.prLn_encoded bytecode 
 (*                                                                                                                                 *)
 (*       +----------------------+                                                                                                  *)
 (*       |         IO           |                                                                                                  *)

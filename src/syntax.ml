@@ -126,16 +126,14 @@ let split_evnt_args tyEv args =
 type 'ty _call                  =   { call_id           : string
                                     ; call_args         : ('ty expr_ty) list    }
                                 
-and  'ty _msg                   =   { value             : 'ty expr_ty           }
-                                
 and  'ty _new                   =   { new_id            : string
                                     ; new_args          : 'ty expr_ty list
-                                    ; new_msg           : 'ty _msg              }
+                                    ; new_msg           : 'ty expr_ty              }
                                 
 and  'ty _send                  =   { sd_cn             : 'ty expr_ty
                                     ; sd_mthd           : string option
                                     ; sd_args           : 'ty expr_ty list
-                                    ; sd_msg            : 'ty _msg              }
+                                    ; sd_msg            : 'ty expr_ty              }
 
 and  'ty stmt                   =   SmAbort
                                 |   SmReturn            of 'ty return
