@@ -76,8 +76,13 @@ type ty                         =   TyUint256           (* 256 bits *)
                                 |   TyMap               of ty * ty 
                                 |   TyCntrct            of string   (* type of [bid(...)] where bid is a cntrct *) 
                                 |   TyInstnce           of string   (* type of [b] declared as [bid b] *) 
-                                |   TyMthd              of string * ty list * ty
-                                |   TyVar               of string * ty 
+                                |   TyMthd              of string * ty list * ty        (*  (id, tyArgs, tyRet)             *)
+                                |   TyVar               of string * ty                  (*  (id, ty)                        *) 
+                                |   TyEvntArg           of ty * bool 
+                                |   TyEvnt              of string * ty list    (*  (id, [(tyEvntArg, isIndexed)])  *)
+
+let id_of_var (TyVar(id,_))     =   id 
+let ty_of_var (TyVar(_,ty))     =   ty 
 
 let rec string_of_ty            =   function 
     | TyUint256                 ->  "uint256"
@@ -92,19 +97,12 @@ let rec string_of_ty            =   function
     | TyCntrct      s           ->  "contract arch "     ^ s
     | TyInstnce     s           ->  "contract instance " ^ s
 
-type tyVar                      =   { ty                : ty
-                                    ; id                : string            } 
-
-type tyEvntArg                  =   { arg               : tyVar
+type tyEvntArg                  =   { arg               : ty  (* TyVar Only *) 
                                     ; indexed           : bool              }
 
 type tyEvnt                     =   { id                : string
                                     ; tyEvArgs          : tyEvntArg list    }
-(*
-type tyMthd                     =   { id                : string
-                                    ; tyArgs            : ty list 
-                                    ; tyRet             : ty                }
-*)
+
 type tyCntrct                   =   { id                : string   
                                     ; tyCnArgs          : ty list
                                     ; tyCnMthds         : ty list       } 
@@ -152,9 +150,10 @@ and  'ty stmt                   =   SmAbort
 and  'ty expr_ty                =   'ty expr * 'ty
 
 and  'ty expr                   =   EpParen             of 'ty expr_ty
-                                |   TmVar               of info * int * int 
-                                |   TmAbs               of info * string * ty' * term 
-                                |   TmApp               of info * term * term 
+                                |   TmVar               of int * int 
+                                |   TmAbs               of string * ty' * term 
+                                |   TmApp               of term * term 
+                                |   TmIf                of term * term * term
                                 |   EpTrue
                                 |   EpFalse
                                 |   EpDecLit256         of big_int
@@ -201,7 +200,7 @@ and 'ty return                  =   { ret_expr          : 'ty expr_ty option
 type 'ty mthd_body              =   'ty stmt list
 
 type mthd_info                  =   { mthd_id           : string
-                                    ; mthd_args         : tyVar list    
+                                    ; mthd_args         : ty list    
                                     ; mthd_retTy        : ty           }
                                  
 type mthd_head                  =   Method of mthd_info
@@ -211,7 +210,7 @@ type 'ty mthd                   =   { mthd_head         :     mthd_head
                                     ; mthd_body         : 'ty mthd_body }
                                 
 type 'ty cntrct                 =   { cntrct_id         : string
-                                    ; cntrct_args       : tyVar list
+                                    ; cntrct_args       : ty list
                                     ; mthds             : 'ty mthd list }
 
 
@@ -315,15 +314,16 @@ let calldata_size_of_ty         = function
     | TyCntrct _                -> err "abstract cntrct type cannot be a method arg"
     | tyT                       -> size_of_ty tyT
 
-let calldata_size_of_arg arg    = calldata_size_of_ty arg.ty
+let calldata_size_of_arg (TyVar(_,ty))    = calldata_size_of_ty ty
 
 let is_throw_only               = function   
     | [SmAbort]                 -> true
     | _                         -> false
 
-let non_mapping_arg arg         = match arg.ty with
-    | TyMap _                   -> false
-    | _                         -> true
+let non_mapping_arg             = function 
+    | TyVar(_,TyMap _)          -> false
+    | TyVar(_,_)                -> true 
+    | _ -> err "not an arg"
 
 let acceptable_as t0 t1     =   ( t0 = t1 )  ||  ( match t0, t1 with
                                 | TyAddr, TyInstnce _   -> true

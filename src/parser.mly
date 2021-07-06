@@ -58,11 +58,11 @@ mthd_head:
     | METHOD LPAR VOID ID plist(arg) RPAR           { Method{mthd_retTy=TyTuple[];mthd_id=$4; mthd_args=$5}   }
 
 arg:
-    | ty ID                                         { {ty=$1; id=$2}                                            }
+    | ty ID                                         { TyVar($2,$1)                                             }
 
 evnt_arg:
     | arg                                           { tyEvntArg_of_arg $1 false                                  }
-    | ty INDEXED ID                                 { {arg={ty=$1; id=$3}; indexed=true}                        }
+    | ty INDEXED ID                                 { {arg=TyVar($3,$1); indexed=true}                        }
 
 ty:
     | UINT256                                       { TyUint256                                                 }

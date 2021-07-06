@@ -24,11 +24,10 @@ let abi_string_of_ty       = function
 let prABI_default_mthd   =
   "{\"type\":\"fallback\",\"inputs\": [],\"outputs\": [],\"payable\": true}"
 
-let prABI_input (arg:tyVar) : string =
-    sprintf "{\"name\": \"%s\", \"type\": \"%s\"}" (arg.id)
-                 (abi_string_of_ty arg.ty)
+let prABI_input         = function 
+    TyVar(id,ty) ->  sprintf "{\"name\": \"%s\", \"type\": \"%s\"}" id (abi_string_of_ty ty)
 
-let prABI_inputs (args:tyVar list) : string =
+let prABI_inputs (args:ty list) : string =
     let strings         = L.map prABI_input args in
     BS.concat "," strings
 
@@ -63,10 +62,9 @@ let prABI_cntrct seen_cnstrctr (c:ty cntrct) : string =
 
 
 let prABI_evnt_arg (a:tyEvntArg) : string =
+    let TyVar(id,ty) = a.arg in 
     sprintf "{\"name\":\"%s\",\"type\":\"%s\",\"indexed\":%s}"
-                 (a.arg.id)
-                 (abi_string_of_ty (a.arg.ty))
-                 (string_of_bool a.indexed)
+                 id (abi_string_of_ty ty) (string_of_bool a.indexed)
 
 let prABI_evnt_inputs (is:tyEvntArg list) : string =
     let strs : string list  = L.map prABI_evnt_arg is in

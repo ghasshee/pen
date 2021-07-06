@@ -10,7 +10,7 @@ module BO   = BatOption
 module L    = List
 
 let reserved x                  =   BS.starts_with x "pre_" 
-let reserved_var (var:tyVar)    =   reserved var.id
+let reserved_var (TyVar(id,_))  =   reserved id
 let reserved_cn  cn             =   reserved cn.cntrct_id
 let reserved_exists             =   BL.exists reserved_var 
 let reserved_args(cn:'a cntrct) =   BL.exists reserved_var cn.cntrct_args  
@@ -22,11 +22,11 @@ let check_reserved_cn   cn      =   if reserved_cn cn       then err "Names 'pre
 let assert_tyeqv l r            =   assert (get_ty l=get_ty r) 
 
 let typeof_mthd m               =   match m.mthd_head with 
-    | Method m                      ->  TyMthd(m.mthd_id,L.map(fun x->x.ty)m.mthd_args, m.mthd_retTy)
+    | Method m                      ->  TyMthd(m.mthd_id,L.map ty_of_var m.mthd_args, m.mthd_retTy)
     | Default                       ->  TyMthd("", [], TyTuple[]) 
 
 let typeof_cntrct(cn:'a cntrct) =   { id                = cn.cntrct_id
-                                    ; tyCnArgs          = L.map (fun x -> x.ty) cn.cntrct_args
+                                    ; tyCnArgs          = L.map ty_of_var cn.cntrct_args
                                     ; tyCnMthds         = L.map typeof_mthd cn.mthds            }
 
 let id_lookup_ty ctx id         =   match lookup_id id ctx with
@@ -47,10 +47,11 @@ let rec is_known_ty cns         =   function
     | TyMap(a,b)                    ->  is_known_ty cns a && is_known_ty cns b
     | TyInstnce cn                  ->  is_known_cntrct cns cn
 
-let arg_has_known_ty cns arg    =   let ret = is_known_ty cns arg.ty in
-                                    if not ret 
-                                        then err("Unknown Type Arg "^string_of_ty arg.ty)
-                                        else ret
+let arg_has_known_ty cns        =   function 
+    | TyVar(id,ty)                  ->  let ret = is_known_ty cns ty in
+                                        if not ret 
+                                            then err("Unknown Type Arg "^string_of_ty ty)
+                                            else ret
 
 let retTy_is_known cns m        =   is_known_ty cns m.mthd_retTy
 
@@ -229,7 +230,7 @@ and addTy_stmt cns cname ctx = function
                             SmExpr e        , ctx
     | SmLog(nm,args,_)  ->  let args    = L.map (addTy_expr cns cname ctx) args     in
                             let ev      = lookup_evnt nm ctx                        in
-                            let tys     = L.map(fun ea -> ea.arg.ty)ev.tyEvArgs    in
+                            let tys     = L.map(fun ea -> ty_of_var ea.arg)ev.tyEvArgs    in
                             assert(typechecks tys args) ;
                             SmLog(nm,args,Some ev), ctx
 
