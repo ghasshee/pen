@@ -85,6 +85,24 @@ let total_size_of_args args     =   try     BL.sum (L.map (fun arg-> size_of_ty 
                                     with    Invalid_argument _          -> 0 
 
 
+let string_of_tyMthd m  =
+    let name_of_mthd    = m.mthd_id                         in
+    let args            = getArgTys m.mthd_args             in
+    let arg_tys         = L.map snd args                    in
+    let str_tys         = L.map string_of_ty arg_tys        in
+    let ty              = String.concat "," str_tys         in
+    name_of_mthd ^ "(" ^ ty ^ ")"
+
+let string_of_evnt (ev:tyEvnt) =
+    (* do I consider indexed no? *)
+    let name            = ev.id                             in
+    let args            = args_of_evnt_args ev.tyEvArgs     in 
+    let argTys          = getArgTys args                    in
+    let tys             = L.map snd argTys                  in
+    let tyNames         = L.map string_of_ty tys            in
+    let args            = String.concat "," tyNames         in
+    name ^ "(" ^ args ^ ")"
+
 (***********************************)
 (* getInfo from contract Interface *)
 (***********************************)

@@ -57,24 +57,6 @@ let hex_keccak h        =
 
 let keccak_signature str =  String.sub (string_keccak str) 0 8
 
-let string_of_tyMthd m  =
-    let name_of_mthd    = m.mthd_id                         in
-    let args            = getArgTys m.mthd_args             in
-    let arg_tys         = L.map snd args                    in
-    let str_tys         = L.map string_of_ty arg_tys        in
-    let ty              = String.concat "," str_tys         in
-    name_of_mthd ^ "(" ^ ty ^ ")"
-
-let string_of_evnt (ev:tyEvnt) =
-    (* do I consider indexed no? *)
-    let name            = ev.id                             in
-    let args            = args_of_evnt_args ev.tyEvArgs     in 
-    let argTys          = getArgTys args                    in
-    let tys             = L.map snd argTys                  in
-    let tyNames         = L.map string_of_ty tys            in
-    let args            = String.concat "," tyNames         in
-    name ^ "(" ^ args ^ ")"
-
 let hash_ty_mthd  m     = keccak_signature (string_of_tyMthd m)
 let hash_of_evnt  e     = keccak_signature (string_of_evnt e)
 let big_of_hex    h     = BB.big_int_of_string ("0x"^h)

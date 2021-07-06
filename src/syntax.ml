@@ -5,6 +5,66 @@ open Misc
 module L    = List 
 module BL   = BatList
 
+type info = int
+type ty'     =
+    | TyVar     of int * int 
+    | TyId      of string 
+    | TyTop
+    | TyRef     of ty' 
+    | TyVariant of (string * ty') list 
+    | TyRecord  of (string * ty') list 
+    | TyArr     of ty' * ty'
+    | TyList    of ty' 
+    | TyFloat 
+    | TyString  
+    | TyUnit
+    | TyBool
+    | TyNat 
+;;
+
+type term =
+    (* Ref *)
+    | TmRef         of info * term 
+    | TmDeref       of info * term 
+    | TmLoc         of info * int 
+    | TmAssign      of info * term * term 
+    (* List *)
+    | TmNil         of info * ty'
+    | TmCons        of info * ty' * term * term 
+    | TmIsNil       of info * ty' * term 
+    | TmHead        of info * ty' * term 
+    | TmTail        of info * ty' * term 
+    (* Fix *)
+    | TmFix         of info * term 
+    (* Float / String  *) 
+    | TmString      of info * string 
+    | TmFloat       of info * float
+    | TmTimesfloat  of info * term * term 
+    (* Variant *)
+    | TmTag         of info * string * term * ty'
+    | TmCase        of info * term * (string * (string * term)) list  (* <- (label*(variable*term) list *) 
+    (* Record *)
+    | TmProj        of info * term * string  
+    | TmRecord      of info * (string * term) list 
+    (* Ascription *) 
+    | TmAscribe     of info * term * ty'
+    (* Unit *)
+    | TmUnit        of info 
+    (* Let  *)
+    | TmLet         of info * string * term * term
+    (* Lambda *) 
+    | TmVar         of info * int * int 
+    | TmAbs         of info * string * ty' * term 
+    | TmApp         of info * term * term 
+    (* Arith *) 
+    | TmZero        of info
+    | TmSucc        of info * term
+    | TmPred        of info * term
+    | TmIsZero      of info * term
+    (* Bool *) 
+    | TmTrue        of info
+    | TmFalse       of info
+    | TmIf          of info * term * term * term
 
 type ty                         =   TyUint256           (* 256 bits *) 
                                 |   TyUint8             (*   8 bits *) 
@@ -16,6 +76,7 @@ type ty                         =   TyUint256           (* 256 bits *)
                                 |   TyMap               of ty * ty 
                                 |   TyCntrct            of string   (* type of [bid(...)] where bid is a cntrct *) 
                                 |   TyInstnce           of string   (* type of [b] declared as [bid b] *) 
+                                |   TyMthd of string * ty list * ty
 
 let rec string_of_ty            =   function 
     | TyUint256                 ->  "uint256"
@@ -66,7 +127,7 @@ let split_evnt_args tyEv args =
 type 'ty _call                  =   { call_id           : string
                                     ; call_args         : ('ty expr_ty) list    }
                                 
-and  'ty _msg                   =   { value             : 'ty expr_ty    }
+and  'ty _msg                   =   { value             : 'ty expr_ty           }
                                 
 and  'ty _new                   =   { new_id            : string
                                     ; new_args          : 'ty expr_ty list
@@ -90,6 +151,9 @@ and  'ty stmt                   =   SmAbort
 and  'ty expr_ty                =   'ty expr * 'ty
 
 and  'ty expr                   =   EpParen             of 'ty expr_ty
+                                |   TmVar               of info * int * int 
+                                |   TmAbs               of info * string * ty' * term 
+                                |   TmApp               of info * term * term 
                                 |   EpTrue
                                 |   EpFalse
                                 |   EpDecLit256         of big_int
