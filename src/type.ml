@@ -25,14 +25,6 @@ let typeof_mthd m               =   match m.mthd_head with
     | Method m                      ->  TyMthd(m.mthd_id,L.map(fun x->x.ty)m.mthd_args, m.mthd_retTy)
     | Default                       ->  TyMthd("", [], TyTuple[]) 
 
-let typeof_mthd m               =   match m.mthd_head with
-  | Method m                        ->  { id                = m.mthd_id
-                                        ; tyArgs            = L.map (fun x->x.ty) m.mthd_args
-                                        ; tyRet             = m.mthd_retTy                          }
-  | Default                         ->  { id                = "" 
-                                        ; tyArgs            = []    
-                                        ; tyRet             = TyTuple[] }
-
 let typeof_cntrct(cn:'a cntrct) =   { id                = cn.cntrct_id
                                     ; tyCnArgs          = L.map (fun x -> x.ty) cn.cntrct_args
                                     ; tyCnMthds         = L.map typeof_mthd cn.mthds            }
@@ -170,7 +162,7 @@ and addTy_expr cns cname ctx (expr,()) =    match expr with
                                         let cn      = addTy_expr cns cname ctx sd.sd_cn   in
                                         begin match sd.sd_mthd with
                                         | Some m ->  
-                                        let tyRet   =   (find_tyMthd cns m).tyRet                 in            
+                                        let TyMthd(_,_,tyRet)  =   find_tyMthd cns m                 in            
                                         let args    =   L.map(addTy_expr cns cname ctx)sd.sd_args in                
                                         let ref     =   EpSend  { sd_cn     = cn                                        
                                                                 ; sd_mthd   = sd.sd_mthd                                

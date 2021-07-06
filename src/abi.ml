@@ -45,8 +45,8 @@ let prABI_mthd_info u =
         (u.mthd_id) (prABI_inputs u.mthd_args) (prABI_output u.mthd_retTy)
 
 let prABI_mthd (c:ty mthd) : string = match c.mthd_head with
-    | Method u       ->  prABI_mthd_info u
-    | Default         ->  prABI_default_mthd
+    | Method u          ->  prABI_mthd_info u
+    | Default           ->  prABI_default_mthd
 
 let prABI_cnstrctr (c:ty cntrct) : string =
     sprintf

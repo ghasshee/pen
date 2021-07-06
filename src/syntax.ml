@@ -76,7 +76,8 @@ type ty                         =   TyUint256           (* 256 bits *)
                                 |   TyMap               of ty * ty 
                                 |   TyCntrct            of string   (* type of [bid(...)] where bid is a cntrct *) 
                                 |   TyInstnce           of string   (* type of [b] declared as [bid b] *) 
-                                |   TyMthd of string * ty list * ty
+                                |   TyMthd              of string * ty list * ty
+                                |   TyVar               of string * ty 
 
 let rec string_of_ty            =   function 
     | TyUint256                 ->  "uint256"
@@ -99,14 +100,14 @@ type tyEvntArg                  =   { arg               : tyVar
 
 type tyEvnt                     =   { id                : string
                                     ; tyEvArgs          : tyEvntArg list    }
-
+(*
 type tyMthd                     =   { id                : string
                                     ; tyArgs            : ty list 
                                     ; tyRet             : ty                }
-
+*)
 type tyCntrct                   =   { id                : string   
                                     ; tyCnArgs          : ty list
-                                    ; tyCnMthds         : tyMthd list       } 
+                                    ; tyCnMthds         : ty list       } 
 
 let tyEvntArg_of_arg arg isIdxd =   { arg               = arg
                                     ; indexed           = isIdxd            }
