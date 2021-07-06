@@ -66,20 +66,19 @@ type term =
     | TmFalse       of info
     | TmIf          of info * term * term * term
 
-type ty                         =   TyUint256           (* 256 bits *) 
-                                |   TyUint8             (*   8 bits *) 
-                                |   TyBytes32           (* 256 bits *) 
-                                |   TyAddr              (* 160 bits *) 
-                                |   TyBool 
-                                |   TyRef               of ty 
-                                |   TyTuple             of ty list
-                                |   TyMap               of ty * ty 
-                                |   TyCntrct            of string   (* type of [bid(...)] where bid is a cntrct *) 
-                                |   TyInstnce           of string   (* type of [b] declared as [bid b] *) 
-                                |   TyMthd              of string * ty list * ty        (*  (id, tyArgs, tyRet)             *)
+type ty           (* atomic *)  =   TyUint256           (* 256 bits *) 
+                  (* atomic *)  |   TyUint8             (*   8 bits *) 
+                  (* atomic *)  |   TyBytes32           (* 256 bits *) 
+                  (* atomic *)  |   TyAddr              (* 160 bits *) 
+                  (* atomic *)  |   TyBool 
+                  (* atomic *)  |   TyRef               of ty 
+                  (* atomic *)  |   TyTuple             of ty list
+                  (* atomic *)  |   TyMap               of ty * ty 
+                  (* atomic *)  |   TyCntrct            of string   (* type of [bid(...)] where bid is a cntrct *) 
+                  (* atomic *)  |   TyInstnce           of string   (* type of [b] declared as [bid b] *) 
+                                |   TyMthd              of string * ty list * ty        (*  TyMthd(id, tyArgs, tyRet)             *)
+                                |   TyAbs               of          ty list * ty        (*  TyAbs(tyArgs, tyRet)                 *)
                                 |   TyVar               of string * ty                  (*  (id, ty)                        *) 
-                                |   TyEvntArg           of ty * bool 
-                                |   TyEvnt              of string * ty list    (*  (id, [(tyEvntArg, isIndexed)])  *)
 
 let id_of_var (TyVar(id,_))     =   id 
 let ty_of_var (TyVar(_,ty))     =   ty 
@@ -105,7 +104,7 @@ type tyEvnt                     =   { id                : string
 
 type tyCntrct                   =   { id                : string   
                                     ; tyCnArgs          : ty list
-                                    ; tyCnMthds         : ty list       } 
+                                    ; tyCnMthds         : ty list           } 
 
 let tyEvntArg_of_arg arg isIdxd =   { arg               = arg
                                     ; indexed           = isIdxd            }
@@ -124,34 +123,35 @@ let split_evnt_args tyEv args =
 (*****************************************)
 
 type 'ty _call                  =   { call_id           : string
-                                    ; call_args         : ('ty expr_ty) list    }
+                                    ; call_args         : ('ty exprTy) list    }
                                 
 and  'ty _new                   =   { new_id            : string
-                                    ; new_args          : 'ty expr_ty list
-                                    ; new_msg           : 'ty expr_ty              }
+                                    ; new_args          : 'ty exprTy list
+                                    ; new_msg           : 'ty exprTy              }
                                 
-and  'ty _send                  =   { sd_cn             : 'ty expr_ty
+and  'ty _send                  =   { sd_cn             : 'ty exprTy
                                     ; sd_mthd           : string option
-                                    ; sd_args           : 'ty expr_ty list
-                                    ; sd_msg            : 'ty expr_ty              }
+                                    ; sd_args           : 'ty exprTy list
+                                    ; sd_msg            : 'ty exprTy              }
 
 and  'ty stmt                   =   SmAbort
                                 |   SmReturn            of 'ty return
-                                |   SmAssign            of 'ty lexpr * 'ty expr_ty
+                                |   SmAssign            of 'ty lexpr * 'ty exprTy
                                 |   SmDecl              of 'ty decl
-                                |   SmIfThen            of 'ty expr_ty * 'ty stmt list
-                                |   SmIf                of 'ty expr_ty * 'ty stmt list * 'ty stmt list
-                                |   SmSlfDstrct         of 'ty expr_ty
-                                |   SmExpr              of 'ty expr_ty
-                                |   SmLog               of string   * 'ty expr_ty list * tyEvnt option
+                                (*|   SmIfThen            of 'ty exprTy * 'ty stmt list
+                                |   SmIf                of 'ty exprTy * 'ty stmt list * 'ty stmt list *) 
+                                |   SmSlfDstrct         of 'ty exprTy
+                                |   SmExpr              of 'ty exprTy
+                                |   SmLog               of string   * 'ty exprTy list * tyEvnt option
 
-and  'ty expr_ty                =   'ty expr * 'ty
+and  'ty exprTy                =   'ty expr * 'ty
 
-and  'ty expr                   =   EpParen             of 'ty expr_ty
+and  'ty expr                   =   EpParen             of 'ty exprTy
                                 |   TmVar               of int * int 
-                                |   TmAbs               of string * ty' * term 
-                                |   TmApp               of term * term 
-                                |   TmIf                of term * term * term
+                                |   TmAbs               of string * ty * 'ty exprTy
+                                |   TmApp               of 'ty exprTy * 'ty exprTy  
+                                |   TmIf                of 'ty exprTy * 'ty exprTy * 'ty exprTy 
+                                |   TmFix               of 'ty exorTy
                                 |   EpTrue
                                 |   EpFalse
                                 |   EpDecLit256         of big_int
@@ -161,34 +161,34 @@ and  'ty expr                   =   EpParen             of 'ty expr_ty
                                 |   EpFnCall            of 'ty _call
                                 |   EpNew               of 'ty _new
                                 |   EpSend              of 'ty _send
-                                |   EpLAnd              of 'ty expr_ty * 'ty expr_ty
-                                |   EpLT                of 'ty expr_ty * 'ty expr_ty
-                                |   EpGT                of 'ty expr_ty * 'ty expr_ty
-                                |   EpNeq               of 'ty expr_ty * 'ty expr_ty
-                                |   EpEq                of 'ty expr_ty * 'ty expr_ty
-                                |   EpAddr              of 'ty expr_ty
-                                |   EpNot               of 'ty expr_ty
+                                |   EpLAnd              of 'ty exprTy * 'ty exprTy
+                                |   EpLT                of 'ty exprTy * 'ty exprTy
+                                |   EpGT                of 'ty exprTy * 'ty exprTy
+                                |   EpNeq               of 'ty exprTy * 'ty exprTy
+                                |   EpEq                of 'ty exprTy * 'ty exprTy
+                                |   EpAddr              of 'ty exprTy
+                                |   EpNot               of 'ty exprTy
                                 |   EpArray             of 'ty array
                                 |   EpValue
                                 |   EpSender
                                 |   EpThis
-                                |   EpDeref             of 'ty expr_ty
-                                |   EpPlus              of 'ty expr_ty * 'ty expr_ty
-                                |   EpMinus             of 'ty expr_ty * 'ty expr_ty
-                                |   EpMult              of 'ty expr_ty * 'ty expr_ty
-                                |   EpBalance           of 'ty expr_ty
+                                |   EpDeref             of 'ty exprTy
+                                |   EpPlus              of 'ty exprTy * 'ty exprTy
+                                |   EpMinus             of 'ty exprTy * 'ty exprTy
+                                |   EpMult              of 'ty exprTy * 'ty exprTy
+                                |   EpBalance           of 'ty exprTy
 
 and 'ty lexpr                   =   LEpArray            of 'ty array
 
-and 'ty array                   =   { arrId             : 'ty expr_ty
-                                    ; arrIndex          : 'ty expr_ty          }
+and 'ty array                   =   { arrId             : 'ty exprTy
+                                    ; arrIndex          : 'ty exprTy          }
 
 and 'ty decl                    =   { declTy            : ty
                                     ; declId            : string
-                                    ; declVal           : 'ty expr_ty          }
+                                    ; declVal           : 'ty exprTy          }
 
-and 'ty return                  =   { ret_expr          : 'ty expr_ty option
-                                    ; ret_cont          : 'ty expr_ty          }
+and 'ty return                  =   { ret_expr          : 'ty exprTy option
+                                    ; ret_cont          : 'ty exprTy          }
                                 
 
 (*****************************************)
