@@ -66,7 +66,8 @@ type term =
     | TmFalse       of info
     | TmIf          of info * term * term * term
 
-type ty           (* atomic *)  =   TyUint256           (* 256 bits *) 
+type ty           (* atomic *)  =   TyVoid              (* 256 bits *) 
+                  (* atomic *)  |   TyUint256           (* 256 bits *) 
                   (* atomic *)  |   TyUint8             (*   8 bits *) 
                   (* atomic *)  |   TyBytes32           (* 256 bits *) 
                   (* atomic *)  |   TyAddr              (* 160 bits *) 
@@ -134,7 +135,7 @@ and  'ty _send                  =   { sd_cn             : 'ty exprTy
                                     ; sd_args           : 'ty exprTy list
                                     ; sd_msg            : 'ty exprTy              }
 
-and  'ty stmt                   =   SmAbort
+and  'ty stmt                   =   
                                 |   SmReturn            of 'ty return
                                 |   SmAssign            of 'ty lexpr * 'ty exprTy
                                 |   SmDecl              of 'ty decl
@@ -147,11 +148,12 @@ and  'ty stmt                   =   SmAbort
 and  'ty exprTy                =   'ty expr * 'ty
 
 and  'ty expr                   =   EpParen             of 'ty exprTy
+                                |   SmAbort
                                 |   TmVar               of int * int 
                                 |   TmAbs               of string * ty * 'ty exprTy
                                 |   TmApp               of 'ty exprTy * 'ty exprTy  
                                 |   TmIf                of 'ty exprTy * 'ty exprTy * 'ty exprTy 
-                                |   TmFix               of 'ty exorTy
+                                |   TmFix               of 'ty exprTy
                                 |   EpTrue
                                 |   EpFalse
                                 |   EpDecLit256         of big_int
@@ -326,3 +328,66 @@ let non_mapping_arg             = function
 let acceptable_as t0 t1     =   ( t0 = t1 )  ||  ( match t0, t1 with
                                 | TyAddr, TyInstnce _   -> true
                                 | _     , _             -> false ) 
+
+
+
+
+(* -------------------------------------------------- *) 
+(* Shifting *)
+
+let rec tyWalk onVar c          = let f = onVar in function 
+    | TyVariant(fieldtys)       -> TyVariant(List.map (fun(l,tyT)->(l,tyWalk f c tyT)) fieldtys) 
+    | TyRecord(fieldtys)        -> TyRecord(List.map (fun(l,tyT)->(l,tyWalk f c tyT)) fieldtys) 
+    | TyArr(tyT1,tyT2)          -> TyArr(tyWalk f c tyT1,tyWalk f c tyT2) 
+    | TyVar(x,n)                -> onVar c x n
+    | TyRef(tyT)                -> TyRef(tyWalk f c tyT) 
+    | tyT                       -> tyT
+
+let rec tmWalk onVar onType c   = let (f,g) = (onVar,onType) in function 
+    | TmDeref(fi,t)             -> TmDeref(fi,tmWalk f g c t) 
+    | TmVar(fi,x,n)             -> onVar fi c x n
+    | TmRef(fi,t)               -> TmRef(fi,tmWalk f g c t)
+    | TmAssign(fi,t1,t2)        -> TmAssign(fi,tmWalk f g c t1,tmWalk f g c t2)
+    | TmCase(fi,t,cases)        -> TmCase(fi,tmWalk f g c t,List.map(fun(li,(xi,ti))->li,(xi,tmWalk f g(c+1)ti))cases)
+    | TmLet(fi,x,t1,t2)         -> TmLet(fi,x,tmWalk f g c t1, tmWalk f g(c+1)t2) 
+    | TmAbs(fi,x,tyT,t2)        -> TmAbs(fi,x,g c tyT,tmWalk f g(c+1)t2)
+    | TmApp(fi,t1,t2)           -> TmApp(fi,tmWalk f g c t1, tmWalk f g c t2) 
+    | TmIf(fi,t1,t2,t3)         -> TmIf(fi,tmWalk f g c t1, tmWalk f g c t2, tmWalk f g c t3) 
+    | TmSucc(fi,t)              -> TmSucc(fi,tmWalk f g c t) 
+    | TmPred(fi,t)              -> TmPred(fi,tmWalk f g c t) 
+    | TmIsZero(fi,t)            -> TmIsZero(fi,tmWalk f g c t)
+    | TmAscribe(fi,t,tyT)       -> TmAscribe(fi,tmWalk f g c t,g c tyT) 
+    | TmRecord(fi,tl)           -> TmRecord(fi,List.map(fun(l,t)->(l,tmWalk f g c t))tl)  
+    | TmProj(fi,t,i)            -> TmProj(fi,tmWalk f g c t,i) 
+    | TmFix(fi,t)               -> TmFix(fi,tmWalk f g c t)
+    | x                         -> x
+
+let tyShiftOnVar d          = fun c x n     ->  if x>=c then (TyVar(x+d,n+d) :ty')    else (TyVar(x,n+d) : ty')
+let tyShiftAbove d          = tyWalk (tyShiftOnVar d) 
+let tyShift d               = (*if d>=0 then pe("TYVARSHIFT    : "^(soi d));*)tyShiftAbove d 0    
+
+let tmShiftOnVar d          = fun fi c x n  ->  if x>=c then (TmVar(fi,x+d,n+d) : term)  else TmVar(fi,x,n+d)
+let tmShiftAbove d          = tmWalk (tmShiftOnVar d) (tyShiftAbove d) 
+let tmShift d               = (*if d>=0 then pe("TMVARSHIFT    : "^(soi d));*)tmShiftAbove d 0 
+
+(*
+let bindshift d             = function 
+    | BindTyAbb(tyT)            ->  BindTyAbb(tyShift d tyT) 
+    | BindTmVar(tyT)            ->  BindTmVar(tyShift d tyT) 
+    | BindTmAbb(t,tyT_opt)      ->  (let tyT_opt' = match tyT_opt with 
+                                        | None      -> None
+                                        | Some(tyT) -> Some(tyShift d tyT) in 
+                                    BindTmAbb(tmShift d t, tyT_opt'))
+    | b                         ->  b
+*)
+                                        
+(* -------------------------------------------------- *) 
+(* Substitution *) 
+let tySubstOnVar j tyS tyT  = fun    c x n ->   if x=j+c then tyShift c tyS else (TyVar(x,n) : ty') 
+let tySubst      j tyS tyT  = tyWalk(tySubstOnVar j tyS tyT)0 tyT
+
+let tmSubstOnVar j s t      = fun fi c x n ->   if x=j+c then tmShift c s else TmVar(fi, x, n) 
+let tmSubst      j s t      = tmWalk (tmSubstOnVar j s t) (fun k x -> x) 0 t
+let tmSubstTop     s t      = tmShift (-1) (tmSubst 0 (tmShift 1 s) t) 
+
+

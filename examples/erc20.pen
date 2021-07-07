@@ -29,7 +29,7 @@ contract Token( uint256 totalSupply
     }
 
     method(bool transfer(address _to, uint256 _amount)) {
-        if (balances[sender(msg)] < _amount) then abort;
+        if (balances[sender(msg)] < _amount) then abort else 
         if (sender(msg) == _to) then {
             log Transfer(sender(msg), sender(msg), _amount);
             return true 

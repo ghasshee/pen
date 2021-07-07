@@ -354,6 +354,7 @@ and salloc_array_of_push push_array_seed ce =
 (* le is not updated here.  
  * le can only be updated in a variable initialization *)
 and codegen_expr le ce aln      = function 
+    | SmAbort,TyVoid                ->  throw ce  
     | EpAddr(c,TyInstnce i),TyAddr  ->                  (c,TyInstnce i)         >>>>(aln,le,ce) 
     | EpValue       ,TyUint256      ->                  CALLVALUE               >>ce      (* Value (wei) Transferred to the account *) 
     | EpNow         ,TyUint256      ->                  TIMESTAMP               >>ce 
@@ -861,12 +862,11 @@ and codegen_if le ce layt cond ss1 ss2 =
 
 and codegen_stmts stmts lyt le ce   = foldl (codegen_stmt lyt) (le,ce) stmts
 and codegen_stmt layt (le,ce)       = function 
-    | SmAbort                       ->  le, throw ce
     | SmReturn ret                  ->  codegen_return      le ce layt ret
     | SmAssign (l,r)                ->  codegen_assign      le ce layt l r
     | SmDecl i                      ->  codegen_decl        le ce i
-    | SmIfThen(cond,e)              ->  codegen_if_then     le ce layt cond e 
-    | SmIf(cond,e1,e2)              ->  codegen_if          le ce layt cond e1 e2
+(*    | SmIfThen(cond,e)              ->  codegen_if_then     le ce layt cond e 
+    | SmIf(cond,e1,e2)              ->  codegen_if          le ce layt cond e1 e2 *)
     | SmSlfDstrct expr              ->  codegen_selfDstrct  le ce expr
     | SmExpr expr                   ->  codegen_expr_stmt   le ce expr
     | SmLog(name,args,Some ev)      ->  codegen_log_stmt    le ce name args ev

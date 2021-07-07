@@ -78,13 +78,13 @@ ty:
     | block                                         { $1                                                        }
      
 stmt:
-    | ABORT SEMI                                    { SmAbort                                                   }
+(*  | ABORT SEMI                                    { SmAbort                                                   } *)
     | RETURN option(expr) THEN BECOME expr SEMI     { SmReturn{ret_expr=$2; ret_cont=$5}                        }
     | lexpr EQ expr SEMI                            { SmAssign($1,$3)                                           }
     | ty ID EQ expr SEMI                            { SmDecl{declTy=$1; declId=$2; declVal=$4}   }
     | VOID EQ expr SEMI                             { SmExpr $3                                                 }
-    | IF expr THEN body ELSE body                   { SmIf($2,$4,$6)                                            }
-    | IF expr THEN body                             { SmIfThen ($2, $4)                                         }
+    (*| IF expr THEN body ELSE body                   { SmIf($2,$4,$6)                                            }
+    | IF expr THEN body                             { SmIfThen ($2, $4)                                         }*)
     | LOG ID expr_list SEMI                         { SmLog($2,$3,None)                                         }
     | SELFDESTRUCT expr SEMI                        { SmSlfDstrct $2                                            }
 
@@ -99,8 +99,10 @@ stmt:
     | LAND                                          { fun(l,r)-> EpLAnd(l,r)                                    } 
 
 expr:
+    | ABORT                                         { SmAbort,                                                          ()  }
     | TRUE                                          { EpTrue,                                                           ()  }
     | FALSE                                         { EpFalse,                                                          ()  }
+    | IF expr THEN expr ELSE expr                   { TmIf($2,$4,$6),                                                   ()  }
     | DECLIT256                                     { EpDecLit256 $1,                                                   ()  }
     | DECLIT8                                       { EpDecLit8 $1,                                                     ()  }
     | expr op expr                                  { $2($1,$3) ,                                                       ()  }

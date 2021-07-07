@@ -93,6 +93,7 @@ let rec addTy_call cns cname ctx c =
 
 
 and addTy_expr cns cname ctx (expr,()) =    match expr with
+    | SmAbort                       ->  SmAbort         , TyVoid
     | EpParen     e                 ->  addTy_expr cns cname ctx e 
     | EpThis                        ->  EpThis          , TyInstnce cname
     | EpTrue                        ->  EpTrue          , TyBool
@@ -205,19 +206,18 @@ and addTy_decl cns cname ctx vd =
     ; declVal   = v  }, add_var ctx id ty  
 
 and addTy_stmt cns cname ctx = function 
-    | SmAbort           ->  SmAbort         , ctx
     | SmReturn r        ->  let r       = addTy_return      cns cname ctx  r        in
                             SmReturn r      , ctx
     | SmAssign(l,r)     ->  let l       = addTy_lexpr       cns cname ctx  l        in
                             let r       = addTy_expr        cns cname ctx  r        in
                             SmAssign(l,r)   , ctx
-    | SmIfThen(b,t)     ->  let b       = addTy_expr        cns cname ctx  b        in
+   (* | SmIfThen(b,t)     ->  let b       = addTy_expr        cns cname ctx  b        in
                             let t       = addTy_stmts       cns cname ctx  t        in
                             SmIfThen(b,t)   , ctx
     | SmIf(b,t,f)       ->  let b       = addTy_expr        cns cname ctx  b        in
                             let t       = addTy_stmts       cns cname ctx  t        in
                             let f       = addTy_stmts       cns cname ctx  f        in
-                            SmIf(b,t,f)     , ctx
+                            SmIf(b,t,f)     , ctx *)
     | SmSlfDstrct e     ->  let e       = addTy_expr        cns cname ctx  e        in
                             SmSlfDstrct e   , ctx
     | SmDecl v          ->  let v,ctx   = addTy_decl        cns cname ctx  v        in
@@ -237,22 +237,29 @@ and addTy_stmts cns cname ctx = function
                             stmt :: addTy_stmts cns cname ctx rest
 
 
+(* evaluation *) 
+let eval ctx e = e  (* #TODO *) 
+
 (* Termination *) 
+
 
 type termination            =
                             | OnTheWay 
                             | ReturnBySize of int 
                             | JustStop
 
+
+
 let rec is_terminating      = function 
-    | SmAbort                   -> [JustStop]
     | SmSlfDstrct _             -> [JustStop]
     | SmAssign    _             -> [OnTheWay]
     | SmDecl      _             -> [OnTheWay]
-    | SmExpr      _             -> [OnTheWay]
+    | SmExpr  (e,_)             -> (match eval empty_ctx e with 
+                                    | SmAbort   -> [JustStop] 
+                                    | _         -> [OnTheWay] )
     | SmLog       _             -> [OnTheWay]
-    | SmIfThen(_,b)             -> are_terminating b  @ [OnTheWay] (* there is a continuation if the condition does not hold. *)
-    | SmIf(_,bT,bF)             -> are_terminating bT @ (are_terminating bF)
+   (* | SmIfThen(_,b)             -> are_terminating b  @ [OnTheWay] (* there is a continuation if the condition does not hold. *)
+    | SmIf(_,bT,bF)             -> are_terminating bT @ (are_terminating bF) *)
     | SmReturn ret              -> begin match ret.ret_expr with
         | Some _                    -> [ReturnBySize 1]
         | None                      -> [ReturnBySize 0] end
