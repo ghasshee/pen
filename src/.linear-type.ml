@@ -95,10 +95,15 @@ let reentrance_guard n mhash ce =
 
 let dispatch_to_mthd mhash ce = 
     let ce = PUSH(Int mhash)        >> ce in 
-    let ce = SLOAD                  >> ce in 
+    let ce = sdecr   mhash             ce in  (* S[mhash]--                                     >> .. *)
     let ce = if_zero_throw             ce in 
     ce 
 
+let sdecr n ce =
+    (* if n = infty (special value e.g. -1 )  then cannot decrement n *) 
+    (* if n = 0                               then cannot decrement n *)  
+    (* if 0 < n && n < 2^16                   then n--                *) 
+    ce 
 
 let whileLOOP ce cond body = 
     let label   = fresh_label()                             in 

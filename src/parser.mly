@@ -95,7 +95,7 @@ stmt:
     | LT                                            { fun(l,r)-> EpLT(l,r)                                      }
     | GT                                            { fun(l,r)-> EpGT(l,r)                                      }
     | EQEQ                                          { fun(l,r)-> EpEq(l,r)                                      }
-    | NEQ                                           { fun(l,r)-> EpNeq(l,r)                                     }
+    | NEQ                                           { fun(l,r)-> EpNEq(l,r)                                     }
     | LAND                                          { fun(l,r)-> EpLAnd(l,r)                                    } 
 
 expr:

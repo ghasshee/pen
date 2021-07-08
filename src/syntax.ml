@@ -24,47 +24,47 @@ type ty'     =
 
 type term =
     (* Ref *)
-    | TmRef         of info * term 
-    | TmDeref       of info * term 
-    | TmLoc         of info * int 
-    | TmAssign      of info * term * term 
+    | TmRef         of term 
+    | TmDeref       of term 
+    | TmLoc         of int 
+    | TmAssign      of term * term 
     (* List *)
-    | TmNil         of info * ty'
-    | TmCons        of info * ty' * term * term 
-    | TmIsNil       of info * ty' * term 
-    | TmHead        of info * ty' * term 
-    | TmTail        of info * ty' * term 
+    | TmNil         of ty'
+    | TmCons        of ty' * term * term 
+    | TmIsNil       of ty' * term 
+    | TmHead        of ty' * term 
+    | TmTail        of ty' * term 
     (* Fix *)
-    | TmFix         of info * term 
+    | TmFix         of term 
     (* Float / String  *) 
-    | TmString      of info * string 
-    | TmFloat       of info * float
-    | TmTimesfloat  of info * term * term 
+    | TmString      of string 
+    | TmFloat       of float
+    | TmTimesfloat  of term * term 
     (* Variant *)
-    | TmTag         of info * string * term * ty'
-    | TmCase        of info * term * (string * (string * term)) list  (* <- (label*(variable*term) list *) 
+    | TmTag         of string * term * ty'
+    | TmCase        of term * (string * (string * term)) list  (* <- (label*(variable*term) list *) 
     (* Record *)
-    | TmProj        of info * term * string  
-    | TmRecord      of info * (string * term) list 
+    | TmProj        of term * string  
+    | TmRecord      of (string * term) list 
     (* Ascription *) 
-    | TmAscribe     of info * term * ty'
+    | TmAscribe     of term * ty'
     (* Unit *)
-    | TmUnit        of info 
+    | TmUnit        
     (* Let  *)
-    | TmLet         of info * string * term * term
+    | TmLet         of string * term * term
     (* Lambda *) 
-    | TmVar         of info * int * int 
-    | TmAbs         of info * string * ty' * term 
-    | TmApp         of info * term * term 
+    | TmVar         of int * int 
+    | TmAbs         of string * ty' * term 
+    | TmApp         of term * term 
     (* Arith *) 
-    | TmZero        of info
-    | TmSucc        of info * term
-    | TmPred        of info * term
-    | TmIsZero      of info * term
+    | TmZero       
+    | TmSucc        of term
+    | TmPred        of term
+    | TmIsZero      of term
     (* Bool *) 
-    | TmTrue        of info
-    | TmFalse       of info
-    | TmIf          of info * term * term * term
+    | TmTrue      
+    | TmFalse    
+    | TmIf          of term * term * term
 
 type ty           (* atomic *)  =   TyVoid              (* 256 bits *) 
                   (* atomic *)  |   TyUint256           (* 256 bits *) 
@@ -139,7 +139,7 @@ and  'ty stmt                   =
                                 |   SmReturn            of 'ty return
                                 |   SmAssign            of 'ty lexpr * 'ty exprTy
                                 |   SmDecl              of 'ty decl
-                                (*|   SmIfThen            of 'ty exprTy * 'ty stmt list
+                              (*|   SmIfThen            of 'ty exprTy * 'ty stmt list
                                 |   SmIf                of 'ty exprTy * 'ty stmt list * 'ty stmt list *) 
                                 |   SmSlfDstrct         of 'ty exprTy
                                 |   SmExpr              of 'ty exprTy
@@ -149,6 +149,11 @@ and  'ty exprTy                =   'ty expr * 'ty
 
 and  'ty expr                   =   EpParen             of 'ty exprTy
                                 |   SmAbort
+                                (* Ref *)
+                                |   TmRef               of 'ty expr
+                                |   TmDeref             of term 
+                                |   TmLoc               of int 
+                                |   TmAssign            of term * term 
                                 |   TmVar               of int * int 
                                 |   TmAbs               of string * ty * 'ty exprTy
                                 |   TmApp               of 'ty exprTy * 'ty exprTy  
@@ -166,8 +171,8 @@ and  'ty expr                   =   EpParen             of 'ty exprTy
                                 |   EpLAnd              of 'ty exprTy * 'ty exprTy
                                 |   EpLT                of 'ty exprTy * 'ty exprTy
                                 |   EpGT                of 'ty exprTy * 'ty exprTy
-                                |   EpNeq               of 'ty exprTy * 'ty exprTy
                                 |   EpEq                of 'ty exprTy * 'ty exprTy
+                                |   EpNEq               of 'ty exprTy * 'ty exprTy
                                 |   EpAddr              of 'ty exprTy
                                 |   EpNot               of 'ty exprTy
                                 |   EpArray             of 'ty array
@@ -182,15 +187,15 @@ and  'ty expr                   =   EpParen             of 'ty exprTy
 
 and 'ty lexpr                   =   LEpArray            of 'ty array
 
-and 'ty array                   =   { arrId             : 'ty exprTy
-                                    ; arrIndex          : 'ty exprTy          }
+and 'ty array                   =   { arrId             :  'ty exprTy
+                                    ; arrIndex          :  'ty exprTy         }
 
-and 'ty decl                    =   { declTy            : ty
-                                    ; declId            : string
-                                    ; declVal           : 'ty exprTy          }
+and 'ty decl                    =   { declTy            :   ty
+                                    ; declId            :   string
+                                    ; declVal           :  'ty exprTy         }
 
-and 'ty return                  =   { ret_expr          : 'ty exprTy option
-                                    ; ret_cont          : 'ty exprTy          }
+and 'ty return                  =   { ret_expr          :  'ty exprTy option
+                                    ; ret_cont          :  'ty exprTy         }
                                 
 
 (*****************************************)
@@ -253,7 +258,7 @@ let string_of_expr_inner        = function
     | EpDecLit256   d           -> "declit "^(string_of_big_int d)
     | EpDecLit8     d           -> "declit "^(string_of_big_int d)
     | EpNot         _           -> "not"
-    | EpNeq         _           -> "neq"
+    | EpNEq         _           -> "neq"
     | EpLAnd        _           -> "_ && _"
     | EpLT          _           -> "lt"
     | EpGT          _           -> "gt"
@@ -344,29 +349,29 @@ let rec tyWalk onVar c          = let f = onVar in function
     | tyT                       -> tyT
 
 let rec tmWalk onVar onType c   = let (f,g) = (onVar,onType) in function 
-    | TmDeref(fi,t)             -> TmDeref(fi,tmWalk f g c t) 
-    | TmVar(fi,x,n)             -> onVar fi c x n
-    | TmRef(fi,t)               -> TmRef(fi,tmWalk f g c t)
-    | TmAssign(fi,t1,t2)        -> TmAssign(fi,tmWalk f g c t1,tmWalk f g c t2)
-    | TmCase(fi,t,cases)        -> TmCase(fi,tmWalk f g c t,List.map(fun(li,(xi,ti))->li,(xi,tmWalk f g(c+1)ti))cases)
-    | TmLet(fi,x,t1,t2)         -> TmLet(fi,x,tmWalk f g c t1, tmWalk f g(c+1)t2) 
-    | TmAbs(fi,x,tyT,t2)        -> TmAbs(fi,x,g c tyT,tmWalk f g(c+1)t2)
-    | TmApp(fi,t1,t2)           -> TmApp(fi,tmWalk f g c t1, tmWalk f g c t2) 
-    | TmIf(fi,t1,t2,t3)         -> TmIf(fi,tmWalk f g c t1, tmWalk f g c t2, tmWalk f g c t3) 
-    | TmSucc(fi,t)              -> TmSucc(fi,tmWalk f g c t) 
-    | TmPred(fi,t)              -> TmPred(fi,tmWalk f g c t) 
-    | TmIsZero(fi,t)            -> TmIsZero(fi,tmWalk f g c t)
-    | TmAscribe(fi,t,tyT)       -> TmAscribe(fi,tmWalk f g c t,g c tyT) 
-    | TmRecord(fi,tl)           -> TmRecord(fi,List.map(fun(l,t)->(l,tmWalk f g c t))tl)  
-    | TmProj(fi,t,i)            -> TmProj(fi,tmWalk f g c t,i) 
-    | TmFix(fi,t)               -> TmFix(fi,tmWalk f g c t)
+    | TmSucc(t)                 -> TmSucc(tmWalk f g c t) 
+    | TmRef(t)                  -> TmRef(tmWalk f g c t)
+    | TmDeref(t)                -> TmDeref(tmWalk f g c t) 
+    | TmAssign(t1,t2)           -> TmAssign(tmWalk f g c t1,tmWalk f g c t2)
+    | TmCase(t,cases)           -> TmCase(tmWalk f g c t,L.map(fun(li,(xi,ti))->li,(xi,tmWalk f g(c+1)ti))cases)
+    | TmLet(x,t1,t2)            -> TmLet(x,tmWalk f g c t1, tmWalk f g(c+1)t2) 
+    | TmAbs(x,tyT,t2)           -> TmAbs(x,g c tyT,tmWalk f g(c+1)t2)
+    | TmApp(t1,t2)              -> TmApp(tmWalk f g c t1, tmWalk f g c t2) 
+    | TmIf(t1,t2,t3)            -> TmIf(tmWalk f g c t1, tmWalk f g c t2, tmWalk f g c t3) 
+    | TmPred(t)                 -> TmPred(tmWalk f g c t) 
+    | TmIsZero(t)               -> TmIsZero(tmWalk f g c t)
+    | TmAscribe(t,tyT)          -> TmAscribe(tmWalk f g c t,g c tyT) 
+    | TmRecord(tl)              -> TmRecord(L.map(fun(l,t)->(l,tmWalk f g c t))tl)  
+    | TmProj(t,i)               -> TmProj(tmWalk f g c t,i) 
+    | TmFix(t)                  -> TmFix(tmWalk f g c t)
+    | TmVar(x,n)                -> onVar c x n
     | x                         -> x
 
 let tyShiftOnVar d          = fun c x n     ->  if x>=c then (TyVar(x+d,n+d) :ty')    else (TyVar(x,n+d) : ty')
 let tyShiftAbove d          = tyWalk (tyShiftOnVar d) 
 let tyShift d               = (*if d>=0 then pe("TYVARSHIFT    : "^(soi d));*)tyShiftAbove d 0    
 
-let tmShiftOnVar d          = fun fi c x n  ->  if x>=c then (TmVar(fi,x+d,n+d) : term)  else TmVar(fi,x,n+d)
+let tmShiftOnVar d          = fun c x n  ->  if x>=c then (TmVar(x+d,n+d) : term)  else TmVar(x,n+d)
 let tmShiftAbove d          = tmWalk (tmShiftOnVar d) (tyShiftAbove d) 
 let tmShift d               = (*if d>=0 then pe("TMVARSHIFT    : "^(soi d));*)tmShiftAbove d 0 
 
@@ -386,7 +391,7 @@ let bindshift d             = function
 let tySubstOnVar j tyS tyT  = fun    c x n ->   if x=j+c then tyShift c tyS else (TyVar(x,n) : ty') 
 let tySubst      j tyS tyT  = tyWalk(tySubstOnVar j tyS tyT)0 tyT
 
-let tmSubstOnVar j s t      = fun fi c x n ->   if x=j+c then tmShift c s else TmVar(fi, x, n) 
+let tmSubstOnVar j s t      = fun c x n ->   if x=j+c then tmShift c s else TmVar( x, n) 
 let tmSubst      j s t      = tmWalk (tmSubstOnVar j s t) (fun k x -> x) 0 t
 let tmSubstTop     s t      = tmShift (-1) (tmSubst 0 (tmShift 1 s) t) 
 

@@ -93,7 +93,7 @@ and expr_become e               =   match fst e with
     | EpDeref       e         
     | EpBalance     e           ->  expr_become e
     | EpLT       (l,r) | EpGT       (l,r)           
-    | EpNeq      (l,r) | EpEq       (l,r)           
+    | EpNEq      (l,r) | EpEq       (l,r)           
     | EpMult     (l,r) | EpPlus     (l,r)         
     | EpLAnd     (l,r)           
     | EpMinus    (l,r)          ->  (expr_become l) @ (expr_become r)

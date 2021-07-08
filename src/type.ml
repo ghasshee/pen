@@ -128,10 +128,10 @@ and addTy_expr cns cname ctx (expr,()) =    match expr with
                                         let r       = addTy_expr cns cname ctx r          in
                                         assert_tyeqv l r ; 
                                         EpGT (l, r)     , TyBool
-    | EpNeq (l, r)                  ->  let l       = addTy_expr cns cname ctx l          in
+    | EpNEq (l, r)                  ->  let l       = addTy_expr cns cname ctx l          in
                                         let r       = addTy_expr cns cname ctx r          in
                                         assert_tyeqv l r ;
-                                        EpNeq (l, r)    , TyBool
+                                        EpNEq (l, r)    , TyBool
     | EpEq (l, r)                   ->  let l       = addTy_expr cns cname ctx l          in
                                         let r       = addTy_expr cns cname ctx r          in
                                         assert_tyeqv l r ; 
@@ -238,7 +238,7 @@ and addTy_stmts cns cname ctx = function
 
 
 (* evaluation *) 
-let eval ctx e = e  (* #TODO *) 
+let eval_expr ctx e = e  (* #TODO *) 
 
 (* Termination *) 
 
@@ -254,7 +254,7 @@ let rec is_terminating      = function
     | SmSlfDstrct _             -> [JustStop]
     | SmAssign    _             -> [OnTheWay]
     | SmDecl      _             -> [OnTheWay]
-    | SmExpr  (e,_)             -> (match eval empty_ctx e with 
+    | SmExpr  (e,_)             -> (match eval_expr empty_ctx e with 
                                     | SmAbort   -> [JustStop] 
                                     | _         -> [OnTheWay] )
     | SmLog       _             -> [OnTheWay]
@@ -273,7 +273,7 @@ and are_terminating stmts =
 (* AssignTy Method / Contract / Toplevel  *) 
 (* Default Method Returns Unit(==EmptyTuple) is a specification *) 
 
-let mthd_is_returning_void (mthd:unit mthd) = match mthd.mthd_head with
+let mthd_is_returning_unit (mthd:unit mthd) = match mthd.mthd_head with
     | Default               ->  true
     | Method m              ->  m.mthd_retTy = TyTuple[]
 
@@ -288,8 +288,8 @@ let retTyCheck_of_mthd m ty_inferred = match m, ty_inferred with
 let addTy_mthd cns cn_name ctx (m:unit mthd) =
     assert (L.for_all (function 
                          | OnTheWay         -> false
-                         | ReturnBySize 0   -> mthd_is_returning_void m
-                         | ReturnBySize 1   -> not (mthd_is_returning_void m)
+                         | ReturnBySize 0   -> mthd_is_returning_unit m
+                         | ReturnBySize 1   -> not (mthd_is_returning_unit m)
                          | ReturnBySize _   -> err "multiple vals return not supported yry"
                          | JustStop         -> true )  (are_terminating m.mthd_body)) ; 
     let margs       = args_of_mthd m.mthd_head in

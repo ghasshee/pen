@@ -52,8 +52,9 @@ let ()      =
     let _ASTs : unit toplevel list  = parse_with_error lexbuf                                   in
     let idx_ASTs                    = to_idx_list _ASTs                                         in
     let idx_typed_ASTs              = Type.addTys idx_ASTs                                      in
+    let idx_ty_opt_ASTs             = Eval.eval idx_typed_ASTs                                  in 
     let cns                         = filter_map (function Cntrct cn -> Some cn
-                                                         | _         -> None ) idx_typed_ASTs   in
+                                                         | _         -> None ) idx_ty_opt_ASTs  in
     match cns with
     | []  ->  ()
     | _   ->   
@@ -63,7 +64,7 @@ let ()      =
     let rc        : rntimeCode                    = compile_rntime layt cns                   in          
     let bytecode  : big_int Evm.program           = compose_bytecode ccs rc (fst(L.hd cns))   in          
     if  abi                                                                                               
-        then Abi.prABI idx_typed_ASTs                                                                          
+        then Abi.prABI idx_ty_opt_ASTs                                                                          
         else Evm.prLn_encoded bytecode 
 (*                                                                                                                                 *)
 (*       +----------------------+                                                                                                  *)
@@ -92,6 +93,13 @@ let ()      =
 (*       +----------+-----------+                                                                                                  *)
 (*                  |                                                                                                              *)
 (*               addTys                                                                                                            *)
+(*                  |                                                                                                              *)
+(*                  v                                                                                                              *)
+(*       +----------------------+                                                                                                  *)
+(*       |  indexed typed AST   |                                                                                                  *)
+(*       +----------+-----------+                                                                                                  *)
+(*                  |                                                                                                              *)
+(*         EVAL of lambda calc                 <--- to be implemented at `eval.ml`                                                 *)
 (*                  |                                                                                                              *)
 (*                  v                                                                                                              *)
 (*       +----------------------+                                                                                                  *)
