@@ -211,7 +211,7 @@ and addTy_stmt cns cname ctx = function
     | SmAssign(l,r)     ->  let l       = addTy_lexpr       cns cname ctx  l        in
                             let r       = addTy_expr        cns cname ctx  r        in
                             SmAssign(l,r)   , ctx
-   (* | SmIfThen(b,t)     ->  let b       = addTy_expr        cns cname ctx  b        in
+ (* | SmIfThen(b,t)     ->  let b       = addTy_expr        cns cname ctx  b        in
                             let t       = addTy_stmts       cns cname ctx  t        in
                             SmIfThen(b,t)   , ctx
     | SmIf(b,t,f)       ->  let b       = addTy_expr        cns cname ctx  b        in
