@@ -36,6 +36,7 @@ let isNil x                 = x=[]
 
 let foldl                   = fold_left
 let foldr                   = fold_right
+let rec foldn n succ zero   = if n=0 then zero else succ (foldn (n-1) succ zero) 
 
 
 
