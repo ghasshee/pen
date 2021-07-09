@@ -479,7 +479,7 @@ and codegen_ECDSArecover le ce args = match args with
     | _ -> err "pre_ecdsarecover has a wrong number of args"
 
 (*********************************************)
-(***     9.    CODEGEN  EXPR               ***)
+(***    10.    CODEGEN  EXPR               ***)
 (*********************************************)
 (*
  *              ADDRESS              MEMORY 
@@ -778,7 +778,7 @@ and codegen_log_stmt le ce name args evnt =
     le, ce
 
 (***************************************)
-(***     10. CODEGEN RETURN          ***)
+(***     11. CODEGEN RETURN          ***)
 (***************************************)
 
 and push_args le                    = foldr (fun arg ce->arg>>>>(R,le,ce))  
@@ -838,7 +838,7 @@ and codegen_return le ce layt ret =
     le,ce
 
 (*************************************)
-(**      11. CODEGEN STMT           **)
+(**      12. CODEGEN STMT           **)
 (*************************************)
 
 and codegen_stmts stmts lyt le ce   = foldl (codegen_stmt lyt) (le,ce) stmts
@@ -856,7 +856,7 @@ and codegen_stmt layt (le,ce)       = function
 
 
 (********************************************)
-(***     12. CODEGEN CONTRACT             ***)
+(***     13. CODEGEN CONTRACT             ***)
 (********************************************)
 
 let label_mthd idx (m:mthd_head) ce =
@@ -895,7 +895,7 @@ let codegen_cntrct le ce layt (idx,cntrct) =
     ce
 
 (********************************************)
-(***     13. MAKE BYTECODE                ***)
+(***     14. MAKE BYTECODE                ***)
 (********************************************)
 
 let append_rntime lyt rc (idx,cn)   =
@@ -929,11 +929,11 @@ let storLayout_of_rntimeCode rc ccs =
         ; rn_cnstrctr_sizes     = to_idx_list ccs_sizes
         ; rn_cnstrctr_offsets   = to_idx_list ccs_offsets }
 
+(*  Since the code is stored in the reverse order, the concatenation is also reversed. *)
 let concat_programs_rev programs    =
     let rev_programs        = L.rev programs                                        in
     L.concat rev_programs
 
-(*  Since the code is stored in the reverse order, the concatenation is also reversed. *)
 let program_of_cnstrctrs ccs        =
     let programs            = map program_of_cc ccs                                 in
     let programs            = idx_sort  programs                                    in

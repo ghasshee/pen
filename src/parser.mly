@@ -1,4 +1,5 @@
 %{
+    open Misc
     open Syntax 
 %}
 
@@ -43,8 +44,8 @@ file:
     | list(cntrct) EOF                              { $1                                                        }
 
 cntrct:
-    | CONTRACT ID plist(arg)LBRACE list(mthd)RBRACE { Cntrct{mthds=$5; cntrct_id=$2; cntrct_args=$3}          }
-    | EVENT    ID plist(evnt_arg) SEMI              { Event {                 id=$2;    tyEvArgs=$3}          }
+    | CONTRACT ID plist(arg)LBRACE list(mthd)RBRACE { Cntrct{mthds=$5; cntrct_id=$2; cntrct_args=$3}            }
+    | EVENT    ID plist(evnt_arg) SEMI              { Event {                 id=$2;    tyEvArgs=$3}            }
 
 mthd:
     | mthd_head block                               { {mthd_head=$1; mthd_body=$2}                              }
@@ -54,15 +55,15 @@ block:
 
 mthd_head:
     | DEFAULT                                       { Default                                                   }
-    | METHOD LPAR   ty ID plist(arg) RPAR           { Method{mthd_retTy=$3;       mthd_id=$4; mthd_args=$5}   }
-    | METHOD LPAR LPAR RPAR ID plist(arg) RPAR      { Method{mthd_retTy=TyTuple[];mthd_id=$5; mthd_args=$6}   }
+    | METHOD LPAR   ty ID plist(arg) RPAR           { Method{mthd_retTy=$3;       mthd_id=$4; mthd_args=$5}     }
+    | METHOD LPAR LPAR RPAR ID plist(arg) RPAR      { Method{mthd_retTy=TyTuple[];mthd_id=$5; mthd_args=$6}     }
 
 arg:
-    | ty ID                                         { TyVar($2,$1)                                             }
+    | ty ID                                         { TyVar($2,$1)                                              }
 
 evnt_arg:
-    | arg                                           { tyEvntArg_of_arg $1 false                                  }
-    | ty INDEXED ID                                 { {arg=TyVar($3,$1); indexed=true}                        }
+    | arg                                           { tyEvntArg_of_arg $1 false                                 }
+    | ty INDEXED ID                                 { {arg=TyVar($3,$1); indexed=true}                          }
 
 ty:
     | UINT256                                       { TyUint256                                                 }
@@ -102,7 +103,7 @@ expr:
 (*  | ABORT                                         { SmAbort,                                                          ()  } *)
     | TRUE                                          { EpTrue,                                                           ()  }
     | FALSE                                         { EpFalse,                                                          ()  }
-(*| IF expr THEN expr ELSE expr                   { TmIf($2,$4,$6),                                                   ()  } *)
+(*  | IF expr THEN expr ELSE expr                   { TmIf($2,$4,$6),                                                   ()  } *)
     | DECLIT256                                     { EpDecLit256 $1,                                                   ()  }
     | DECLIT8                                       { EpDecLit8 $1,                                                     ()  }
     | expr op expr                                  { $2($1,$3) ,                                                       ()  }
@@ -114,7 +115,7 @@ expr:
     | NOW     LPAR BLOCK RPAR                       { EpNow,                                                            ()  }
     | ADDRESS LPAR  expr RPAR                       { EpAddr $3,                                                        ()  }
     | ID                                            { EpIdent $1,                                                       ()  }
-    | ID  expr_list                                 { Printf.printf "\n%s\n" $1; EpCall{call_id=$1;call_args=$2},     ()  }
+    | ID  expr_list                                 { Printf.printf "\n%s\n" $1; EpCall{call_id=$1;call_args=$2},       ()  }
     | NEW ID expr_list msg                          { EpNew {new_id=$2;new_args=$3; new_msg=$4},                        ()  }
     | expr DOT DEFAULT LPAR RPAR msg                { EpSend{sd_cn=$1;sd_mthd=None   ;sd_args=[];sd_msg=$6},            ()  }
     | expr DOT ID   expr_list msg                   { EpSend{sd_cn=$1;sd_mthd=Some $3;sd_args=$4;sd_msg=$5},            ()  }

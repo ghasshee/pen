@@ -57,7 +57,7 @@ let word_bits               = 256
 
 let sig_bits                = 32
 
-
+type big                    = Big_int.big_int
 let big                     = Big_int.big_int_of_int
 let string_of_big           = Big_int.string_of_big_int
 let big_0                   = Big_int.zero_big_int

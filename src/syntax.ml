@@ -10,7 +10,6 @@ type ty'     =
     | TyVar     of int * int 
     | TyId      of string 
     | TyTop
-    | TyRef     of ty' 
     | TyVariant of (string * ty') list 
     | TyRecord  of (string * ty') list 
     | TyArr     of ty' * ty'
@@ -23,11 +22,6 @@ type ty'     =
 ;;
 
 type term =
-    (* Ref *)
-    | TmRef         of term 
-    | TmDeref       of term 
-    | TmLoc         of int 
-    | TmAssign      of term * term 
     (* List *)
     | TmNil         of ty'
     | TmCons        of ty' * term * term 
@@ -48,23 +42,8 @@ type term =
     | TmRecord      of (string * term) list 
     (* Ascription *) 
     | TmAscribe     of term * ty'
-    (* Unit *)
-    | TmUnit        
     (* Let  *)
     | TmLet         of string * term * term
-    (* Lambda *) 
-    | TmVar         of int * int 
-    | TmAbs         of string * ty' * term 
-    | TmApp         of term * term 
-    (* Arith *) 
-    | TmZero       
-    | TmSucc        of term
-    | TmPred        of term
-    | TmIsZero      of term
-    (* Bool *) 
-    | TmTrue      
-    | TmFalse    
-    | TmIf          of term * term * term
 
 type ty           (* atomic *)  =   TyVoid              (* 256 bits *) 
                   (* atomic *)  |   TyUint256           (* 256 bits *) 
@@ -144,16 +123,19 @@ and  'ty stmt                   =
                                 |   SmIf                of 'ty exprTy * 'ty stmt list * 'ty stmt list
                                 |   SmSlfDstrct         of 'ty exprTy
                                 |   SmExpr              of 'ty exprTy
-                                |   SmLog               of string   * 'ty exprTy list * tyEvnt option
+                                |   SmLog               of string * 'ty exprTy list * tyEvnt option
 
 and  'ty exprTy                =   'ty expr * 'ty
 
 and  'ty expr                   =   EpParen             of 'ty exprTy
                                 (* Ref *)
-                                |   TmRef               of 'ty expr
-                                |   TmDeref             of term 
+                                |   TmDecl              of 'ty decl 
+                                |   TmSlfDstrct         of 'ty exprTy
+                                |   TmLog               of string * 'ty exprTy list * tyEvnt option 
+                                |   TmRef               of 'ty exprTy
+                                |   TmDeref             of 'ty exprTy
+                                |   TmAssign            of 'ty lexpr * 'ty exprTy 
                                 |   TmLoc               of int 
-                                |   TmAssign            of term * term 
                                 |   TmVar               of int * int 
                                 |   TmAbs               of string * ty * 'ty exprTy
                                 |   TmApp               of 'ty exprTy * 'ty exprTy  
@@ -339,7 +321,7 @@ let acceptable_as t0 t1     =   ( t0 = t1 )  ||  ( match t0, t1 with
 
 (* -------------------------------------------------- *) 
 (* Shifting *)
-
+(*
 let rec tyWalk onVar c          = let f = onVar in function 
     | TyVariant(fieldtys)       -> TyVariant(List.map (fun(l,tyT)->(l,tyWalk f c tyT)) fieldtys) 
     | TyRecord(fieldtys)        -> TyRecord(List.map (fun(l,tyT)->(l,tyWalk f c tyT)) fieldtys) 
@@ -395,4 +377,4 @@ let tmSubstOnVar j s t      = fun c x n ->   if x=j+c then tmShift c s else TmVa
 let tmSubst      j s t      = tmWalk (tmSubstOnVar j s t) (fun k x -> x) 0 t
 let tmSubstTop     s t      = tmShift (-1) (tmSubst 0 (tmShift 1 s) t) 
 
-
+*)
