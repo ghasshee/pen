@@ -144,9 +144,9 @@ let stack_pushed = function
   | SELFDESTRUCT                        -> 0
 
 let string_of_opcode = function 
-  | PUSH1 v         -> "PUSH1 " ^(Location.string_of_imm v)
-  | PUSH4 v         -> "PUSH4 " ^(Location.string_of_imm v)
-  | PUSH32 v        -> "PUSH32 "^(Location.string_of_imm v)
+  | PUSH1 v         -> "PUSH1 " ^(string_of_hex (hex_of_big_int v  1))(*(Location.string_of_imm v)*)
+  | PUSH4 v         -> "PUSH4 " ^(string_of_hex (hex_of_big_int v  4))(*(Location.string_of_imm v)*)
+  | PUSH32 v        -> "PUSH32 "^(string_of_hex (hex_of_big_int v 32))(*(Location.string_of_imm v)*)
   | NOT             -> "NOT"
   | TIMESTAMP       -> "TIMESTAMP"
   | ISZERO          -> "ISZERO"
@@ -291,7 +291,7 @@ let hex_of_opcode =
   | CALLCODE        -> h "f2"
   | RETURN          -> h "f3"
   | DELEGATECALL    -> h "f4"
-  | SELFDESTRUCT         -> h "ff"
+  | SELFDESTRUCT    -> h "ff"
 
 let log = function 
   | 0               -> LOG0
@@ -303,10 +303,11 @@ let log = function
 
 let endline h = hex_of_string ( string_of_hex h ^ "\n")
 (*let rev_append_op (h:hex)(i:big_int opcode) = concat_hex (hex_of_opcode i) h *)
-let hex_of_program      (p : big program) = List.fold_left (fun h i->concat_hex(hex_of_opcode i)h) empty_hex p
-let hex_of_program_ln   (p : big program) = List.fold_left (fun h i->concat_hex(endline (hex_of_opcode i))h) empty_hex p
+let hex_of_program      (p : big program) = foldl (fun h i->concat_hex(hex_of_opcode          i )h) empty_hex p
+let hex_of_program_ln   (p : big program) = foldl (fun h i->concat_hex(endline (hex_of_opcode i))h) empty_hex p
+let string_of_program_ln(p : big program) = foldl (fun h i-> hex_of_string ((^) (string_of_opcode i^"\n")(string_of_hex h))) empty_hex p 
 let pr_encoded          (p : big program) = pr_hex        ~prefix:"0x" (hex_of_program p) 
-let prLn_encoded        (p : big program) = pr_hex        ~prefix:"0x" (hex_of_program_ln p) 
+let prLn_encoded        (p : big program) = pr_hex        ~prefix:"0x" (string_of_program_ln p) 
 let encode_program      (p : big program) = string_of_hex ~prefix:"0x" (hex_of_program p) 
 
 let size_of_opcode  = function 

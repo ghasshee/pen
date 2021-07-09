@@ -236,13 +236,13 @@ type memoryPack             = TightPack   (* [Tight] uses [size_of_ty] bytes    
 (***     6. CONTRACT CREATION          ***)
 (*****************************************)
 
-(***  6.1. Init MemAlloc                ***)
+(*****   6.1. Init MemAlloc       *****)
 let init_malloc ce =                                            (* initialize as M[64] := 96  ( M[0x40] := 0x60 ) *)
     let ce    = PUSH1 (Int 96)                  >>ce    in
     let ce    = PUSH1 (Int 64)                  >>ce    in
                 MSTORE                          >>ce    
 
-(***  6.2.  CONTRACT PC                 ***) 
+(*****   6.2.  CONTRACT PC        *****) 
 let set_cntrct_pc ce idx =                                  (*                                                       .. *)
     let ce    = PUSH32(RntimeCntrctOffset idx)  >>ce    in  (*                                       rn_cn_offset >> .. *) 
     let ce    = PUSH32 StorPCIndex              >>ce    in  (*                             storPC >> rn_cn_offset >> .. *) 
@@ -252,12 +252,9 @@ let get_cntrct_pc ce =
     let ce    = PUSH32 StorPCIndex              >>ce    in
                 SLOAD                           >>ce 
 
-(***  6.3.  setup ARGS                  ***) 
-(** [mstore_cnstrArgs] copies cnstrArgs at the end of the bytecode into the memory.  
- *  M[0x40] (==M[64]) is increased accordingly.
- *  returns [ memBegin >> memSize >> .. ]            *)
-let mstore_cnstrArgs ce cn      =
-    let args    = L.map snd (argTys_of_cntrct cn)           in 
+(*****   6.3.  setup ARGS         *****) 
+let mstore_cnstrArgs ce cn      =                     (* [mstore_cnstrArgs] copies cnstrArgs at the end of the bytecode into the memory.  *) 
+    let args    = L.map snd (argTys_of_cntrct cn)           in  (* M[0x40](==M[64]) is increased accordingly                              *)
     let size    = total_size_of_argTys args                 in  (*                                                                     .. *)
     let ce      = PUSH32(Int size)                  >>ce    in  (*                                                             size >> .. *)
     let ce      = DUP1                              >>ce    in  (*                                                     size >> size >> .. *)
@@ -268,7 +265,7 @@ let mstore_cnstrArgs ce cn      =
     let ce      = SUB                               >>ce    in  (*                     codesize-size >> size >> alloc(size) >> size >> .. *)
     let ce      = DUP3                              >>ce    in  (*      alloc(size) >> codesize-size >> size >> alloc(size) >> size >> .. *)
                   CODECOPY                          >>ce        (*          to             from                 alloc(size) >> size >> .. *)
-
+                                                                (*                                               codebign                 *)
 let check_codesize cnidx ce     =  
     let ce      = PUSH32(InitDataSize cnidx)        >>ce    in  (*                                    datasize >> mem_start >> size >> .. *)
     let ce      = CODESIZE                          >>ce    in  (*                        codesize >> datasize >> mem_start >> size >> .. *) 
@@ -303,8 +300,7 @@ let sstore_cnstrArgs ce idx     =
 (*            ..                                                              *)  
 (*  S[k+1] := the value of argk is stored in message call                     *)  
 
-
-(***  6.4. setup ARG ARRAYs                 ***)                   
+(*****   6.4. setup ARG ARRAYs     *****)                   
 let reset_salloc_array ce = 
     let ce      = PUSH1 (Int 1)                     >>ce    in  (*                                           1 >> .. *)
     let ce      = DUP1                              >>ce    in  (*                                      1 >> 1 >> .. *)
@@ -344,8 +340,7 @@ let setup_argArrays ce cn =
 (*   ..                |                                        *)  
 (*  S[n+1] := m    ----+                                        *)  
 
-
-(***  6.5.  CODECOPY                        ***) 
+(*****   6.5.  CODECOPY            *****) 
 let mstore_rntimeCode ce idx =                                  (*                                                              *)
     let ce    = PUSH32(RntimeCodeSize)          >>ce        in  (*                                                   size >> .. *)
     let ce    = DUP1                            >>ce        in  (*                                           size >> size >> .. *)  
@@ -355,8 +350,7 @@ let mstore_rntimeCode ce idx =                                  (*              
     let ce    = DUP3                            >>ce        in  (*      alloc(size) >> idx >> size >> alloc(size) >> size >> .. *)
                 CODECOPY                        >>ce            (*                                    alloc(size) >> size >> .. *)
                                                                 (*                                     codebegin                *)
-
-(***  6.6.  CONTRACT CREATION               ***)
+(*****   6.6.  CONTRACT CREATION   *****)
 type cnstrctrCode       =   { cnstrctr_ce           : ce
                             ; cnstrctr_ty           : tyCntrct
                             ; cnstrctr_cn           : ty cntrct         }
@@ -384,11 +378,10 @@ let compile_cnstrctr cns idx  : cnstrctrCode =
 let compile_cnstrctrs cns : cnstrctrCode idx_list =
     idxmap (compile_cnstrctr cns) cns
 
-
-
 (***************************************)
 (***     7.    RUNTIME               ***)
 (***************************************)
+
 type rntimeCode             =   { rntime_ce             : ce                                                       
                                 ; rntime_cn_offsets     : int idx_list  }
 
@@ -402,7 +395,6 @@ let init_rntimeCode lookup_cn layouts : rntimeCode =
     let ce      =   JUMP                                    >>ce    in
     { rntime_ce             = ce
     ; rntime_cn_offsets     = [] }
-
 
 (***************************************)
 (***     8.  DISPATHER               ***)
@@ -434,7 +426,6 @@ let dispatcher le ce idx cntrct =
                         then dispatcher_defaultMthd idx le    ce        (* JUMP to Default Method                             .. *) 
                         else throw ce                               in  (* JUMP to error                                      .. *) 
     le,ce
-
 
 (*********************************************)
 (***     9.    CODEGEN  PRECONTRACT        ***)
@@ -949,5 +940,4 @@ let compose_bytecode ccs rc idx : big_int Evm.program =
     let cns_program         = program_of_cnstrctrs ccs                              in 
     let rn_program          = extract_program rc.rntime_ce                          in
     let imm_rntime          = SL.realize_program layt idx(cns_program @ rn_program) in
-    (* the code is stored in the reverse order *)
-    imm_rntime @ imm_cnstrctr
+    imm_rntime @ imm_cnstrctr   (* the code is stored in the reverse order *)
