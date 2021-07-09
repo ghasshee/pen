@@ -29,7 +29,7 @@ contract Token( uint256 totalSupply
     }
 
     method(bool transfer(address _to, uint256 _amount)) {
-        if (balances[sender(msg)] < _amount) then abort else 
+        if (balances[sender(msg)] < _amount) then abort ; 
         if (sender(msg) == _to) then {
             log Transfer(sender(msg), sender(msg), _amount);
             return true 
@@ -103,7 +103,7 @@ contract Token( uint256 totalSupply
         balances[this]          = new_amount;
         balances[sender(msg)]   = balances[sender(msg)] - _amount;
         log Sell(sender(msg), _amount, _value);
-        void                    = sender(msg).default() with _value;
+        ()                    = sender(msg).default() with _value;
         return true 
             then become Token(totalSupply, balances, allowances);
     }

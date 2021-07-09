@@ -244,7 +244,7 @@ let init_malloc ce =                                            (* initialize as
                 MSTORE                          >>ce    
 
 (***  6.2.  CONTRACT PC                 ***) 
-let set_cntrct_pc ce idx =                               (*                                                       .. *)
+let set_cntrct_pc ce idx =                                  (*                                                       .. *)
     let ce    = PUSH32(RntimeCntrctOffset idx)  >>ce    in  (*                                       rn_cn_offset >> .. *) 
     let ce    = PUSH32 StorPCIndex              >>ce    in  (*                             storPC >> rn_cn_offset >> .. *) 
                 SSTORE                          >>ce        (* S[storPC] := rn_cn_offset                             .. *) 
@@ -479,12 +479,12 @@ let rec mstore_new_instance le ce n =
     let ce    = ADD                                 >>ce    in  (*                               argssize+wsize+size >> alloc(size) >> .. *)
                 SWAP1                               >>ce        (*                                       alloc(size) >>   totalsize >> .. *)
 
-and codegen_call le ce aln fncall reT = 
-    match fncall.call_id with 
-    | "pre_ecdsarecover"    ->  assert(aln=R);  codegen_ECDSArecover le ce fncall.call_args
-    | "keccak256"           ->  assert(aln=R);  codegen_keccak256    le ce fncall.call_args    
-    | "iszero"              ->                  codegen_iszero le ce aln fncall.call_args reT
-    | _                     ->  err "codegen_call: Contract Method Call is Not supported yet."
+and codegen_call le ce aln cr reT = 
+    match cr.call_id with 
+    | "pre_ecdsarecover"    ->  assert(aln=R);  codegen_ECDSArecover le ce      cr.call_args
+    | "keccak256"           ->  assert(aln=R);  codegen_keccak256    le ce      cr.call_args    
+    | "iszero"              ->                  codegen_iszero       le ce aln  cr.call_args reT
+    | _                     ->  err "codegen_call: Direct Contract Call is Not supported. Specify a Method Call."
 
 and codegen_iszero le ce aln args reT = match args with
     | [arg] ->  assert(reT=TyBool) ; 
@@ -565,7 +565,7 @@ and salloc_array_of_push push_array_seed ce =
 (* le is not updated here.  
  * le can only be updated in a variable initialization *)
 and codegen_expr le ce aln      = function 
-    | SmAbort,TyVoid                ->  throw ce  
+(*  | SmAbort,TyVoid                ->  throw ce   *)
     | EpAddr(c,TyInstnce i),TyAddr  ->                  (c,TyInstnce i)         >>>>(aln,le,ce) 
     | EpValue       ,TyUint256      ->                  CALLVALUE               >>ce      (* Value (wei) Transferred to the account *) 
     | EpNow         ,TyUint256      ->                  TIMESTAMP               >>ce 
@@ -589,7 +589,7 @@ and codegen_expr le ce aln      = function
     | EpLAnd (l,r)  ,TyBool         ->                  checked_codegen_LAnd l r le ce aln   
     | EpSend s      ,_              ->  assert(aln=R);  codegen_send le ce s
     | EpNew n       ,TyInstnce _    ->  assert(aln=R);  codegen_new  le ce n 
-    | EpFnCall call ,retTy          ->                  codegen_call le ce aln call retTy
+    | EpCall call   ,tyRet          ->                  codegen_call le ce aln call tyRet
     | EpBalance e   ,TyUint256      ->  let ce      =   e                       >>>>(R,le,ce)   in
                                                         BALANCE                 >>ce
     | EpSender      ,TyAddr         ->  let ce      =   CALLER                  >>ce            in
@@ -708,40 +708,35 @@ and call_and_restore_PC ce =                                        (*  gas-3000
                   restore_PC ce                                     (*                                                                                             retsize >> alloc(retsize) >> .. *)
 
 (***************************************)
-(***     10. SSTORE ARGS             ***)
+(***     10. CONT CREATE             ***)
 (***************************************)
 
-let push_args le ce args =
-    let ce      =   L.fold_right (fun arg ce -> arg >>>>(R,le,ce)) args ce in 
-    le,ce
+and push_args le =
+    foldr(fun arg ce->arg>>>>(R,le,ce))  
 
-let sstore_word_to ce stor_loc =
+and sstore_word_to ce stor_loc =
     let ce      =   PUSH32 (Int stor_loc)      >>ce     in
                     SSTORE                     >>ce       
 
-let sstore_words_to ce stor_locs = foldl sstore_word_to ce stor_locs
+and sstore_words_to stor_locs ce = foldl sstore_word_to ce stor_locs
 
-let sstore_args le ce offset idx args = 
+and sstore_args le ce offset idx args = 
     let cntrct  =   cntrct_lookup ce idx                in 
     let arglocs =   SL.arg_locations offset cntrct      in
     assert(L.length arglocs=L.length args) ; 
-    let le,ce   =   push_args       le ce args          in  (*                                              *)
-    let ce      =   sstore_words_to ce arglocs          in  (*                                              *)
+    let ce      =   push_args       le args ce          in  (*                                         argk >> .. >> arg1 >> .. *)
+    let ce      =   sstore_words_to arglocs ce          in  (*  S[l_k]:=argk; .. ; S[l_1]:=arg1                              .. *)
     le,ce
 
-let set_cont_to_fncall le ce (lyt:SL.storLayout) (fncall, ty_expr) =
-    let hd      =   fncall.call_id                      in
-    let args    =   fncall.call_args                    in
-    let idx     =   lookup_cn_of_ce ce hd               in 
-    let offset  =   lyt.stor_cnstrctrArgs_begin idx     in  
-    let ce      =   set_cntrct_pc ce idx                in  (* S[PC] := rntime_offset_of_cntrct *) 
-                    sstore_args le ce offset idx args
+and cont_call le ce (layt:SL.storLayout) (cont,_) = match cont with
+    | EpCall cncall -> 
+    let cn      =   cncall.call_id                      in
+    let args    =   cncall.call_args                    in
+    let idx     =   lookup_cn_of_ce ce cn               in 
+    let offset  =   layt.stor_cnstrctrArgs_begin idx    in  
+    let ce      =   set_cntrct_pc ce idx                in  (* S[PC] := rntime_offset_of_cntrct                              .. *) 
+                    sstore_args le ce offset idx args       (* S[l_k]:=argk; .. ; S[l_1]:=arg1                               .. *)
 
-(* set_cont sets the storage contents.
- * So that the next message call would start from the continuation. *)
-let set_cont le ce layout (cont, ty) = match cont with
-    | EpFnCall fncall    -> set_cont_to_fncall le ce layout (fncall,ty)
-    | _                  -> err "strange continuation" 
 
 
 (*************************************)
@@ -758,8 +753,8 @@ let set_cont le ce layout (cont, ty) = match cont with
  *   |  value  |     |    32   |            
  * --+---------+-- --+---------+--    *)
 
-let mstore_word ty ce =
-    assert (size_of_ty ty <= 32)  ;                             (*                                   val >> .. *)
+and mstore_word ty ce =
+    assert (size_of_ty ty <= 32)  ;                             (*                                   val >> .. *)   (* Here, FUN TYPE is excluded <- Problem #TODO *) 
     let ce      = PUSH1(Int 32)             >>ce            in  (*                             32 >> val >> .. *)
     let ce      = DUP1                      >>ce            in  (*                       32 >> 32 >> val >> .. *)
     let ce      = malloc                      ce            in  (*                alloc(32) >> 32 >> val >> .. *)
@@ -768,14 +763,14 @@ let mstore_word ty ce =
     let ce      = MSTORE                    >>ce            in  (*                       32 >> alloc(32) >> .. *)
                   SWAP1                     >>ce                (*                       alloc(32) >> 32 >> .. *)
 
-let mstore_expr le ce pack (e,ty) =
+and mstore_expr le ce pack (e,ty) =
     let a       = match pack with | ABIPack   -> R
                                   | TightPack -> L          in
     let ce      = (e,ty)                    >>>>(a,le,ce)   in  (*                                value >> .. *)
     let ce      = mstore_word ty ce                         in  (*                      alloc(32) >> 32 >> .. *)
     le,ce
 
-let rec mstore_exprs le ce pack = function 
+and mstore_exprs le ce pack = function 
     | []        ->  let ce    = PUSH1(Int 0)        >>ce    in
                     let ce    = PUSH1(Int 0)        >>ce    in
                     le, ce
@@ -789,15 +784,15 @@ let rec mstore_exprs le ce pack = function
                              (* ADD                                                             size+size'  >> alloc(size) >> .. *) 
                              (* SWAP1                                                           alloc(size) >> size+size'  >> .. *)
                     
-let codegen_return le ce layt ret =
-    let le,ce   = set_cont le ce layt ret.ret_cont          in
+and codegen_return le ce layt ret =
+    let le,ce   = cont_call le ce layt ret.ret_cont          in
     let ce      = match ret.ret_expr with
     | Some e    ->  let le,ce = mstore_expr le ce ABIPack e in
                                 RETURN              >>ce 
     | None      ->              STOP                >>ce    in
     le,ce
 
-let sstore_to_array le ce layt aa = 
+and sstore_to_array le ce layt aa = 
     let arr     = aa.arrId                                  in
     let idx     = aa.arrIndex                               in
     let ce      = idx                       >>>>(R,le,ce)   in   (* stack : [value, index] *)
@@ -805,22 +800,22 @@ let sstore_to_array le ce layt aa =
     let ce      = keccak_cat                  ce            in   (* stack : [value, kec(array_seed ^ index)] *)
                   SSTORE                    >>ce                
 
-let sstore_to_lexpr le ce layt = function 
+and sstore_to_lexpr le ce layt = function 
     |LEpArray a-> sstore_to_array le ce layt a 
 
-let codegen_assign le ce layt l r =
+and codegen_assign le ce layt l r =
     let ce      = r                         >>>>(R,le,ce)   in
     let ce      = sstore_to_lexpr le ce layt l              in
     le, ce
 
-let codegen_decl le ce i  = 
+and codegen_decl le ce i  = 
     let pos     = stack_size ce                             in
     let name    = i.declId                                  in
     let ce      = i.declVal                 >>>>(R,le,ce)   in
     let le      = add_loc le(name, Stack(pos+1))            in
     le, ce
 
-let rec codegen_if_then le ce layt cond stmts =
+and codegen_if_then le ce layt cond stmts =
     let label   = fresh_label ()                            in
     let ce      = cond                      >>>>(R,le,ce)   in
     let ce      = if_0_GOTO label             ce            in 
@@ -842,11 +837,12 @@ and codegen_if le ce layt cond ss1 ss2 =
 
 and codegen_stmts stmts lyt le ce   = foldl (codegen_stmt lyt) (le,ce) stmts
 and codegen_stmt layt (le,ce)       = function 
+    | SmAbort                       ->  le, throw ce  
     | SmReturn ret                  ->  codegen_return      le ce layt ret
     | SmAssign (l,r)                ->  codegen_assign      le ce layt l r
     | SmDecl i                      ->  codegen_decl        le ce i
-(*  | SmIfThen(cond,e)              ->  codegen_if_then     le ce layt cond e 
-    | SmIf(cond,e1,e2)              ->  codegen_if          le ce layt cond e1 e2 *)
+    | SmIfThen(cond,e)              ->  codegen_if_then     le ce layt cond e 
+    | SmIf(cond,e1,e2)              ->  codegen_if          le ce layt cond e1 e2 
     | SmSlfDstrct expr              ->  codegen_selfDstrct  le ce expr
     | SmExpr expr                   ->  codegen_expr_stmt   le ce expr
     | SmLog(name,args,Some ev)      ->  codegen_log_stmt    le ce name args ev
@@ -854,7 +850,7 @@ and codegen_stmt layt (le,ce)       = function
 
 and codegen_log_stmt le ce name args evnt =
     let idxArgs,args= split_evnt_args evnt args             in
-    let le,ce   = push_args le ce idxArgs                   in
+    let ce      = push_args le idxArgs        ce            in
     let ce      = push_evnt_hash  evnt        ce            in
     let le,ce   = mstore_exprs le ce ABIPack args           in  (* stack : [..., size, offset] *)
     let n       = L.length idxArgs + 1                      in

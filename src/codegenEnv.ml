@@ -62,6 +62,7 @@ let (>>) op ce                 = append_opcode ce op
 (* returns the list of cont contract names *)
     
 let rec stmt_become             =   function 
+    | SmAbort                   ->  []
     | SmSlfDstrct   e        
     | SmExpr        e           ->  expr_become e
     | SmDecl        v           ->  expr_become v.declVal
@@ -82,7 +83,6 @@ and new_become n                =   exprs_become n.new_args @ expr_become n.new_
 and send_expr_become s          =   expr_become s.sd_cn @ exprs_become s.sd_args @ expr_become s.sd_msg
 and exprs_become es             =   L.concat (L.map expr_become es)
 and expr_become e               =   match fst e with
-    | SmAbort                   ->  []
     | EpTrue | EpFalse | EpNow 
     | EpThis | EpValue | EpSender 
     | EpDecLit256   _  | EpDecLit8 _ 
@@ -98,7 +98,7 @@ and expr_become e               =   match fst e with
     | EpLAnd     (l,r)           
     | EpMinus    (l,r)          ->  (expr_become l) @ (expr_become r)
     | EpArray a                 ->  expr_become a.arrIndex
-    | EpFnCall f                ->  fncall_become f
+    | EpCall f                ->  fncall_become f
     | EpNew n                   ->  new_become n
     | EpSend s                  ->  send_expr_become s
 

@@ -20,7 +20,7 @@
 %token ABORT REENTRANCE
 %token NEW SELFDESTRUCT
 %token SENDER MSG VALUE BALANCE
-%token THIS NOW VOID
+%token THIS NOW UNIT
 %token EVENT LOG 
 %token BLOCK
 %token INDEXED
@@ -55,7 +55,7 @@ block:
 mthd_head:
     | DEFAULT                                       { Default                                                   }
     | METHOD LPAR   ty ID plist(arg) RPAR           { Method{mthd_retTy=$3;       mthd_id=$4; mthd_args=$5}   }
-    | METHOD LPAR VOID ID plist(arg) RPAR           { Method{mthd_retTy=TyTuple[];mthd_id=$4; mthd_args=$5}   }
+    | METHOD LPAR LPAR RPAR ID plist(arg) RPAR      { Method{mthd_retTy=TyTuple[];mthd_id=$5; mthd_args=$6}   }
 
 arg:
     | ty ID                                         { TyVar($2,$1)                                             }
@@ -78,13 +78,13 @@ ty:
     | block                                         { $1                                                        }
      
 stmt:
-(*  | ABORT SEMI                                    { SmAbort                                                   } *)
+    | ABORT SEMI                                    { SmAbort                                                   } 
     | RETURN option(expr) THEN BECOME expr SEMI     { SmReturn{ret_expr=$2; ret_cont=$5}                        }
     | lexpr EQ expr SEMI                            { SmAssign($1,$3)                                           }
     | ty ID EQ expr SEMI                            { SmDecl{declTy=$1; declId=$2; declVal=$4}   }
-    | VOID EQ expr SEMI                             { SmExpr $3                                                 }
-    (*| IF expr THEN body ELSE body                   { SmIf($2,$4,$6)                                            }
-    | IF expr THEN body                             { SmIfThen ($2, $4)                                         }*)
+    | LPAR RPAR EQ expr SEMI                        { SmExpr $4                                                 }
+    | IF expr THEN body ELSE body                   { SmIf($2,$4,$6)                                            }
+    | IF expr THEN body                             { SmIfThen ($2, $4)                                         }
     | LOG ID expr_list SEMI                         { SmLog($2,$3,None)                                         }
     | SELFDESTRUCT expr SEMI                        { SmSlfDstrct $2                                            }
 
@@ -99,10 +99,10 @@ stmt:
     | LAND                                          { fun(l,r)-> EpLAnd(l,r)                                    } 
 
 expr:
-    | ABORT                                         { SmAbort,                                                          ()  }
+(*  | ABORT                                         { SmAbort,                                                          ()  } *)
     | TRUE                                          { EpTrue,                                                           ()  }
     | FALSE                                         { EpFalse,                                                          ()  }
-    | IF expr THEN expr ELSE expr                   { TmIf($2,$4,$6),                                                   ()  }
+(*| IF expr THEN expr ELSE expr                   { TmIf($2,$4,$6),                                                   ()  } *)
     | DECLIT256                                     { EpDecLit256 $1,                                                   ()  }
     | DECLIT8                                       { EpDecLit8 $1,                                                     ()  }
     | expr op expr                                  { $2($1,$3) ,                                                       ()  }
@@ -114,7 +114,7 @@ expr:
     | NOW     LPAR BLOCK RPAR                       { EpNow,                                                            ()  }
     | ADDRESS LPAR  expr RPAR                       { EpAddr $3,                                                        ()  }
     | ID                                            { EpIdent $1,                                                       ()  }
-    | ID  expr_list                                 { Printf.printf "\n%s\n" $1; EpFnCall{call_id=$1;call_args=$2},     ()  }
+    | ID  expr_list                                 { Printf.printf "\n%s\n" $1; EpCall{call_id=$1;call_args=$2},     ()  }
     | NEW ID expr_list msg                          { EpNew {new_id=$2;new_args=$3; new_msg=$4},                        ()  }
     | expr DOT DEFAULT LPAR RPAR msg                { EpSend{sd_cn=$1;sd_mthd=None   ;sd_args=[];sd_msg=$6},            ()  }
     | expr DOT ID   expr_list msg                   { EpSend{sd_cn=$1;sd_mthd=Some $3;sd_args=$4;sd_msg=$5},            ()  }

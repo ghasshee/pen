@@ -123,8 +123,8 @@ let split_evnt_args tyEv args =
 (***      STATEMENTS & EXPRESSIONS     ***)
 (*****************************************)
 
-type 'ty _call                  =   { call_id           : string
-                                    ; call_args         : ('ty exprTy) list    }
+type 'ty _create                =   { call_id         : string
+                                    ; call_args       : ('ty exprTy) list    }
                                 
 and  'ty _new                   =   { new_id            : string
                                     ; new_args          : 'ty exprTy list
@@ -136,11 +136,12 @@ and  'ty _send                  =   { sd_cn             : 'ty exprTy
                                     ; sd_msg            : 'ty exprTy              }
 
 and  'ty stmt                   =   
+                                |   SmAbort
                                 |   SmReturn            of 'ty return
                                 |   SmAssign            of 'ty lexpr * 'ty exprTy
                                 |   SmDecl              of 'ty decl
-                              (*|   SmIfThen            of 'ty exprTy * 'ty stmt list
-                                |   SmIf                of 'ty exprTy * 'ty stmt list * 'ty stmt list *) 
+                                |   SmIfThen            of 'ty exprTy * 'ty stmt list
+                                |   SmIf                of 'ty exprTy * 'ty stmt list * 'ty stmt list
                                 |   SmSlfDstrct         of 'ty exprTy
                                 |   SmExpr              of 'ty exprTy
                                 |   SmLog               of string   * 'ty exprTy list * tyEvnt option
@@ -148,7 +149,6 @@ and  'ty stmt                   =
 and  'ty exprTy                =   'ty expr * 'ty
 
 and  'ty expr                   =   EpParen             of 'ty exprTy
-                                |   SmAbort
                                 (* Ref *)
                                 |   TmRef               of 'ty expr
                                 |   TmDeref             of term 
@@ -165,7 +165,7 @@ and  'ty expr                   =   EpParen             of 'ty exprTy
                                 |   EpDecLit8           of big_int
                                 |   EpNow
                                 |   EpIdent             of string
-                                |   EpFnCall            of 'ty _call
+                                |   EpCall            of 'ty _create
                                 |   EpNew               of 'ty _new
                                 |   EpSend              of 'ty _send
                                 |   EpLAnd              of 'ty exprTy * 'ty exprTy
@@ -232,7 +232,7 @@ let default_exists              =   L.exists      (function   | Default   -> tru
                                                               | _         -> false  )
 
 let cntrct_name_of_ret_cont     = function 
-    | EpFnCall c,_              -> Some c.call_id
+    | EpCall c,_              -> Some c.call_id
     | _,_                       -> None
 
 let args_of_mthd                = function 
@@ -250,7 +250,7 @@ let string_of_expr_inner        = function
     | EpNew         _           -> "new"
     | EpParen       _           -> "()"
     | EpIdent     str           -> "ident "^str
-    | EpFnCall      _           -> "call"
+    | EpCall      _           -> "call"
     | EpNow                     -> "now"
     | EpSender                  -> "sender"
     | EpTrue                    -> "true"

@@ -60,7 +60,7 @@ rule read = parse
   | "balance"       { BALANCE                       }
   | "now"           { NOW                           }
   | "block"         { BLOCK                         }
-  | "void"          { VOID                          }
+  | "unit"          { UNIT                          }
   | "&&"            { LAND                          }
   | "=>"            { DARROW                        }
   | "+"             { PLUS                          }

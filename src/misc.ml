@@ -35,6 +35,7 @@ let rec changeFstFilter f = function
 let isNil x                 = x=[]
 
 let foldl                   = fold_left
+let foldr                   = fold_right
 
 
 
