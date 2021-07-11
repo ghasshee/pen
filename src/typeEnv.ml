@@ -24,8 +24,8 @@ let empty_ctx                   =   { ids       =   []
                                     ; retTyChkr =   None    }
 
 
-let lookup_block name blk       =   getFstFilter (function TyVar(id,ty) -> if id=name then Some ty else None) blk
-let lookup_id    name ctx       =   getFstFilter (lookup_block name) ctx.ids
+let lookup_block name blk       =   getFstByFilter (function TyVar(id,ty) -> if id=name then Some ty else None) blk
+let lookup_id    name ctx       =   getFstByFilter (lookup_block name) ctx.ids
 let lookup_evnt  name ctx       =   BL.find (fun (ev:tyEvnt)->ev.id=name) ctx.evnts
 let lookup_retTyCheck ctx       =   match ctx.retTyChkr with
     | Some chkr                 ->  chkr
@@ -51,16 +51,15 @@ type argArr                     =   string * ty * ty
 let get_ty  (_,ty)              =   ty
 let get_tm  (x,_)               =   x
 
-let getArgTy                    =   function 
+let argTy_of_var                    =   function 
     | TyVar(_,TyMap (_,_))          ->  None
     | TyVar(id,ty)                  ->  Some(id,ty)
-    | _ -> err "getArgTy: type error: TyVar expected" 
-let getArrTy                    =   function 
+let arrTy_of_var                    =   function 
     | TyVar(id,TyMap(kTy,vTy))      ->  Some (id, kTy, vTy)
     | TyVar(_,_)                    ->  None
-    | _ -> err "getArgTy: type error: TyVar expected"
-let getArgTys                   =   BL.filter_map getArgTy 
-let getArrTy_cntrct cn          =   BL.filter_map getArrTy (cn.cntrct_args)
+let argTys_of_vars              =   BL.filter_map argTy_of_var 
+let arrTys_of_cntrct cn         =   BL.filter_map arrTy_of_var (cn.cntrct_args)
+let argTys_of_cntrct cn         =   argTys_of_vars cn.cntrct_args
 
 let positions_of_argLens lens   =
     let rec loop ret used           =   function 
@@ -70,16 +69,15 @@ let positions_of_argLens lens   =
     loop [] 4(* signature length *) lens
 
 let argLocs_of_mthd m           =   match m.mthd_head with
-    | Default                   ->  []
-    | Method h                  ->  let sizes       = L.map calldata_size_of_arg h.mthd_args in
+    | TyDefault                 ->  []
+    | TyMethod(id,args,ret)     ->  let sizes       = L.map calldata_size_of_arg args in
                                     let positions   = positions_of_argLens sizes in
                                     let size_pos    = L.combine positions sizes in
                                     let locations   = L.map (fun(o,s)->Calldata{calldata_start=o;calldata_size=s}) size_pos in
-                                    let names       = L.map id_of_var h.mthd_args in
+                                    let names       = L.map id_of_var args in
                                     let locEnv      = L.combine names locations in
                                     locEnv
 
-let argTys_of_cntrct cn         =   getArgTys cn.cntrct_args
 
 let total_size_of_argTys tys    =   try     BL.sum (L.map size_of_ty tys) 
                                     with    Invalid_argument _          -> 0
@@ -87,9 +85,9 @@ let total_size_of_args args     =   try     BL.sum (L.map (size_of_ty $ ty_of_va
                                     with    Invalid_argument _          -> 0 
 
 
-let string_of_tyMthd m  =
-    let name_of_mthd    = m.mthd_id                         in
-    let args            = getArgTys m.mthd_args             in
+let string_of_tyMthd (TyMethod(id,args,ret))  =
+    let name_of_mthd    = id                         in
+    let args            = argTys_of_vars args        in
     let arg_tys         = L.map snd args                    in
     let str_tys         = L.map string_of_ty arg_tys        in
     let ty              = String.concat "," str_tys         in
@@ -99,7 +97,7 @@ let string_of_evnt (ev:tyEvnt) =
     (* do I consider indexed no? *)
     let name            = ev.id                             in
     let args            = args_of_evnt_args ev.tyEvArgs     in 
-    let argTys          = getArgTys args                    in
+    let argTys          = argTys_of_vars args               in
     let tys             = L.map snd argTys                  in
     let tyNames         = L.map string_of_ty tys            in
     let args            = String.concat "," tyNames         in
@@ -110,10 +108,10 @@ let string_of_evnt (ev:tyEvnt) =
 (***********************************)
 
 let find_tyMthd_in_cntrct mname tyCntrct : ty option =
-    getFstFilter (function TyMthd(id,tyArgs,tyRet) as tyM -> if id=mname then Some tyM else None) tyCntrct.tyCnMthds
+    getFstByFilter (function TyMethod(id.args,ret) as tyM -> if id=mname then Some tyM else None) tyCntrct.tyCnMthds
 
 let find_tyMthd tyCntrcts mname = 
-    match getFstFilter (find_tyMthd_in_cntrct mname) (L.map snd tyCntrcts) with 
+    match getFstByFilter (find_tyMthd_in_cntrct mname) (L.map snd tyCntrcts) with 
     | Some ty   -> ty
     | None      -> err ("find_tyMthd: "^mname^"Not found")
 

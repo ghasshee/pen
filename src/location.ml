@@ -15,7 +15,7 @@ type imm                        =
                                 | StorCnstrctrArgsSize      of idx    (* the size depends on the cntrct id *)
                                 | InitDataSize              of idx
                                 | RntimeCntrctOffset        of idx    (* This index should be a JUMPDEST *)
-                                | RntimeMthdLabel           of idx * Syntax.mthd_head
+                                | RntimeMthdLabel           of idx * Syntax.ty
                                 | CnstrctrCodeSize          of idx
                                 | RntimeCnstrctrOffset      of idx
                                 | RntimeCodeOffset          of idx

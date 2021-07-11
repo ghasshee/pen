@@ -56,7 +56,8 @@ type ty           (* atomic *)  =   TyVoid              (* 256 bits *)
                   (* atomic *)  |   TyMap               of ty * ty 
                   (* atomic *)  |   TyCntrct            of string   (* type of [bid(...)] where bid is a cntrct *) 
                   (* atomic *)  |   TyInstnce           of string   (* type of [b] declared as [bid b] *) 
-                                |   TyMthd              of string * ty list * ty        (*  TyMthd(id, tyArgs, tyRet)             *)
+                                |   TyMethod            of string * ty list * ty        (*  TyMethod(id, tyArgs, tyRet)             *)
+                                |   TyDefault
                                 |   TyAbs               of          ty list * ty        (*  TyAbs(tyArgs, tyRet)                 *)
                                 |   TyVar               of string * ty                  (*  (id, ty)                        *) 
 
@@ -186,14 +187,7 @@ and 'ty return                  =   { ret_expr          :  'ty exprTy option
 
 type 'ty mthd_body              =   'ty stmt list
 
-type mthd_info                  =   { mthd_id           : string
-                                    ; mthd_args         : ty list    
-                                    ; mthd_retTy        : ty           }
-                                 
-type mthd_head                  =   Method of mthd_info
-                                |   Default
-
-type 'ty mthd                   =   { mthd_head         :     mthd_head
+type 'ty mthd                   =   { mthd_head         : ty
                                     ; mthd_body         : 'ty mthd_body }
                                 
 type 'ty cntrct                 =   { cntrct_id         : string
@@ -208,31 +202,31 @@ type 'ty cntrct                 =   { cntrct_id         : string
 type 'ty toplevel               =   Cntrct        of 'ty cntrct
                                 |   Event         of tyEvnt
 
-let filter_usualMthd            =   BL.filter_map (function   | Default   -> None 
-                                                              | Method m  -> Some m )  
-let default_exists              =   L.exists      (function   | Default   -> true
-                                                              | _         -> false  )
+let filter_usualMthd            =   BL.filter_map (function   | TyDefault                   -> None 
+                                                              | TyMethod(i,a,r)             -> Some (TyMethod(i,a,r)) )  
+let default_exists              =   L.exists      (function   | TyDefault                   -> true
+                                                              | TyMethod(_,_,_)             -> false  )
 
 let cntrct_name_of_ret_cont     = function 
     | EpCall c,_              -> Some c.call_id
     | _,_                       -> None
 
 let args_of_mthd                = function 
-    | Method m                  -> m.mthd_args
-    | Default                   -> []
+    | TyMethod(_,argTys,_)        -> argTys
+    | TyDefault                   -> []
 
 let cntrct_name_of_instance     = function
-    | _,(TyInstnce s,_)         -> s
+    | _,(TyInstnce cn,_)        -> cn
     | _,(tyT,_)                 -> err ("seeking cntrct_name_of non-cntrct "^(string_of_ty tyT))
 
-let string_of_expr_inner        = function 
+let string_of_expr              = function 
     | EpThis                    -> "this"
     | EpArray       _           -> "a[idx]"
     | EpSend        _           -> "send"
     | EpNew         _           -> "new"
     | EpParen       _           -> "()"
     | EpIdent     str           -> "ident "^str
-    | EpCall      _           -> "call"
+    | EpCall      _             -> "call"
     | EpNow                     -> "now"
     | EpSender                  -> "sender"
     | EpTrue                    -> "true"
@@ -254,16 +248,8 @@ let string_of_expr_inner        = function
     | EpBalance     _           -> "balance"
 
 let is_mapping                  = function 
-    | TyUint256
-    | TyUint8
-    | TyBytes32
-    | TyAddr
-    | TyBool
-    | TyRef         _
-    | TyTuple       _
-    | TyCntrct      _
-    | TyInstnce     _           -> false
     | TyMap         _           -> true
+    | _                         -> false 
 
 let count_plain_args            = L.length $ (L.filter (not $ is_mapping)) 
 

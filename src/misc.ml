@@ -19,16 +19,16 @@ let errc str                = err("codegen_expr: " ^ str ^ " of unexpected type"
 (**      LIST OPERATERS                 **)
 (*****************************************)
 
-let rec getFstFilter f = function 
+let rec getFstByFilter f = function 
     | []        ->  None
     | x::xs     ->  begin match f x with
-        | None      ->  getFstFilter f xs 
+        | None      ->  getFstByFilter f xs 
         | Some y    ->  Some y       end 
 
-let rec changeFstFilter f = function 
+let rec changeFstByFilter f = function 
     | []        ->  None
     | x::xs     ->  begin match f x with
-        | None      ->  Maybe.map (cons x)(changeFstFilter f xs)
+        | None      ->  Maybe.map (cons x)(changeFstByFilter f xs)
         | Some n    ->  Some (n::xs) end 
 
 

@@ -214,30 +214,27 @@ let realize_opcode (l:post_storLayout) (init_idx:idx) (i:imm Evm.opcode) = Evm.(
 let realize_program l init_idx p = L.map (realize_opcode l init_idx) p
 
 let storLayout_of_cntrct (cn:ty cntrct) (cnstrctrCode : imm Evm.program) =
-    { cn_cnstrctrCode_size = Evm.size_of_program cnstrctrCode
+    { cn_cnstrctrCode_size  = Evm.size_of_program cnstrctrCode
     ; cn_args_size          = total_size_of_argTys (L.map snd (argTys_of_cntrct cn))
-    ; cn_num_arraySeeds    = L.length  (getArrTy_cntrct cn)
-    ; cn_args               = L.map     (function TyVar(_,ty)->ty) (cn.cntrct_args)
-    }
+    ; cn_num_arraySeeds     = L.length  (arrTys_of_cntrct cn)
+    ; cn_args               = L.map     ty_of_var cn.cntrct_args }
 
-let rec arg_locations_inner offset used_plain_args used_mapping_seeds num_of_plains = function 
-    | []    ->  []
-    | h::t  ->  if is_mapping h 
-                    then (offset + num_of_plains + used_mapping_seeds) ::
-                        arg_locations_inner offset used_plain_args(used_mapping_seeds+1)num_of_plains t
-                    else (offset + used_plain_args) ::
-                        arg_locations_inner offset(used_plain_args+1)used_mapping_seeds num_of_plains t
+let rec gen_arg_locs offset used_plains used_seeds num_plains = function 
+    | []        ->  []
+    | ty::tys   ->  if is_mapping ty
+                    then (offset + num_plains + used_seeds) :: gen_arg_locs offset used_plains (used_seeds+1) num_plains tys
+                    else (offset + used_plains)             :: gen_arg_locs offset (used_plains+1) used_seeds num_plains tys
 
 (* this needs to take stor_cnstrctrArgs_begin *)
 let arg_locations offset (cn:ty cntrct) : int list =
-    let arg_tys       = L.map (function TyVar(_,ty)->ty) cn.cntrct_args in
+    let arg_tys       = L.map ty_of_var cn.cntrct_args in
     assert (L.for_all fits_in_one_stor_slot arg_tys) ; 
     let num_of_plains = count_plain_args arg_tys  in
-    let ret           = arg_locations_inner offset 0 0 num_of_plains arg_tys in 
+    let ret           = gen_arg_locs offset 0 0 num_of_plains arg_tys in 
     ret 
 
 let array_locations (cn:ty cntrct) : int list =
-    let arg_tys       = L.map (function TyVar(_,ty)->ty) cn.cntrct_args  in
+    let arg_tys       = L.map ty_of_var cn.cntrct_args  in
     assert (L.for_all fits_in_one_stor_slot arg_tys) ;
     let num_of_plains = count_plain_args arg_tys            in
     let total_num     = L.length arg_tys                    in
@@ -262,11 +259,5 @@ let array_locations (cn:ty cntrct) : int list =
 (*            +---+-----------------+                                       *)
 (*                                                                          *)
 (*                                                                          *)
-
-
-
-
-
-
 
 

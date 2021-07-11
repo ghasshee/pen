@@ -22,8 +22,8 @@ let check_reserved_cn   cn      =   if reserved_cn cn       then err "Names 'pre
 let assert_tyeqv l r            =   assert (get_ty l=get_ty r) 
 
 let typeof_mthd m               =   match m.mthd_head with 
-    | Method m                      ->  TyMthd(m.mthd_id,L.map ty_of_var m.mthd_args, m.mthd_retTy)
-    | Default                       ->  TyMthd("", [], TyTuple[]) 
+    | TyMethod(id,args,ret)           ->  TyMethod(id,L.map ty_of_var args, ret)
+    | TyDefault                       ->  TyMethod("", [], TyTuple[]) 
 
 let typeof_cntrct(cn:'a cntrct) =   { id                = cn.cntrct_id
                                     ; tyCnArgs          = L.map ty_of_var cn.cntrct_args
@@ -53,13 +53,11 @@ let arg_has_known_ty cns        =   function
                                             then err("Unknown Type Arg "^string_of_ty ty)
                                             else ret
 
-let retTy_is_known cns m        =   is_known_ty cns m.mthd_retTy
-
 let addTy_mthd_head cns         =   function 
-    | Default                       ->  Default
-    | Method m                      ->  assert (BL.for_all(arg_has_known_ty cns)m.mthd_args) ; 
-                                        assert (retTy_is_known cns m) ;
-                                        Method m
+    | TyDefault                     ->  TyDefault
+    | TyMethod(id,argTys,retTy)     ->  assert (BL.for_all (arg_has_known_ty cns) argTys) ; 
+                                        assert (is_known_ty cns retTy) ;
+                                        TyMethod(id,argTys,retTy)
 
 let call_arg_expectations cns   =   function 
     | "pre_ecdsarecover"            ->  (=) [TyBytes32;TyUint8;TyBytes32;TyBytes32]
@@ -161,7 +159,7 @@ and addTy_expr cns cname ctx (expr,()) =    match expr with
                                         let cn      = addTy_expr cns cname ctx sd.sd_cn   in
                                         begin match sd.sd_mthd with
                                         | Some m ->  
-                                        let TyMthd(_,_,tyRet)  =   find_tyMthd cns m                 in            
+                                        let TyMethod(_,_,tyRet)  =   find_tyMthd cns m                 in            
                                         let args    =   L.map(addTy_expr cns cname ctx)sd.sd_args in                
                                         let ref     =   EpSend  { sd_cn     = cn                                        
                                                                 ; sd_mthd   = sd.sd_mthd                                
@@ -274,23 +272,23 @@ and are_terminating stmts =
 (* AssignTy Method / Contract / Toplevel  *) 
 (* Default Method Returns Unit(==EmptyTuple) is a specification *) 
 
-let mthd_is_returning_unit (mthd:unit mthd) = match mthd.mthd_head with
-    | Default               ->  true
-    | Method m              ->  m.mthd_retTy = TyTuple[]
+let mthd_returns_unit (mthd:unit mthd) = match mthd.mthd_head with
+    | TyDefault             ->  true
+    | TyMethod(_,_,retTy)   ->  retTy = TyTuple[]
 
 let retTyCheck_of_mthd m ty_inferred = match m, ty_inferred with
-    | Default ,Some _       ->  false
-    | Default ,None         ->  true
-    | Method u,   _         ->  begin match u.mthd_retTy, ty_inferred with
-        | tyVoid, None          -> true
+    | TyDefault ,Some _       ->  false
+    | TyDefault ,None         ->  true
+    | TyMethod(_,_,retTy), _  ->  begin match retTy, ty_inferred with
+        | _, None               -> true
         | x, Some y             -> acceptable_as x y
         | _, _                  -> false  end
 
 let addTy_mthd cns cn_name ctx (m:unit mthd) =
     assert (L.for_all (function 
                          | OnTheWay         -> false
-                         | ReturnBySize 0   -> mthd_is_returning_unit m
-                         | ReturnBySize 1   -> not (mthd_is_returning_unit m)
+                         | ReturnBySize 0   -> mthd_returns_unit m
+                         | ReturnBySize 1   -> not (mthd_returns_unit m)
                          | ReturnBySize _   -> err "multiple vals return not supported yry"
                          | JustStop         -> true )  (are_terminating m.mthd_body)) ; 
     let margs       = args_of_mthd m.mthd_head in
@@ -303,8 +301,8 @@ let addTy_mthd cns cn_name ctx (m:unit mthd) =
 let has_distinct_sigs (cn:unit cntrct) =
     let mthds       =   cn.mthds in
     let sigs        =   L.map (fun m -> match m.mthd_head with
-                              | Method m' -> Some (string_of_tyMthd m')
-                              | Default   -> None) mthds in
+                              | TyDefault   -> None
+                              | tyM         -> Some (string_of_tyMthd tyM) ) mthds in
     let uniq_sigs   =   BL.unique sigs in
     L.length sigs=L.length uniq_sigs
 

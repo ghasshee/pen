@@ -39,13 +39,13 @@ let prABI_outputs (tys:ty list) : string =
     let strs = L.map prABI_output tys in
     BS.concat "," strs
 
-let prABI_mthd_info u =
+let prABI_mthd_info (TyMethod(id,args,ret)) = 
     sprintf "{\"type\":\"function\",\"name\":\"%s\",\"inputs\": [%s],\"outputs\": [%s],\"payable\": true}"
-        (u.mthd_id) (prABI_inputs u.mthd_args) (prABI_output u.mthd_retTy)
+        id (prABI_inputs args) (prABI_output ret)
 
 let prABI_mthd (c:ty mthd) : string = match c.mthd_head with
-    | Method u          ->  prABI_mthd_info u
-    | Default           ->  prABI_default_mthd
+    | TyMethod(id,args,ret) ->  prABI_mthd_info (TyMethod(id,args,ret))
+    | TyDefault             ->  prABI_default_mthd
 
 let prABI_cnstrctr (c:ty cntrct) : string =
     sprintf

@@ -54,9 +54,9 @@ block:
     | LBRACE list(stmt) RBRACE                      { $2                                                        }
 
 mthd_head:
-    | DEFAULT                                       { Default                                                   }
-    | METHOD LPAR   ty ID plist(arg) RPAR           { Method{mthd_retTy=$3;       mthd_id=$4; mthd_args=$5}     }
-    | METHOD LPAR LPAR RPAR ID plist(arg) RPAR      { Method{mthd_retTy=TyTuple[];mthd_id=$5; mthd_args=$6}     }
+    | DEFAULT                                       { TyDefault                                                 }
+    | METHOD LPAR   ty ID plist(arg) RPAR           { TyMethod($4,$5,$3)                                        }
+    | METHOD LPAR LPAR RPAR ID plist(arg) RPAR      { TyMethod($5,$6,TyTuple[])                                 }
 
 arg:
     | ty ID                                         { TyVar($2,$1)                                              }

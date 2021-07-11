@@ -25,7 +25,7 @@ let lookup_label   label        =   List.assoc label !labelTbl
 (**********************)
 
 type entry                      =   Cntrct  of idx
-                                |   Mthd    of idx * Syntax.mthd_head
+                                |   Mthd    of idx * Syntax.ty
 
 type entryTbl                   =   (entry * label) list ref 
 

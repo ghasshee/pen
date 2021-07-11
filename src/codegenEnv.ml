@@ -111,15 +111,15 @@ let become cn             =   mthds_become cn.mthds
 
 let lookup_mthd_info_in_cntrct cn mname =
     let mthd = L.filter (fun c -> match c.mthd_head with
-                        | Default  -> false
-                        | Method m -> m.mthd_id=mname) cn.mthds in
+                        | TyDefault  -> false
+                        | TyMethod(id,_,_) -> id=mname) cn.mthds in
     match mthd with
     | []            ->  raise Not_found
     | _::_::_       ->  eprintf "method %s duplicated\n%!" mname;err "lookup_mthd_info_in_cntrct" 
-    | [a]           ->  begin match a.mthd_head with Method m -> m end
+    | [a]           ->  begin match a.mthd_head with TyMethod(id,args,retTy) -> TyMethod(id,args,retTy) end
 
 
-let rec lookup_mthd_info_inner ce (seen:ty cntrct list) cn mname : mthd_info =
+let rec lookup_mthd_info_inner ce (seen:ty cntrct list) cn mname : ty=
     if L.mem cn seen then raise Not_found else
     try  lookup_mthd_info_in_cntrct cn mname
     with Not_found  ->  let seen        = cn :: seen in

@@ -21,20 +21,17 @@ let add_emptyEnv le                 =   [] :: le
 
 let lookup_loc key locEnv           =   try   Some (L.assoc key locEnv)
                                         with  Not_found -> None
-let lookup le key                   =   getFstFilter (lookup_loc key) le
+let lookup le key                   =   getFstByFilter (lookup_loc key) le
 let add_loc le (key,loc)            =   match le with
     | []                                -> err "add_loc: no block"
     | h::t                              -> ((key,loc)::h)::t
-let add_locs le locs                =   L.fold_left add_loc le locs
+let add_locs le locs                =   foldl add_loc le locs
 let add_mthd_argLocs mthd le        =   add_locs le (argLocs_of_mthd mthd)
 
-
-(** [rntime_initial_t cntrct]
- * is a location environment that contains
- * the cnstrctr args
- * after StorConstrutorArgumentBegin *)
 let addArg(le,idx)(nm,ty)       =
-    let size                = size_of_ty ty / 32                in
+    let size                = size_of_ty ty                 in
+    let size                = if 0<size && size<=32 then 1 else size / 32  in
+    let () = Printf.printf "%s has size %d and %d devided by 32\n"(string_of_ty ty) (size_of_ty ty) size in 
     let loc                 = Stor  { stor_start = Int idx
                                     ; stor_size  = Int size }   in
     let le'                 = add_loc le (nm,loc)               in
@@ -45,11 +42,15 @@ let addArr(le,idx)(nm,_,_)      =
                                     ; stor_size  = Int size }   in
     let le'                 = add_loc le (nm,loc)               in
     le' , idx + size                                        
+
+(** [rntime_init_le]
+ * is a location environment that contains 
+ * the cnstrctr args after StorConstrutorArgumentBegin *)
 let rntime_init_le (cn:ty cntrct) =
     let argTys              = argTys_of_cntrct cn               in
+    let arrTys              = arrTys_of_cntrct cn               in  
     let init                = add_emptyEnv empty_le             in
-    let le, mid             = L.fold_left addArg (init,2)argTys in  
-    let arrays              = getArrTy_cntrct cn                in  
-    let le, _   = L.fold_left addArr (le,mid) arrays            in
+    let le, mid             = foldl addArg (init,2) argTys      in  
+    let le, _               = foldl addArr (le,mid) arrTys      in
     le
 

@@ -404,11 +404,11 @@ let dispatcher_usualMthd idx le ce m =                                  (*      
     let ce      =   DUP1                                    >>ce    in  (*                                   ABCD >> ABCD >> .. *)
     let ce      =   push_mthd_hash m                          ce    in  (*                              m >> ABCD >> ABCD >> .. *)
     let ce      =   EQ                                      >>ce    in  (*                             m=ABCD?1:0 >> ABCD >> .. *)
-    let ce      =   PUSH32(RntimeMthdLabel(idx,Method m))   >>ce    in  (*                Rntime(m) >> m=ABCD?1:0 >> ABCD >> .. *)
+    let ce      =   PUSH32(RntimeMthdLabel(idx,m))   >>ce    in  (*                Rntime(m) >> m=ABCD?1:0 >> ABCD >> .. *)
                     JUMPI                                   >>ce        (* if m=ABCD then GOTO Rntime(m)             ABCD >> .. *)
 
 let dispatcher_defaultMthd idx le ce =
-    let ce      =   PUSH32(RntimeMthdLabel(idx,Default))    >>ce    in
+    let ce      =   PUSH32(RntimeMthdLabel(idx,TyDefault))    >>ce    in
                     JUMP                                    >>ce     
 
 let push_inputdata32_from databegin ce =
@@ -656,7 +656,8 @@ and codegen_send le ce (s:ty _send) =
     let callee  = cntrct_lookup ce idx                          in
     begin match m with | Some name  -> 
     let m       = lookup_mthd_info ce callee name               in
-    let retSize = size_of_ty m.mthd_retTy                       in  (*                                                                                                     PCbkp >> .. *)
+    let TyMethod(id,_,ret) = m in 
+    let retSize = size_of_ty ret                       in  (*                                                                                                     PCbkp >> .. *)
     let ce      = reset_PC                        ce            in  (*                                                                                                     PCbkp >> .. *)
     let ce      = PUSH1(Int retSize)            >>ce            in  (*                                                                                          retsize >> PCbkp >> .. *)
     let ce      = DUP1                          >>ce            in  (*                                                                               retsize >> retsize >> PCbkp >> .. *)
@@ -850,18 +851,17 @@ and codegen_stmt layt (le,ce)       = function
 (***     13. CODEGEN CONTRACT             ***)
 (********************************************)
 
-let label_mthd idx (m:mthd_head) ce =
+let label_mthd idx m ce =
     let label   =   fresh_label()                               in
     register_entry(Mthd(idx,m))label ; 
                     JUMPDEST label                  >>ce      
 
-let calldatasize m =
-    let args    = m.mthd_args                                   in
+let calldatasize (TyMethod(_,args,_)) =
     4 (* for signature *) + total_size_of_args args   
 
 let codegen_mthd_argLen_chk m ce = match m with  
-    | Default       -> ce
-    | Method  m     ->
+    | TyDefault       -> ce
+    | TyMethod(_,_,_)  ->
     let ce      = PUSH4(Int(calldatasize m))        >>ce        in
     let ce      = CALLDATASIZE                      >>ce        in
                   throw_if_NEQ                        ce    
