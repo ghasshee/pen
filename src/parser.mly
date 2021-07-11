@@ -5,8 +5,8 @@
 
 %token CONTRACT
 %token <string> ID
-%token <Big_int.big_int> DECLIT256
-%token <Big_int.big_int> DECLIT8
+%token <Big_int.big_int> EUINT256
+%token <Big_int.big_int> EUINT8
 %token ADDRESS UINT256 UINT8 BYTES32
 %token BOOL TRUE FALSE
 %token PLUS MINUS MULT 
@@ -104,8 +104,8 @@ expr:
     | TRUE                                          { EpTrue,                                                           ()  }
     | FALSE                                         { EpFalse,                                                          ()  }
 (*  | IF expr THEN expr ELSE expr                   { TmIf($2,$4,$6),                                                   ()  } *)
-    | DECLIT256                                     { EpDecLit256 $1,                                                   ()  }
-    | DECLIT8                                       { EpDecLit8 $1,                                                     ()  }
+    | EUINT256                                      { EpUint256 $1,                                                   ()  }
+    | EUINT8                                        { EpUint8 $1,                                                     ()  }
     | expr op expr                                  { $2($1,$3) ,                                                       ()  }
     | NOT expr                                      { EpNot $2,                                                         ()  }
     | LPAR expr RPAR                                { EpParen $2,                                                       ()  }

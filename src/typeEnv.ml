@@ -51,12 +51,12 @@ type argArr                     =   string * ty * ty
 let get_ty  (_,ty)              =   ty
 let get_tm  (x,_)               =   x
 
-let argTy_of_var                    =   function 
-    | TyVar(_,TyMap (_,_))          ->  None
-    | TyVar(id,ty)                  ->  Some(id,ty)
-let arrTy_of_var                    =   function 
-    | TyVar(id,TyMap(kTy,vTy))      ->  Some (id, kTy, vTy)
-    | TyVar(_,_)                    ->  None
+let argTy_of_var                =   function 
+    | TyVar(_,TyMap (_,_))      ->  None
+    | TyVar(id,ty)              ->  Some(id,ty)
+let arrTy_of_var                =   function 
+    | TyVar(id,TyMap(kTy,vTy))  ->  Some (id, kTy, vTy)
+    | TyVar(_,_)                ->  None
 let argTys_of_vars              =   BL.filter_map argTy_of_var 
 let arrTys_of_cntrct cn         =   BL.filter_map arrTy_of_var (cn.cntrct_args)
 let argTys_of_cntrct cn         =   argTys_of_vars cn.cntrct_args
@@ -78,37 +78,30 @@ let argLocs_of_mthd m           =   match m.mthd_head with
                                     let locEnv      = L.combine names locations in
                                     locEnv
 
-
 let total_size_of_argTys tys    =   try     BL.sum (L.map size_of_ty tys) 
                                     with    Invalid_argument _          -> 0
 let total_size_of_args args     =   try     BL.sum (L.map (size_of_ty $ ty_of_var) args)
                                     with    Invalid_argument _          -> 0 
 
-
 let string_of_tyMthd (TyMethod(id,args,ret))  =
-    let name_of_mthd    = id                         in
-    let args            = argTys_of_vars args        in
-    let arg_tys         = L.map snd args                    in
-    let str_tys         = L.map string_of_ty arg_tys        in
-    let ty              = String.concat "," str_tys         in
-    name_of_mthd ^ "(" ^ ty ^ ")"
+    let argTys          = L.map snd (argTys_of_vars args)   in
+    let strTys          = L.map string_of_ty argTys         in
+    let tys             = String.concat "," strTys          in
+    id    ^ "(" ^ tys ^ ")"
 
 let string_of_evnt (ev:tyEvnt) =
-    (* do I consider indexed no? *)
-    let name            = ev.id                             in
     let args            = args_of_evnt_args ev.tyEvArgs     in 
-    let argTys          = argTys_of_vars args               in
-    let tys             = L.map snd argTys                  in
-    let tyNames         = L.map string_of_ty tys            in
-    let args            = String.concat "," tyNames         in
-    name ^ "(" ^ args ^ ")"
+    let argTys          = L.map snd (argTys_of_vars args)   in
+    let strTys          = L.map string_of_ty argTys         in
+    let tys             = String.concat "," strTys          in
+    ev.id ^ "(" ^ tys ^ ")"
 
 (***********************************)
 (* getInfo from contract Interface *)
 (***********************************)
 
 let find_tyMthd_in_cntrct mname tyCntrct : ty option =
-    getFstByFilter (function TyMethod(id.args,ret) as tyM -> if id=mname then Some tyM else None) tyCntrct.tyCnMthds
+    getFstByFilter (function TyMethod(id,args,ret) as tyM -> if id=mname then Some tyM else None) tyCntrct.tyCnMthds
 
 let find_tyMthd tyCntrcts mname = 
     match getFstByFilter (find_tyMthd_in_cntrct mname) (L.map snd tyCntrcts) with 

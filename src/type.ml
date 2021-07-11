@@ -98,12 +98,12 @@ and addTy_expr cns cname ctx (expr,()) =    match expr with
     | EpFalse                       ->  EpFalse         , TyBool
     | EpSender                      ->  EpSender        , TyAddr
     | EpNow                         ->  EpNow           , TyUint256
-    | EpDecLit256 d                 ->  EpDecLit256 d   , TyUint256
-    | EpDecLit8   d                 ->  EpDecLit8   d   , TyUint8
+    | EpUint256 d                 ->  EpUint256 d   , TyUint256
+    | EpUint8   d                 ->  EpUint8   d   , TyUint8
     | EpValue                       ->  EpValue         , TyUint256
     | EpAddr      e                 ->  let e       = addTy_expr cns cname ctx e          in
                                         EpAddr e        , TyAddr
-    | EpCall    c                 ->  let c,ty    = addTy_call cns cname ctx c          in
+    | EpCall    c                   ->  let c,ty    = addTy_call cns cname ctx c          in
                                         EpCall c      , ty
     | EpIdent     s                 ->  check_reserved s ; 
                                         id_lookup_ty ctx s

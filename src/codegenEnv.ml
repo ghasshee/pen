@@ -85,7 +85,7 @@ and exprs_become es             =   L.concat (L.map expr_become es)
 and expr_become e               =   match fst e with
     | EpTrue | EpFalse | EpNow 
     | EpThis | EpValue | EpSender 
-    | EpDecLit256   _  | EpDecLit8 _ 
+    | EpUint256   _  | EpUint8 _ 
     | EpIdent       _           ->  []
     | EpParen       e         
     | EpAddr        e         

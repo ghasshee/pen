@@ -103,8 +103,8 @@ let split_evnt_args tyEv args =
 (***      STATEMENTS & EXPRESSIONS     ***)
 (*****************************************)
 
-type 'ty _create                =   { call_id         : string
-                                    ; call_args       : ('ty exprTy) list    }
+type 'ty _call                  =   { call_id           : string
+                                    ; call_args         : ('ty exprTy) list    }
                                 
 and  'ty _new                   =   { new_id            : string
                                     ; new_args          : 'ty exprTy list
@@ -144,11 +144,11 @@ and  'ty expr                   =   EpParen             of 'ty exprTy
                                 |   TmFix               of 'ty exprTy
                                 |   EpTrue
                                 |   EpFalse
-                                |   EpDecLit256         of big_int
-                                |   EpDecLit8           of big_int
+                                |   EpUint256           of big_int
+                                |   EpUint8             of big_int
                                 |   EpNow
                                 |   EpIdent             of string
-                                |   EpCall            of 'ty _create
+                                |   EpCall              of 'ty _call
                                 |   EpNew               of 'ty _new
                                 |   EpSend              of 'ty _send
                                 |   EpLAnd              of 'ty exprTy * 'ty exprTy
@@ -208,16 +208,15 @@ let default_exists              =   L.exists      (function   | TyDefault       
                                                               | TyMethod(_,_,_)             -> false  )
 
 let cntrct_name_of_ret_cont     = function 
-    | EpCall c,_              -> Some c.call_id
+    | EpCall c,_                -> Some c.call_id
     | _,_                       -> None
 
 let args_of_mthd                = function 
-    | TyMethod(_,argTys,_)        -> argTys
-    | TyDefault                   -> []
+    | TyMethod(_,argTys,_)      -> argTys
+    | TyDefault                 -> []
 
 let cntrct_name_of_instance     = function
     | _,(TyInstnce cn,_)        -> cn
-    | _,(tyT,_)                 -> err ("seeking cntrct_name_of non-cntrct "^(string_of_ty tyT))
 
 let string_of_expr              = function 
     | EpThis                    -> "this"
@@ -231,8 +230,8 @@ let string_of_expr              = function
     | EpSender                  -> "sender"
     | EpTrue                    -> "true"
     | EpFalse                   -> "false"
-    | EpDecLit256   d           -> "declit "^(string_of_big_int d)
-    | EpDecLit8     d           -> "declit "^(string_of_big_int d)
+    | EpUint256   d             -> "declit "^(string_of_big_int d)
+    | EpUint8     d             -> "declit "^(string_of_big_int d)
     | EpNot         _           -> "not"
     | EpNEq         _           -> "neq"
     | EpLAnd        _           -> "_ && _"

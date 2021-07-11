@@ -558,8 +558,8 @@ and codegen_expr le ce aln      = function
     | EpNow         ,TyUint256      ->                  TIMESTAMP               >>ce 
     | EpFalse       ,TyBool         ->  assert(aln=R);  PUSH1(Big big_0)        >>ce  
     | EpTrue        ,TyBool         ->  assert(aln=R);  PUSH1(Big big_1)        >>ce  
-    | EpDecLit256 d ,TyUint256      ->  assert(aln=R);  PUSH32(Big d)           >>ce  
-    | EpDecLit8 d   ,TyUint8        ->  assert(aln=R);  PUSH1(Big d)            >>ce  
+    | EpUint256 d ,TyUint256      ->  assert(aln=R);  PUSH32(Big d)           >>ce  
+    | EpUint8 d   ,TyUint8        ->  assert(aln=R);  PUSH1(Big d)            >>ce  
     | EpPlus (l,r)  ,TyUint256      ->                  op ADD l r             le ce              
     | EpPlus (l,r)  ,TyUint8        ->                  op ADD l r             le ce               
     | EpMinus(l,r)  ,TyUint256      ->                  op SUB l r             le ce              
