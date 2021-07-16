@@ -558,8 +558,8 @@ and codegen_expr le ce aln      = function
     | EpNow         ,TyUint256      ->                  TIMESTAMP               >>ce 
     | EpFalse       ,TyBool         ->  assert(aln=R);  PUSH1(Big big_0)        >>ce  
     | EpTrue        ,TyBool         ->  assert(aln=R);  PUSH1(Big big_1)        >>ce  
-    | EpUint256 d ,TyUint256      ->  assert(aln=R);  PUSH32(Big d)           >>ce  
-    | EpUint8 d   ,TyUint8        ->  assert(aln=R);  PUSH1(Big d)            >>ce  
+    | EpUint256 d   ,TyUint256      ->  assert(aln=R);  PUSH32(Big d)           >>ce  
+    | EpUint8 d     ,TyUint8        ->  assert(aln=R);  PUSH1(Big d)            >>ce  
     | EpPlus (l,r)  ,TyUint256      ->                  op ADD l r             le ce              
     | EpPlus (l,r)  ,TyUint8        ->                  op ADD l r             le ce               
     | EpMinus(l,r)  ,TyUint256      ->                  op SUB l r             le ce              
@@ -643,8 +643,8 @@ and mload_ret_value ce =                                            (*          
     let ce      = PUSH1 (Int 32)                >>ce            in  (*          32 >> retsize >> retbegin >> retsize >> .. *)
     let ce      = throw_if_NEQ                    ce            in  (* IF 32!=retsize ERROR      retbegin >> retsize >> .. *)
     let ce      = MLOAD                         >>ce            in  (*                     M[retbegin.. ] >> retsize >> .. *)
-    let ce      = SWAP1                         >>ce            in  (* stack : out, out size *)
-                  POP                           >>ce                (* stack : out *)
+    let ce      = SWAP1                         >>ce            in  (*                     retsize >> M[retbegin.. ] >> .. *)
+                  POP                           >>ce                (*                                      retvalue >> .. *)
       
 and codegen_send le ce (s:ty _send) =
     let args    = s.sd_args                                     in
@@ -657,7 +657,7 @@ and codegen_send le ce (s:ty _send) =
     begin match m with | Some name  -> 
     let m       = lookup_mthd_info ce callee name               in
     let TyMethod(id,_,ret) = m in 
-    let retSize = size_of_ty ret                       in  (*                                                                                                     PCbkp >> .. *)
+    let retSize = size_of_ty ret                                in  (*                                                                                                     PCbkp >> .. *)
     let ce      = reset_PC                        ce            in  (*                                                                                                     PCbkp >> .. *)
     let ce      = PUSH1(Int retSize)            >>ce            in  (*                                                                                          retsize >> PCbkp >> .. *)
     let ce      = DUP1                          >>ce            in  (*                                                                               retsize >> retsize >> PCbkp >> .. *)
@@ -670,19 +670,19 @@ and codegen_send le ce (s:ty _send) =
                   mload_ret_value                 ce            end (*                               &mhash >> argssize+4 >> retbegin >> retsize >> retbegin >> retsize >> PCbkp >> .. *)
     | TyAddr        ->   (* send value to an EOA *) 
     let retSize = 0                                             in 
-    let ce      = reset_PC                        ce            in  (* [pc_bkp] *)
-    let ce      = PUSH1(Int retSize)            >>ce            in  (* [pc_bkp, 0] *)
-    let ce      = DUP1                          >>ce            in  (* [pc_bkp, 0, 0] *)
-    let ce      = repeat DUP2 4                   ce            in  (* [pc_bkp, 0, 0, 0, 0, 0, 0] *)
+    let ce      = reset_PC                        ce            in  (*                                                          PCbkp >> .. *) 
+    let ce      = PUSH1(Int retSize)            >>ce            in  (*                                                     0 >> PCbkp >> .. *) 
+    let ce      = DUP1                          >>ce            in  (*                                                0 >> 0 >> PCbkp >> .. *) 
+    let ce      = repeat DUP2 4                   ce            in  (*                            0 >> 0 >> 0 >> 0 >> 0 >> 0 >> PCbkp >> .. *) 
     let ce      = push_msg_and_gas s           le ce            in  
-    let ce      = call_and_restore_PC             ce            in  
-                  POP                           >>ce                (* [0] *)
+    let ce      = call_and_restore_PC             ce            in  (*                                                0 >> 0 >> PCbkp >> .. *)
+                  POP                           >>ce                (*                                                     0 >> PCbkp >> .. *)
     | _             -> err "send expr with Wrong type"
 
 and push_msg_and_gas s le ce = 
     let ce = match s.sd_msg with                                    (*                                                     .. *)
-        | EpFalse,_ -> PUSH1(Int 0)             >>ce            
-        | e         -> e                        >>>>(R,le,ce)   in  (*                                            value >> .. *) 
+    | EpFalse,_ -> PUSH1(Int 0)                 >>ce            
+    | e         -> e                            >>>>(R,le,ce)   in  (*                                            value >> .. *) 
     let ce      = s.sd_cn                       >>>>(R,le,ce)   in  (*                                  cnAddr >> value >> .. *)
     let ce      = PUSH4(Int 3000)               >>ce            in  (*                          3000 >> cnAddr >> value >> .. *)
     let ce      = GAS                           >>ce            in  (*                   gas >> 3000 >> cnAddr >> value >> .. *)
@@ -697,76 +697,76 @@ and call_and_restore_PC ce =                                        (*  gas-3000
 
 (* stmt --> expr #TODO *) 
 and codegen_expr_stmt le ce expr =
-    let ce      = expr                      >>>>(R,le,ce)   in
-    let ce      = POP                       >>ce            in
+    let ce      = expr                          >>>>(R,le,ce)   in
+    let ce      = POP                           >>ce            in
     le, ce
 
 and codegen_selfDstrct le ce expr =    
-    let ce      = expr                      >>>>(R,le,ce)   in
-    let ce      = SELFDESTRUCT              >>ce            in
+    let ce      = expr                          >>>>(R,le,ce)   in
+    let ce      = SELFDESTRUCT                  >>ce            in
     le, ce
 
 and sstore_to_lexpr le ce (LEpArray a) = 
-    let arr     = a.arrId                                   in
-    let idx     = a.arrIndex                                in
-    let ce      = idx                       >>>>(R,le,ce)   in   (* stack : [value, index] *)
-    let ce      = arr                       >>>>(R,le,ce)   in   (* stack : [value, index, array_seed] *)
-    let ce      = keccak_cat                  ce            in   (* stack : [value, kec(array_seed ^ index)] *)
-                  SSTORE                    >>ce                
+    let arr     = a.arrId                                       in
+    let idx     = a.arrIndex                                    in
+    let ce      = idx                           >>>>(R,le,ce)   in   (* stack : [value, index] *)
+    let ce      = arr                           >>>>(R,le,ce)   in   (* stack : [value, index, array_seed] *)
+    let ce      = keccak_cat                      ce            in   (* stack : [value, kec(array_seed ^ index)] *)
+                  SSTORE                        >>ce                
 
 and codegen_assign le ce l r =
-    let ce      = r                         >>>>(R,le,ce)   in
-    let ce      = sstore_to_lexpr le ce l              in
+    let ce      = r                             >>>>(R,le,ce)   in
+    let ce      = sstore_to_lexpr le ce l                       in
     le, ce
 
 and codegen_decl le ce i  = 
-    let pos     = stack_size ce                             in
-    let name    = i.declId                                  in
-    let ce      = i.declVal                 >>>>(R,le,ce)   in
-    let le      = add_loc le(name, Stack(pos+1))            in
+    let pos     = stack_size ce                                 in
+    let name    = i.declId                                      in
+    let ce      = i.declVal                     >>>>(R,le,ce)   in
+    let le      = add_loc le(name, Stack(pos+1))                in
     le, ce
 
 and codegen_if_then le ce layt cond stmts =
-    let label   = fresh_label ()                            in
-    let ce      = cond                      >>>>(R,le,ce)   in
-    let ce      = if_0_GOTO label             ce            in 
-    let le,ce   = codegen_stmts stmts layt le ce            in
-    let ce      = JUMPDEST label            >>ce            in
+    let label   = fresh_label ()                                in
+    let ce      = cond                          >>>>(R,le,ce)   in
+    let ce      = if_0_GOTO label                 ce            in 
+    let le,ce   = codegen_stmts stmts layt     le ce            in
+    let ce      = JUMPDEST label                >>ce            in
     le,ce
 
 and codegen_if le ce layt cond ss1 ss2 =
-    let next    = fresh_label()                             in
-    let endif   = fresh_label()                             in
-    let ce      = cond                      >>>>(R,le,ce)   in
-    let ce      = if_0_GOTO next              ce            in 
-    let _,ce    = codegen_stmts ss1 layt   le ce            in (* location env needs to be discarded *)
-    let ce      = goto endif                  ce            in
-    let ce      = JUMPDEST next             >>ce            in
-    let _,ce    = codegen_stmts ss2 layt   le ce            in (* location env needs to be discarded *)
-    let ce      = JUMPDEST endif            >>ce            in
+    let next    = fresh_label()                                 in
+    let endif   = fresh_label()                                 in
+    let ce      = cond                          >>>>(R,le,ce)   in
+    let ce      = if_0_GOTO next                  ce            in 
+    let _,ce    = codegen_stmts ss1 layt       le ce            in (* location env needs to be discarded *)
+    let ce      = goto endif                      ce            in
+    let ce      = JUMPDEST next                 >>ce            in
+    let _,ce    = codegen_stmts ss2 layt       le ce            in (* location env needs to be discarded *)
+    let ce      = JUMPDEST endif                >>ce            in
     le,ce
 
 and mstore_exprs le ce pack = function 
-    | []        ->  let ce    = PUSH1(Int 0)        >>ce    in
-                    let ce    = PUSH1(Int 0)        >>ce    in
+    | []        ->  let ce    = PUSH1(Int 0)            >>ce    in
+                    let ce    = PUSH1(Int 0)            >>ce    in
                     le, ce
-    | e::es     ->  let le,ce = mstore_expr le ce pack e    in (*                                      alloc(size) >> size >> .. *)
-                    let ce    = SWAP1               >>ce    in (*                                      size >> alloc(size) >> .. *)
-                    let le,ce = mstore_exprs le ce pack es  in (*   0 >> 0 >> size' >> alloc(size') >> size >> alloc(size) >> .. *)
-                    let ce    = POP                 >>ce    in (*        0 >> size' >> alloc(size') >> size >> alloc(size) >> .. *)       
-                    let ce    = ADD                 >>ce    in (*             size' >> alloc(size') >> size >> alloc(size) >> .. *)    
-                    let ce    = SWAP1               >>ce    in (*             alloc(size') >> size' >> size >> alloc(size) >> .. *)     
+    | e::es     ->  let le,ce = mstore_expr le ce pack e        in (*                                      alloc(size) >> size >> .. *)
+                    let ce    = SWAP1                   >>ce    in (*                                      size >> alloc(size) >> .. *)
+                    let le,ce = mstore_exprs le ce pack es      in (*   0 >> 0 >> size' >> alloc(size') >> size >> alloc(size) >> .. *)
+                    let ce    = POP                     >>ce    in (*        0 >> size' >> alloc(size') >> size >> alloc(size) >> .. *)       
+                    let ce    = ADD                     >>ce    in (*             size' >> alloc(size') >> size >> alloc(size) >> .. *)    
+                    let ce    = SWAP1                   >>ce    in (*             alloc(size') >> size' >> size >> alloc(size) >> .. *)     
                     le, ce   (* POP                                                           size' >> size >> alloc(size) >> .. *) 
                              (* ADD                                                             size+size'  >> alloc(size) >> .. *) 
                              (* SWAP1                                                           alloc(size) >> size+size'  >> .. *)
                     
 and codegen_log_stmt le ce name args evnt =
-    let idxArgs,args= split_evnt_args evnt args             in
-    let ce      = push_args le idxArgs        ce            in
-    let ce      = push_evnt_hash  evnt        ce            in
-    let le,ce   = mstore_exprs le ce ABIPack args           in  (* stack : [..., size, offset] *)
-    let n       = L.length idxArgs + 1                      in
-    let ce      = log n                     >>ce            in  (* deindexee N in logN *)
+    let idxArgs,args= split_evnt_args evnt args                 in
+    let ce      = push_args le idxArgs            ce            in
+    let ce      = push_evnt_hash  evnt            ce            in
+    let le,ce   = mstore_exprs le ce ABIPack args               in  (* stack : [..., size, offset] *)
+    let n       = L.length idxArgs + 1                          in
+    let ce      = log n                         >>ce            in  (* deindexee N in logN *)
     le, ce
 
 (***************************************)
@@ -776,8 +776,8 @@ and codegen_log_stmt le ce name args evnt =
 and push_args le                    = foldr (fun arg ce->arg>>>>(R,le,ce))  
 and sstore_words_to stor_locs ce    = foldl sstore_word_to ce stor_locs
 and sstore_word_to ce stor_loc      =
-    let ce      =   PUSH32 (Int stor_loc)      >>ce     in
-                    SSTORE                     >>ce       
+    let ce      =   PUSH32 (Int stor_loc)       >>ce            in
+                    SSTORE                      >>ce       
 
 and sstore_args le ce offset idx args = 
     let cntrct  =   cntrct_lookup ce idx                in 

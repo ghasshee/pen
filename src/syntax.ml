@@ -194,7 +194,6 @@ type 'ty cntrct                 =   { cntrct_id         : string
                                     ; cntrct_args       : ty list
                                     ; mthds             : 'ty mthd list }
 
-
 (*****************************************)
 (***           TOPLEVEL                ***)
 (*****************************************)
@@ -217,6 +216,11 @@ let args_of_mthd                = function
 
 let cntrct_name_of_instance     = function
     | _,(TyInstnce cn,_)        -> cn
+
+
+(*****************************************)
+(***           PRINTING                ***)
+(*****************************************)
 
 let string_of_expr              = function 
     | EpThis                    -> "this"
@@ -246,11 +250,9 @@ let string_of_expr              = function
     | EpMult     (a,b)          -> "... * ..."
     | EpBalance     _           -> "balance"
 
-let is_mapping                  = function 
-    | TyMap         _           -> true
-    | _                         -> false 
-
-let count_plain_args            = L.length $ (L.filter (not $ is_mapping)) 
+(*****************************************)
+(***              SIZE                 ***)
+(*****************************************)
 
 let fits_in_one_stor_slot       = function 
     | TyUint8
@@ -288,14 +290,20 @@ let calldata_size_of_ty         = function
 
 let calldata_size_of_arg (TyVar(_,ty))    = calldata_size_of_ty ty
 
-let is_throw_only               = function   
-    | [SmAbort]                 -> true
-    | _                         -> false
+(*****************************************)
+(***            TYPE auxirity          ***)
+(*****************************************)
+
+let is_mapping                  = function 
+    | TyMap         _           -> true
+    | _                         -> false 
 
 let non_mapping_arg             = function 
     | TyVar(_,TyMap _)          -> false
     | TyVar(_,_)                -> true 
     | _ -> err "not an arg"
+
+let count_plain_args            = L.length $ (L.filter (not $ is_mapping)) 
 
 let acceptable_as t0 t1     =   ( t0 = t1 )  ||  ( match t0, t1 with
                                 | TyAddr, TyInstnce _   -> true
@@ -314,6 +322,46 @@ let rec tyWalk onVar c          = let f = onVar in function
     | TyVar(x,n)                -> onVar c x n
     | TyRef(tyT)                -> TyRef(tyWalk f c tyT) 
     | tyT                       -> tyT
+
+and  'ty expr                   =   EpParen             of 'ty exprTy
+                                (* Ref *)
+                                |   TmDecl              of 'ty decl 
+                                |   TmSlfDstrct         of 'ty exprTy
+                                |   TmLog               of string * 'ty exprTy list * tyEvnt option 
+                                |   TmRef               of 'ty exprTy
+                                |   TmDeref             of 'ty exprTy
+                                |   TmAssign            of 'ty lexpr * 'ty exprTy 
+                                |   TmLoc               of int 
+                                |   TmVar               of int * int 
+                                |   TmAbs               of string * ty * 'ty exprTy
+                                |   TmApp               of 'ty exprTy * 'ty exprTy  
+                                |   TmIf                of 'ty exprTy * 'ty exprTy * 'ty exprTy 
+                                |   TmFix               of 'ty exprTy
+                                |   EpTrue
+                                |   EpFalse
+                                |   EpUint256           of big_int
+                                |   EpUint8             of big_int
+                                |   EpNow
+                                |   EpIdent             of string
+                                |   EpCall              of 'ty _call
+                                |   EpNew               of 'ty _new
+                                |   EpSend              of 'ty _send
+                                |   EpLAnd              of 'ty exprTy * 'ty exprTy
+                                |   EpLT                of 'ty exprTy * 'ty exprTy
+                                |   EpGT                of 'ty exprTy * 'ty exprTy
+                                |   EpEq                of 'ty exprTy * 'ty exprTy
+                                |   EpNEq               of 'ty exprTy * 'ty exprTy
+                                |   EpAddr              of 'ty exprTy
+                                |   EpNot               of 'ty exprTy
+                                |   EpArray             of 'ty array
+                                |   EpValue
+                                |   EpSender
+                                |   EpThis
+                                |   EpDeref             of 'ty exprTy
+                                |   EpPlus              of 'ty exprTy * 'ty exprTy
+                                |   EpMinus             of 'ty exprTy * 'ty exprTy
+                                |   EpMult              of 'ty exprTy * 'ty exprTy
+                                |   EpBalance           of 'ty exprTy
 
 let rec tmWalk onVar onType c   = let (f,g) = (onVar,onType) in function 
     | TmSucc(t)                 -> TmSucc(tmWalk f g c t) 
