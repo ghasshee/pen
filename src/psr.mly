@@ -123,29 +123,9 @@ let pe = print_endline
 
 %start toplevel
 %start input 
-%type <Syntax.context -> Eval.store -> Syntax.uvargenerator -> Syntax.constr -> (Syntax.command list * Syntax.context * Eval.store * Syntax.uvargenerator * Syntax.constr)> input 
 %type <Syntax.context -> (Syntax.command list * Syntax.context)> toplevel
 
 %%
-
-
-/************   REPL   ***************/
-
-input :   /* Left Recursion */
-    |                                 { fun _ _ _ _   ->  [],emptyctx,emptystore,uvargen,[]       }
-    | input LOAD                      { let file            = $2.v in 
-                                        fun ctx s u c ->  [],ctx,s,u,c                            }
-    | input SHOWCONTEXT DOUBLESEMI    { let _,ctx',s',u',c' = $1 [] emptystore(uvargen)[] in pr_ctx ctx';
-                                        fun _ _ _ _   ->  [],ctx',s',u',c'                        }  
-    | input DOUBLESEMI                { fun ctx s u c ->  [],ctx,s,u,c                            } 
-    | input oneREPL                   { let _,ev_ctx,s,u,c  = $1 [] emptystore (uvargen) [] in   
-                                        let cmds,_          = $2 ev_ctx in 
-                                        let ev_ctx',s',u',c'= process_commands ev_ctx s u c cmds  in 
-                                        fun _ _ _ _   ->  [],ev_ctx',s',u',c'                     } 
-oneREPL : 
-    | Command DOUBLESEMI              { fun ctx       ->  let cmd,ctx'    = $1 ctx in [cmd],ctx'  } 
-    | Command SEMI oneREPL            { fun ctx       ->  let cmd,ctx'    = $1 ctx in 
-                                                          let cmds,ctx''  = $3 ctx' in cmd::cmds,ctx''}
 
 
 
@@ -200,7 +180,7 @@ ATy       :
     | LCURLY TyFields RCURLY          { fun ctx   ->  TyRecord($2 ctx 1)                              }
     | LT TyFields GT                  { fun ctx   ->  TyVariant($2 ctx 1)                             } 
     | LIST Ty                         { fun ctx   ->  TyList($2 ctx)                                  }
-LTy       :
+LTy         :
     | LSQUARE Ty RSQUARE              { fun ctx   ->  TyList($2 ctx)                                  }
 TyFields    :
     | /* Empty Ty */                  { fun ctx   ->  fun i -> []                                     }
