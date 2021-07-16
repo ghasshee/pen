@@ -1,5 +1,6 @@
 DEPEND += lexer.ml parser.ml
 OBJS = 	misc.cmo indexList.cmo \
+		spt.cmo sytx.cmo subtype.cmo ty.cmo\
 		hexa.cmo \
 		syntax.cmo \
 		label.cmo \

@@ -150,7 +150,7 @@ and  'ty expr                   =   EpParen             of 'ty exprTy
                                 |   EpIdent             of string
                                 |   EpCall              of 'ty _call
                                 |   EpNew               of 'ty _new
-                                |   EpSend              of 'ty _send
+                                |   EpSend              of 'ty _send                    (* storage solidation *) 
                                 |   EpLAnd              of 'ty exprTy * 'ty exprTy
                                 |   EpLT                of 'ty exprTy * 'ty exprTy
                                 |   EpGT                of 'ty exprTy * 'ty exprTy
