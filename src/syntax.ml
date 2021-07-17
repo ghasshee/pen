@@ -142,6 +142,7 @@ and  'ty expr                   =   EpParen             of 'ty exprTy
                                 |   TmApp               of 'ty exprTy * 'ty exprTy  
                                 |   TmIf                of 'ty exprTy * 'ty exprTy * 'ty exprTy 
                                 |   TmFix               of 'ty exprTy
+                                |   TmUnit 
                                 |   EpTrue
                                 |   EpFalse
                                 |   EpUint256           of big_int
@@ -177,7 +178,7 @@ and 'ty decl                    =   { declTy            :   ty
                                     ; declId            :   string
                                     ; declVal           :  'ty exprTy         }
 
-and 'ty return                  =   { ret_expr          :  'ty exprTy option
+and 'ty return                  =   { ret_expr          :  'ty exprTy 
                                     ; ret_cont          :  'ty exprTy         }
                                 
 
@@ -305,9 +306,6 @@ let non_mapping_arg             = function
 
 let count_plain_args            = L.length $ (L.filter (not $ is_mapping)) 
 
-let acceptable_as t0 t1     =   ( t0 = t1 )  ||  ( match t0, t1 with
-                                | TyAddr, TyInstnce _   -> true
-                                | _     , _             -> false ) 
 
 
 

@@ -71,8 +71,8 @@ let rec stmt_become             =   function
     | SmIf(c,b0,b1)             ->  expr_become c @ stmts_become b0 @ stmts_become b1 *)
     | SmLog(_,l,_)              ->  exprs_become l
     | SmReturn r                ->  (match r.ret_expr with
-                                    | Some e        -> expr_become e
-                                    | None          -> [] ) 
+                                    | (TmUnit,_)    -> []
+                                    | e             -> expr_become e) 
                                 @   ( expr_become r.ret_cont ) 
                                 @   ( match cntrct_name_of_ret_cont r.ret_cont with
                                     | Some name     -> [name]

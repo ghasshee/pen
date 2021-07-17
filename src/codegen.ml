@@ -824,9 +824,9 @@ and mstore_expr le ce pack (e,ty) =
 and codegen_return le ce layt ret =
     let le,ce   = cont_call le ce layt ret.ret_cont         in
     let ce      = match ret.ret_expr with
-    | Some e    ->  let le,ce = mstore_expr le ce ABIPack e in
-                                RETURN              >>ce 
-    | None      ->              STOP                >>ce    in
+    | (TmUnit,_)->              STOP                >>ce      
+    | e         ->  let le,ce = mstore_expr le ce ABIPack e in
+                                RETURN              >>ce    in 
     le,ce
 
 (*************************************)

@@ -92,6 +92,7 @@ let rec addTy_call cns cname ctx c =
 
 and addTy_expr cns cname ctx (expr,()) =    match expr with
  (* | SmAbort                       ->  SmAbort         , TyVoid *)
+    | TmUnit                        ->  TmUnit          , TyTuple[] 
     | EpParen     e                 ->  addTy_expr cns cname ctx e 
     | EpThis                        ->  EpThis          , TyInstnce cname
     | EpTrue                        ->  EpTrue          , TyBool
@@ -188,9 +189,9 @@ and addTy_lexpr cns cname ctx (LEpArray aa) =
                             LEpArray { arrId=e; arrIndex=idx,ty }  
 
 and addTy_return cns cname ctx ret =
-    let retTyexpr   =   BO.map (addTy_expr cns cname ctx) ret.ret_expr in
-    let retTyCheck  =   lookup_retTyCheck ctx in
-    assert (retTyCheck(BO.map get_ty retTyexpr)); 
+    let retTyexpr   =   addTy_expr cns cname ctx ret.ret_expr   in
+    let retTyChkr   =   lookup_retTyChkr ctx                    in
+    assert (retTyChkr(get_ty retTyexpr)); 
     { ret_expr      =   retTyexpr
     ; ret_cont      =   addTy_expr cns cname ctx ret.ret_cont }
 
@@ -239,8 +240,9 @@ and addTy_stmts cns cname ctx = function
 (* evaluation *) 
 let eval_expr ctx e = e  (* #TODO *) 
 
-(* Termination *) 
 
+
+(* Termination *) 
 
 type termination            =
                             | OnTheWay 
@@ -248,53 +250,20 @@ type termination            =
                             | JustStop
 
 
-
-let rec is_terminating      = function 
-                                    | SmAbort   -> [JustStop] 
-    | SmSlfDstrct _             -> [JustStop]
-    | SmAssign    _             -> [OnTheWay]
-    | SmDecl      _             -> [OnTheWay]
-    | SmExpr  (e,_)             -> (match eval_expr empty_ctx e with 
-                                    | _         -> [OnTheWay] )
-    | SmLog       _             -> [OnTheWay]
-   (* | SmIfThen(_,b)             -> are_terminating b  @ [OnTheWay] (* there is a continuation if the condition does not hold. *)
-    | SmIf(_,bT,bF)             -> are_terminating bT @ (are_terminating bF) *)
-    | SmReturn ret              -> begin match ret.ret_expr with
-        | Some _                    -> [ReturnBySize 1]
-        | None                      -> [ReturnBySize 0] end
-
-and are_terminating stmts =
-  let last_stmt = BL.last stmts in
-  is_terminating last_stmt
-
-
-
 (* AssignTy Method / Contract / Toplevel  *) 
 (* Default Method Returns Unit(==EmptyTuple) is a specification *) 
 
-let mthd_returns_unit (mthd:unit mthd) = match mthd.mthd_head with
-    | TyDefault             ->  true
-    | TyMethod(_,_,retTy)   ->  retTy = TyTuple[]
-
-let retTyCheck_of_mthd m ty_inferred = match m, ty_inferred with
-    | TyDefault ,Some _       ->  false
-    | TyDefault ,None         ->  true
-    | TyMethod(_,_,retTy), _  ->  begin match retTy, ty_inferred with
-        | _, None               -> true
-        | x, Some y             -> acceptable_as x y
-        | _, _                  -> false  end
+let retTyCheck_of_mthd m tyRetExpr = match m, tyRetExpr  with
+    | TyMethod(_,_,_)   , TyTuple[] ->  true
+    | TyMethod(_,_,reTy), ty        ->  acceptable_as reTy ty 
+    | TyDefault         , TyTuple[] ->  true
+    | TyDefault         , _         ->  false
 
 let addTy_mthd cns cn_name ctx (m:unit mthd) =
-    assert (L.for_all (function 
-                         | OnTheWay         -> false
-                         | ReturnBySize 0   -> mthd_returns_unit m
-                         | ReturnBySize 1   -> not (mthd_returns_unit m)
-                         | ReturnBySize _   -> err "multiple vals return not supported yry"
-                         | JustStop         -> true )  (are_terminating m.mthd_body)) ; 
     let margs       = args_of_mthd m.mthd_head in
     check_reserved_exists margs; 
-    let retTyCheck  = retTyCheck_of_mthd m.mthd_head in
-    let ctx'        = add_retTyChkr (add_block ctx margs) retTyCheck in 
+    let retTyChkr   = retTyCheck_of_mthd m.mthd_head in
+    let ctx'        = add_retTyChkr (add_block ctx margs) retTyChkr in 
     { mthd_head         = addTy_mthd_head cns m.mthd_head
     ; mthd_body         = addTy_stmts cns cn_name ctx' m.mthd_body }
 

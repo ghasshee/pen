@@ -15,9 +15,14 @@ module  BL  = BatList
 
 (* var list         := local variables in a scope       *)
 (* var list list    := the whole variables in src code  *) 
+
+type bind   = BindParser of string 
+            | Local  of ty 
+            | Global of bind 
+
 type context                    =   { ids       :   ty  list list
                                     ; evnts     :   tyEvnt list
-                                    ; retTyChkr :   (ty option->bool) option    }
+                                    ; retTyChkr :   (ty->bool) option    }
     
 let empty_ctx                   =   { ids       =   []
                                     ; evnts     =   []
@@ -27,7 +32,7 @@ let empty_ctx                   =   { ids       =   []
 let lookup_block name blk       =   getFstByFilter (function TyVar(id,ty) -> if id=name then Some ty else None) blk
 let lookup_id    name ctx       =   getFstByFilter (lookup_block name) ctx.ids
 let lookup_evnt  name ctx       =   BL.find (fun (ev:tyEvnt)->ev.id=name) ctx.evnts
-let lookup_retTyCheck ctx       =   match ctx.retTyChkr with
+let lookup_retTyChkr  ctx       =   match ctx.retTyChkr with
     | Some chkr                 ->  chkr
     | None                      ->  err "undefined"
 
@@ -36,8 +41,8 @@ let add_evnts ctx evs           =   { ctx with evnts        =   values evs @ ctx
 let add_var   ctx id ty         =   match ctx.ids with
     | t :: ts                   ->  { ctx with ids          =   (TyVar(id,ty)::t) :: ts    }
     | _                         ->  err"no current scope"
-let add_retTyChkr ctx tyChk     =   match ctx.retTyChkr with
-    | None                      ->  { ctx with retTyChkr    =   Some tyChk                  }
+let add_retTyChkr ctx chkr      =   match ctx.retTyChkr with
+    | None                      ->  { ctx with retTyChkr    =   Some chkr                  }
     | Some _                    ->  err"Don't Overwrite ret-ty-checker"
 
 
@@ -108,3 +113,6 @@ let find_tyMthd tyCntrcts mname =
     | Some ty   -> ty
     | None      -> err ("find_tyMthd: "^mname^"Not found")
 
+let acceptable_as t0 t1     =   ( t0 = t1 )  ||  ( match t0, t1 with
+                                | TyAddr, TyInstnce _   -> true
+                                | _     , _             -> false ) 
