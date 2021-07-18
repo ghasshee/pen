@@ -109,7 +109,7 @@ and addTy_expr cns cname ctx (expr,()) =    match expr with
     | EpIdent     s                 ->  check_reserved s ; 
                                         id_lookup_ty ctx s
     | EpBalance   e                 ->  let e       = addTy_expr cns cname ctx e          in
-                                        assert (acceptable_as TyAddr (get_ty e));
+                                        assert (tyeqv TyAddr (get_ty e));
                                         EpBalance e     , TyUint256
     | EpNew       n                 ->  let n,nm    = addTy_new cns cname ctx n           in
                                         check_reserved nm;  
@@ -153,7 +153,7 @@ and addTy_expr cns cname ctx (expr,()) =    match expr with
     | EpArray a                     ->  let e       = addTy_expr cns cname ctx a.arrId    in
                                         begin match get_ty e with | TyMap(kT,vT)  ->  
                                         let idx,ty  = addTy_expr cns cname ctx a.arrIndex in 
-                                        assert (acceptable_as kT ty) ; 
+                                        assert (tyeqv kT ty) ; 
                                         EpArray { arrId    = e
                                                 ; arrIndex = idx,ty }, vT end  
     | EpSend sd                     ->  let msg     = addTy_expr  cns cname ctx sd.sd_msg  in
@@ -190,8 +190,8 @@ and addTy_lexpr cns cname ctx (LEpArray aa) =
 
 and addTy_return cns cname ctx ret =
     let retTyexpr   =   addTy_expr cns cname ctx ret.ret_expr   in
-    let retTyChkr   =   lookup_retTyChkr ctx                    in
-    assert (retTyChkr(get_ty retTyexpr)); 
+    let retTy       =   lookup_retTy ctx                        in
+    assert (tyeqv retTy(get_ty retTyexpr)); 
     { ret_expr      =   retTyexpr
     ; ret_cont      =   addTy_expr cns cname ctx ret.ret_cont }
 
@@ -252,18 +252,21 @@ type termination            =
 
 (* AssignTy Method / Contract / Toplevel  *) 
 (* Default Method Returns Unit(==EmptyTuple) is a specification *) 
+let retTy_of_mthd = function 
+    | TyMethod(_,_,retTy)   -> retTy
+    | TyDefault             -> TyTuple[]
 
-let retTyCheck_of_mthd m tyRetExpr = match m, tyRetExpr  with
+let retTyChkr_of_mthd m tyRetExpr = match m, tyRetExpr  with
     | TyMethod(_,_,_)   , TyTuple[] ->  true
-    | TyMethod(_,_,reTy), ty        ->  acceptable_as reTy ty 
+    | TyMethod(_,_,reTy), ty        ->  tyeqv reTy ty 
     | TyDefault         , TyTuple[] ->  true
     | TyDefault         , _         ->  false
 
 let addTy_mthd cns cn_name ctx (m:unit mthd) =
     let margs       = args_of_mthd m.mthd_head in
     check_reserved_exists margs; 
-    let retTyChkr   = retTyCheck_of_mthd m.mthd_head in
-    let ctx'        = add_retTyChkr (add_block ctx margs) retTyChkr in 
+    let retTy       = retTy_of_mthd m.mthd_head in
+    let ctx'        = add_retTy (add_block ctx margs) retTy in 
     { mthd_head         = addTy_mthd_head cns m.mthd_head
     ; mthd_body         = addTy_stmts cns cn_name ctx' m.mthd_body }
 

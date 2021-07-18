@@ -22,18 +22,18 @@ type bind   = BindParser of string
 
 type context                    =   { ids       :   ty  list list
                                     ; evnts     :   tyEvnt list
-                                    ; retTyChkr :   (ty->bool) option    }
+                                    ; retTy     :   ty option    }
     
 let empty_ctx                   =   { ids       =   []
                                     ; evnts     =   []
-                                    ; retTyChkr =   None    }
+                                    ; retTy     =   None    }
 
 
 let lookup_block name blk       =   getFstByFilter (function TyVar(id,ty) -> if id=name then Some ty else None) blk
 let lookup_id    name ctx       =   getFstByFilter (lookup_block name) ctx.ids
 let lookup_evnt  name ctx       =   BL.find (fun (ev:tyEvnt)->ev.id=name) ctx.evnts
-let lookup_retTyChkr  ctx       =   match ctx.retTyChkr with
-    | Some chkr                 ->  chkr
+let lookup_retTy      ctx       =   match ctx.retTy with
+    | Some ty                   ->  ty
     | None                      ->  err "undefined"
 
 let add_block ctx  blk          =   { ctx with ids          =   blk :: ctx.ids              }
@@ -41,9 +41,9 @@ let add_evnts ctx evs           =   { ctx with evnts        =   values evs @ ctx
 let add_var   ctx id ty         =   match ctx.ids with
     | t :: ts                   ->  { ctx with ids          =   (TyVar(id,ty)::t) :: ts    }
     | _                         ->  err"no current scope"
-let add_retTyChkr ctx chkr      =   match ctx.retTyChkr with
-    | None                      ->  { ctx with retTyChkr    =   Some chkr                  }
-    | Some _                    ->  err"Don't Overwrite ret-ty-checker"
+let add_retTy ctx retTy         =   match ctx.retTy with
+    | None                      ->  { ctx with retTy        =   Some retTy                  }
+    | Some _                    ->  err "Don't Overwrite return-type"
 
 
 (****************************************************)
@@ -113,6 +113,6 @@ let find_tyMthd tyCntrcts mname =
     | Some ty   -> ty
     | None      -> err ("find_tyMthd: "^mname^"Not found")
 
-let acceptable_as t0 t1     =   ( t0 = t1 )  ||  ( match t0, t1 with
+let tyeqv t0 t1                 =   ( t0 = t1 )  ||  ( match t0, t1 with
                                 | TyAddr, TyInstnce _   -> true
                                 | _     , _             -> false ) 
