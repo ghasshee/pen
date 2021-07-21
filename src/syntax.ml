@@ -5,46 +5,6 @@ open Misc
 module L    = List 
 module BL   = BatList
 
-type info = int
-type ty'     =
-    | TyVar     of int * int 
-    | TyId      of string 
-    | TyTop
-    | TyVariant of (string * ty') list 
-    | TyRecord  of (string * ty') list 
-    | TyArr     of ty' * ty'
-    | TyList    of ty' 
-    | TyFloat 
-    | TyString  
-    | TyUnit
-    | TyBool
-    | TyNat 
-;;
-
-type term =
-    (* List *)
-    | TmNil         of ty'
-    | TmCons        of ty' * term * term 
-    | TmIsNil       of ty' * term 
-    | TmHead        of ty' * term 
-    | TmTail        of ty' * term 
-    (* Fix *)
-    | TmFix         of term 
-    (* Float / String  *) 
-    | TmString      of string 
-    | TmFloat       of float
-    | TmTimesfloat  of term * term 
-    (* Variant *)
-    | TmTag         of string * term * ty'
-    | TmCase        of term * (string * (string * term)) list  (* <- (label*(variable*term) list *) 
-    (* Record *)
-    | TmProj        of term * string  
-    | TmRecord      of (string * term) list 
-    (* Ascription *) 
-    | TmAscribe     of term * ty'
-    (* Let  *)
-    | TmLet         of string * term * term
-
 type ty           (* atomic *)  =   TyVoid              (* 256 bits *) 
                   (* atomic *)  |   TyUint256           (* 256 bits *) 
                   (* atomic *)  |   TyUint8             (*   8 bits *) 

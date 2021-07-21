@@ -16,12 +16,13 @@ module  BL  = BatList
 (* var list         := local variables in a method scope *)
 (* var list list    := the whole variables in src code   *) 
 
-type bind   = BdName  of string                             (* Parser Context *) 
-            | BdTy    of string * ty 
-            | BdRetTy of ty 
-            | BdCtx   of context
-            | BdEvnt  of tyEvnt 
-and  context = bind list 
+type bind                       = BdName  of string       (* Parser Context *) 
+                                | BdTy    of string * ty 
+                                | BdRetTy of ty 
+                                | BdCtx   of context
+                                | BdEvnt  of tyEvnt 
+
+and  context                    = bind list 
 
 let empty_ctx                   = [] 
 
@@ -45,24 +46,17 @@ let binds_of_args               =   L.map bind_of_arg
 
 let add_block ctx local         =   BdCtx(local) :: ctx 
 
-let rec add_evnts ctx               =   function 
+let rec add_evnts ctx           =   function 
     | []                            -> ctx
     | e::es                         -> BdEvnt e :: add_evnts ctx es
 
-let rec add_var  ctx id ty          =   match ctx with 
+let rec add_var  ctx id ty      =   match ctx with 
     | []                            -> err "no current scope" 
     | BdCtx local:: rest            -> BdCtx (BdTy(id,ty)::local) :: rest 
     | _ :: rest                     -> add_var rest id ty
 
-let rec add_retTy ctx retTy         = BdRetTy retTy :: ctx 
+let rec add_retTy ctx retTy     = BdRetTy retTy :: ctx 
 
-    (*
-let add_block ctx  blk          =   { ctx with ids          =   blk :: ctx.ids              }
-let add_evnts ctx evs           =   { ctx with evnts        =   values evs @ ctx.evnts      }
-let add_var   ctx id ty         =   match ctx.ids with
-    | t :: ts                   ->  { ctx with ids          =   (TyVar(id,ty)::t) :: ts    }
-    | _                         ->  err"no current scope"
-*)
 
 
 (****************************************************)
