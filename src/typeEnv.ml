@@ -13,37 +13,56 @@ module  BL  = BatList
 (***              CONTEXT                         ***)
 (****************************************************)
 
-(* var list         := local variables in a scope       *)
-(* var list list    := the whole variables in src code  *) 
+(* var list         := local variables in a method scope *)
+(* var list list    := the whole variables in src code   *) 
 
-type bind   = BindParser of string 
-            | Local  of ty 
-            | Global of bind 
+type bind   = BdName  of string                             (* Parser Context *) 
+            | BdTy    of string * ty 
+            | BdRetTy of ty 
+            | BdCtx   of context
+            | BdEvnt  of tyEvnt 
+and  context = bind list 
 
-type context                    =   { ids       :   ty  list list
-                                    ; evnts     :   tyEvnt list
-                                    ; retTy     :   ty option    }
-    
-let empty_ctx                   =   { ids       =   []
-                                    ; evnts     =   []
-                                    ; retTy     =   None    }
+let empty_ctx                   = [] 
 
+let lookup_id_locally name      = function 
+    | BdCtx local                   ->  getFstByFilter(function | BdTy(id,ty) when id=name  -> Some ty 
+                                                                | _                         -> None     ) local
+    | _                             ->  None  
 
-let lookup_block name blk       =   getFstByFilter (function TyVar(id,ty) -> if id=name then Some ty else None) blk
-let lookup_id    name ctx       =   getFstByFilter (lookup_block name) ctx.ids
-let lookup_evnt  name ctx       =   BL.find (fun (ev:tyEvnt)->ev.id=name) ctx.evnts
-let lookup_retTy      ctx       =   match ctx.retTy with
-    | Some ty                   ->  ty
-    | None                      ->  err "undefined"
+let lookup_id name ctx          = getFstByFilter (lookup_id_locally name) ctx 
 
+let rec lookup_evnt nm          = function 
+    | BdEvnt(e)::_ when e.id=nm     -> e
+    | _::xs                         -> lookup_evnt nm xs
+
+let rec lookup_retTy            = function 
+    | BdRetTy(ty)::_                -> ty 
+    | _::xs                         -> lookup_retTy xs 
+
+let bind_of_arg (TyVar(id,ty))  =   BdTy(id,ty)
+let binds_of_args               =   L.map bind_of_arg
+
+let add_block ctx local         =   BdCtx(local) :: ctx 
+
+let rec add_evnts ctx               =   function 
+    | []                            -> ctx
+    | e::es                         -> BdEvnt e :: add_evnts ctx es
+
+let rec add_var  ctx id ty          =   match ctx with 
+    | []                            -> err "no current scope" 
+    | BdCtx local:: rest            -> BdCtx (BdTy(id,ty)::local) :: rest 
+    | _ :: rest                     -> add_var rest id ty
+
+let rec add_retTy ctx retTy         = BdRetTy retTy :: ctx 
+
+    (*
 let add_block ctx  blk          =   { ctx with ids          =   blk :: ctx.ids              }
 let add_evnts ctx evs           =   { ctx with evnts        =   values evs @ ctx.evnts      }
 let add_var   ctx id ty         =   match ctx.ids with
     | t :: ts                   ->  { ctx with ids          =   (TyVar(id,ty)::t) :: ts    }
     | _                         ->  err"no current scope"
-let add_retTy ctx retTy         =   match ctx.retTy with
-    | None                      ->  { ctx with retTy        =   Some retTy                  }
-    | Some _                    ->  err "Don't Overwrite return-type"
+*)
 
 
 (****************************************************)
@@ -113,6 +132,12 @@ let find_tyMthd tyCntrcts mname =
     | Some ty   -> ty
     | None      -> err ("find_tyMthd: "^mname^"Not found")
 
+
+(***********************************)
+(***      Type Equivalence       ***)
+(***********************************)
+
 let tyeqv t0 t1                 =   ( t0 = t1 )  ||  ( match t0, t1 with
                                 | TyAddr, TyInstnce _   -> true
                                 | _     , _             -> false ) 
+

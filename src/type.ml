@@ -99,8 +99,8 @@ and addTy_expr cns cname ctx (expr,()) =    match expr with
     | EpFalse                       ->  EpFalse         , TyBool
     | EpSender                      ->  EpSender        , TyAddr
     | EpNow                         ->  EpNow           , TyUint256
-    | EpUint256 d                 ->  EpUint256 d   , TyUint256
-    | EpUint8   d                 ->  EpUint8   d   , TyUint8
+    | EpUint256   d                 ->  EpUint256   d   , TyUint256
+    | EpUint8     d                 ->  EpUint8     d   , TyUint8
     | EpValue                       ->  EpValue         , TyUint256
     | EpAddr      e                 ->  let e       = addTy_expr cns cname ctx e          in
                                         EpAddr e        , TyAddr
@@ -190,8 +190,7 @@ and addTy_lexpr cns cname ctx (LEpArray aa) =
 
 and addTy_return cns cname ctx ret =
     let retTyexpr   =   addTy_expr cns cname ctx ret.ret_expr   in
-    let retTy       =   lookup_retTy ctx                        in
-    assert (tyeqv retTy(get_ty retTyexpr)); 
+    assert (tyeqv (lookup_retTy ctx) (get_ty retTyexpr)); 
     { ret_expr      =   retTyexpr
     ; ret_cont      =   addTy_expr cns cname ctx ret.ret_cont }
 
@@ -256,19 +255,15 @@ let retTy_of_mthd = function
     | TyMethod(_,_,retTy)   -> retTy
     | TyDefault             -> TyTuple[]
 
-let retTyChkr_of_mthd m tyRetExpr = match m, tyRetExpr  with
-    | TyMethod(_,_,_)   , TyTuple[] ->  true
-    | TyMethod(_,_,reTy), ty        ->  tyeqv reTy ty 
-    | TyDefault         , TyTuple[] ->  true
-    | TyDefault         , _         ->  false
-
 let addTy_mthd cns cn_name ctx (m:unit mthd) =
-    let margs       = args_of_mthd m.mthd_head in
-    check_reserved_exists margs; 
-    let retTy       = retTy_of_mthd m.mthd_head in
-    let ctx'        = add_retTy (add_block ctx margs) retTy in 
-    { mthd_head         = addTy_mthd_head cns m.mthd_head
-    ; mthd_body         = addTy_stmts cns cn_name ctx' m.mthd_body }
+    let retTy       =   retTy_of_mthd  m.mthd_head        in
+    let args        =   args_of_mthd  m.mthd_head        in
+    let binds       =   binds_of_args args in 
+    let ctx'        =   add_retTy ctx retTy in 
+    let ctx''       =   add_block ctx' binds   in 
+    check_reserved_exists args; 
+    { mthd_head         = addTy_mthd_head cns            m.mthd_head
+    ; mthd_body         = addTy_stmts cns cn_name ctx''  m.mthd_body }
 
 let has_distinct_sigs (cn:unit cntrct) =
     let mthds       =   cn.mthds in
@@ -282,7 +277,7 @@ let addTy_cntrct cns (evs: tyEvnt idx_list) cn =
     check_reserved_cn    cn; 
     check_reserved_args  cn; 
     assert (BL.for_all(arg_has_known_ty cns)cn.cntrct_args && has_distinct_sigs cn)  ; 
-    let ctx  = add_block (add_evnts empty_ctx evs) cn.cntrct_args in
+    let ctx  = add_block (add_evnts empty_ctx (values evs)) (binds_of_args cn.cntrct_args) in
     { cntrct_id     = cn.cntrct_id
     ; cntrct_args   = cn.cntrct_args
     ; mthds         = L.map(addTy_mthd cns cn.cntrct_id ctx)cn.mthds }

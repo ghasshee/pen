@@ -82,7 +82,7 @@ stmt:
     | ABORT SEMI                                    { SmAbort                                                   } 
     | RETURN ret THEN BECOME expr SEMI              { SmReturn{ret_expr=$2; ret_cont=$5}                        }
     | lexpr EQ expr SEMI                            { SmAssign($1,$3)                                           }
-    | ty ID EQ expr SEMI                            { SmDecl{declTy=$1; declId=$2; declVal=$4}   }
+    | ty ID EQ expr SEMI                            { SmDecl{declTy=$1; declId=$2; declVal=$4}                  }
     | LPAR RPAR EQ expr SEMI                        { SmExpr $4                                                 }
     | IF expr THEN body ELSE body                   { SmIf($2,$4,$6)                                            }
     | IF expr THEN body                             { SmIfThen ($2, $4)                                         }

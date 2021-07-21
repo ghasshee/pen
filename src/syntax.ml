@@ -229,14 +229,14 @@ let string_of_expr              = function
     | EpSend        _           -> "send"
     | EpNew         _           -> "new"
     | EpParen       _           -> "()"
-    | EpIdent     str           -> "ident "^str
+    | EpIdent     str           -> "ident " ^ str
     | EpCall      _             -> "call"
     | EpNow                     -> "now"
     | EpSender                  -> "sender"
     | EpTrue                    -> "true"
     | EpFalse                   -> "false"
-    | EpUint256   d             -> "declit "^(string_of_big_int d)
-    | EpUint8     d             -> "declit "^(string_of_big_int d)
+    | EpUint256   d             -> "declit " ^ string_of_big d
+    | EpUint8     d             -> "declit " ^ string_of_big d
     | EpNot         _           -> "not"
     | EpNEq         _           -> "neq"
     | EpLAnd        _           -> "_ && _"
@@ -286,7 +286,7 @@ let calldata_size_of_ty         = function
     | TyMap _                   -> err "mapping cannot be a method arg"
     | TyRef _                   -> err "reference type cannot be a method arg"
     | TyTuple _                 -> err "tupletype not implemented"
-    | TyCntrct _                -> err "abstract cntrct type cannot be a method arg"
+    | TyCntrct _                -> err "cntrct type cannot be a method arg"
     | tyT                       -> size_of_ty tyT
 
 let calldata_size_of_arg (TyVar(_,ty))    = calldata_size_of_ty ty

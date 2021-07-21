@@ -38,6 +38,12 @@ let foldl                   = fold_left
 let foldr                   = fold_right
 let rec foldn n succ zero   = if n=0 then zero else succ (foldn (n-1) succ zero) 
 
+let rec last                = function 
+    | []                    -> err "empty list cannot contain last element."
+    | [x]                   -> x
+    | x::xs                 -> last xs
+
+let (++)                    = append
 
 
 (*****************************************)
@@ -48,9 +54,7 @@ let ($) f g x               = f (g x)
 let ($$$) a b c d           = ($)($)($) a b c d
 
 let konst x y               = x
-
-
-
+let subst t1 t2 x           = ( t1 x ) ( t2 x ) 
 
 
 let word_bits               = 256
