@@ -352,7 +352,7 @@ let mstore_rntimeCode ce idx =                                  (*              
                                                                 (*                                     codebegin                *)
 (*****   6.6.  CONTRACT CREATION   *****)
 type cnstrctrCode       =   { cnstrctr_ce           : ce
-                            ; cnstrctr_ty           : tyCntrct
+                            ; cnstrctr_ty           : ty
                             ; cnstrctr_cn           : ty cntrct         }
 
 let ce_of_cc cc         =   cc.cnstrctr_ce
@@ -467,7 +467,7 @@ and codegen_ECDSArecover le ce args = match args with
     let ce    = SWAP1                           >>ce            in  
     let ce    = POP                             >>ce            in  
                 MLOAD                           >>ce                (* stack: [output] *)
-    | _ -> err "pre_ecdsarecover has a wrong number of args"
+    | _         -> err "pre_ecdsarecover has a wrong number of args"
 
 (*********************************************)
 (***    10.    CODEGEN  EXPR               ***)
@@ -761,11 +761,11 @@ and mstore_exprs le ce pack = function
                              (* SWAP1                                                           alloc(size) >> size+size'  >> .. *)
                     
 and codegen_log_stmt le ce name args evnt =
-    let idxArgs,args= split_evnt_args evnt args                 in
-    let ce      = push_args le idxArgs            ce            in
+    let visible, args= split_evnt_args evnt args                in
+    let ce      = push_args le visible            ce            in
     let ce      = push_evnt_hash  evnt            ce            in
     let le,ce   = mstore_exprs le ce ABIPack args               in  (* stack : [..., size, offset] *)
-    let n       = L.length idxArgs + 1                          in
+    let n       = L.length visible + 1                          in
     let ce      = log n                         >>ce            in  (* deindexee N in logN *)
     le, ce
 

@@ -14,12 +14,15 @@ type ty           (* atomic *)  =   TyVoid              (* 256 bits *)
                   (* atomic *)  |   TyRef               of ty 
                   (* atomic *)  |   TyTuple             of ty list
                   (* atomic *)  |   TyMap               of ty * ty 
-                  (* atomic *)  |   TyCntrct            of string   (* type of [bid(...)] where bid is a cntrct *) 
+               (*   (* atomic *)  |   TyCntrct            of string   (* type of [bid(...)] where bid is a cntrct *) *)
                   (* atomic *)  |   TyInstnce           of string   (* type of [b] declared as [bid b] *) 
                                 |   TyMethod            of string * ty list * ty        (*  TyMethod(id, tyArgs, tyRet)             *)
                                 |   TyDefault
-                                |   TyAbs               of          ty list * ty        (*  TyAbs(tyArgs, tyRet)                 *)
-                                |   TyVar               of string * ty                  (*  (id, ty)                        *) 
+                                |   TyAbs               of  ty * ty                     (*  TyAbs(tyArgs, tyRet)                    *)
+                                |   TyVar               of string * ty                  (*  TyVar(id, ty)                           *) 
+                                |   TyEvVar             of string * ty * bool           (*  TyEvVar(id,ty,indexed)                  *)
+                                |   TyEvnt              of string * ty list 
+                                |   TyCntrct            of string * ty list * ty list   (*  TyCntrct(id,tyCnArgs,tyMethod list *) 
 
 let id_of_var (TyVar(id,_))     =   id 
 let ty_of_var (TyVar(_,ty))     =   ty 
@@ -34,7 +37,7 @@ let rec string_of_ty            =   function
     | TyTuple []                ->  "()"
     | TyTuple            _      ->  "tuple" 
     | TyMap(a,b)                ->  "mapping" 
-    | TyCntrct      s           ->  "contract arch "     ^ s
+    | TyCntrct(id,_,_)          ->  "contract arch "     ^ id
     | TyInstnce     s           ->  "contract instance " ^ s
 
 type tyEvntArg                  =   { arg               : ty  (* TyVar Only *) 
@@ -89,7 +92,6 @@ and  'ty stmt                   =
 and  'ty exprTy                =   'ty expr * 'ty
 
 and  'ty expr                   =   EpParen             of 'ty exprTy
-                                (* Ref *)
                                 |   TmDecl              of 'ty decl 
                                 |   TmSlfDstrct         of 'ty exprTy
                                 |   TmLog               of string * 'ty exprTy list * tyEvnt option 
@@ -238,7 +240,7 @@ let size_of_ty (* in bytes *)   = function
     | TyTuple []                -> err "size_of_ty TyUnit" 
     | TyTuple _                 -> err "size_of_ty TyTuple"
     | TyMap   _                 -> err "size_of_ty TyMap" 
-    | TyCntrct     x            -> err("size_of_ty TyCntrct: "^x)
+    | TyCntrct(id,_,_)          -> err("size_of_ty TyCntrct: " ^ id)
 
 let size_of_tys                 = BL.sum $ (L.map size_of_ty) 
 

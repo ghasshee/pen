@@ -11,9 +11,9 @@ OBJS = 	misc.cmo indexList.cmo \
 		locationEnv.cmo \
 		abi.cmo \
 		storLayout.cmo \
+		codegenEnv.cmo \
 		type.cmo \
 		eval.cmo \
-		codegenEnv.cmo \
 		codegen.cmo \
 		lexer.cmo \
 		parser.cmo 

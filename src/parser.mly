@@ -55,15 +55,15 @@ block:
 
 mthd_head:
     | DEFAULT                                       { TyDefault                                                 }
-    | METHOD LPAR   ty ID plist(arg) RPAR           { TyMethod($4,$5,$3)                                        }
-    | METHOD LPAR LPAR RPAR ID plist(arg) RPAR      { TyMethod($5,$6,TyTuple[])                                 }
+    | METHOD ty ID plist(arg)                       { TyMethod($3,$4,$2)                                        }
+    | METHOD LPAR RPAR ID plist(arg)                { TyMethod($4,$5,TyTuple[])                                 }
 
 arg:
     | ty ID                                         { TyVar($2,$1)                                              }
 
 evnt_arg:
     | arg                                           { tyEvntArg_of_arg $1 false                                 }
-    | ty INDEXED ID                                 { {arg=TyVar($3,$1); indexed=true}                          }
+    | INDEXED ty ID                                 { {arg=TyVar($3,$2); indexed=true}                          }
 
 ty:
     | UINT256                                       { TyUint256                                                 }

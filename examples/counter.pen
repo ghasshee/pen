@@ -1,20 +1,20 @@
 contract Counter(
-    uint256 _counter
+    u256 _counter
     ){
 
     method(void init()){
-        uint8 counter = 0;
+        u8 counter = 0;
         return then become Counter(counter); 
 
     }
 
     method(void inc()){
-        uint8 counter = _counter + 1;
+        u8 counter = _counter + 1;
         return then become Counter(counter);
     }
 
     method(void reset()) {
-        uint8 counter = 1; 
+        u8 counter = 1; 
         return then become Counter(counter); 
     }
 }

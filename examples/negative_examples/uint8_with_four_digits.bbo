@@ -1,6 +1,6 @@
 contract A ()
 {
-    case(bool f(uint8 a))
+    case(bool f(u8 a))
     {
         return a < 1029u8 then become A();
     }

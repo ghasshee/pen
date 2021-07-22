@@ -118,8 +118,8 @@ let string_of_evnt (ev:tyEvnt) =
 (* getInfo from contract Interface *)
 (***********************************)
 
-let find_tyMthd_in_cntrct mname tyCntrct : ty option =
-    getFstByFilter (function TyMethod(id,args,ret) as tyM -> if id=mname then Some tyM else None) tyCntrct.tyCnMthds
+let find_tyMthd_in_cntrct mname = function TyCntrct(_,_,tyCnMthds) -> 
+    getFstByFilter (function TyMethod(id,args,ret) as tyM -> if id=mname then Some tyM else None) tyCnMthds
 
 let find_tyMthd tyCntrcts mname = 
     match getFstByFilter (find_tyMthd_in_cntrct mname) (L.map snd tyCntrcts) with 

@@ -1,6 +1,6 @@
-contract A(uint256 counter)
+contract A(u256 counter)
 {
-    case (uint256 f()) {
+    case (u256 f()) {
         return counter then become A(counter + 1);
     }
 }

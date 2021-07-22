@@ -1,7 +1,7 @@
 
 
 contract auction
-  (uint256 _highest_bid) {
+  (u256 _highest_bid) {
    method (bool bid()) 
 	    bid new_bid = deploy bid(sender(msg)) with value(msg) reentrance { abort; }; // failure throws.
         return (true) then become auction(value(msg));

@@ -22,8 +22,8 @@ rule read = parse
   | "default"       { DEFAULT                       }
   | "method"        { METHOD                        }
   | "abort"         { ABORT                         }
-  | "uint8"         { UINT8                         }
-  | "uint256"       { UINT256                       }
+  | "u8"            { UINT8                         }
+  | "u256"          { UINT256                       }
   | "bytes32"       { BYTES32                       }
   | "address"       { ADDRESS                       }
   | "bool"          { BOOL                          }
@@ -68,7 +68,7 @@ rule read = parse
   | "*"             { MULT                          }
   | "event"         { EVENT                         }
   | "log"           { LOG                           }
-  | "indexed"       { INDEXED                       }
+  | "visible"       { INDEXED                       }
   | digit+ as i     { EUINT256 (Big_int.big_int_of_string i) }
   (* uint8 has at most three digits *)
   | digit digit? digit? "u8" as i {
