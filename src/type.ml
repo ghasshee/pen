@@ -10,27 +10,12 @@ module BS   = BatString
 module BO   = BatOption
 module L    = List
 
-let reserved x                  =   BS.starts_with x "pre_" 
-let reserved_var (TyVar(id,_))  =   reserved id
-let reserved_cn  cn             =   reserved cn.cntrct_id
-let reserved_exists             =   BL.exists reserved_var 
-let reserved_args(cn:'a cntrct) =   BL.exists reserved_var cn.cntrct_args  
-let check_reserved x            =   if reserved x           then err "Names 'pre_..' are reserved."
-let check_reserved_exists vars  =   if reserved_exists vars then err "Names 'pre_..' are reserved."
-let check_reserved_args cn      =   if reserved_args cn     then err "Names 'pre_..' are reserved."
-let check_reserved_cn   cn      =   if reserved_cn cn       then err "Names 'pre_..' are reserved."
-
 let assert_tyeqv l r            =   assert (get_ty l=get_ty r) 
 
 let typeof_mthd m               =   match m.mthd_head with 
     | TyMethod(id,args,ret)           ->  TyMethod(id,L.map ty_of_var args, ret)
     | TyDefault                       ->  TyMethod("", [], TyTuple[]) 
 
-(*
-let typeof_cntrct(cn:'a cntrct) =   { id                = cn.cntrct_id
-                                    ; tyCnArgs          = L.map ty_of_var cn.cntrct_args
-                                    ; tyCnMthds         = L.map typeof_mthd cn.mthds            }
-                                    *)
 let typeof_cntrct  cn           =   TyCntrct(cn.cntrct_id,L.map ty_of_var cn.cntrct_args, L.map typeof_mthd cn.mthds)
 let typeof_cntrcts              =   map typeof_cntrct 
 
@@ -112,13 +97,11 @@ and addTy_expr cns cname ctx (expr,()) =    match expr with
                                         EpAddr e        , TyAddr
     | EpCall    c                   ->  let c,ty    =   addTy_call cns cname ctx c          in
                                         EpCall c        , ty
-    | EpIdent     s                 ->  check_reserved s ; 
-                                        id_lookup_ty ctx s
+    | EpIdent     s                 ->  id_lookup_ty ctx s
     | EpBalance   e                 ->  let e       =   addTy_expr cns cname ctx e          in
                                         assert (tyeqv TyAddr (get_ty e));
                                         EpBalance e     , TyUint256
     | EpNew       n                 ->  let n,nm    =   addTy_new cns cname ctx n           in
-                                        check_reserved nm;  
                                         EpNew n         , TyInstnce nm
     | EpLAnd (l, r)                 ->  let l       =   addTy_expr cns cname ctx l          in
                                         typecheck (TyBool,l);
@@ -204,7 +187,7 @@ and addTy_decl cns cname ctx vd =
     let v           =   addTy_expr cns cname ctx vd.declVal in
     let id          =   vd.declId     in
     let ty          =   vd.declTy     in
-    check_reserved id ; assert (is_known_ty (typeof_cntrcts cns) ty);
+    assert (is_known_ty (typeof_cntrcts cns) ty);
     { declTy    = ty
     ; declId    = id
     ; declVal   = v  }, add_var ctx id ty  
@@ -254,12 +237,11 @@ let retTy_of_mthd = function
 
 let addTy_mthd cns cn_name ctx (m:unit mthd) =
     let retTy       =   retTy_of_mthd  m.mthd_head      in
-    let args        =   args_of_mthd  m.mthd_head       in
-    let binds       =   binds_of_args args              in
+    let argTys      =   argTys_of_mthd  m.mthd_head       in
+    let binds       =   binds_of_args argTys            in
     let ctx'        =   add_retTy ctx retTy             in
     let ctx''       =   add_block ctx' binds            in
-    check_reserved_exists args; 
-    { mthd_head     =   addTy_mthd_head cns       m.mthd_head
+    { mthd_head     =   addTy_mthd_head cns            m.mthd_head
     ; mthd_body     =   addTy_stmts cns cn_name ctx''  m.mthd_body }
 
 let has_distinct_sigs (cn:unit cntrct) =
@@ -271,8 +253,6 @@ let has_distinct_sigs (cn:unit cntrct) =
     L.length sigs=L.length uniq_sigs
 
 let addTy_cntrct cns (evs: tyEvnt idx_list) cn =
-    check_reserved_cn    cn; 
-    check_reserved_args  cn; 
     assert (BL.for_all(arg_has_known_ty (typeof_cntrcts cns))cn.cntrct_args && has_distinct_sigs cn)  ; 
     let ctx  = add_block (add_evnts empty_ctx (values evs)) (binds_of_args cn.cntrct_args) in
     { cntrct_id     =   cn.cntrct_id

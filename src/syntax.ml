@@ -45,11 +45,11 @@ type tyEvntArg                  =   { arg               : ty  (* TyVar Only *)
 
 type tyEvnt                     =   { id                : string
                                     ; tyEvArgs          : tyEvntArg list    }
-
+(*
 type tyCntrct                   =   { id                : string   
                                     ; tyCnArgs          : ty list
                                     ; tyCnMthds         : ty list           } 
-
+*)
 let tyEvntArg_of_arg arg isIdxd =   { arg               = arg
                                     ; indexed           = isIdxd            }
     
@@ -173,7 +173,7 @@ let cntrct_name_of_ret_cont     = function
     | EpCall c,_                -> Some c.call_id
     | _,_                       -> None
 
-let args_of_mthd                = function 
+let argTys_of_mthd                = function 
     | TyMethod(_,argTys,_)      -> argTys
     | TyDefault                 -> []
 
