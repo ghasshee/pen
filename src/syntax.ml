@@ -14,8 +14,7 @@ type ty           (* atomic *)  =   TyVoid              (* 256 bits *)
                   (* atomic *)  |   TyRef               of ty 
                   (* atomic *)  |   TyTuple             of ty list
                   (* atomic *)  |   TyMap               of ty * ty 
-               (*   (* atomic *)  |   TyCntrct            of string   (* type of [bid(...)] where bid is a cntrct *) *)
-                  (* atomic *)  |   TyInstnce           of string   (* type of [b] declared as [bid b] *) 
+                  (* atomic *)  |   TyInstnce           of string                       (* type of [b] declared as [bid b] *) 
                                 |   TyMethod            of string * ty list * ty        (*  TyMethod(id, tyArgs, tyRet)             *)
                                 |   TyDefault
                                 |   TyAbs               of  ty * ty                     (*  TyAbs(tyArgs, tyRet)                    *)
@@ -40,25 +39,12 @@ let rec string_of_ty            =   function
     | TyCntrct(id,_,_)          ->  "contract arch "     ^ id
     | TyInstnce     s           ->  "contract instance " ^ s
 
-type tyEvntArg                  =   { arg               : ty  (* TyVar Only *) 
-                                    ; indexed           : bool              }
-
-type tyEvnt                     =   { id                : string
-                                    ; tyEvArgs          : tyEvntArg list    }
-(*
-type tyCntrct                   =   { id                : string   
-                                    ; tyCnArgs          : ty list
-                                    ; tyCnMthds         : ty list           } 
-*)
-let tyEvntArg_of_arg arg isIdxd =   { arg               = arg
-                                    ; indexed           = isIdxd            }
-    
-let  arg_of_evnt_arg e          =   e.arg
+let  arg_of_evnt_arg            =   function TyEvVar(id,ty,visible) -> TyVar(id,ty)
 let args_of_evnt_args           =   L.map arg_of_evnt_arg
 
-let split_evnt_args tyEv args =
-    let indexed : bool list     =   L.map (fun arg->arg.indexed) tyEv.tyEvArgs in
-    let combined                =   L.combine args indexed in
+let split_evnt_args tyEv args   =   match tyEv with TyEvnt(id,tyEvArgs)  -> 
+    let visibles : bool list    =   L.map (function TyEvVar(_,_,visible)->visible) tyEvArgs in
+    let combined                =   L.combine args visibles in
     let is,ns                   =   BL.partition snd combined in
     L.map fst is, L.map fst ns
 
@@ -87,14 +73,14 @@ and  'ty stmt                   =
                                 |   SmIf                of 'ty exprTy * 'ty stmt list * 'ty stmt list
                                 |   SmSlfDstrct         of 'ty exprTy
                                 |   SmExpr              of 'ty exprTy
-                                |   SmLog               of string * 'ty exprTy list * tyEvnt option
+                                |   SmLog               of string * 'ty exprTy list * ty option (* ty := TyEvnt *) 
 
 and  'ty exprTy                =   'ty expr * 'ty
 
 and  'ty expr                   =   EpParen             of 'ty exprTy
                                 |   TmDecl              of 'ty decl 
                                 |   TmSlfDstrct         of 'ty exprTy
-                                |   TmLog               of string * 'ty exprTy list * tyEvnt option 
+                                |   TmLog               of string * 'ty exprTy list * ty option (* ty := TyEvnt *)
                                 |   TmRef               of 'ty exprTy
                                 |   TmDeref             of 'ty exprTy
                                 |   TmAssign            of 'ty lexpr * 'ty exprTy 
@@ -162,7 +148,7 @@ type 'ty cntrct                 =   { cntrct_id         : string
 (*****************************************)
 
 type 'ty toplevel               =   Cntrct        of 'ty cntrct
-                                |   Event         of tyEvnt
+                                |   Event         of ty    (* ty := TyEvnt *) 
 
 let filter_usualMthd            =   BL.filter_map (function   | TyDefault                   -> None 
                                                               | TyMethod(i,a,r)             -> Some (TyMethod(i,a,r)) )  

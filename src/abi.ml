@@ -61,18 +61,17 @@ let prABI_cntrct seen_cnstrctr (c:ty cntrct) : string =
     BS.concat "," strs
 
 
-let prABI_evnt_arg (a:tyEvntArg) : string =
-    let TyVar(id,ty) = a.arg in 
+let prABI_evnt_arg = function TyEvVar(id,ty,visible) ->  
     sprintf "{\"name\":\"%s\",\"type\":\"%s\",\"indexed\":%s}"
-                 id (abi_string_of_ty ty) (string_of_bool a.indexed)
+                 id (abi_string_of_ty ty) (string_of_bool visible)
 
-let prABI_evnt_inputs (is:tyEvntArg list) : string =
+let prABI_evnt_inputs (is:ty list) : string =
     let strs : string list  = L.map prABI_evnt_arg is in
     BS.concat "," strs
 
-let prABI_evnt (e:tyEvnt) : string =
+let prABI_evnt = function TyEvnt(id,tyEvArgs) -> 
     sprintf "{\"type\":\"evnt\",\"inputs\":[%s],\"name\":\"%s\"}"
-        (prABI_evnt_inputs e.tyEvArgs) (e.id)
+        (prABI_evnt_inputs tyEvArgs) id
 
 let prABI_toplevel seen_cnstrctr (t:ty toplevel) : string = match t with
     | Cntrct c                  -> prABI_cntrct seen_cnstrctr c

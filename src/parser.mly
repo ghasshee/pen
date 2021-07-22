@@ -49,7 +49,7 @@ file:
 
 cntrct:
     | CONTRACT ID plist(arg)LBRACE list(mthd)RBRACE { check_reserved $2; Cntrct{mthds=$5; cntrct_id=$2; cntrct_args=$3}  }
-    | EVENT    ID plist(evnt_arg) SEMI              { Event {                 id=$2;    tyEvArgs=$3}            }
+    | EVENT    ID plist(evnt_arg) SEMI              { Event (TyEvnt($2,$3))                                     }
 
 mthd:
     | mthd_head block                               { {mthd_head=$1; mthd_body=$2}                              }
@@ -66,8 +66,8 @@ arg:
     | ty ID                                         { check_reserved $2; TyVar($2,$1)                           }
 
 evnt_arg:
-    | arg                                           { tyEvntArg_of_arg $1 false                                 }
-    | INDEXED ty ID                                 { {arg=TyVar($3,$2); indexed=true}                          }
+    | arg                                           { let TyVar(id,ty)=$1 in TyEvVar(id,ty,false)               }
+    | INDEXED ty ID                                 { TyEvVar($3,$2,true)                                       }
 
 ty:
     | UINT256                                       { TyUint256                                                 }

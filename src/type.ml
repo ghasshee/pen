@@ -214,10 +214,10 @@ and addTy_stmt cns cname ctx = function
                             assert(get_ty e=TyTuple[]) ;
                             SmExpr e        , ctx
     | SmLog(nm,args,_)  ->  let args    = L.map (addTy_expr cns cname ctx) args     in
-                            let ev      = lookup_evnt nm ctx                        in
-                            let tys     = L.map(fun ea -> ty_of_var ea.arg)ev.tyEvArgs    in
+                            let TyEvnt(id,tyEvArgs) = lookup_evnt nm ctx            in
+                            let tys     = args_of_evnt_args tyEvArgs    in
                             assert(typechecks tys args) ;
-                            SmLog(nm,args,Some ev), ctx
+                            SmLog(nm,args,Some(TyEvnt(id,tyEvArgs))), ctx
 
 and addTy_stmts cns cname ctx = function 
     | []                ->  []
@@ -252,14 +252,14 @@ let has_distinct_sigs (cn:unit cntrct) =
     let uniq_sigs   =   BL.unique sigs in
     L.length sigs=L.length uniq_sigs
 
-let addTy_cntrct cns (evs: tyEvnt idx_list) cn =
+let addTy_cntrct cns (evs: ty idx_list) cn =
     assert (BL.for_all(arg_has_known_ty (typeof_cntrcts cns))cn.cntrct_args && has_distinct_sigs cn)  ; 
     let ctx  = add_block (add_evnts empty_ctx (values evs)) (binds_of_args cn.cntrct_args) in
     { cntrct_id     =   cn.cntrct_id
     ; cntrct_args   =   cn.cntrct_args
     ; mthds         =   L.map(addTy_mthd cns cn.cntrct_id ctx)cn.mthds }
 
-let addTy_toplevel cns (evs:tyEvnt idx_list) = function 
+let addTy_toplevel cns (evs:ty idx_list) = function 
     | Cntrct c      -> Cntrct (addTy_cntrct cns evs c)
     | Event  e      -> Event e
 
@@ -272,6 +272,6 @@ let addTys (tops : unit toplevel idx_list) : ty toplevel idx_list =
                                                         | _        -> None   ) tops in
     assert(has_distinct_cntrct_names(cntrcts));
     let tycns                   = map typeof_cntrct cntrcts in
-    let evs : tyEvnt idx_list   = filter_map (function  | Event e  -> Some e
+    let evs : ty idx_list   = filter_map (function  | Event e  -> Some e
                                                         | _        -> None   ) tops in
     map (addTy_toplevel cntrcts evs) tops

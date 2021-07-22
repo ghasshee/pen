@@ -20,7 +20,7 @@ type bind                       = BdName  of string       (* Parser Context *)
                                 | BdTy    of string * ty 
                                 | BdRetTy of ty 
                                 | BdCtx   of context
-                                | BdEvnt  of tyEvnt 
+                                | BdEvnt  of ty 
 
 and  context                    = bind list 
 
@@ -33,8 +33,8 @@ let lookup_id_locally name      = function
 
 let lookup_id name ctx          = getFstByFilter (lookup_id_locally name) ctx 
 
-let rec lookup_evnt nm          = function 
-    | BdEvnt(e)::_ when e.id=nm     -> e
+let rec lookup_evnt nm          = function  
+    | BdEvnt(TyEvnt(id,args))::_ when id=nm     -> TyEvnt(id,args) 
     | _::xs                         -> lookup_evnt nm xs
 
 let rec lookup_retTy            = function 
@@ -107,12 +107,12 @@ let string_of_tyMthd (TyMethod(id,args,ret))  =
     let tys             = String.concat "," strTys          in
     id    ^ "(" ^ tys ^ ")"
 
-let string_of_evnt (ev:tyEvnt) =
-    let args            = args_of_evnt_args ev.tyEvArgs     in 
+let string_of_evnt  = function TyEvnt(id,tyEvArgs) -> 
+    let args            = args_of_evnt_args tyEvArgs       in 
     let argTys          = L.map snd (argTys_of_vars args)   in
     let strTys          = L.map string_of_ty argTys         in
     let tys             = String.concat "," strTys          in
-    ev.id ^ "(" ^ tys ^ ")"
+    id ^ "(" ^ tys ^ ")"
 
 (***********************************)
 (* getInfo from contract Interface *)
