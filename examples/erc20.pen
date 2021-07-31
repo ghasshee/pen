@@ -102,7 +102,7 @@ contract Token  (u256                       totalSupply
         balances[this]          = new_amount;
         balances[sender(msg)]   = balances[sender(msg)] - _amount;
         log Sell(sender(msg), _amount, _value);
-        ()                      = sender(msg).default() with _value;
+        sender(msg).default() with _value;
         return true 
             then become Token(totalSupply, balances, allowances);
     }
