@@ -84,10 +84,10 @@ ty:
      
 stmt:
     | RETURN ret THEN BECOME expr SEMI              { TmReturn($2 [],$5 [])                }
-    | lexpr EQ expr SEMI                            { SmAssign($1 [],$3 [])                                           }
-    | ty ID EQ expr SEMI                            { reserved $2;SmDecl{declTy=$1; declId=$2; declVal=$4 []}}
-    | IF expr THEN body ELSE body                   { SmIf($2 [],$4,$6)                                            }
-    | IF expr THEN body                             { SmIfThen ($2 [], $4)                                         }
+    | lexpr EQ expr SEMI                            { SmAssign($1 [],$3 [])                                     }
+    | ty ID EQ expr SEMI                            { reserved $2;SmDecl{declTy=$1; declId=$2; declVal=$4 []}   }
+    | IF expr THEN body ELSE body                   { SmIf($2 [],$4,$6)                                         }
+    | IF expr THEN body                             { SmIfThen ($2 [], $4)                                      }
     | expr SEMI                                     { SmExpr ($1 [])                                            }
     | expr                                          { SmExpr ($1 [])                                            }
 
@@ -110,11 +110,9 @@ expr:
     | ABORT SEMI                                    { fun ctx -> TmAbort                                                ,() } 
     | LOG ID expr_list SEMI                         { fun ctx -> TmLog($2,$3 ctx,None)                                  ,() }
     | SELFDESTRUCT expr SEMI                        { fun ctx -> TmSlfDstrct($2 ctx)                                    ,() }
-(*  | ABORT                                         { SmAbort,                                                          ,() } *)
     | LAM ID COLON ty ARROW expr                    { fun ctx -> TmAbs($2,$4    , $6 ctx)                               ,() } 
     | TRUE                                          { fun ctx -> EpTrue                                                 ,() }
     | FALSE                                         { fun ctx -> EpFalse                                                ,() }
-(*  | IF expr THEN expr ELSE expr                   { TmIf($2,$4,$6)                                                    ,() } *)
     | EUINT256                                      { fun ctx -> EpUint256 $1                                           ,() }
     | EUINT8                                        { fun ctx -> EpUint256 $1                                           ,() }
     | expr op expr                                  { fun ctx -> $2 ($1 ctx)($3 ctx)                                    ,() }
@@ -124,9 +122,9 @@ expr:
     | BALANCE LPAR  expr RPAR                       { fun ctx -> EpBalance ($3 ctx)                                     ,() }
     | NOW     LPAR BLOCK RPAR                       { fun ctx -> EpNow                                                  ,() }
     | ADDRESS LPAR  expr RPAR                       { fun ctx -> EpAddr ($3 ctx)                                        ,() }
-    | ID                                            { reserved $1; fun ctx -> EpIdent $1                                ,() }
+    | ID                               { reserved $1; fun ctx -> EpIdent $1                                             ,() }
     | ID  expr_list                                 { fun ctx -> EpCall{call_id=$1;call_args=$2 ctx}                    ,() }
-    | NEW ID expr_list msg                          { reserved $2; fun ctx -> EpNew {new_id=$2;new_args=$3 ctx; new_msg=$4 ctx},     ()  }
+    | NEW ID expr_list msg             { reserved $2; fun ctx -> EpNew {new_id=$2;new_args=$3 ctx; new_msg=$4 ctx}      ,() }
     | expr DOT DEFAULT LPAR RPAR msg                { fun ctx -> EpSend{sd_cn=$1 ctx; sd_mthd=None   ; sd_args=[]    ; sd_msg=$6 ctx},            ()  }
     | expr DOT ID   expr_list msg                   { fun ctx -> EpSend{sd_cn=$1 ctx; sd_mthd=Some $3; sd_args=$4 ctx; sd_msg=$5 ctx},            ()  }
     | THIS                                          { fun ctx -> EpThis,                                                           ()  }

@@ -58,11 +58,11 @@ let ()      =
     match cns with
     | []  ->  ()
     | _   ->   
-    let ccs       : cnstrctrCode idx_list         = compile_cnstrctrs cns                     in          
-    let cn_layts  : LI.cn_storLayout idx_list     = map storLayout_of_cnstrctrCode ccs        in          
-    let layt                                      = LI.cnstrct_storLayout cn_layts            in          
-    let rc        : rntimeCode                    = compile_rntime layt cns                   in          
-    let bytecode  : big_int Evm.program           = compose_bytecode ccs rc (fst(L.hd cns))   in          
+    let ccs        : cnstrCode idx_list         = compile_cnstrs cns                        in          
+    let cnstrInfos : LI.cnstrInfo idx_list      = map cnstrInfo_of_cnstrCode ccs            in          
+    let layt                                    = LI.cnstrct_storLayout cnstrInfos          in          
+    let rc         : rntimeCode                 = compile_rntime layt cns                   in          
+    let bytecode   : big_int Evm.program        = compose_bytecode ccs rc (fst(L.hd cns))   in          
     if  abi                                                                                               
         then Abi.prABI idx_ty_opt_ASTs                                                                          
         else Evm.prLn_encoded bytecode 

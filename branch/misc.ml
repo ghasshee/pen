@@ -14,7 +14,6 @@ exception StackOverFlow
 let err                     = failwith
 let errc str                = err("codegen_expr: " ^ str ^ " of unexpected type")
 
-
 (*****************************************)
 (**      LIST OPERATERS                 **)
 (*****************************************)
@@ -44,7 +43,7 @@ let rec last                = function
     | x::xs                 -> last xs
 
 let (++)                    = append
-
+let length                  = length
 
 (*****************************************)
 (**        POLYMORPHIC FUNCTIONS        **)
@@ -56,9 +55,7 @@ let ($$$) a b c d           = ($)($)($) a b c d
 let konst x y               = x
 let subst t1 t2 x           = ( t1 x ) ( t2 x ) 
 
-
 let word_bits               = 256
-
 let sig_bits                = 32
 
 type big                    = Big_int.big_int

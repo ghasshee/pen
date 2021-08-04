@@ -11,13 +11,13 @@ type imm                        =
                                 | Int                       of int
                                 | Label                     of Label.label
                                 | StorPCIndex
-                                | StorCnstrctrArgsBegin     of idx
-                                | StorCnstrctrArgsSize      of idx    (* the size depends on the cntrct id *)
+                                | StorCnstrArgsBegin        of idx
+                                | StorCnstrArgsSize         of idx    (* the size depends on the cntrct id *)
                                 | InitDataSize              of idx
                                 | RntimeCntrctOffset        of idx    (* This index should be a JUMPDEST *)
                                 | RntimeMthdLabel           of idx * Syntax.ty
-                                | CnstrctrCodeSize          of idx
-                                | RntimeCnstrctrOffset      of idx
+                                | CnstrCodeSize             of idx
+                                | RntimeCnstrOffset         of idx
                                 | RntimeCodeOffset          of idx
                                 | RntimeCodeSize
                                 | Minus                     of imm * imm
@@ -27,13 +27,13 @@ let rec string_of_imm           =   function
   | Int i                           -> "(Int "^(string_of_int i)^")"
   | Label _                         -> "Label (print label here)"
   | StorPCIndex                     -> "StorPCIndex"
-  | StorCnstrctrArgsBegin _         -> "StorCnstrctrArgBegin (print cntrct id)"
-  | StorCnstrctrArgsSize _          -> "StorCnstrctrArgsSize (print cntrct id)"
+  | StorCnstrArgsBegin _            -> "StorCnstrArgBegin (print cntrct id)"
+  | StorCnstrArgsSize _             -> "StorCnstrArgsSize (print cntrct id)"
   | InitDataSize idx                -> "InitDataSize (print cntrct id here)"
   | RntimeCntrctOffset _            -> "RntimeCntrctOffset (print contact id)"
   | RntimeMthdLabel(idx,header)     -> "RntimeMthdLabel (print cntrct id, case header)"
-  | CnstrctrCodeSize idx            -> "CnstrctrCodeSize (print cntrct id)"
-  | RntimeCnstrctrOffset idx        -> "RntimeCnstrctrOffset (print cntrct id)"
+  | CnstrCodeSize idx               -> "CnstrCodeSize (print cntrct id)"
+  | RntimeCnstrOffset idx           -> "RntimeCnstrOffset (print cntrct id)"
   | RntimeCodeOffset idx            -> "RntimeCodeOffset (print cntrct id)"
   | RntimeCodeSize                  -> "RntimeCodeSize"
   | Minus (a, b)                    -> "(- "^(string_of_imm a)^" "^(string_of_imm b)^")"

@@ -79,6 +79,8 @@ let argTys_of_vars              =   BL.filter_map argTy_of_var
 let arrTys_of_cntrct cn         =   BL.filter_map arrTy_of_var (cn.cntrct_args)
 let argTys_of_cntrct cn         =   argTys_of_vars cn.cntrct_args
 
+let argsSize_of_cn cn           =   size_of_tys (L.map get_ty (argTys_of_cntrct cn))  
+
 let positions_of_argLens lens   =
     let rec loop ret used           =   function 
         | []                        ->  L.rev ret
@@ -96,9 +98,9 @@ let argLocs_of_mthd m           =   match m.mthd_head with
                                     let locEnv      = L.combine names locations in
                                     locEnv
 
-let total_size_of_argTys tys    =   try     BL.sum (L.map size_of_ty tys) 
+let size_of_tys  tys            =   try     BL.sum (L.map size_of_ty tys) 
                                     with    Invalid_argument _          -> 0
-let total_size_of_args args     =   try     BL.sum (L.map (size_of_ty $ ty_of_var) args)
+let size_of_args args           =   try     BL.sum (L.map (size_of_ty $ ty_of_var) args)
                                     with    Invalid_argument _          -> 0 
 
 let string_of_tyMthd (TyMethod(id,args,ret))  =
