@@ -350,7 +350,7 @@ let setup_argArrays ce cn =
 (*  S[n+1] := m    ----+                                        *)  
 
 (*****   6.5.  CODECOPY            *****) 
-let mstore_rntimeCode ce idx =                                  (*                                                              *)
+let mstore_rntimeCode ce idx =                                    (*                                                           .. *)
     let ce      = PUSH32(RntimeCodeSize)          >>ce        in  (*                                                   size >> .. *)
     let ce      = DUP1                            >>ce        in  (*                                           size >> size >> .. *)  
     let ce      = malloc                            ce        in  (*                                    alloc(size) >> size >> .. *)
@@ -358,9 +358,9 @@ let mstore_rntimeCode ce idx =                                  (*              
     let ce      = PUSH32(RntimeCodeOffset idx)    >>ce        in  (*                     idx >> size >> alloc(size) >> size >> .. *)
     let ce      = DUP3                            >>ce        in  (*      alloc(size) >> idx >> size >> alloc(size) >> size >> .. *)
                   CODECOPY                        >>ce            (*                                    alloc(size) >> size >> .. *)
-                                                                (*                                     codebegin                *)
+                                                                  (*                                     codebegin                *)
 (*****   6.6.  CONTRACT CREATION   *****)
-type cnstrCode       =   { cnstr_ce           : ce
+type cnstrCode          =   { cnstr_ce           : ce
                             ; cnstr_ty           : ty
                             ; cnstr_cn           : ty cntrct         }
 
@@ -500,9 +500,9 @@ and codegen_ECDSArecover le ce args = match args with
 
 and mstore_new_instance le ce n     =
     let cnName  =   n.new_id                                            in
-    let cnIdx   =   lookup_cn_of_ce ce cnName                           in 
-    let ce      =   PUSH32(CnstrCodeSize cnIdx)         >>ce            in  (*                                                        size >> .. *) 
-    let ce      =   PUSH32(RntimeCnstrOffset cnIdx)     >>ce            in  (*                                             cn_idx  >> size >> .. *)
+    let cn_idx  =   lookup_cn_of_ce ce cnName                           in 
+    let ce      =   PUSH32(CnstrCodeSize cn_idx)        >>ce            in  (*                                                        size >> .. *) 
+    let ce      =   PUSH32(RntimeCnstrOffset cn_idx)    >>ce            in  (*                                             cn_idx  >> size >> .. *)
     let ce      =   mstore_code                           ce            in  (*                                         alloc(size) >> size >> .. *)
     let ce      =   SWAP1                               >>ce            in  (*                                         size >> alloc(size) >> .. *)
     let ce      =   mstore_whole_code                     ce            in  (*                alloc(wsize) >> wsize >> size >> alloc(size) >> .. *)
@@ -559,10 +559,10 @@ and salloc_array_of_push push_array_seed ce =
                     JUMPDEST label                      >>ce                (*                                                         *)
 
 and codegen_expr_eff le ce aln          = function 
-    | TmAbort               ,_ (*TyVoid*)   ->  let _,ce = le, throw ce                         in PUSH1(Int 0) >> ce  
-    | TmLog(id,args,Some ev),_ (*TyTuple[]*)->  let _,ce = codegen_log_stmt    le ce id args ev in PUSH1(Int 0) >> ce 
-    | TmLog(id,args,None)   ,_ (*TyTuple[]*)->  err "add_stmt: type check first"
-    | TmSlfDstrct expr      ,_ (*TyTuple[]*)->  let _,ce = codegen_selfDstrct  le ce expr       in PUSH1(Int 0) >> ce 
+    | TmAbort               ,    TyVoid     ->  let _,ce = le, throw ce                         in PUSH1(Int 0) >> ce  
+    | TmLog(id,args,Some ev),    TyTuple[]  ->  let _,ce = codegen_log_stmt    le ce id args ev in PUSH1(Int 0) >> ce 
+    | TmLog(id,args,None)   ,    TyTuple[]  ->  err "add_stmt: type check first"
+    | TmSlfDstrct expr      ,    TyTuple[]  ->  let _,ce = codegen_selfDstrct  le ce expr       in PUSH1(Int 0) >> ce 
     | e                     ,_              ->  ($) print_string string_of_expr e; raise Not_found
 (* le is not updated here.  
  * le can only be updated in a variable initialization *)
@@ -635,7 +635,7 @@ and mstore_mthd_args pck args le ce =
                 foldl (mstore_mthd_arg pck le) ce args              (*                                             sumsize >> .. *) 
 
 and mstore_mthd_arg pck le ce arg  =
-    let ty      = snd arg in  assert (fits_in_one_stor_slot ty) ; 
+    let ty      = get_ty arg                                    in  
     let i,a     = match pck with | ABIPack   -> 32           ,R
                                  | TightPack -> size_of_ty ty,L in  (*                                                 sum >> .. *)
     let ce      = PUSH1 (Int i)                 >>ce            in  (*                                         size >> sum >> .. *)
@@ -653,13 +653,13 @@ and mstore_mthd_hash_args mthd args le ce =                         (*          
     let ce      = ADD                           >>ce            in  (*                                 argsize+4 >> &mhash >> .. *)
                   SWAP1                         >>ce                (*                                 &mhash >> argsize+4 >> .. *)
 
-and mload_ret_value ce =                                            (*                           retbegin >> retsize >> .. *)
-    let ce      = DUP2                          >>ce            in  (*                retsize >> retbegin >> retsize >> .. *)
-    let ce      = PUSH1 (Int 32)                >>ce            in  (*          32 >> retsize >> retbegin >> retsize >> .. *)
-    let ce      = throw_if_NEQ                    ce            in  (* IF 32!=retsize ERROR      retbegin >> retsize >> .. *)
-    let ce      = MLOAD                         >>ce            in  (*                     M[retbegin.. ] >> retsize >> .. *)
-    let ce      = SWAP1                         >>ce            in  (*                     retsize >> M[retbegin.. ] >> .. *)
-                  POP                           >>ce                (*                                      retvalue >> .. *)
+and mload_ret_value ce =                                            (*                                 retbegin >> retsize >> .. *)
+    let ce      = DUP2                          >>ce            in  (*                      retsize >> retbegin >> retsize >> .. *)
+    let ce      = PUSH1 (Int 32)                >>ce            in  (*                32 >> retsize >> retbegin >> retsize >> .. *)
+    let ce      = throw_if_NEQ                    ce            in  (* IF 32!=retsize ERROR            retbegin >> retsize >> .. *)
+    let ce      = MLOAD                         >>ce            in  (*                           M[retbegin.. ] >> retsize >> .. *)
+    let ce      = SWAP1                         >>ce            in  (*                           retsize >> M[retbegin.. ] >> .. *)
+                  POP                           >>ce                (*                                            retvalue >> .. *)
       
 and codegen_send le ce (s:ty _send) =
     let args    = s.sd_args                                     in

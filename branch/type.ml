@@ -16,7 +16,7 @@ let typeof_mthd m               =   match m.mthd_head with
     | TyMethod(id,args,ret)           ->  TyMethod(id,L.map ty_of_var args, ret)
     | TyDefault                       ->  TyMethod("", [], TyTuple[]) 
 
-let typeof_cntrct  cn           =   TyCntrct(cn.cntrct_id,L.map ty_of_var cn.cntrct_args, L.map typeof_mthd cn.mthds)
+let typeof_cntrct  cn           =   TyCntrct(cn.cn_id,L.map ty_of_var cn.fieldss, L.map typeof_mthd cn.mthds)
 let typeof_cntrcts              =   map typeof_cntrct 
 
 let id_lookup_ty ctx id         =   match lookup_id id ctx with
@@ -53,8 +53,8 @@ let call_arg_expectations tycns   =   function
     | "pre_ecdsarecover"            ->  (=) [TyBytes32;TyUint8;TyBytes32;TyBytes32]
     | "keccak256"                   ->  konst true
     | "iszero"                      ->  fun x -> x=[TyBytes32]||x=[TyUint8]||x=[TyUint256]||x=[TyBool]||x=[TyAddr]
-    | name                          ->  let cnIdx       = lookup_idx (tycn_has_name name) tycns in
-                                        match lookup_index cnIdx tycns with TyCntrct(_,tyCnArgs,_) -> 
+    | name                          ->  let cn_idx       = lookup_idx (tycn_has_name name) tycns in
+                                        match lookup_index cn_idx tycns with TyCntrct(_,tyCnArgs,_) -> 
                                         (=) tyCnArgs
 
 let typecheck  (ty,(_,t))       =   assert (ty = t)
@@ -254,18 +254,18 @@ let has_distinct_sigs (cn:unit cntrct) =
     L.length sigs=L.length uniq_sigs
 
 let addTy_cntrct cns (evs: ty idx_list) cn =
-    assert (BL.for_all(arg_has_known_ty (typeof_cntrcts cns))cn.cntrct_args && has_distinct_sigs cn)  ; 
-    let ctx  = add_block (add_evnts empty_ctx (values evs)) (binds_of_args cn.cntrct_args) in
-    { cntrct_id     =   cn.cntrct_id
-    ; cntrct_args   =   cn.cntrct_args
-    ; mthds         =   L.map(addTy_mthd cns cn.cntrct_id ctx)cn.mthds }
+    assert (BL.for_all(arg_has_known_ty (typeof_cntrcts cns))cn.fieldss && has_distinct_sigs cn)  ; 
+    let ctx  = add_block (add_evnts empty_ctx (values evs)) (binds_of_args cn.fieldss) in
+    { cn_id     =   cn.cn_id
+    ; fieldss   =   cn.fieldss
+    ; mthds         =   L.map(addTy_mthd cns cn.cn_id ctx)cn.mthds }
 
 let addTy_toplevel cns (evs:ty idx_list) = function 
     | Cntrct c      -> Cntrct (addTy_cntrct cns evs c)
     | Event  e      -> Event e
 
 let has_distinct_cntrct_names (cns : unit cntrct idx_list) : bool =
-    let cn_names    = (L.map(fun(_,b)->b.cntrct_id)cns) in
+    let cn_names    = (L.map(fun(_,b)->b.cn_id)cns) in
     L.length cns=L.length(BL.unique cn_names)
 
 let addTys (tops : unit toplevel idx_list) : ty toplevel idx_list =

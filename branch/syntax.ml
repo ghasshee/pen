@@ -53,19 +53,19 @@ let split_evnt_args tyEv args   =   match tyEv with TyEvnt(id,tyEvArgs)  ->
 (*****************************************)
 
 type 'ty _call                  =   { call_id           : string
-                                    ; call_args         : ('ty exprTy) list    }
+                                    ; call_args         : ('ty exprTy) list }
                                 
 and  'ty _new                   =   { new_id            : string
                                     ; new_args          : 'ty exprTy list
-                                    ; new_msg           : 'ty exprTy              }
+                                    ; new_msg           : 'ty exprTy        }
                                 
 and  'ty _send                  =   { sd_cn             : 'ty exprTy
                                     ; sd_mthd           : string option
                                     ; sd_args           : 'ty exprTy list
-                                    ; sd_msg            : 'ty exprTy              }
+                                    ; sd_msg            : 'ty exprTy        }
 
-and 'ty return                  =   { ret_expr          :  'ty exprTy 
-                                    ; ret_cont          :  'ty exprTy         }
+and  'ty return                 =   { ret_expr          :  'ty exprTy 
+                                    ; ret_cont          :  'ty exprTy       }
                                 
 and  'ty stmt                   =   
                                 |   SmAssign            of 'ty lexpr * 'ty exprTy
@@ -137,8 +137,8 @@ type 'ty mthd_body              =   'ty stmt list
 type 'ty mthd                   =   { mthd_head         : ty
                                     ; mthd_body         : 'ty mthd_body }
                                 
-type 'ty cntrct                 =   { cntrct_id         : string
-                                    ; cntrct_args       : ty list
+type 'ty cntrct                 =   { cn_id             : string
+                                    ; fieldss           : ty list
                                     ; mthds             : 'ty mthd list }
 
 (*****************************************)
@@ -205,17 +205,6 @@ let string_of_expr              = function
 (***              SIZE                 ***)
 (*****************************************)
 
-let fits_in_one_stor_slot       = function 
-    | TyUint8
-    | TyUint256
-    | TyBytes32
-    | TyAddr
-    | TyBool
-    | TyInstnce _
-    | TyMap _                   -> true
-    | TyRef _     
-    | TyTuple _        
-    | TyCntrct _                -> false
 
 let size_of_ty (* in bytes *)   = function
     | TyUint8                   ->  1
@@ -252,7 +241,7 @@ let is_mapping                  = function
 let non_mapping_arg             = function 
     | TyVar(_,TyMap _)          -> false
     | TyVar(_,_)                -> true 
-    | _ -> err "not an arg"
+    | _                         -> err "not an arg"
 
 let count_plain_args            = L.length $ (L.filter (not $ is_mapping)) 
 

@@ -26,7 +26,7 @@ type cnstrInfo                  =
 let cnstrInfo_of_cn cn initCode =   { cnstrCodeSize = size_of_program initCode
                                     ; cnstrArgsSize = argsSize_of_cn  cn
                                     ; cnstrArrsSize = L.length  (arrTys_of_cntrct cn)
-                                    ; cnstrArgTypes = L.map ty_of_var cn.cntrct_args                        }
+                                    ; cnstrArgTypes = L.map ty_of_var cn.fieldss                        }
 
                                                                         
 type dat                        =                                   (* The storage during the rntime looks like this:                *) 
@@ -205,15 +205,13 @@ let rec gen_arg_locs offset used_plains used_seeds num_plains = function
 
 (* this needs to take stor_cnstrArgs_begin *)
 let arg_locations offset (cn:ty cntrct) : int list =
-    let arg_tys       = L.map ty_of_var cn.cntrct_args in
-    assert (L.for_all fits_in_one_stor_slot arg_tys) ; 
-    let num_of_plains = count_plain_args arg_tys  in
+    let arg_tys       = L.map ty_of_var cn.fieldss      in
+    let num_of_plains = count_plain_args arg_tys            in
     let ret           = gen_arg_locs offset 0 0 num_of_plains arg_tys in 
     ret 
 
 let array_locations (cn:ty cntrct) : int list =
-    let arg_tys       = L.map ty_of_var cn.cntrct_args  in
-    assert (L.for_all fits_in_one_stor_slot arg_tys) ;
+    let arg_tys       = L.map ty_of_var cn.fieldss      in
     let num_of_plains = count_plain_args arg_tys            in
     let total_num     = L.length arg_tys                    in
     if total_num=num_of_plains 

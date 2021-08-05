@@ -14,10 +14,10 @@ type ce                             =   { stack_size    : int
 
 let extract_program ce              =   ce.program
 let lookup_cn_of_ce  ce  name       =   ce.lookup_cn name 
-let lookup_cn_of_cns cns name       =   lookup_idx (fun cn->cn.cntrct_id=name) cns
+let lookup_cn_of_cns cns name       =   lookup_idx (fun cn->cn.cn_id=name) cns
 let rec lookup_icn_of_icns icns nm  =   match icns with 
     | []                                -> err "lookup_icn_of_cns: Not Found"
-    | (i,cn)::_ when cn.cntrct_id=nm    -> (i,cn)  
+    | (i,cn)::_ when cn.cn_id=nm    -> (i,cn)  
     | _::rest                           -> lookup_icn_of_icns rest nm
 
 

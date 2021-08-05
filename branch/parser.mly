@@ -48,7 +48,7 @@ file:
     | list(cntrct) EOF                              { $1                                                        }
 
 cntrct:
-    | CONTRACT ID plist(arg)LBRACE list(mthd)RBRACE { reserved $2; Cntrct{mthds=$5; cntrct_id=$2; cntrct_args=$3}  }
+    | CONTRACT ID plist(arg)LBRACE list(mthd)RBRACE { reserved $2; Cntrct{mthds=$5; cn_id=$2; fieldss=$3}  }
     | EVENT    ID plist(evnt_arg) SEMI              { Event (TyEvnt($2,$3))                                     }
 
 mthd:

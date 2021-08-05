@@ -76,8 +76,8 @@ let arrTy_of_var                =   function
     | TyVar(id,TyMap(kTy,vTy))  ->  Some (id, kTy, vTy)
     | TyVar(_,_)                ->  None
 let argTys_of_vars              =   BL.filter_map argTy_of_var 
-let arrTys_of_cntrct cn         =   BL.filter_map arrTy_of_var (cn.cntrct_args)
-let argTys_of_cntrct cn         =   argTys_of_vars cn.cntrct_args
+let arrTys_of_cntrct cn         =   BL.filter_map arrTy_of_var (cn.fieldss)
+let argTys_of_cntrct cn         =   argTys_of_vars cn.fieldss
 
 let argsSize_of_cn cn           =   size_of_tys (L.map get_ty (argTys_of_cntrct cn))  
 
