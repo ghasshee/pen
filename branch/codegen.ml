@@ -260,7 +260,7 @@ let get_cntrct_pc ce =
 
 
 (*****   6.3.  setup ARGS         *****) 
-let mstore_cnstrArgs ce cn      =                     (* [mstore_cnstrArgs] copies cnstrArgs at the end of the bytecode into the memory.  *) 
+let mstore_fieldVars ce cn      =                     (* [mstore_fieldVars] copies fieldVars at the end of the bytecode into the memory.  *) 
     let size    = argsSize_of_cn cn                         in  (* M[0x40](==M[64]) is increased accordingly                              *)
     let ce      = PUSH32(Int size)                  >>ce    in  (*                                                             size >> .. *)
     let ce      = DUP1                              >>ce    in  (*                                                     size >> size >> .. *)
@@ -278,7 +278,7 @@ let check_codesize cnidx ce     =
                   throw_if_NEQ                        ce        (* IF not eq THEN error *) 
 
 
-let sstore_cnstrArgs ce idx     =                               
+let sstore_fieldVars ce idx     =                               
     let label   = fresh_label()                             in
     let exit    = fresh_label()                             in  (*                                                mem_start >> size >> .. *)  
     let ce      = check_codesize idx                  ce    in 
@@ -309,13 +309,13 @@ let sstore_cnstrArgs ce idx     =
 
 
 
-(*****   6.4. setup ARG ARRAYs     *****)                   
+(*****   6.4. setup ARRAY fields    *****)                   
 let reset_salloc_array ce = 
     let ce      = PUSH1 (Int 1)                     >>ce    in  (*                                           1 >> .. *)
     let ce      = DUP1                              >>ce    in  (*                                      1 >> 1 >> .. *)
                   SSTORE                            >>ce        (* S[1]:=1                                        .. *) 
 
-let salloc_argArr ce (arrArgLoc:int) =   
+let salloc_fieldArr ce (arrArgLoc:int) =   
     let label   = fresh_label()                             in  (*                                                .. *) 
     let ce      = PUSH4 (Int arrArgLoc)             >>ce    in  (*                                        seed >> .. *)
     let ce      = SLOAD                             >>ce    in  (*                                     S[seed] >> .. *) 
@@ -326,7 +326,7 @@ let salloc_argArr ce (arrArgLoc:int) =
     let ce      = SSTORE                            >>ce    in  (* S[seed]:=S[1]                                  .. *)
                   JUMPDEST label                    >>ce        (*                                                .. *)
 
-let init_salloc_argArr_if_not ce = 
+let init_salloc_fieldArr_if_not ce = 
     let label   = fresh_label ()                            in  (*                                                   *) 
     let ce      = PUSH1 (Int 1)                     >>ce    in  (*                                                   *) 
     let ce      = SLOAD                             >>ce    in  (*                                                   *)
@@ -335,10 +335,10 @@ let init_salloc_argArr_if_not ce =
     let ce      = reset_salloc_array                  ce    in  (*                                      1 >> 1 >> .. *) 
                   JUMPDEST label                    >>ce    
 
-let setup_argArrays ce cn =
-    let ce      = init_salloc_argArr_if_not           ce    in   
+let setup_fieldArrs ce cn =
+    let ce      = init_salloc_fieldArr_if_not         ce    in   
     let arrLocs = SL.array_locations cn                     in  
-                  foldl salloc_argArr ce arrLocs 
+                  foldl salloc_fieldArr ce arrLocs 
 (*  S[0]   : PC                                                 *)  
 (*  S[1]   := m   <----- array seed                             *)  
 (*  S[2]   :      <- arg1 : the value is stored in message call *) 
@@ -371,9 +371,9 @@ let codegen_cnstr_bytecode cns idx = (* return ce which contains the program *)
     let cn      =   lookup_index idx cns                      in 
     let ce      =   empty_ce (lookup_cn_of_cns cns) cns       in  (*                                                                                 *)
     let ce      =   init_malloc                     ce        in  (* M[64] := 96                                                                     *)
-    let ce      =   mstore_cnstrArgs                ce cn     in  (*                                            alloc(argssize) << argssize << ..    *)
-    let ce      =   sstore_cnstrArgs                ce idx    in  (* S[i..i+sz-1]:= argCodes               i << alloc(argssize) << argssize << ..    *)
-    let ce      =   setup_argArrays                 ce cn     in  (* S[1]        := #array                 i << alloc(argssize) << argssize << ..    *)
+    let ce      =   mstore_fieldVars                ce cn     in  (*                                            alloc(argssize) << argssize << ..    *)
+    let ce      =   sstore_fieldVars                ce idx    in  (* S[i..i+sz-1]:= argCodes               i << alloc(argssize) << argssize << ..    *)
+    let ce      =   setup_fieldArrs                 ce cn     in  (* S[1]        := #array                 i << alloc(argssize) << argssize << ..    *)
     let ce      =   set_cntrct_pc                   ce idx    in  (* S[PC]       := rntime_cn_offst (returned body)                                  *)
     let ce      =   mstore_rntimeCode               ce idx    in  (*                                      alloc(codesize) << codesize << i <<  ..    *)
                     RETURN                        >>ce            (* OUTPUT(M[code]) as The BODY code                                    i <<  ..    *)
@@ -806,7 +806,7 @@ and cont_call le ce (layt:SL.storLayout) (EpCall cont,_) =
     let cn      =   cont.call_id                        in
     let args    =   cont.call_args                      in
     let idx     =   lookup_cn_of_ce ce cn               in 
-    let offset  =   (layt.cnstrArgs idx).offst          in  
+    let offset  =   (layt.fieldVars idx).offst          in  
     let ce      =   set_cntrct_pc ce idx                in  (* S[PC] := rntime_offset_of_cntrct                              .. *) 
                     sstore_args le ce offset idx args       (* S[l_k]:=argk; .. ; S[l_1]:=arg1                               .. *)
 
