@@ -600,11 +600,11 @@ and codegen_expr le ce aln          = function
     | EpArray a_i   ,TyMap _            ->  let ce      =       codegen_array a_i le ce                 in  (*            S[keccak(a[i])] >> .. *)
                                             assert(aln=R);      salloc_array a_i le ce                      (*                     S[1]++ >> .. *)
     | EpArray a     ,      _            ->  assert(aln=R);      codegen_array a   le ce                     (*               S[keccak(a)] >> .. *)
-    | EpIdent id    ,ty                 ->  (match lookup le id with | Some loc     ->  
-                                            let ce      =       push_loc ce aln ty loc                  in  (*                        loc >> .. *)
-                                            begin match ty with
-                                            | TyMap _   ->      salloc_array_of_loc le ce loc               (*                               .. *)
-                                            | _         ->      ce                                      end)
+    | TmId id       ,TyMap(a,b)         ->  begin match lookup le id with | Some loc -> 
+                                            let ce      =       push_loc ce aln(TyMap(a,b))loc          in 
+                                                                salloc_array_of_loc le ce loc           end 
+    | TmId id       ,ty                 ->  begin match lookup le id with | Some loc     ->  
+                                                                push_loc ce aln ty loc                  end (*                        loc >> .. *)
     | EpDeref(ref,tyR),ty               ->  let size    =       size_of_ty ty                           in
                                             assert (size<=32 && tyR=TyRef ty && aln=R) ;                (* assuming word-size *)
                                             let ce      =       (ref,tyR)               >>>>(R,le,ce)   in  (* pushes the pointer *)

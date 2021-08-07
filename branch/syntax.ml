@@ -78,6 +78,7 @@ and  'ty stmt                   =
 and  'ty exprTy                =   'ty expr * 'ty
 
 and  'ty expr                   =   EpParen             of 'ty exprTy
+                                |   TmId                of string
                                 |   TmAbort 
                                 |   TmDecl              of 'ty decl 
                                 |   TmSlfDstrct         of 'ty exprTy
@@ -97,7 +98,6 @@ and  'ty expr                   =   EpParen             of 'ty exprTy
                                 |   EpUint256           of big_int
                                 |   EpUint8             of big_int
                                 |   EpNow
-                                |   EpIdent             of string
                                 |   EpCall              of 'ty _call
                                 |   EpNew               of 'ty _new
                                 |   EpSend              of 'ty _send                    (* storage solidation *) 
@@ -174,12 +174,12 @@ let string_of_expr              = function
     (*| TmReturn(_,_)             -> "return"*)
     | TmLog(_,_,_)              -> "log"
     | TmSlfDstrct _             -> "selfdestruct"
+    | TmId        str           -> "id " ^ str
     | EpThis                    -> "this"
     | EpArray       _           -> "a[idx]"
     | EpSend        _           -> "send"
     | EpNew         _           -> "new"
     | EpParen       _           -> "()"
-    | EpIdent     str           -> "ident " ^ str
     | EpCall      _             -> "call"
     | EpNow                     -> "now"
     | EpSender                  -> "sender"
@@ -279,7 +279,7 @@ and  'ty expr                   =   EpParen             of 'ty exprTy
                                 |   EpUint256           of big_int
                                 |   EpUint8             of big_int
                                 |   EpNow
-                                |   EpIdent             of string
+                                |   TmId             of string
                                 |   EpCall              of 'ty _call
                                 |   EpNew               of 'ty _new
                                 |   EpSend              of 'ty _send

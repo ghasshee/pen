@@ -122,7 +122,7 @@ expr:
     | BALANCE LPAR  expr RPAR                       { fun ctx -> EpBalance ($3 ctx)                                     ,() }
     | NOW     LPAR BLOCK RPAR                       { fun ctx -> EpNow                                                  ,() }
     | ADDRESS LPAR  expr RPAR                       { fun ctx -> EpAddr ($3 ctx)                                        ,() }
-    | ID                               { reserved $1; fun ctx -> EpIdent $1                                             ,() }
+    | ID                               { reserved $1; fun ctx -> TmId $1                                             ,() }
     | ID  expr_list                                 { fun ctx -> EpCall{call_id=$1;call_args=$2 ctx}                    ,() }
     | NEW ID expr_list msg             { reserved $2; fun ctx -> EpNew {new_id=$2;new_args=$3 ctx; new_msg=$4 ctx}      ,() }
     | expr DOT DEFAULT LPAR RPAR msg                { fun ctx -> EpSend{sd_cn=$1 ctx; sd_mthd=None   ; sd_args=[]    ; sd_msg=$6 ctx},            ()  }

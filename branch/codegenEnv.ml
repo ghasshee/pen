@@ -88,7 +88,7 @@ and expr_become e               =   match fst e with
     | EpTrue | EpFalse | EpNow 
     | EpThis | EpValue | EpSender 
     | EpUint256   _  | EpUint8 _ 
-    | EpIdent       _           ->  []
+    | TmId       _           ->  []
     | EpParen       e         
     | EpAddr        e         
     | EpNot         e         

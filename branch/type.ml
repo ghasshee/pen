@@ -20,7 +20,7 @@ let typeof_cntrct  cn           =   TyCntrct(cn.cn_id,L.map ty_of_var cn.fieldss
 let typeof_cntrcts              =   map typeof_cntrct 
 
 let id_lookup_ty ctx id         =   match lookup_id id ctx with
-    | Some tyT                      ->  EpIdent id, tyT
+    | Some tyT                      ->  TmId id, tyT
     | None                          ->  err ("unknown identifier "^id)
 
 let tycn_has_name  name         =   function TyCntrct(id,_,_) -> id=name     
@@ -105,7 +105,7 @@ and addTy_expr cns cname ctx (expr,()) =    match expr with
                                         EpAddr e        , TyAddr
     | EpCall    c                   ->  let c,ty    =   addTy_call cns cname ctx c          in
                                         EpCall c        , ty
-    | EpIdent     s                 ->  id_lookup_ty ctx s
+    | TmId     s                 ->  id_lookup_ty ctx s
     | EpBalance   e                 ->  let e       =   addTy_expr cns cname ctx e          in
                                         assert (tyeqv TyAddr (get_ty e));
                                         EpBalance e     , TyUint256
