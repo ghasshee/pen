@@ -10,7 +10,7 @@ OBJS = 	misc.cmo indexList.cmo \
 		crypto.cmo \
 		locationEnv.cmo \
 		abi.cmo \
-		storLayout.cmo \
+		layout.cmo \
 		codegenEnv.cmo \
 		type.cmo \
 		eval.cmo \

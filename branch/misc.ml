@@ -43,7 +43,7 @@ let rec last                = function
     | x::xs                 -> last xs
 
 let (++)                    = append
-let length                  = length
+let len                     = length
 
 (*****************************************)
 (**        POLYMORPHIC FUNCTIONS        **)

@@ -27,20 +27,19 @@ let cnstrInfo_of_cn cn initCode =   { cnstrCodeSize = size_of_program initCode
                                     ; fieldArrsSize = L.length  (arrTys_of_cntrct cn)
                                     ; fieldTypes    = L.map ty_of_var cn.fieldss                        }
                                                                         
-type dat                        =                                   (* The storage during the rntime looks like this:                *) 
-                                { offst             : int           (*                                                               *) 
-                                ; size              : int         } (*  S[0]  := PROGRAM COUNTER                                     *)
-                                                                    (*  S[1]  := ARRAY SEED COUNTER                                  *)
-                                                                    (*  S[2]  := pod cntrct arg0   --+                ---+           *)
-type storLayout                 =                                   (*  S[3]  := pod cntrct arg1     |                   |           *)
-                                { pc                : int           (*  S[4]  := pod cntrct arg2     | ( k ) args        |           *)                     
-                                ; ac                : int           (*   ...                         |                   | n args    *)                  
-                                ; cnidxs            : idx list      (*  S[k+1]:= pod cntrct argk-1 --+                   |           *)    
-                                ; cnstrSize         : idx -> int    (*  S[k+2]:= array0's seed     --+                   |           *)    
-                                ; fieldVars         : idx -> dat    (*   ...                         | (n-k) arrSeeds    |           *)    
-                                ; fieldArrs         : idx -> dat  } (*  S[n+1]:= arraym's seed     --+                ---+           *)    
-                                                                    (*                                                               *)    
-                                                                    (* array elements are placed at the same location as in Solidity *)    
+                                                                        (* The storage during the rntime looks like this:                *) 
+                                                                        (*                                                               *) 
+                                                                        (*  S[0]  := PROGRAM COUNTER                                     *)
+                                                                        (*  S[1]  := ARRAY SEED COUNTER                                  *)
+type storLayout                 =                                       (*  S[2]  := pod cntrct arg0   --+                ---+           *)
+                                { pc                : int               (*  S[3]  := pod cntrct arg1     | ( k ) args        |           *)                     
+                                ; ac                : int               (*   ...                         |                   | n args    *)                  
+                                ; cnidxs            : idx list          (*  S[k+1]:= pod cntrct argk-1 --+                   |           *)    
+                                ; cnstrSize         : idx -> int        (*  S[k+2]:= array0's seed     --+                   |           *)    
+                                ; fieldVars         : idx -> int data   (*   ...                         | (n-k) arrSeeds    |           *)    
+                                ; fieldArrs         : idx -> int data } (*  S[n+1]:= arraym's seed     --+                ---+           *)    
+                                                                        (*                                                               *)    
+                                                                        (* array elements are placed at the same location as in Solidity *)    
                                                        
 let compute_cnstrSize l idx     =   (lookup_index idx l).cnstrCodeSize
 
@@ -108,8 +107,8 @@ let rec realize_imm cnLayt (init_idx:idx) = function
     | Int i                         ->  big i
     | Label l                       ->  big (Label.lookup_label l)
     | StorPCIndex                   ->  big (cnLayt.sl.pc)
-    | StorCnstrArgsBegin    idx     ->  big (cnLayt.sl.fieldVars idx).offst
-    | StorCnstrArgsSize     idx     ->  big (cnLayt.sl.fieldVars idx).size
+    | StorFieldsBegin    idx     ->  big (cnLayt.sl.fieldVars idx).offst
+    | StorFieldsSize     idx     ->  big (cnLayt.sl.fieldVars idx).size
     | InitDataSize          idx     ->  big (cnLayt.initDataSize idx)
     | RntimeCodeOffset      idx     ->  big (rntimeCode_offset cnLayt.sl idx)
     | RntimeCodeSize                ->  big (cnLayt.rntimeCodeSize)

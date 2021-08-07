@@ -9,7 +9,7 @@ open Big_int
 module Psr    = BatOptParse.OptParser
 module Option = BatOptParse.Opt
 module StdOpt = BatOptParse.StdOpt
-module LI     = StorLayout
+module LI     = Layout
 module L      = List
 
 (* The following two functions comes from

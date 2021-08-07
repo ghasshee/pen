@@ -3,6 +3,12 @@ open Hexa
 open Big_int
 open IndexList
 
+
+type 'a data                    =   
+                                {   offst   : 'a
+                                ;   size    : 'a
+                                }
+                                    
 (**********************************)
 (*  IMMEDIATE VALUES ON STACK     *) 
 (**********************************)
@@ -11,8 +17,8 @@ type imm                        =
                                 | Int                       of int
                                 | Label                     of Label.label
                                 | StorPCIndex
-                                | StorCnstrArgsBegin        of idx
-                                | StorCnstrArgsSize         of idx    (* the size depends on the cntrct id *)
+                                | StorFieldsBegin           of int
+                                | StorFieldsSize            of int    (* the size depends on the cntrct id *)
                                 | InitDataSize              of idx
                                 | RntimeCntrctOffset        of idx    (* This index should be a JUMPDEST *)
                                 | RntimeMthdLabel           of idx * Syntax.ty
@@ -27,8 +33,8 @@ let rec string_of_imm           =   function
   | Int i                           -> "(Int "^(string_of_int i)^")"
   | Label _                         -> "Label (print label here)"
   | StorPCIndex                     -> "StorPCIndex"
-  | StorCnstrArgsBegin _            -> "StorCnstrArgBegin (print cntrct id)"
-  | StorCnstrArgsSize _             -> "StorCnstrArgsSize (print cntrct id)"
+  | StorFieldsBegin _            -> "StorFieldBegin (print cntrct id)"
+  | StorFieldsSize _             -> "StorFieldsSize (print cntrct id)"
   | InitDataSize idx                -> "InitDataSize (print cntrct id here)"
   | RntimeCntrctOffset _            -> "RntimeCntrctOffset (print contact id)"
   | RntimeMthdLabel(idx,header)     -> "RntimeMthdLabel (print cntrct id, case header)"
@@ -49,23 +55,15 @@ let is_const_int (i:int)        =   is_const_big (big i)
 (**********************************)
 (*         LOCATION               *) 
 (**********************************)
-type 'imm code_range            =   { code_start        : 'imm  (* byte *)
-                                    ; code_size         : 'imm  (* byte *)  }
-                                
-type 'imm stor_range            =   { stor_start        : 'imm  (* word *)
-                                    ; stor_size         : 'imm  (* word *)  }
-                                
-type calldata_range             =   { calldata_start    : int
-                                    ; calldata_size     : int               }
 
-type location                   =   Code          of imm code_range
-                                |   Stor          of imm stor_range
-                                |   Calldata      of calldata_range
+type location                   =   Code          of imm data 
+                                |   Stor          of imm data 
+                                |   Calldata      of int data 
                                 |   Stack         of int
 
 let string_of_location          =   function 
     | Stor _                        -> "Storage ..."
     | Code _                        -> "Code ..."
-    | Calldata c                    -> Printf.sprintf "Calldata offset %d, size %d" c.calldata_start c.calldata_size
+    | Calldata c                    -> Printf.sprintf "Calldata offset %d, size %d" c.offst c.size
     | Stack i                       -> Printf.sprintf "Stack %d" i
 

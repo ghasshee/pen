@@ -20,7 +20,7 @@ open Type
 module Eth  = Crypto 
 module BL   = BatList
 module L    = List
-module SL   = StorLayout
+module SL   = Layout
 
 
 (******************************************************)
@@ -59,12 +59,11 @@ let repeat opcode n ce = foldn n ((>>)opcode) ce
 (***     2. STACK OPERATIONS                        ***)
 (******************************************************)
 
-let push_storRange ce (range : imm stor_range) =
-    let i = match range.stor_size with | Big b -> string_of_big b | Int i -> string_of_int i in 
+let push_storRange ce (data : imm data) =
+    let i = match data.size with | Big b -> string_of_big b | Int i -> string_of_int i in 
     printf "stor_size is %s\n" i ; 
-    assert (is_const_int 1 range.stor_size) ; 
-    let offset  = range.stor_start                          in
-    let ce      =   PUSH32 offset                   >>ce    in
+    assert (is_const_int 1 data.size) ; 
+    let ce      =   PUSH32 data.offst               >>ce    in
                     SLOAD                           >>ce 
 
 let dup_nth_from_bottom n ce  =
@@ -100,11 +99,9 @@ let sincr (idx : int) ce =
     let ce    = PUSH1(Int idx)                      >>ce    in  (*                    i >> S[i]+1 >> S[i] >> .. *) 
                 SSTORE                              >>ce        (* S[i]:=S[i]+1                      S[i] >> .. *) 
 
-let calldataload ce (range : calldata_range) =
-    let start = range.calldata_start                        in 
-    let size  = range.calldata_size                         in 
-    assert (0 < size && size <= 32);
-    let ce    = PUSH4 (Int start)                   >>ce    in
+let calldataload ce data =
+    assert (0 < data.size && data.size <= 32);
+    let ce    = PUSH4 (Int data.offst)              >>ce    in
                 CALLDATALOAD                        >>ce  
 
 let keccak_cat ce =                                             (*                                               a >> b >> .. *) 
@@ -282,7 +279,7 @@ let sstore_fieldVars ce idx     =
     let label   = fresh_label()                             in
     let exit    = fresh_label()                             in  (*                                                mem_start >> size >> .. *)  
     let ce      = check_codesize idx                  ce    in 
-    let ce      = PUSH32(StorCnstrArgsBegin idx)    >>ce    in  (*                                         idx >> mem_start >> size >> .. *)
+    let ce      = PUSH32(StorFieldsBegin idx)    >>ce    in  (*                                         idx >> mem_start >> size >> .. *)
     let ce   = JUMPDEST label                       >>ce    in  (*                                         idx >> mem_start >> size >> .. *)
     let ce      = DUP3                              >>ce    in  (*                                 size >> idx >> mem_start >> size >> .. *)
     let ce      = if_0_GOTO exit                      ce    in  (* IF size==0 THEN GOTO exit               idx >> mem_start >> size >> .. *)   
@@ -539,10 +536,9 @@ and salloc_array aa le ce           =
     let push    =   keccak_of_aa aa le                                  in  (*                                        S[storIdx] >> .. *)
                     salloc_array_of_push push ce                            (* S[storIdx]:= newSeed                      newSeed >> .. *)     
                                                                           
-and salloc_array_of_loc le ce(Stor rg) =       
-    assert(rg.stor_size=Int 1) ;
-    let storIdx =   rg.stor_start                                       in  (*                                        S[storIdx] >> .. *)     
-    let push ce =   PUSH32 storIdx                      >>ce            in  
+and salloc_array_of_loc le ce(Stor data) =       
+    assert(data.size=Int 1) ;                                               (*                                        S[storIdx] >> .. *)     
+    let push ce =   PUSH32 data.offst                   >>ce            in  
                     salloc_array_of_push push             ce                (* S[storIdx]:= newSeed                      newSeed >> .. *)     
 
 and salloc_array_of_push push_array_seed ce =   
@@ -881,7 +877,7 @@ let codegen_mthd_argLen_chk m ce = match m with
 let codegen_mthd layout idx (le,ce) m =
     let ce      = label_mthd  idx m.mthd_head         ce        in
     let ce      = codegen_mthd_argLen_chk m.mthd_head ce        in
-    let le      = add_emptyEnv                     le           in
+    let le      = add_empty_ll                     le           in
     let le      = add_mthd_argLocs    m            le           in
     let le,ce   = codegen_stmts m.mthd_body layout le ce        in
     le,ce
