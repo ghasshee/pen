@@ -5,7 +5,7 @@ open Crypto
 (*************************) 
 open Location 
 open Syntax
-open IndexList
+open Misc
 open Printf 
 
 module L  = List

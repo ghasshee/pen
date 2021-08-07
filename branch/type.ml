@@ -1,8 +1,7 @@
 open Printf 
 open Misc 
 open Syntax
-open IndexList
-open TypeEnv
+open Context
 open CodegenEnv
 
 module BL   = BatList

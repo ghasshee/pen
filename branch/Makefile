@@ -1,14 +1,11 @@
 DEPEND += lexer.ml parser.ml
-OBJS = 	misc.cmo indexList.cmo \
-		spt.cmo sytx.cmo subtype.cmo ty.cmo\
-		hexa.cmo \
+OBJS = 	misc.cmo \
 		syntax.cmo \
 		label.cmo \
 		location.cmo \
 		evm.cmo \
-		typeEnv.cmo \
+		context.cmo \
 		crypto.cmo \
-		locationEnv.cmo \
 		abi.cmo \
 		layout.cmo \
 		codegenEnv.cmo \

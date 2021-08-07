@@ -3,9 +3,8 @@ open Printf
 open Misc
 open Syntax
 open Label
-open IndexList
 open Location
-open TypeEnv 
+open Context 
 open Evm 
 
 module BL   = BatList

@@ -4,17 +4,16 @@
 (* MLOAD  :=   x=pop() ; push M[x]          *) 
 (* CODECOPY  to from len :=  M[to .. to+len-1]=I_b[from .. from+len-1]  *)
 
-open Label
-open Big_int
 open Printf 
+open Big_int
+
 open Misc
-open IndexList
+open Label
+open Syntax
 open Location
 open CodegenEnv
-open LocationEnv
 open Evm
-open Syntax
-open TypeEnv
+open Context
 open Type
 
 module Eth  = Crypto 

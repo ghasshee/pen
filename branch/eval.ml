@@ -1,10 +1,6 @@
-open Spt
-open Sytx
-open Ty
-open Subtype
 open Format
 
-
+(*
 exception NoRuleApplies
 
 (* --------------------- STORE ---------------------- *)
@@ -171,6 +167,6 @@ let rec process_commands ctx store = function
 
 *) 
 
-
+*)
 
 let eval a = a 

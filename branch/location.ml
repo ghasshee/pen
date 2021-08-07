@@ -1,7 +1,5 @@
 open Misc
-open Hexa 
 open Big_int
-open IndexList
 
 
 type 'a data                    =   

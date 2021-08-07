@@ -1,10 +1,9 @@
 (* CE := Codegen Environment *)
 
 open Printf 
-open Syntax
-open IndexList
-open Evm 
 open Misc
+open Syntax
+open Evm 
 
 
 type ce                             =   { stack_size    : int

@@ -2,7 +2,6 @@
 open    Printf 
 open    Misc
 open    Syntax
-open    IndexList
 open    Location
 
 module  L   = List

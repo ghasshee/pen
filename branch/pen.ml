@@ -1,9 +1,9 @@
+open Misc
 open Lexer
 open Lexing
 open Printf
 open Syntax
 open Codegen
-open IndexList
 open Big_int
 
 module Psr    = BatOptParse.OptParser
