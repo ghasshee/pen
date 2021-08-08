@@ -41,13 +41,12 @@ let binds_of_vars               =   L.map bind_of_var
 
 let add_local ctx local         =   BdCtx   local :: ctx 
 let add_retTy ctx retTy         =   BdRetTy retTy :: ctx 
-let add_evnts ctx evs           =   foldr (L.cons $ bind_of_ev) evs ctx  
+let add_evnts ctx evs           =   foldl (fun xs x -> (L.cons $ bind_of_ev)x xs) ctx evs  
 
 let rec add_var  ctx id ty      =   match ctx with 
     | []                            -> err "no current scope" 
     | BdCtx local:: rest            -> BdCtx (BdTy(id,ty)::local) :: rest 
     | _ :: rest                     -> add_var rest id ty
-
 
 (************************************************)
 (**         LL := LOCAL    LOCATIONs           **)

@@ -194,23 +194,23 @@ let realize_opcode cnLayt (init_idx:idx) (i:imm Evm.opcode) = Evm.(match i with
 
 let realize_program l init_idx p = L.map (realize_opcode l init_idx) p
 
-let rec gen_arg_locs offset used_plains used_seeds num_plains = function 
+let rec gen_field_locs offset used_plains used_seeds num_plains = function 
     | []        ->  []
     | ty::tys   ->  if is_mapping ty
-                    then (offset + num_plains + used_seeds) :: gen_arg_locs offset used_plains (used_seeds+1) num_plains tys
-                    else (offset + used_plains)             :: gen_arg_locs offset (used_plains+1) used_seeds num_plains tys
+                    then (offset + num_plains + used_seeds) :: gen_field_locs offset used_plains (used_seeds+1) num_plains tys
+                    else (offset + used_plains)             :: gen_field_locs offset (used_plains+1) used_seeds num_plains tys
 
 (* this needs to take stor_fieldVars_begin *)
-let arg_locations offset (cn:ty cntrct) : int list =
-    let arg_tys       = L.map ty_of_var cn.fields       in
-    let num_of_plains = count_plain_args arg_tys            in
-    let ret           = gen_arg_locs offset 0 0 num_of_plains arg_tys in 
+let fieldVar_locations offset (cn:ty cntrct) : int list =
+    let field_tys     = L.map ty_of_var cn.fields       in
+    let num_of_plains = count_plain_args field_tys      in
+    let ret           = gen_field_locs offset 0 0 num_of_plains field_tys in 
     ret 
 
-let array_locations (cn:ty cntrct) : int list =
-    let arg_tys       = L.map ty_of_var cn.fields       in
-    let num_of_plains = count_plain_args arg_tys            in
-    let total_num     = L.length arg_tys                    in
+let fieldArr_locations (cn:ty cntrct) : int list =
+    let field_tys     = L.map ty_of_var cn.fields       in
+    let num_of_plains = count_plain_args field_tys      in
+    let total_num     = L.length field_tys              in
     if total_num=num_of_plains 
         then []
         else BL.(range (2 + num_of_plains) `To (total_num + 1))

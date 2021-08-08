@@ -2,6 +2,9 @@
 open Big_int
 open Misc
 
+module L = List
+module S = String 
+
 type 'imm opcode = 
     | STOP      | ADD       | MUL       | SUB       | DIV       | SDIV              (*   0s *)
     | MOD       | SMOD      | ADDMOD    | MULMOD    | EXP       | SIGNEXTEND
@@ -24,69 +27,55 @@ type 'imm opcode =
 
 type 'imm program       = 'imm opcode list
 
-let num_opcodes         = List.length
+let num_opcodes         = L.length
 
 let empty_program       = []
 
 (** The program is stored in the reverse order *)
 (* let append_inst orig i = i :: orig *) 
 
-let to_list (p : 'imm program) =
-  List.rev p
+let to_list (p : 'imm program) = L.rev p
 
 let stack_popped = function
-  | PUSH1 _|PUSH4 _|PUSH32 _            -> 0
-  | NOT                                 -> 1
-  | TIMESTAMP                           -> 0
-  | ISZERO                              -> 1
-  | LT|GT|EQ                            -> 2
-  | BALANCE                             -> 1
-  | STOP                                -> 0
-  | ADD|SUB|MUL|DIV|SDIV|MOD|SMOD|EXP   -> 2 
-  | ADDMOD|MULMOD                       -> 3
-  | SIGNEXTEND                          -> 2
-  | SHA3                                -> 2
-  | ADDRESS|ORIGIN|CALLER|CALLVALUE     -> 0
-  | CALLDATALOAD                        -> 1
-  | CALLDATASIZE                        -> 0
-  | CALLDATACOPY                        -> 3
-  | CODESIZE                            -> 0
-  | CODECOPY                            -> 3
-  | EXTCODESIZE                         -> 1
-  | EXTCODECOPY                         -> 4
-  | POP                                 -> 1
-  | MLOAD                               -> 1
-  | MSTORE|MSTORE8                      -> 2
-  | SLOAD                               -> 1
-  | SSTORE                              -> 2
-  | JUMP                                -> 1
-  | JUMPI                               -> 2
-  | PC|MSIZE|GAS|GASPRICE               -> 0
-  | JUMPDEST _                          -> 0
-  | SWAP1                               -> 2
-  | SWAP2                               -> 3
-  | SWAP3                               -> 4
-  | SWAP4                               -> 5
-  | SWAP5                               -> 6
-  | SWAP6                               -> 7
-  | LOG0                                -> 2
-  | LOG1                                -> 3
-  | LOG2                                -> 4
-  | LOG3                                -> 5
-  | LOG4                                -> 6
-  | CREATE                              -> 3
-  | CALL                                -> 7
-  | CALLCODE                            -> 7
-  | RETURN                              -> 2
-  | DELEGATECALL                        -> 7
-  | SELFDESTRUCT                        -> 1
-  | DUP1                                -> 1
-  | DUP2                                -> 2
-  | DUP3                                -> 3
-  | DUP4                                -> 4
-  | DUP5                                -> 5
-  | DUP6                                -> 6
-  | DUP7                                -> 7
+  | PUSH1 _|PUSH4 _|PUSH32 _                        -> 0
+  | NOT | ISZERO                                    -> 1
+  | ADDMOD|MULMOD                                   -> 3
+  | ADD|SUB|MUL|DIV|SDIV|MOD|SMOD|EXP|SHA3|LT|GT|EQ -> 2 
+  | STOP|ADDRESS|ORIGIN|CALLER|CALLVALUE|TIMESTAMP  -> 0
+  | CODESIZE|CALLDATASIZE                           -> 0
+  | PC|MSIZE|GAS|GASPRICE                           -> 0
+  | JUMPDEST _                                      -> 0
+  | SIGNEXTEND                                      -> 2
+  | BALANCE                                         -> 1
+  | CALLDATALOAD                                    -> 1
+  | CALLDATACOPY | CODECOPY                         -> 3
+  | EXTCODESIZE                                     -> 1
+  | EXTCODECOPY                                     -> 4
+  | MSTORE|MSTORE8|SSTORE|RETURN                    -> 2
+  | MLOAD|SLOAD|POP                                 -> 1
+  | JUMP                                            -> 1
+  | JUMPI                                           -> 2
+  | SWAP1                                           -> 2
+  | SWAP2                                           -> 3
+  | SWAP3                                           -> 4
+  | SWAP4                                           -> 5
+  | SWAP5                                           -> 6
+  | SWAP6                                           -> 7
+  | LOG0                                            -> 2
+  | LOG1                                            -> 3
+  | LOG2                                            -> 4
+  | LOG3                                            -> 5
+  | LOG4                                            -> 6
+  | CREATE                                          -> 3
+  | CALL | CALLCODE | DELEGATECALL                  -> 7
+  | SELFDESTRUCT                                    -> 1
+  | DUP1                                            -> 1
+  | DUP2                                            -> 2
+  | DUP3                                            -> 3
+  | DUP4                                            -> 4
+  | DUP5                                            -> 5
+  | DUP6                                            -> 6
+  | DUP7                                            -> 7
 
 
 let stack_pushed = function
@@ -215,22 +204,22 @@ let string_of_opcode string_of_push = function
   | opcode          -> string_of_push opcode
 
 let string_of_push_big = function
-  | PUSH1 v         -> "PUSH1 " ^(string_of_hex (hex_of_big_int v  1))(*(Location.string_of_imm v)*)
-  | PUSH4 v         -> "PUSH4 " ^(string_of_hex (hex_of_big_int v  4))(*(Location.string_of_imm v)*)
-  | PUSH32 v        -> "PUSH32 "^(string_of_hex (hex_of_big_int v 32))(*(Location.string_of_imm v)*)
+  | PUSH1  v        -> "PUSH1 " ^ string_of_hex (hex_of_big_int v  1)
+  | PUSH4  v        -> "PUSH4 " ^ string_of_hex (hex_of_big_int v  4)
+  | PUSH32 v        -> "PUSH32 "^ string_of_hex (hex_of_big_int v 32)
 
 let string_of_opcode_big = string_of_opcode string_of_push_big
 
 let string_of_push_imm = function
-  | PUSH1 v         -> "PUSH1 " ^ Location.string_of_imm v
-  | PUSH4 v         -> "PUSH4 " ^ Location.string_of_imm v
+  | PUSH1  v        -> "PUSH1 " ^ Location.string_of_imm v
+  | PUSH4  v        -> "PUSH4 " ^ Location.string_of_imm v
   | PUSH32 v        -> "PUSH32 "^ Location.string_of_imm v
 
 let string_of_opcode_imm = string_of_opcode string_of_push_imm
 
 
 
-let string_of_opcodes_big p = String.concat""  (List.map(fun op->string_of_opcode_big op^"\n")(to_list p))
+let string_of_opcodes_big p = S.concat""  (L.map(fun op->string_of_opcode_big op^"\n")(to_list p))
 let pr_opcodes_big        p = Printf.printf"%s"(string_of_opcodes_big p) 
 
 let hex_of_opcode = 
@@ -316,13 +305,12 @@ let log = function
   | _               -> failwith "too many indexed args for an evnt"
 
 let endline h = hex_of_string ( string_of_hex h ^ "\n")
-(*let rev_append_op (h:hex)(i:big_int opcode) = concat_hex (hex_of_opcode i) h *)
-let hex_of_program      (p : big program) = foldl (fun h i->concat_hex(hex_of_opcode          i )h) empty_hex p
-let hex_of_program_ln   (p : big program) = foldl (fun h i->concat_hex(endline (hex_of_opcode i))h) empty_hex p
-let string_of_program_ln(p : big program) = foldl (fun h i-> hex_of_string ((^) (string_of_opcode_big i^"\n")(string_of_hex h))) empty_hex p 
-let pr_encoded          (p : big program) = pr_hex        ~prefix:"0x" (hex_of_program p) 
-let prLn_encoded        (p : big program) = pr_hex        ~prefix:"0x" (string_of_program_ln p) 
-let encode_program      (p : big program) = string_of_hex ~prefix:"0x" (hex_of_program p) 
+let hex_of_program      (p) = foldl (fun h i->concat_hex(hex_of_opcode          i )h) empty_hex p
+let hex_of_program_ln   (p) = foldl (fun h i->concat_hex(endline (hex_of_opcode i))h) empty_hex p
+let string_of_program_ln(p) = foldl (fun h i-> hex_of_string ((^) (string_of_opcode_big i^"\n")(string_of_hex h))) empty_hex p 
+let pr_encoded          (p) = pr_hex        ~prefix:"0x" (hex_of_program p) 
+let prLn_encoded        (p) = pr_hex        ~prefix:"0x" (string_of_program_ln p) 
+let encode_program      (p) = string_of_hex ~prefix:"0x" (hex_of_program p) 
 
 let size_of_opcode  = function 
   | PUSH1 _         -> 2
@@ -330,7 +318,7 @@ let size_of_opcode  = function
   | PUSH32 _        -> 33
   | _               -> 1
 
-let size_of_program p = List.fold_left (fun a i -> a + size_of_opcode i) 0 p 
+let size_of_program p = foldl (fun a i -> a + size_of_opcode i) 0 p 
 
 let dup_succ       = function 
   | 0               -> DUP1
