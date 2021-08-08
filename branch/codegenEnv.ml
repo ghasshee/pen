@@ -29,7 +29,7 @@ let code_len       ce               =   size_of_program ce.program
 let stack_size     ce               =   ce.stack_size
 let set_stack_size ce i             =   { ce with stack_size = i }
 
-let cntrct_lookup ce idx            =   try lookup_index idx ce.cntrcts
+let cntrct_lookup ce idx            =   try lookup idx ce.cntrcts
                                         with e ->   Printf.eprintf "cntrct_lookup failed on %d\n%!" idx; 
                                                     pr_idx_mapping(fun x->x)(idxs ce.cntrcts); raise e;;
 
@@ -116,11 +116,11 @@ let become cn             =   mthds_become cn.mthds
 let lookup_mthd_info_in_cntrct cn mname =
     let mthd = L.filter (fun c -> match c.mthd_head with
                         | TyDefault  -> false
-                        | TyMethod(id,_,_) -> id=mname) cn.mthds in
+                        | TyMthd(id,_,_) -> id=mname) cn.mthds in
     match mthd with
     | []            ->  raise Not_found
     | _::_::_       ->  eprintf "method %s duplicated\n%!" mname;err "lookup_mthd_info_in_cntrct" 
-    | [a]           ->  begin match a.mthd_head with TyMethod(id,args,retTy) -> TyMethod(id,args,retTy) end
+    | [a]           ->  begin match a.mthd_head with TyMthd(id,args,retTy) -> TyMthd(id,args,retTy) end
 
 
 let rec lookup_mthd_info_inner ce (seen:ty cntrct list) cn mname : ty=

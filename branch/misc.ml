@@ -23,11 +23,9 @@ let errc str                = err("codegen_expr: " ^ str ^ " of unexpected type"
 (**      LIST OPERATERS                 **)
 (*****************************************)
 
-let rec getFstByFilter f = function 
-    | []        ->  None
-    | x::xs     ->  begin match f x with
-        | None      ->  getFstByFilter f xs 
-        | Some y    ->  Some y       end 
+let rec find_by_filter f = function 
+    | []        ->  raise Not_found 
+    | x::xs     ->  try f x with Not_found -> find_by_filter f xs 
 
 let rec changeFstByFilter f = function 
     | []        ->  None
@@ -43,7 +41,7 @@ let foldr                   = L.fold_right
 let rec foldn n succ zero   = if n=0 then zero else succ (foldn (n-1) succ zero) 
 
 let rec last                = function 
-    | []                    -> err "empty list cannot contain last element."
+    | []                    -> err "last: empty list cannot contain the last element."
     | [x]                   -> x
     | x::xs                 -> last xs
 
@@ -105,10 +103,10 @@ let to_idx_list       =   function
     | l                     -> L.combine BL.(range 0 `To (L.length l - 1)) l  
 
 let idx_sort         l  =   L.sort (fun a b -> compare (fst a)(fst b)) l 
-let map              f  =   L.map (fun(i,x)->i,f x) 
-let idxmap           f  =   L.map (fun(i,x)->i,f i) 
+let map              f  =   L.map  (fun(i,x)-> (i,f x)) 
+let idxmap           f  =   L.map  (fun(i,x)-> (i,f i)) 
 let filter_map       f  =   BL.filter_map (fun(i,x)->BO.map(fun y->i,y)(f x))
-let lookup_index     l  =   try   L.assoc l  with e-> eprintf "lookup_index: ";raise e
+let lookup              =   L.assoc 
 let pr_idx_mapping   f  =   L.iter (fun i->printf "%d ↦ %d, "i(f i))
 let insert i a l        =   (i,a)::l       (* shall I sort it?  Maybe later at once. *)
 let lookup_idx f l      =   let i,_ = L.find (f $ snd) l in i 

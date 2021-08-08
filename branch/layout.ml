@@ -22,9 +22,9 @@ type cnstrInfo                  =
                                 ; fieldTypes        : ty list       }   
 
 let cnstrInfo_of_cn cn initCode =   { cnstrCodeSize = size_of_program initCode
-                                    ; fieldVarsSize = argsSize_of_cn  cn
-                                    ; fieldArrsSize = L.length  (arrTys_of_cntrct cn)
-                                    ; fieldTypes    = L.map ty_of_var cn.fieldss                        }
+                                    ; fieldVarsSize = size_of_vars_in_cn  cn
+                                    ; fieldArrsSize = L.length  (arrTys_of_cn cn)
+                                    ; fieldTypes    = L.map ty_of_var cn.fields                         }
                                                                         
                                                                         (* The storage during the rntime looks like this:                *) 
                                                                         (*                                                               *) 
@@ -40,12 +40,12 @@ type storLayout                 =                                       (*  S[2]
                                                                         (*                                                               *)    
                                                                         (* array elements are placed at the same location as in Solidity *)    
                                                        
-let compute_cnstrSize l idx     =   (lookup_index idx l).cnstrCodeSize
+let compute_cnstrSize l idx     =   (lookup idx l).cnstrCodeSize
 
 let compute_fieldVars l idx     =   { offst         = 2 
-                                    ; size          =     (lookup_index idx l).fieldVarsSize         }
-let compute_fieldArrs l idx     =   { offst         = 2 + (lookup_index idx l).fieldVarsSize
-                                    ; size          =     (lookup_index idx l).fieldArrsSize         } 
+                                    ; size          =     (lookup idx l).fieldVarsSize         }
+let compute_fieldArrs l idx     =   { offst         = 2 + (lookup idx l).fieldVarsSize
+                                    ; size          =     (lookup idx l).fieldArrsSize         } 
     
 let cnstrct_storLayout idx_lyts =   { pc            = 0              
                                     ; ac            = 1
@@ -90,7 +90,7 @@ type cnLayout                   =
                                 ; sl                        : storLayout        }
 
 let compute_cnstrArgBegin l (ri:rntimeInfo) idx =   compute_cnstrSize l idx + ri.rntimeCodeSize
-let compute_initDataSize  l (ri:rntimeInfo) idx =   compute_cnstrArgBegin l ri idx + (lookup_index idx l).fieldVarsSize
+let compute_initDataSize  l (ri:rntimeInfo) idx =   compute_cnstrArgBegin l ri idx + (lookup idx l).fieldVarsSize
 let cnstrct_cnLayout      l (ri:rntimeInfo)     =   { initDataSize          = compute_initDataSize l ri
                                                     ; rntimeCodeSize        = ri.rntimeCodeSize
                                                     ; rntimeCnOffsts        = ri.rntimeCnOffsts
@@ -112,8 +112,8 @@ let rec realize_imm cnLayt (init_idx:idx) = function
     | RntimeCodeOffset      idx     ->  big (rntimeCode_offset cnLayt.sl idx)
     | RntimeCodeSize                ->  big (cnLayt.rntimeCodeSize)
     | CnstrCodeSize         idx     ->  big (cnLayt.sl.cnstrSize idx)
-    | RntimeCnstrOffset     idx     ->  big (lookup_index idx cnLayt.rntimeCnstrOffsts)
-    | RntimeCntrctOffset    idx     ->  big (lookup_index idx cnLayt.rntimeCnOffsts)
+    | RntimeCnstrOffset     idx     ->  big (lookup idx cnLayt.rntimeCnstrOffsts)
+    | RntimeCntrctOffset    idx     ->  big (lookup idx cnLayt.rntimeCnOffsts)
     | RntimeMthdLabel(idx,mthd_hd)  ->  let label = lookup_entry (Mthd (idx, mthd_hd)) in
                                         big (Label.lookup_label label)
     | Minus (a, b)                  ->  sub_big_int (realize_imm cnLayt init_idx a) (realize_imm cnLayt init_idx b)
@@ -202,13 +202,13 @@ let rec gen_arg_locs offset used_plains used_seeds num_plains = function
 
 (* this needs to take stor_fieldVars_begin *)
 let arg_locations offset (cn:ty cntrct) : int list =
-    let arg_tys       = L.map ty_of_var cn.fieldss      in
+    let arg_tys       = L.map ty_of_var cn.fields       in
     let num_of_plains = count_plain_args arg_tys            in
     let ret           = gen_arg_locs offset 0 0 num_of_plains arg_tys in 
     ret 
 
 let array_locations (cn:ty cntrct) : int list =
-    let arg_tys       = L.map ty_of_var cn.fieldss      in
+    let arg_tys       = L.map ty_of_var cn.fields       in
     let num_of_plains = count_plain_args arg_tys            in
     let total_num     = L.length arg_tys                    in
     if total_num=num_of_plains 

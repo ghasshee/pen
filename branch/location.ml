@@ -1,5 +1,6 @@
 open Misc
 open Big_int
+open Syntax
 
 
 type 'a data                    =   
@@ -31,8 +32,8 @@ let rec string_of_imm           =   function
   | Int i                           -> "(Int "^(string_of_int i)^")"
   | Label _                         -> "Label (print label here)"
   | StorPCIndex                     -> "StorPCIndex"
-  | StorFieldsBegin _            -> "StorFieldBegin (print cntrct id)"
-  | StorFieldsSize _             -> "StorFieldsSize (print cntrct id)"
+  | StorFieldsBegin _               -> "StorFieldBegin (print cntrct id)"
+  | StorFieldsSize _                -> "StorFieldsSize (print cntrct id)"
   | InitDataSize idx                -> "InitDataSize (print cntrct id here)"
   | RntimeCntrctOffset _            -> "RntimeCntrctOffset (print contact id)"
   | RntimeMthdLabel(idx,header)     -> "RntimeMthdLabel (print cntrct id, case header)"
@@ -64,4 +65,27 @@ let string_of_location          =   function
     | Code _                        -> "Code ..."
     | Calldata c                    -> Printf.sprintf "Calldata offset %d, size %d" c.offst c.size
     | Stack i                       -> Printf.sprintf "Stack %d" i
+
+
+(****************************************************)
+(***          arg locations of mthd               ***)
+(****************************************************)
+
+let positions_of_argLens lens   =
+    let rec loop ret used           =   function 
+        | []                        ->  L.rev ret
+        | alen::rest                ->  assert (alen>0 && alen<=32);
+                                        loop (used+32-alen :: ret) (used+32) rest in 
+    loop [] 4(* signature length *) lens
+
+let argLocs_of_mthd m           =   match m.mthd_head with
+    | TyDefault                 ->  []
+    | TyMthd(id,args,ret)     ->  let sizes       = L.map calldata_size_of_arg args   in
+                                    let positions   = positions_of_argLens sizes        in
+                                    let size_pos    = L.combine positions sizes         in
+                                    let locations   = L.map (fun(o,s)->Calldata{offst=o;size=s}) size_pos in
+                                    let names       = L.map id_of_var args              in
+                                    let argLocs     = L.combine names locations         in
+                                    argLocs
+
 

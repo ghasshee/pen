@@ -48,8 +48,8 @@ file:
     | list(cntrct) EOF                              { $1                                                        }
 
 cntrct:
-    | CONTRACT ID plist(arg)LBRACE list(mthd)RBRACE { reserved $2; Cntrct{mthds=$5; cn_id=$2; fieldss=$3}  }
-    | EVENT    ID plist(evnt_arg) SEMI              { Event (TyEvnt($2,$3))                                     }
+    | CONTRACT ID plist(arg)LBRACE list(mthd)RBRACE { reserved $2; Cntrct{mthds=$5; cn_id=$2; fields =$3}  }
+    | EVENT    ID plist(evnt_arg) SEMI              { Event (TyEv($2,$3))                                     }
 
 mthd:
     | mthd_head block                               { {mthd_head=$1; mthd_body=$2}                              }
@@ -59,8 +59,8 @@ block:
 
 mthd_head:
     | DEFAULT                                       { TyDefault                                                 }
-    | METHOD ty ID plist(arg)                       { TyMethod($3,$4,$2)                                        }
-    | METHOD LPAR RPAR ID plist(arg)                { TyMethod($4,$5,TyTuple[])                                 }
+    | METHOD ty ID plist(arg)                       { TyMthd($3,$4,$2)                                        }
+    | METHOD LPAR RPAR ID plist(arg)                { TyMthd($4,$5,TyTuple[])                                 }
 
 arg:
     | ty ID                                         { reserved $2; TyVar($2,$1)                           }
