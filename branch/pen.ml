@@ -50,7 +50,7 @@ let ()      =
     let abi       : bool                    = (Some true = enable_abi.Option.option_get ())              in
     let lexbuf                      = Lexing.from_channel stdin                                 in
     let _ASTs : unit toplevel list  = parse_with_error lexbuf                                   in
-    let idx_ASTs                    = to_idx_list _ASTs                                         in
+    let idx_ASTs                    = to_idxlist _ASTs                                         in
     let idx_typed_ASTs              = Type.addTys idx_ASTs                                      in
     let idx_ty_opt_ASTs             = Eval.eval idx_typed_ASTs                                  in 
     let cns                         = filter_map (function Cntrct cn -> Some cn
@@ -58,8 +58,8 @@ let ()      =
     match cns with
     | []  ->  ()
     | _   ->   
-    let ccs        : cnstrCode idx_list         = compile_cnstrs cns                        in          
-    let cnstrInfos : LI.cnstrInfo idx_list      = map cnstrInfo_of_cnstrCode ccs            in          
+    let ccs        : cnstrCode idxlist         = compile_cnstrs cns                        in          
+    let cnstrInfos : LI.cnstrInfo idxlist      = map cnstrInfo_of_cnstrCode ccs            in          
     let layt                                    = LI.cnstrct_storLayout cnstrInfos          in          
     let rc         : rntimeCode                 = compile_rntime layt cns                   in          
     let bytecode   : big_int Evm.program        = compose_bytecode ccs rc (fst(L.hd cns))   in          
@@ -85,7 +85,7 @@ let ()      =
 (*       |         AST          |                                                                                                  *)
 (*       +----------+-----------+                                                                                                  *)
 (*                  |                                                                                                              *)
-(*             to_idx_list                                                                                                         *)
+(*             to_idxlist                                                                                                         *)
 (*                  |                                                                                                              *)
 (*                  v                                                                                                              *)
 (*       +----------------------+                                                                                                  *)

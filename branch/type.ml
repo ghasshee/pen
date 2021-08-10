@@ -99,13 +99,14 @@ let rec addTy_call cns cname ctx c =
 
 and addTy_expr cns cname ctx (expr,()) =    match expr with
  (* | SmAbort                       ->  SmAbort         , TyVoid *)
-    | TmAbort           ->  TmAbort         , TyVoid
-    | TmLog(nm,args,_)  ->  let tyArgs      = L.map (addTy_expr cns cname ctx) args in
-                            let TyEv(id,tyEvArgs) = lookup_evnt nm ctx            in
-                            let tys         = L.map ty_of_var ( args_of_evnt_args tyEvArgs)    in
-                            assert(typechecks tys tyArgs) ;
-                            TmLog(nm,tyArgs,Some(TyEv(id,tyEvArgs))), TyTuple[]
-    | TmSlfDstrct e     ->  let e       = addTy_expr        cns cname ctx  e        in
+    | TmReturn(r,c)                 ->  addTy_return      cns cname ctx  r c 
+    | TmAbort                       ->  TmAbort         , TyVoid
+    | TmLog(nm,args,_)              ->  let tyArgs      = L.map (addTy_expr cns cname ctx) args in
+                                        let TyEv(id,tyEvArgs) = lookup_evnt nm ctx            in
+                                        let tys         = L.map ty_of_var ( args_of_evnt_args tyEvArgs)    in
+                                        assert(typechecks tys tyArgs) ;
+                                        TmLog(nm,tyArgs,Some(TyEv(id,tyEvArgs))), TyTuple[]
+    | TmSlfDstrct e                 ->  let e       = addTy_expr        cns cname ctx  e        in
                                         TmSlfDstrct e   , TyTuple[]
     | TmUnit                        ->  TmUnit          , TyTuple[] 
     | EpParen     e                 ->  addTy_expr cns cname ctx e 
@@ -121,7 +122,7 @@ and addTy_expr cns cname ctx (expr,()) =    match expr with
                                         EpAddr e        , TyAddr
     | EpCall    c                   ->  let c,ty    =   addTy_call cns cname ctx c          in
                                         EpCall c        , ty
-    | TmId     s                 ->  id_lookup_ty ctx s
+    | TmId     s                    ->  id_lookup_ty ctx s
     | EpBalance   e                 ->  let e       =   addTy_expr cns cname ctx e          in
                                         assert (tyeqv TyAddr (get_ty e));
                                         EpBalance e     , TyUint256
@@ -206,7 +207,7 @@ and addTy_return cns cname ctx ret cont=
     let contTy      =   addTy_expr cns cname ctx cont   in 
     let tyRet       =   lookup_retTy ctx in 
     assert (tyeqv tyRet (get_ty retTy)); 
-    TmReturn(retTy, contTy), ctx
+    TmReturn(retTy, contTy), get_ty retTy
 
 
 and addTy_decl cns cname ctx vd =
@@ -219,10 +220,6 @@ and addTy_decl cns cname ctx vd =
     ; declVal   = v  }, add_var ctx id ty  
 
 and addTy_stmt cns cname ctx = function 
-    | TmReturn(r,c)     ->  addTy_return      cns cname ctx  r c 
-    | SmAssign(l,r)     ->  let l       = addTy_lexpr       cns cname ctx  l        in
-                            let r       = addTy_expr        cns cname ctx  r        in
-                            SmAssign(l,r)   , ctx
     | SmIfThen(b,t)     ->  let b       = addTy_expr        cns cname ctx  b        in
                             let t       = addTy_stmts       cns cname ctx  t        in
                             SmIfThen(b,t)   , ctx
@@ -230,6 +227,9 @@ and addTy_stmt cns cname ctx = function
                             let t       = addTy_stmts       cns cname ctx  t        in
                             let f       = addTy_stmts       cns cname ctx  f        in
                             SmIf(b,t,f)     , ctx 
+    | SmAssign(l,r)     ->  let l       = addTy_lexpr       cns cname ctx  l        in
+                            let r       = addTy_expr        cns cname ctx  r        in
+                            SmAssign(l,r)   , ctx
     | SmDecl v          ->  let v,ctx   = addTy_decl        cns cname ctx  v        in
                             SmDecl v        , ctx
     | SmExpr e          ->  let e       = addTy_expr        cns cname ctx  e        in
@@ -269,26 +269,26 @@ let has_distinct_sigs (cn:unit cntrct) =
     let uniq_sigs   =   BL.unique sigs in
     L.length sigs=L.length uniq_sigs
 
-let addTy_cntrct cns (evs: ty idx_list) cn =
+let addTy_cntrct cns (evs: ty idxlist) cn =
     assert (BL.for_all(arg_has_known_ty (typeof_cns cns))cn.fields  && has_distinct_sigs cn)  ; 
     let ctx  = add_local (add_evnts empty_ctx (values evs)) (binds_of_vars cn.fields ) in
     { cn_id     =   cn.cn_id
     ; fields    =   cn.fields 
     ; mthds         =   L.map(addTy_mthd cns cn.cn_id ctx)cn.mthds }
 
-let addTy_toplevel cns (evs:ty idx_list) = function 
+let addTy_toplevel cns (evs:ty idxlist) = function 
     | Cntrct c      -> Cntrct (addTy_cntrct cns evs c)
     | Event  e      -> Event e
 
-let has_distinct_cntrct_names (cns : unit cntrct idx_list) : bool =
+let has_distinct_cntrct_names (cns : unit cntrct idxlist) : bool =
     let cn_names    = (L.map(fun(_,b)->b.cn_id)cns) in
     L.length cns=L.length(BL.unique cn_names)
 
-let addTys (tops : unit toplevel idx_list) : ty toplevel idx_list =
+let addTys (tops : unit toplevel idxlist) : ty toplevel idxlist =
     let cntrcts                 = filter_map (function  | Cntrct c -> Some c
                                                         | _        -> None   ) tops in
     assert(has_distinct_cntrct_names(cntrcts));
     let tycns                   = map typeof_cn cntrcts in
-    let evs : ty idx_list   = filter_map (function  | Event e  -> Some e
+    let evs : ty idxlist   = filter_map (function  | Event e  -> Some e
                                                         | _        -> None   ) tops in
     map (addTy_toplevel cntrcts evs) tops

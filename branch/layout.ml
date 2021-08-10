@@ -62,9 +62,9 @@ let cnstrct_storLayout idx_lyts =   { pc            = 0
 (* rntimeCodeOffset = cnstrCodeSize *)
 type rntimeInfo                 =
                                 { rntimeCodeSize            : int
-                                ; rntimeCnOffsts            : int idx_list
-                                ; rntimeCnstrOffsts         : int idx_list
-                                ; rntimeCnstrSizes          : int idx_list      }
+                                ; rntimeCnOffsts            : int idxlist
+                                ; rntimeCnstrOffsts         : int idxlist
+                                ; rntimeCnstrSizes          : int idxlist      }
 
 (* init_data := Contract Creation Code                                                                          *) 
 (* The initial data is organized like this:                                                                     *)
@@ -85,8 +85,8 @@ type rntimeInfo                 =
 type cnLayout                   =                                                   
                                 { initDataSize              : idx -> int                      
                                 ; rntimeCodeSize            : int                   
-                                ; rntimeCnOffsts            : int idx_list               
-                                ; rntimeCnstrOffsts         : int idx_list
+                                ; rntimeCnOffsts            : int idxlist               
+                                ; rntimeCnstrOffsts         : int idxlist
                                 ; sl                        : storLayout        }
 
 let compute_cnstrArgBegin l (ri:rntimeInfo) idx =   compute_cnstrSize l idx + ri.rntimeCodeSize

@@ -37,7 +37,7 @@ let rec string_of_ty            =   function
     | TyTuple []                ->  "()"
     | TyTuple            _      ->  "tuple" 
     | TyMap(a,b)                ->  "mapping" 
-    | TyCn(id,_,_)          ->  "contract arch "     ^ id
+    | TyCn(id,_,_)              ->  "contract arch "     ^ id
     | TyInstnce     s           ->  "contract instance " ^ s
 
 let  arg_of_evnt_arg            =   function TyEvVar(id,ty,visible) -> TyVar(id,ty)
@@ -74,11 +74,11 @@ and  'ty stmt                   =
                                 |   SmIfThen            of 'ty exprTy * 'ty stmt list
                                 |   SmIf                of 'ty exprTy * 'ty stmt list * 'ty stmt list
                                 |   SmExpr              of 'ty exprTy
-                                |   TmReturn            of 'ty exprTy * 'ty exprTy 
 
 and  'ty exprTy                =   'ty expr * 'ty
 
 and  'ty expr                   =   EpParen             of 'ty exprTy
+                                |   TmReturn            of 'ty exprTy * 'ty exprTy 
                                 |   TmId                of string
                                 |   TmAbort 
                                 |   TmDecl              of 'ty decl 
@@ -171,7 +171,7 @@ let string_of_evnt  = function TyEv(id,tyEvArgs) ->
 type 'ty toplevel               =   Cntrct        of 'ty cntrct
                                 |   Event         of ty    (* ty = TyEv *) 
 
-let filter_usualMthd            =   BL.filter_map (function   | TyDefault                   -> None 
+let filter_method               =   BL.filter_map (function   | TyDefault                   -> None 
                                                               | TyMthd(i,a,r)             -> Some (TyMthd(i,a,r)) )  
 let default_exists              =   L.exists      (function   | TyDefault                   -> true
                                                               | TyMthd(_,_,_)             -> false  )

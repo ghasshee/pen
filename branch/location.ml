@@ -80,7 +80,7 @@ let positions_of_argLens lens   =
 
 let argLocs_of_mthd m           =   match m.mthd_head with
     | TyDefault                 ->  []
-    | TyMthd(id,args,ret)     ->  let sizes       = L.map calldata_size_of_arg args   in
+    | TyMthd(id,args,ret)       ->  let sizes       = L.map calldata_size_of_arg args   in
                                     let positions   = positions_of_argLens sizes        in
                                     let size_pos    = L.combine positions sizes         in
                                     let locations   = L.map (fun(o,s)->Calldata{offst=o;size=s}) size_pos in

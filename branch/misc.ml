@@ -95,10 +95,9 @@ let hex_of_string s                     =   R.of_string s  (* TODO: check if the
 (*****************************************)
 
 type idx                =   int
-type 'a idx_list        =   (idx * 'a) list
+type 'a idxlist        =   (idx * 'a) list
 
-
-let to_idx_list       =   function 
+let to_idxlist       =   function 
     | []                    -> [] 
     | l                     -> L.combine BL.(range 0 `To (L.length l - 1)) l  
 

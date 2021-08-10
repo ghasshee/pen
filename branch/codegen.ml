@@ -66,7 +66,7 @@ let push_storRange ce (data : imm data) =
                     SLOAD                           >>ce 
 
 let dup_nth_from_bottom n ce  =
-    let diff   =(stack_size ce)-n in assert(diff>=0) ; 
+    let diff   =(get_stack_size ce)-n in assert(diff>=0) ; 
                 dup_succ diff                       >>ce 
 
 let shiftRtop ce bits =
@@ -278,7 +278,7 @@ let sstore_fieldVars ce idx     =
     let label   = fresh_label()                             in
     let exit    = fresh_label()                             in  (*                                                mem_start >> size >> .. *)  
     let ce      = check_codesize idx                  ce    in 
-    let ce      = PUSH32(StorFieldsBegin idx)    >>ce    in  (*                                         idx >> mem_start >> size >> .. *)
+    let ce      = PUSH32(StorFieldsBegin idx)       >>ce    in  (*                                         idx >> mem_start >> size >> .. *)
     let ce   = JUMPDEST label                       >>ce    in  (*                                         idx >> mem_start >> size >> .. *)
     let ce      = DUP3                              >>ce    in  (*                                 size >> idx >> mem_start >> size >> .. *)
     let ce      = if_0_GOTO exit                      ce    in  (* IF size==0 THEN GOTO exit               idx >> mem_start >> size >> .. *)   
@@ -365,7 +365,7 @@ let program_of_cc       =   extract_program $ ce_of_cc
 
 let codegen_cnstr_bytecode cns idx = (* return ce which contains the program *) 
     let cn      =   lookup idx cns                            in 
-    let ce      =   empty_ce (lookup_cn_of_cns cns) cns       in  (*                                                                                 *)
+    let ce      =   empty_ce (lookup_cnidx_of_cns cns) cns       in  (*                                                                                 *)
     let ce      =   init_malloc                     ce        in  (* M[64] := 96                                                                     *)
     let ce      =   mstore_fieldVars                ce cn     in  (*                                            alloc(argssize) << argssize << ..    *)
     let ce      =   sstore_fieldVars                ce idx    in  (* S[i..i+sz-1]:= argCodes               i << alloc(argssize) << argssize << ..    *)
@@ -380,7 +380,7 @@ let compile_cnstr cns idx  : cnstrCode =
     ; cnstr_ty           = typeof_cn cn 
     ; cnstr_cn           = cn                                }
 
-let compile_cnstrs cns : cnstrCode idx_list =
+let compile_cnstrs cns : cnstrCode idxlist =
     idxmap (compile_cnstr cns) cns
 
 (***************************************)
@@ -388,7 +388,7 @@ let compile_cnstrs cns : cnstrCode idx_list =
 (***************************************)
 
 type rntimeCode             =   { rntime_ce             : ce                                                       
-                                ; rntime_cn_offsets     : int idx_list  }
+                                ; rntime_cn_offsets     : int idxlist  }
 
 let empty_rntimeCode lookup_cn layouts =
     { rntime_ce             = empty_ce lookup_cn layouts
@@ -405,14 +405,14 @@ let init_rntimeCode lookup_cn layouts : rntimeCode =
 (***     8.  DISPATHER               ***)
 (***************************************)
 
-let dispatch_usualMthd idx le ce m =                                    (*                                           ABCD >> .. *)  
+let dispatch_method idx le ce m =                                    (*                                           ABCD >> .. *)  
     let ce      =   DUP1                                    >>ce    in  (*                                   ABCD >> ABCD >> .. *)
     let ce      =   push_mthd_hash m                          ce    in  (*                              m >> ABCD >> ABCD >> .. *)
     let ce      =   EQ                                      >>ce    in  (*                             m=ABCD?1:0 >> ABCD >> .. *)
     let ce      =   PUSH32(RntimeMthdLabel(idx,m))          >>ce    in  (*                Rntime(m) >> m=ABCD?1:0 >> ABCD >> .. *)
                     JUMPI                                   >>ce        (* if m=ABCD then GOTO Rntime(m)             ABCD >> .. *)
 
-let dispatch_defaultMthd idx le ce =
+let dispatch_default idx le ce =
     let ce      =   PUSH32(RntimeMthdLabel(idx,TyDefault))  >>ce    in
                     JUMP                                    >>ce     
 
@@ -422,13 +422,13 @@ let push_inputdata32_from databegin ce =
 
 let dispatcher le ce idx cntrct =
     let tyMthds =   L.map (fun x -> x.mthd_head) cntrct.mthds       in
-    let uMthds  =   filter_usualMthd tyMthds                        in 
+    let uMthds  =   filter_method tyMthds                           in 
     let ce      =   push_inputdata32_from(Int 0)              ce    in  (*               ABCDxxxxxxxxxxxxxxxxxxxxxxxxxxxxx >> .. *)
     let ce      =   shiftRtop ce Eth.(word_bits-sig_bits)           in  (*                                            ABCD >> .. *)                             
-    let ce      =   foldl(dispatch_usualMthd idx le)ce uMthds       in  (* JUMP to Method ABCD                                   *)   
+    let ce      =   foldl(dispatch_method idx le)ce uMthds          in  (* JUMP to Method ABCD                                   *)   
     let ce      =   POP                                     >>ce    in  (*                                                    .. *)
     let ce      =   if  default_exists tyMthds
-                        then dispatch_defaultMthd idx      le ce        (* JUMP to Default Method                             .. *) 
+                        then dispatch_default idx      le ce        (* JUMP to Default Method                             .. *) 
                         else throw ce                               in  (* JUMP to error                                      .. *) 
     le,ce
 
@@ -495,8 +495,7 @@ and codegen_ECDSArecover le ce ly args = match args with
  *          |                ...  |                 |             *)                                                                 
 
 and mstore_new_instance le ce ly n     =
-    let cnName  =   n.new_id                                            in
-    let cn_idx  =   lookup_cn_of_ce ce cnName                           in 
+    let cn_idx  =   lookup_cnidx_of_ce ce n.new_id                         in 
     let ce      =   PUSH32(CnstrCodeSize cn_idx)        >>ce            in  (*                                                        size >> .. *) 
     let ce      =   PUSH32(RntimeCnstrOffset cn_idx)    >>ce            in  (*                                             cn_idx  >> size >> .. *)
     let ce      =   mstore_code                           ce            in  (*                                         alloc(size) >> size >> .. *)
@@ -525,10 +524,8 @@ and codegen_array aa le ce ly         =                                     (*  
                     SLOAD                               >>ce                (*                                   S[keccak(a[i])] >> .. *) 
 
 and keccak_of_aa aa le ce ly          =                                     (* S[keccak(a[i])] := the seed of array *) 
-    let arr     =   aa.arrId                                            in
-    let idx     =   aa.arrIndex                                         in  (*                                                      .. *)
-    let ce      =   idx                                 >>>>(R,le,ce,ly)in  (*                                             index >> .. *)    
-    let ce      =   arr                                 >>>>(R,le,ce,ly)in  (*                                array_loc >> index >> .. *)
+    let ce      =   aa.arrIndex                         >>>>(R,le,ce,ly)in  (*                                             index >> .. *)    
+    let ce      =   aa.arrId                            >>>>(R,le,ce,ly)in  (*                                array_loc >> index >> .. *)
                     keccak_cat ce                                           (*                            sha3(array_loc++index) >> .. *) 
       
 and salloc_array aa le ce ly           =
@@ -553,12 +550,6 @@ and salloc_array_of_push push_array_seed ce =
     let ce      =   SSTORE                              >>ce            in  (* S[storIdx]:= newseed                      newseed >> .. *)
                     JUMPDEST label                      >>ce                (*                                                         *)
 
-and codegen_expr_eff le ce ly aln          = function 
-    | TmAbort               ,TyVoid     ->  let _,ce = le, throw ce                         in PUSH1(Int 0) >> ce  
-    | TmLog(id,args,Some ev),TyTuple[]  ->  let _,ce = codegen_log_stmt   le ce ly id args ev in PUSH1(Int 0) >> ce 
-    | TmLog(id,args,None)   ,TyTuple[]  ->  err "add_stmt: type check first"
-    | TmSlfDstrct expr      ,TyTuple[]  ->  let _,ce = codegen_selfDstrct le ce ly expr    in PUSH1(Int 0) >> ce 
-    | e                     ,_          ->  ($) print_string string_of_expr e; raise Not_found
 (* le is not updated here.  
  * le can only be updated in a variable initialization *)
 and codegen_expr le ce ly aln          = function 
@@ -604,9 +595,18 @@ and codegen_expr le ce ly aln          = function
                                             assert (size<=32 && tyR=TyRef ty && aln=R) ;                    (* assuming word-size *)
                                             let ce      =       (ref,tyR)               >>>>(R,le,ce,ly)   in  (* pushes the pointer *)
                                                                 MLOAD                   >>ce 
-    | e, ty                             ->  codegen_expr_eff le ce ly aln (e,ty)
+    | e, ty                             ->  let _,ce    =       codegen_expr_eff le ce ly aln (e,ty) in 
+                                                                PUSH1(Int 0) >> ce 
     (*| _, _                              ->  errc"codegen_expr: Error"*)
 
+and codegen_expr_eff le ce ly aln          = function 
+    | TmAbort               ,TyVoid     ->  le, throw ce                               
+    | TmLog(id,args,Some ev),TyTuple[]  ->  codegen_log_stmt   le ce ly id args ev    
+    | TmLog(id,args,None)   ,TyTuple[]  ->  err "add_stmt: type check first"
+    | TmSlfDstrct expr      ,TyTuple[]  ->  codegen_selfDstrct le ce ly expr          
+    | TmReturn(ret,cont)    ,_          ->  codegen_return      le ce ly ret cont     
+    | e                     ,_          ->  ($) print_string string_of_expr e; raise Not_found
+    
 and op operator l r le ce ly =
     let ce    = r                               >>>>(R,le,ce,ly)   in 
     let ce    = l                               >>>>(R,le,ce,ly)   in 
@@ -662,8 +662,8 @@ and codegen_send le ce ly (s:ty _send) =
     let m       = s.sd_mthd                                     in 
     match snd cn with
     | TyInstnce cnname ->  (* msg-call to a contract *) 
-    let idx     = lookup_cn_of_ce ce cnname                     in 
-    let callee  = cntrct_lookup ce idx                          in
+    let idx     = lookup_cnidx_of_ce ce cnname                     in 
+    let callee  = lookup_cn ce idx                          in
     begin match m with | Some name  -> 
     let m       = lookup_mthd_info ce callee name               in
     let TyMthd(id,_,ret) = m in 
@@ -730,7 +730,7 @@ and codegen_assign le ce ly l r =
     le, ce
 
 and codegen_decl le ce ly i  = 
-    let pos     = stack_size ce                                 in
+    let pos     = get_stack_size ce                             in
     let name    = i.declId                                      in
     let ce      = i.declVal                     >>>>(R,le,ce,ly)in
     let le      = add_loc le(name, Stack(pos+1))                in
@@ -790,7 +790,7 @@ and sstore_word_to ce stor_loc      =
                     SSTORE                      >>ce       
 
 and sstore_vars le ce (ly:storLayout) offset idx vars = 
-    let cntrct  =   cntrct_lookup ce idx                in 
+    let cntrct  =   lookup_cn ce idx                in 
     let varlocs =   fieldVar_locations offset cntrct    in
     assert(L.length varlocs=L.length vars) ; 
     let ce      =   push_args le ly vars ce             in  (*                                         argk >> .. >> arg1 >> .. *)
@@ -800,7 +800,7 @@ and sstore_vars le ce (ly:storLayout) offset idx vars =
 and cont_call le ce ly (EpCall cont,_) = 
     let cn      =   cont.call_id                        in
     let args    =   cont.call_args                      in
-    let idx     =   lookup_cn_of_ce ce cn               in 
+    let idx     =   lookup_cnidx_of_ce ce cn               in 
     let offset  =   (ly.fieldVars idx).offst            in  
     let ce      =   set_cntrct_pc ce idx                in      (* S[PC] := rntime_offset_of_cn                              .. *) 
                     sstore_vars le ce ly offset idx args        (* S[l_k]:=argk; .. ; S[l_1]:=arg1                               .. *)
@@ -832,11 +832,12 @@ and mstore_expr le ce ly pack (e,ty) =
     le,ce
 
 and codegen_return le ce ly ret cont =
-    let le,ce   = cont_call le ce ly cont         in
-    let ce      = match ret with
-    | (TmUnit,_)->              STOP                >>ce      
-    | e         ->  let le,ce = mstore_expr le ce ly ABIPack e in
-                                RETURN              >>ce    in 
+    let le,ce       =   cont_call le ce ly cont             in
+    let ce          =   match ret with
+    | (TmUnit,_)    ->   STOP                   >>ce      
+    | e             ->  
+    let le,ce       =   mstore_expr le ce ly ABIPack e      in
+                        RETURN                  >>ce        in 
     le,ce
 
 (*************************************)
@@ -845,7 +846,6 @@ and codegen_return le ce ly ret cont =
 
 and codegen_stmts stmts ly le ce   = foldl (codegen_stmt ly) (le,ce) stmts
 and codegen_stmt ly  (le,ce)       = function 
-    | TmReturn(ret,cont)            ->  codegen_return      le ce ly ret cont
     | SmAssign(l,r)                 ->  codegen_assign      le ce ly l r        
     | SmDecl i                      ->  codegen_decl        le ce ly i
     | SmExpr expr                   ->  codegen_expr_stmt   le ce ly expr
@@ -900,7 +900,7 @@ let append_rntime ly rc (idx,cn)   =
     ; rntime_cn_offsets     = insert idx(code_len rc.rntime_ce)rc.rntime_cn_offsets    }
 
 let compile_rntime ly cns          = 
-    let init_rc = init_rntimeCode (lookup_cn_of_cns cns) cns                        in 
+    let init_rc = init_rntimeCode (lookup_cnidx_of_cns cns) cns                        in 
     foldl (append_rntime ly) init_rc cns
 
 let cnstrInfo_of_cnstrCode cc       = cnstrInfo_of_cn cc.cnstr_cn (program_of_cc cc)
@@ -921,9 +921,9 @@ let rntimeInfo_of_rntimeCode rc ccs : rntimeInfo =
     let ccs_offsets         = offsets_of_sizes (code_len rc.rntime_ce) ccs_sizes    in
     let ccs_totalsize       = BL.sum ccs_sizes                                      in
     { rntimeCodeSize        = ccs_totalsize + code_len rc.rntime_ce
-    ; rntimeCnstrSizes      = to_idx_list ccs_sizes
+    ; rntimeCnstrSizes      = to_idxlist ccs_sizes
     ; rntimeCnOffsts        = rc.rntime_cn_offsets
-    ; rntimeCnstrOffsts     = to_idx_list ccs_offsets }
+    ; rntimeCnstrOffsts     = to_idxlist ccs_offsets }
 
 (*  Since the code is stored in the reverse order, the concatenation is also reversed. *)
 let concat_programs_rev programs    =

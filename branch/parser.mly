@@ -83,7 +83,6 @@ ty:
     | block                                         { $1                                                        }
      
 stmt:
-    | RETURN ret THEN BECOME expr SEMI              { TmReturn($2 [],$5 [])                }
     | lexpr EQ expr SEMI                            { SmAssign($1 [],$3 [])                                     }
     | ty ID EQ expr SEMI                            { reserved $2;SmDecl{declTy=$1; declId=$2; declVal=$4 []}   }
     | IF expr THEN body ELSE body                   { SmIf($2 [],$4,$6)                                         }
@@ -96,17 +95,19 @@ ret:
     | expr                                          { $1                                                        }
 
 %inline op:
-    | PLUS                                          { fun l r -> EpPlus(l,r)                                    }
-    | MINUS                                         { fun l r -> EpMinus(l,r)                                   }
-    | MULT                                          { fun l r -> EpMult(l,r)                                    }
     | LT                                            { fun l r -> EpLT(l,r)                                      }
     | GT                                            { fun l r -> EpGT(l,r)                                      }
     | EQEQ                                          { fun l r -> EpEq(l,r)                                      }
     | NEQ                                           { fun l r -> EpNEq(l,r)                                     }
     | LAND                                          { fun l r -> EpLAnd(l,r)                                    } 
+    | PLUS                                          { fun l r -> EpPlus(l,r)                                    }
+    | MULT                                          { fun l r -> EpMult(l,r)                                    }
+    | MINUS                                         { fun l r -> EpMinus(l,r)                                   }
 
 expr:
+    | RETURN ret THEN BECOME expr SEMI              { fun ctx -> TmReturn($2 ctx,$5 ctx)                                ,() }
     | LPAR expr RPAR                                { fun ctx -> EpParen ($2 ctx)                                       ,() }
+    | lexpr EQ expr SEMI                            { fun ctx -> TmAssign($1 ctx, $3 ctx)                               ,() }
     | ABORT SEMI                                    { fun ctx -> TmAbort                                                ,() } 
     | LOG ID expr_list SEMI                         { fun ctx -> TmLog($2,$3 ctx,None)                                  ,() }
     | SELFDESTRUCT expr SEMI                        { fun ctx -> TmSlfDstrct($2 ctx)                                    ,() }
@@ -122,7 +123,7 @@ expr:
     | BALANCE LPAR  expr RPAR                       { fun ctx -> EpBalance ($3 ctx)                                     ,() }
     | NOW     LPAR BLOCK RPAR                       { fun ctx -> EpNow                                                  ,() }
     | ADDRESS LPAR  expr RPAR                       { fun ctx -> EpAddr ($3 ctx)                                        ,() }
-    | ID                               { reserved $1; fun ctx -> TmId $1                                             ,() }
+    | ID                               { reserved $1; fun ctx -> TmId $1                                                ,() }
     | ID  expr_list                                 { fun ctx -> EpCall{call_id=$1;call_args=$2 ctx}                    ,() }
     | NEW ID expr_list msg             { reserved $2; fun ctx -> EpNew {new_id=$2;new_args=$3 ctx; new_msg=$4 ctx}      ,() }
     | expr DOT DEFAULT LPAR RPAR msg                { fun ctx -> EpSend{sd_cn=$1 ctx; sd_mthd=None   ; sd_args=[]    ; sd_msg=$6 ctx},            ()  }
