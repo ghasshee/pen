@@ -5,7 +5,7 @@ open Crypto
 (*************************) 
 open Location 
 open Syntax
-open IndexList
+open Misc
 open Printf 
 
 module L  = List
@@ -39,18 +39,18 @@ let prABI_outputs (tys:ty list) : string =
     let strs = L.map prABI_output tys in
     BS.concat "," strs
 
-let prABI_mthd_info (TyMethod(id,args,ret)) = 
+let prABI_mthd_info (TyMthd(id,args,ret)) = 
     sprintf "{\"type\":\"function\",\"name\":\"%s\",\"inputs\": [%s],\"outputs\": [%s],\"payable\": true}"
         id (prABI_inputs args) (prABI_output ret)
 
 let prABI_mthd (c:ty mthd) : string = match c.mthd_head with
-    | TyMethod(id,args,ret) ->  prABI_mthd_info (TyMethod(id,args,ret))
+    | TyMthd(id,args,ret) ->  prABI_mthd_info (TyMthd(id,args,ret))
     | TyDefault             ->  prABI_default_mthd
 
 let prABI_cnstrctr (c:ty cntrct) : string =
     sprintf
         "{\"type\": \"constructor\", \"inputs\":[%s], \"name\": \"%s\", \"outputs\":[], \"payable\": true}"
-        (prABI_inputs (L.filter non_mapping_arg c.cntrct_args)) (c.cntrct_id)
+        (prABI_inputs (L.filter non_mapping_arg c.fields )) (c.cn_id)
 
 let prABI_cntrct seen_cnstrctr (c:ty cntrct) : string =
     let cases               =   c.mthds in
@@ -69,7 +69,7 @@ let prABI_evnt_inputs (is:ty list) : string =
     let strs : string list  = L.map prABI_evnt_arg is in
     BS.concat "," strs
 
-let prABI_evnt = function TyEvnt(id,tyEvArgs) -> 
+let prABI_evnt = function TyEv(id,tyEvArgs) -> 
     sprintf "{\"type\":\"evnt\",\"inputs\":[%s],\"name\":\"%s\"}"
         (prABI_evnt_inputs tyEvArgs) id
 
@@ -77,7 +77,7 @@ let prABI_toplevel seen_cnstrctr (t:ty toplevel) : string = match t with
     | Cntrct c                  -> prABI_cntrct seen_cnstrctr c
     | Event e                   -> prABI_evnt e
 
-let prABI (tops : ty toplevel idx_list) : unit =
+let prABI (tops : ty toplevel idxlist) : unit =
     let seen_cnstrctr    = ref false in
     let ()                  = printf "[" in
     let strs : string list  = L.map (prABI_toplevel seen_cnstrctr) (values tops) in

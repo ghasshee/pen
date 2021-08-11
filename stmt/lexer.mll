@@ -18,9 +18,6 @@ rule read = parse
   | white           { read lexbuf }
   | comment         { new_line lexbuf; read lexbuf }
   | newline         { new_line lexbuf; read lexbuf }
-  | "->"            { ARROW                         }
-  | "<-"            { LARROW                        } 
-  | "fn"            { LAM                           } 
   | "contract"      { CONTRACT                      }
   | "default"       { DEFAULT                       }
   | "method"        { METHOD                        }
@@ -51,11 +48,10 @@ rule read = parse
   | ">"             { GT                            }
   | "="             { EQ                            }
   | "new"           { NEW                           }
-  | "with"          { WITH                         }
+  | "with"          { ALONG                         }
   | "reentrance"    { REENTRANCE                    }
   | "selfdestruct"  { SELFDESTRUCT                  }
   | "."             { DOT                           }
-  | ":"             { COLON                         }
   | "not"           { NOT                           }
   | "msg"           { MSG                           }
   | "value"         { VALUE                         }  (* transferred value (wei) *)

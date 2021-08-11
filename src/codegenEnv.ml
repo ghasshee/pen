@@ -1,49 +1,41 @@
 (* CE := Codegen Environment *)
 
 open Printf 
-open Syntax
-open IndexList
-open Evm 
 open Misc
+open Syntax
+open Evm 
+open Location 
 
 
 type ce                             =   { stack_size    : int
-                                        ; program       : Location.imm program
-                                        ; lookup_cn     : string -> idx
-                                        ; cntrcts       : ty cntrct idx_list }
+                                        ; program       : imm program
+                                        ; lookup_cnidx  : string -> idx
+                                        ; cntrcts       : ty cntrct idxlist }
 
-let extract_program ce              =   ce.program
-let lookup_cn_of_ce  ce  name       =   ce.lookup_cn name 
-let lookup_cn_of_cns cns name       =   lookup_idx (fun cn->cn.cntrct_id=name) cns
-let rec lookup_icn_of_icns icns nm  =   match icns with 
-    | []                                -> err "lookup_icn_of_cns: Not Found"
-    | (i,cn)::_ when cn.cntrct_id=nm    -> (i,cn)  
-    | _::rest                           -> lookup_icn_of_icns rest nm
-
-
-let empty_ce lookup_cn cns          =   { stack_size    = 0
+let empty_ce lookup cns             =   { stack_size    = 0
                                         ; program       = empty_program
-                                        ; lookup_cn     = lookup_cn
+                                        ; lookup_cnidx  = lookup
                                         ; cntrcts       = cns               }
 
-let code_len       ce               =   size_of_program ce.program
-let stack_size     ce               =   ce.stack_size
-let set_stack_size ce i             =   { ce with stack_size = i }
+let lookup_cnidx_of_ce  ce  name    =   ce.lookup_cnidx name 
+let lookup_cnidx_of_cns cns name    =   lookup_idx      (fun cn->cn.cn_id=name) cns
+let lookup_icn_of_icns icns name    =   find_by_filter  (fun (i,cn)->if cn.cn_id=name then(i,cn)else raise Not_found) icns
+let lookup_cn           ce  idx     =   lookup idx ce.cntrcts 
+let cntrct_of_name  ce              =   lookup_cn ce $ lookup_cnidx_of_ce ce 
 
-let cntrct_lookup ce idx            =   try lookup_index idx ce.cntrcts
-                                        with e ->   Printf.eprintf "cntrct_lookup failed on %d\n%!" idx; 
-                                                    pr_idx_mapping(fun x->x)(idxs ce.cntrcts); raise e;;
-
-let cntrct_of_name  ce              =   ( cntrct_lookup ce ) $ ( lookup_cn_of_ce ce )   
+let extract_program  ce             =   ce.program
+let get_stack_size   ce             =   ce.stack_size
+let set_stack_size   ce i           =   { ce with stack_size = i }
+let code_len         ce             =   size_of_program ce.program
 
 
 (***************************************)
 (*         APPEND OPCODE               *)
 (***************************************)
 
-let append_opcode ce opcode         =
-    if ce.stack_size < stack_popped opcode then raise StackUnderFlow else    
-    begin match opcode with
+let append_opcode ce opcode         = 
+    if ce.stack_size < stack_popped opcode then raise StackUnderFlow else 
+    begin match opcode with 
     | JUMPDEST l   ->  begin try ignore ( Label.lookup_label   l )
                        with Not_found ->  Label.register_label l (code_len ce) end
     | _            ->  () end ; 
@@ -51,12 +43,10 @@ let append_opcode ce opcode         =
     if new_stack_size > 1024 then raise StackOverFlow else    
     { stack_size        = new_stack_size
     ; program           = opcode :: ce.program 
-    ; lookup_cn         = ce.lookup_cn
+    ; lookup_cnidx      = ce.lookup_cnidx
     ; cntrcts           = ce.cntrcts        }
 
 let (>>) op ce                 = append_opcode ce op  
-
-
 
 
 
@@ -65,47 +55,38 @@ let (>>) op ce                 = append_opcode ce op
 (*************************************************)
 
 (* returns the list of cont contract names *)
-    
 let rec stmt_become             =   function 
-    | SmAbort                   ->  []
-    | SmSlfDstrct   e        
     | SmExpr        e           ->  expr_become e
     | SmDecl        v           ->  expr_become v.declVal
     | SmAssign(LEpArray a,r)    ->  expr_become a.arrIndex @ expr_become r
-(*    | SmIfThen(c,b)             ->  expr_become c @ stmts_become b
-    | SmIf(c,b0,b1)             ->  expr_become c @ stmts_become b0 @ stmts_become b1 *)
-    | SmLog(_,l,_)              ->  exprs_become l
-    | SmReturn r                ->  (match r.ret_expr with
-                                    | (TmUnit,_)    -> []
-                                    | e             -> expr_become e) 
-                                @   ( expr_become r.ret_cont ) 
-                                @   ( match cntrct_name_of_ret_cont r.ret_cont with
-                                    | Some name     -> [name]
-                                    | None          -> [] )
+    | SmIfThen(c,b)             ->  expr_become c @ stmts_become b
+    | SmIf(c,b0,b1)             ->  expr_become c @ stmts_become b0 @ stmts_become b1 
 and stmts_become ss             =   L.concat (L.map stmt_become ss)
 and fncall_become f             =   exprs_become f.call_args
 and new_become n                =   exprs_become n.new_args @ expr_become n.new_msg
 and send_expr_become s          =   expr_become s.sd_cn @ exprs_become s.sd_args @ expr_become s.sd_msg
 and exprs_become es             =   L.concat (L.map expr_become es)
 and expr_become e               =   match fst e with
-    | EpTrue | EpFalse | EpNow 
-    | EpThis | EpValue | EpSender 
-    | EpUint256   _  | EpUint8 _ 
-    | EpIdent       _           ->  []
-    | EpParen       e         
-    | EpAddr        e         
-    | EpNot         e         
-    | EpDeref       e         
-    | EpBalance     e           ->  expr_become e
-    | EpLT       (l,r) | EpGT       (l,r)           
-    | EpNEq      (l,r) | EpEq       (l,r)           
-    | EpMult     (l,r) | EpPlus     (l,r)         
-    | EpLAnd     (l,r)           
-    | EpMinus    (l,r)          ->  (expr_become l) @ (expr_become r)
+    | EpTrue | EpFalse | EpNow     | EpThis | EpValue | EpSender 
+    | EpUint256   _    | EpUint8 _ | TmId       _     | TmAbort                   
+                                ->  []
+    | EpParen       e  | EpAddr        e  | EpNot         e         
+    | EpDeref       e  | EpBalance     e  | TmSlfDstrct   e   
+                                ->  expr_become e
+    | EpLT       (l,r) | EpGT       (l,r) | EpNEq      (l,r) | EpEq       (l,r)           
+    | EpMult     (l,r) | EpPlus     (l,r) | EpLAnd     (l,r) | EpMinus    (l,r)          
+                                ->  (expr_become l) @ (expr_become r)
     | EpArray a                 ->  expr_become a.arrIndex
-    | EpCall f                ->  fncall_become f
+    | EpCall f                  ->  fncall_become f
     | EpNew n                   ->  new_become n
     | EpSend s                  ->  send_expr_become s
+    | TmLog(_,l,_)              ->  exprs_become l
+    | TmReturn(ret,cont)        ->  (match ret with | (TmUnit,_)    -> []
+                                                    | e             -> expr_become e)
+                                @   ( expr_become cont ) 
+                                @   (match cntrct_name_of_ret_cont cont with
+                                    | Some name     -> [name]
+                                    | None          -> [] )
 
 let mthd_become  m        =   stmts_become m.mthd_body
 let mthds_become ms       =   L.concat (L.map mthd_become ms)
@@ -117,11 +98,11 @@ let become cn             =   mthds_become cn.mthds
 let lookup_mthd_info_in_cntrct cn mname =
     let mthd = L.filter (fun c -> match c.mthd_head with
                         | TyDefault  -> false
-                        | TyMethod(id,_,_) -> id=mname) cn.mthds in
+                        | TyMthd(id,_,_) -> id=mname) cn.mthds in
     match mthd with
     | []            ->  raise Not_found
     | _::_::_       ->  eprintf "method %s duplicated\n%!" mname;err "lookup_mthd_info_in_cntrct" 
-    | [a]           ->  begin match a.mthd_head with TyMethod(id,args,retTy) -> TyMethod(id,args,retTy) end
+    | [a]           ->  begin match a.mthd_head with TyMthd(id,args,retTy) -> TyMthd(id,args,retTy) end
 
 
 let rec lookup_mthd_info_inner ce (seen:ty cntrct list) cn mname : ty=

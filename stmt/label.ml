@@ -1,5 +1,5 @@
 open Printf 
-open Misc
+open IndexList
 
 (*********************)
 (***    LABEL      ***)

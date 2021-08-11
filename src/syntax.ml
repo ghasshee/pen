@@ -5,6 +5,7 @@ open Misc
 module L    = List 
 module BL   = BatList
 
+
 type ty           (* atomic *)  =   TyVoid              (* 256 bits *) 
                   (* atomic *)  |   TyUint256           (* 256 bits *) 
                   (* atomic *)  |   TyUint8             (*   8 bits *) 
@@ -15,13 +16,13 @@ type ty           (* atomic *)  =   TyVoid              (* 256 bits *)
                   (* atomic *)  |   TyTuple             of ty list
                   (* atomic *)  |   TyMap               of ty * ty 
                   (* atomic *)  |   TyInstnce           of string                       (* type of [b] declared as [bid b] *) 
-                                |   TyMethod            of string * ty list * ty        (*  TyMethod(id, tyArgs, tyRet)             *)
+                                |   TyMthd            of string * ty list * ty        (*  TyMthd(id, tyArgs, tyRet)             *)
                                 |   TyDefault
                                 |   TyAbs               of  ty * ty                     (*  TyAbs(tyArgs, tyRet)                    *)
                                 |   TyVar               of string * ty                  (*  TyVar(id, ty)                           *) 
                                 |   TyEvVar             of string * ty * bool           (*  TyEvVar(id,ty,indexed)                  *)
-                                |   TyEvnt              of string * ty list 
-                                |   TyCntrct            of string * ty list * ty list   (*  TyCntrct(id,tyCnArgs,tyMethod list *) 
+                                |   TyEv              of string * ty list 
+                                |   TyCn            of string * ty list * ty list   (*  TyCn(id,tyCnArgs,tyMethod list *) 
 
 let id_of_var (TyVar(id,_))     =   id 
 let ty_of_var (TyVar(_,ty))     =   ty 
@@ -36,13 +37,13 @@ let rec string_of_ty            =   function
     | TyTuple []                ->  "()"
     | TyTuple            _      ->  "tuple" 
     | TyMap(a,b)                ->  "mapping" 
-    | TyCntrct(id,_,_)          ->  "contract arch "     ^ id
+    | TyCn(id,_,_)              ->  "contract arch "     ^ id
     | TyInstnce     s           ->  "contract instance " ^ s
 
 let  arg_of_evnt_arg            =   function TyEvVar(id,ty,visible) -> TyVar(id,ty)
 let args_of_evnt_args           =   L.map arg_of_evnt_arg
 
-let split_evnt_args tyEv args   =   match tyEv with TyEvnt(id,tyEvArgs)  -> 
+let split_evnt_args tyEv args   =   match tyEv with TyEv(id,tyEvArgs)  -> 
     let visibles : bool list    =   L.map (function TyEvVar(_,_,visible)->visible) tyEvArgs in
     let combined                =   L.combine args visibles in
     let is,ns                   =   BL.partition snd combined in
@@ -53,34 +54,36 @@ let split_evnt_args tyEv args   =   match tyEv with TyEvnt(id,tyEvArgs)  ->
 (*****************************************)
 
 type 'ty _call                  =   { call_id           : string
-                                    ; call_args         : ('ty exprTy) list    }
+                                    ; call_args         : ('ty exprTy) list }
                                 
 and  'ty _new                   =   { new_id            : string
                                     ; new_args          : 'ty exprTy list
-                                    ; new_msg           : 'ty exprTy              }
+                                    ; new_msg           : 'ty exprTy        }
                                 
 and  'ty _send                  =   { sd_cn             : 'ty exprTy
                                     ; sd_mthd           : string option
                                     ; sd_args           : 'ty exprTy list
-                                    ; sd_msg            : 'ty exprTy              }
+                                    ; sd_msg            : 'ty exprTy        }
 
+and  'ty return                 =   { ret_expr          :  'ty exprTy 
+                                    ; ret_cont          :  'ty exprTy       }
+                                
 and  'ty stmt                   =   
-                                |   SmAbort
-                                |   SmReturn            of 'ty return
                                 |   SmAssign            of 'ty lexpr * 'ty exprTy
                                 |   SmDecl              of 'ty decl
                                 |   SmIfThen            of 'ty exprTy * 'ty stmt list
                                 |   SmIf                of 'ty exprTy * 'ty stmt list * 'ty stmt list
-                                |   SmSlfDstrct         of 'ty exprTy
                                 |   SmExpr              of 'ty exprTy
-                                |   SmLog               of string * 'ty exprTy list * ty option (* ty := TyEvnt *) 
 
 and  'ty exprTy                =   'ty expr * 'ty
 
 and  'ty expr                   =   EpParen             of 'ty exprTy
+                                |   TmReturn            of 'ty exprTy * 'ty exprTy 
+                                |   TmId                of string
+                                |   TmAbort 
                                 |   TmDecl              of 'ty decl 
                                 |   TmSlfDstrct         of 'ty exprTy
-                                |   TmLog               of string * 'ty exprTy list * ty option (* ty := TyEvnt *)
+                                |   TmLog               of string * 'ty exprTy list * ty option (* ty := TyEv *)
                                 |   TmRef               of 'ty exprTy
                                 |   TmDeref             of 'ty exprTy
                                 |   TmAssign            of 'ty lexpr * 'ty exprTy 
@@ -96,7 +99,6 @@ and  'ty expr                   =   EpParen             of 'ty exprTy
                                 |   EpUint256           of big_int
                                 |   EpUint8             of big_int
                                 |   EpNow
-                                |   EpIdent             of string
                                 |   EpCall              of 'ty _call
                                 |   EpNew               of 'ty _new
                                 |   EpSend              of 'ty _send                    (* storage solidation *) 
@@ -126,9 +128,10 @@ and 'ty decl                    =   { declTy            :   ty
                                     ; declId            :   string
                                     ; declVal           :  'ty exprTy         }
 
-and 'ty return                  =   { ret_expr          :  'ty exprTy 
-                                    ; ret_cont          :  'ty exprTy         }
-                                
+
+let get_ty  (_,ty)              =   ty
+let get_tm  (x,_)               =   x
+
 
 (*****************************************)
 (***    METHODs      &    CONTRACTS    ***)
@@ -139,28 +142,46 @@ type 'ty mthd_body              =   'ty stmt list
 type 'ty mthd                   =   { mthd_head         : ty
                                     ; mthd_body         : 'ty mthd_body }
                                 
-type 'ty cntrct                 =   { cntrct_id         : string
-                                    ; cntrct_args       : ty list
+type 'ty cntrct                 =   { cn_id             : string
+                                    ; fields            : ty list
                                     ; mthds             : 'ty mthd list }
+
+let filter_vars                 =   L.filter (function TyVar(_,TyMap _) -> false | TyVar _ -> true )
+let filter_arrs                 =   L.filter (function TyVar(_,TyMap _) -> true  | TyVar _ -> false) 
+let varTys_of_cn cn             =   filter_vars cn.fields
+let arrTys_of_cn cn             =   filter_arrs cn.fields
+
+let string_of_tyMthd (TyMthd(id,args,ret))  =
+    let argTys          = L.map ty_of_var (filter_vars args)    in
+    let strTys          = L.map string_of_ty argTys             in
+    let tys             = S.concat "," strTys                   in
+    id    ^ "(" ^ tys ^ ")"
+
+let string_of_evnt  = function TyEv(id,tyEvArgs) -> 
+    let args            = args_of_evnt_args tyEvArgs            in 
+    let argTys          = L.map ty_of_var (filter_vars args)    in
+    let strTys          = L.map string_of_ty argTys             in
+    let tys             = S.concat "," strTys                   in
+    id ^ "(" ^ tys ^ ")"
 
 (*****************************************)
 (***           TOPLEVEL                ***)
 (*****************************************)
 
 type 'ty toplevel               =   Cntrct        of 'ty cntrct
-                                |   Event         of ty    (* ty := TyEvnt *) 
+                                |   Event         of ty    (* ty = TyEv *) 
 
-let filter_usualMthd            =   BL.filter_map (function   | TyDefault                   -> None 
-                                                              | TyMethod(i,a,r)             -> Some (TyMethod(i,a,r)) )  
+let filter_method               =   BL.filter_map (function   | TyDefault                   -> None 
+                                                              | TyMthd(i,a,r)             -> Some (TyMthd(i,a,r)) )  
 let default_exists              =   L.exists      (function   | TyDefault                   -> true
-                                                              | TyMethod(_,_,_)             -> false  )
+                                                              | TyMthd(_,_,_)             -> false  )
 
 let cntrct_name_of_ret_cont     = function 
     | EpCall c,_                -> Some c.call_id
     | _,_                       -> None
 
 let argTys_of_mthd                = function 
-    | TyMethod(_,argTys,_)      -> argTys
+    | TyMthd(_,argTys,_)      -> argTys
     | TyDefault                 -> []
 
 let cntrct_name_of_instance     = function
@@ -172,12 +193,16 @@ let cntrct_name_of_instance     = function
 (*****************************************)
 
 let string_of_expr              = function 
+    | TmAbort                   -> "abort" 
+    (*| TmReturn(_,_)             -> "return"*)
+    | TmLog(_,_,_)              -> "log"
+    | TmSlfDstrct _             -> "selfdestruct"
+    | TmId        str           -> "id " ^ str
     | EpThis                    -> "this"
     | EpArray       _           -> "a[idx]"
     | EpSend        _           -> "send"
     | EpNew         _           -> "new"
     | EpParen       _           -> "()"
-    | EpIdent     str           -> "ident " ^ str
     | EpCall      _             -> "call"
     | EpNow                     -> "now"
     | EpSender                  -> "sender"
@@ -203,18 +228,6 @@ let string_of_expr              = function
 (***              SIZE                 ***)
 (*****************************************)
 
-let fits_in_one_stor_slot       = function 
-    | TyUint8
-    | TyUint256
-    | TyBytes32
-    | TyAddr
-    | TyBool
-    | TyInstnce _
-    | TyMap _                   -> true
-    | TyRef _     
-    | TyTuple _        
-    | TyCntrct _                -> false
-
 let size_of_ty (* in bytes *)   = function
     | TyUint8                   ->  1
     | TyUint256                 -> 32
@@ -226,18 +239,21 @@ let size_of_ty (* in bytes *)   = function
     | TyTuple []                -> err "size_of_ty TyUnit" 
     | TyTuple _                 -> err "size_of_ty TyTuple"
     | TyMap   _                 -> err "size_of_ty TyMap" 
-    | TyCntrct(id,_,_)          -> err("size_of_ty TyCntrct: " ^ id)
+    | TyCn(id,_,_)          -> err("size_of_ty TyCn: " ^ id)
 
 let size_of_tys                 = BL.sum $ (L.map size_of_ty) 
+let size_of_args args           = BL.sum (L.map (size_of_ty $ ty_of_var) args)
+let size_of_vars_in_cn cn       = size_of_tys (L.map ty_of_var (varTys_of_cn cn))  
 
 let calldata_size_of_ty         = function 
     | TyMap _                   -> err "mapping cannot be a method arg"
     | TyRef _                   -> err "reference type cannot be a method arg"
     | TyTuple _                 -> err "tupletype not implemented"
-    | TyCntrct _                -> err "cntrct type cannot be a method arg"
+    | TyCn _                -> err "cntrct type cannot be a method arg"
     | tyT                       -> size_of_ty tyT
 
 let calldata_size_of_arg (TyVar(_,ty))    = calldata_size_of_ty ty
+
 
 (*****************************************)
 (***            TYPE auxirity          ***)
@@ -250,7 +266,7 @@ let is_mapping                  = function
 let non_mapping_arg             = function 
     | TyVar(_,TyMap _)          -> false
     | TyVar(_,_)                -> true 
-    | _ -> err "not an arg"
+    | _                         -> err "not an arg"
 
 let count_plain_args            = L.length $ (L.filter (not $ is_mapping)) 
 
@@ -288,7 +304,7 @@ and  'ty expr                   =   EpParen             of 'ty exprTy
                                 |   EpUint256           of big_int
                                 |   EpUint8             of big_int
                                 |   EpNow
-                                |   EpIdent             of string
+                                |   TmId             of string
                                 |   EpCall              of 'ty _call
                                 |   EpNew               of 'ty _new
                                 |   EpSend              of 'ty _send

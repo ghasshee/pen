@@ -3,8 +3,9 @@
 open Misc
 open Location
 open Syntax
+open IndexList
 open Printf 
-open Context
+open TypeEnv
 
 module L  = List
 module BL = BatList
