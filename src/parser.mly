@@ -83,16 +83,15 @@ ty:
     | block                                         { $1                                                        }
      
 stmt:
-    | lexpr EQ expr SEMI                            { SmAssign($1 [],$3 [])                                     }
-    | ty ID EQ expr SEMI                            { reserved $2;SmDecl{declTy=$1; declId=$2; declVal=$4 []}   }
-    | IF expr THEN body ELSE body                   { SmIf($2 [],$4,$6)                                         }
-    | IF expr THEN body                             { SmIfThen ($2 [], $4)                                      }
-    | expr SEMI                                     { SmExpr ($1 [])                                            }
-    | expr                                          { SmExpr ($1 [])                                            }
+    | lexpr EQ tm SEMI                              { SmAssign($1 [],$3 [])                                     }
+    | ty ID EQ tm SEMI                              { reserved $2;SmDecl{declTy=$1; declId=$2; declVal=$4 []}   }
+    | IF tm THEN body ELSE body                     { SmIf($2 [],$4,$6)                                         }
+    | IF tm THEN body                               { SmIfThen ($2 [], $4)                                      }
+    |  tm  SEMI                                     { SmExpr ($1 [])                                            }
 
 ret: 
     |                                               { fun ctx -> TmUnit                                  ,()    }
-    | expr                                          { $1                                                        }
+    | tm                                            { $1                                                        }
 
 %inline op:
     | LT                                            { fun l r -> EpLT(l,r)                                      }
@@ -104,39 +103,46 @@ ret:
     | MULT                                          { fun l r -> EpMult(l,r)                                    }
     | MINUS                                         { fun l r -> EpMinus(l,r)                                   }
 
-expr:
-    | RETURN ret THEN BECOME expr SEMI              { fun ctx -> TmReturn($2 ctx,$5 ctx)                                ,() }
-    | LPAR expr RPAR                                { fun ctx -> EpParen ($2 ctx)                                       ,() }
-    | lexpr EQ expr SEMI                            { fun ctx -> TmAssign($1 ctx, $3 ctx)                               ,() }
-    | ABORT SEMI                                    { fun ctx -> TmAbort                                                ,() } 
-    | LOG ID expr_list SEMI                         { fun ctx -> TmLog($2,$3 ctx,None)                                  ,() }
-    | SELFDESTRUCT expr SEMI                        { fun ctx -> TmSlfDstrct($2 ctx)                                    ,() }
-    | LAM ID COLON ty ARROW expr                    { fun ctx -> TmAbs($2,$4    , $6 ctx)                               ,() } 
+tm: 
+    | appTm                                         { $1                                                                    } 
+    | LAM ID COLON ty ARROW tm                      { fun ctx -> TmAbs($2, $4, $6 ctx)                                  ,() } 
+    | lexpr EQ tm                                   { fun ctx -> TmAssign($1 ctx, $3 ctx)                               ,() }
+    | LOG ID  arg_list                              { fun ctx -> TmLog($2,$3 ctx,None)                                  ,() }
+    | SELFDESTRUCT tm                               { fun ctx -> TmSlfDstrct($2 ctx)                                    ,() }
+appTm:
+    | pathTm                                        { $1                                                                    }
+    | appTm pathTm                                  { fun ctx -> TmApp($1 ctx,$2 ctx)                                   ,() } 
+    | NOT   pathTm                                  { fun ctx -> EpNot ($2 ctx)                                         ,() }
+    | ID   arg_list                                 { fun ctx -> EpCall{call_id=$1;call_args=$2 ctx}                    ,() }
+pathTm:
+    | aTm                                           { $1                                                                    }
+aTm:
+    | LPAR tm RPAR                                  { fun ctx -> EpParen ($2 ctx)                                       ,() }
+    | tm op tm                                      { fun ctx -> $2 ($1 ctx)($3 ctx)                                    ,() }
+    | RETURN ret THEN BECOME tm                     { fun ctx -> TmReturn($2 ctx,$5 ctx)                                ,() }
+    | ABORT                                         { fun ctx -> TmAbort                                                ,() } 
     | TRUE                                          { fun ctx -> EpTrue                                                 ,() }
     | FALSE                                         { fun ctx -> EpFalse                                                ,() }
     | EUINT256                                      { fun ctx -> EpUint256 $1                                           ,() }
     | EUINT8                                        { fun ctx -> EpUint256 $1                                           ,() }
-    | expr op expr                                  { fun ctx -> $2 ($1 ctx)($3 ctx)                                    ,() }
-    | NOT expr                                      { fun ctx -> EpNot ($2 ctx)                                         ,() }
     | VALUE   LPAR  MSG  RPAR                       { fun ctx -> EpValue                                                ,() }
     | SENDER  LPAR  MSG  RPAR                       { fun ctx -> EpSender                                               ,() }
-    | BALANCE LPAR  expr RPAR                       { fun ctx -> EpBalance ($3 ctx)                                     ,() }
+    | BALANCE LPAR  tm   RPAR                       { fun ctx -> EpBalance ($3 ctx)                                     ,() }
     | NOW     LPAR BLOCK RPAR                       { fun ctx -> EpNow                                                  ,() }
-    | ADDRESS LPAR  expr RPAR                       { fun ctx -> EpAddr ($3 ctx)                                        ,() }
+    | ADDRESS LPAR  tm   RPAR                       { fun ctx -> EpAddr ($3 ctx)                                        ,() }
     | ID                               { reserved $1; fun ctx -> TmId $1                                                ,() }
-    | ID  expr_list                                 { fun ctx -> EpCall{call_id=$1;call_args=$2 ctx}                    ,() }
-    | NEW ID expr_list msg             { reserved $2; fun ctx -> EpNew {new_id=$2;new_args=$3 ctx; new_msg=$4 ctx}      ,() }
-    | expr DOT DEFAULT LPAR RPAR msg                { fun ctx -> EpSend{sd_cn=$1 ctx; sd_mthd=None   ; sd_args=[]    ; sd_msg=$6 ctx},            ()  }
-    | expr DOT ID   expr_list msg                   { fun ctx -> EpSend{sd_cn=$1 ctx; sd_mthd=Some $3; sd_args=$4 ctx; sd_msg=$5 ctx},            ()  }
+    | NEW ID  arg_list msg             { reserved $2; fun ctx -> EpNew {new_id=$2;new_args=$3 ctx; new_msg=$4 ctx}      ,() }
+    |  tm  DOT DEFAULT LPAR RPAR msg                { fun ctx -> EpSend{sd_cn=$1 ctx; sd_mthd=None   ; sd_args=[]    ; sd_msg=$6 ctx},            ()  }
+    |  tm  DOT ID    arg_list msg                   { fun ctx -> EpSend{sd_cn=$1 ctx; sd_mthd=Some $3; sd_args=$4 ctx; sd_msg=$5 ctx},            ()  }
     | THIS                                          { fun ctx -> EpThis,                                                           ()  }
-    | expr LSQBR expr RSQBR                         { fun ctx -> EpArray{arrId=$1 ctx;arrIndex=$3 ctx},                                    ()  }
+    |  tm  LSQBR  tm  RSQBR                         { fun ctx -> EpArray{arrId=$1 ctx;arrIndex=$3 ctx},                                    ()  }
      
-expr_list : 
+arg_list : 
     | LPAR RPAR                                     { fun ctx -> []                                                         }
-    | LPAR exprs RPAR                               { fun ctx -> $2 ctx                                                     } 
-exprs: 
-    | expr                                          { fun ctx -> [$1 ctx]                                                   }
-    | expr COMMA exprs                              { fun ctx -> $1 ctx :: $3 ctx                                           } 
+    | LPAR args RPAR                                { fun ctx -> $2 ctx                                                     } 
+args: 
+    | tm                                            { fun ctx -> [$1 ctx]                                                   }
+    | tm COMMA args                                 { fun ctx -> $1 ctx :: $3 ctx                                           } 
 (*
 %inline expr_list:
     | plist(expr)                                   { $1                                                                    }
@@ -145,9 +151,9 @@ msg:
     | value_info                                    { $1                                                                    }
      
 value_info:
-    | (* empty *)                                   { fun ctx -> EpFalse,()                                                            }
-    | WITH expr                                    { $2                                                                    }
+    | (* empty *)                                   { fun ctx -> EpFalse,()                                                 }
+    | WITH tm                                       { $2                                                                    }
      
 lexpr:                                              (* expr '[' expr ']' *) 
-    | expr LSQBR expr RSQBR                         { fun ctx -> LEpArray{arrId=$1 ctx; arrIndex=$3 ctx}                                       }
+    | tm LSQBR tm RSQBR                             { fun ctx -> LEpArray{arrId=$1 ctx; arrIndex=$3 ctx}                    }
      

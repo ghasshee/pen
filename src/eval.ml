@@ -40,7 +40,7 @@ and eval1 ctx store t = let p str = pr str;pr_tm ctx t; pn() in match t with
     | TmFix(fi,v) when isval ctx v      ->  p"E-FIXBETA     : "; raise NoRuleApplies 
     | TmFix(fi,t)                       ->  p"E-FIX         : "; let t',s'=eval1 ctx store t in TmFix(fi,t'),s' 
     | TmTag(fi,l,t,tyT)                 ->  p"E-TAG         : "; let t',s'=eval1 ctx store t in TmTag(fi,l,t',tyT),s'
-    | TmVar(fi,n,_)                     ->  p"E-VAR         : "; (match getbind fi ctx n with
+    | TmIdx(fi,n,_)                     ->  p"E-VAR         : "; (match getbind fi ctx n with
         | BindTmAbb(t,_)                    -> t,store
         | _                                 -> raise NoRuleApplies) 
     | TmCase(fi,TmTag(_,l,v,_),cases) when isval ctx v  ->  
