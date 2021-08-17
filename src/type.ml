@@ -33,7 +33,7 @@ let typeof_mthd m               =   match m.mthd_head with
     | TyMthd(id,args,ret)           ->  TyMthd(id,L.map ty_of_var args, ret)
     | TyDefault                     ->  TyMthd("", [], TyTuple[]) 
 
-let typeof_cn  cn               =   TyCn(cn.cn_id,L.map ty_of_var cn.fields , L.map typeof_mthd cn.mthds)
+let typeof_cn  cn               =   TyCn(cn.id,L.map ty_of_var cn.fields , L.map typeof_mthd cn.mthds)
 let typeof_cns                  =   map typeof_cn 
 
 let id_lookup_ty ctx id         =   try TmId id, lookup_id id ctx 
@@ -98,7 +98,22 @@ let rec addTy_call cns cname ctx c =
 
 
 and addTy_expr cns cname ctx (expr,()) =    match expr with
- (* | SmAbort                       ->  SmAbort         , TyVoid *)
+ (*   | TmAbs(fi,x,tyT1,t2)       ->  p "T-ABS         : ";
+            let ctx'    = addbind ctx x (BindTmVar(tyT1)) in    (*          Γ,x:T1 ⊢ t2 : T2                *)  
+            let tyT2    = typeof ctx' t2 in                     (*       --------------------- T-Abs        *)
+            TyArr(tyT1,tyShift(-1)tyT2)                         (*       Γ ⊢ λx:T1.t2 : T1→T2               *)
+    | TmApp(fi,t1,t2)           ->  p "T-APP         : ";     
+            let tyT1 = typeof ctx t1 in                         (*   Γ |- t1 : T2→T12 ∧ Γ ⊢ t2 : T2         *)
+            let tyT2 = typeof ctx t2 in                         (*   ------------------------------- T-App  *)
+            (match simplifyty ctx tyT1 with                     (*         Γ ⊢ t1 t2 : T12                  *)   
+                | TyArr(tyT11,tyT12)    -> if (tyeqv ctx) tyT2 tyT11 then tyT12 else error fi "type mismatch" 
+                | _                     -> error fi "arrow type expected" ) *)
+    | TmAbs(x,tyX,t)                ->  let t',tyT' = addTy_expr cns cname (add_var ctx x tyX) t in 
+                                        TmAbs(x,tyX,(t',tyT')), TyAbs(tyX,tyT')
+    | TmIdx(i,n)                    ->  begin match ctx with BdCtx local :: _ -> 
+                                        let BdTy(id,ty) = L.nth local i in
+                                        let ty = tyShift (i+1) ty  in 
+                                        TmIdx(i,n)      , ty end 
     | TmReturn(r,c)                 ->  addTy_return      cns cname ctx  r c 
     | TmAbort                       ->  TmAbort         , TyVoid
     | TmLog(nm,args,_)              ->  let tyArgs      = L.map (addTy_expr cns cname ctx) args in
@@ -189,9 +204,9 @@ and addTy_expr cns cname ctx (expr,()) =    match expr with
                                                            ; sd_args    = []
                                                            ; sd_msg     = msg }, TyTuple[]  end
 
-and addTy_new cns cname tenv e =
-    let msg'        =   addTy_expr cns cname tenv e.new_msg in
-    let args'       =   L.map (addTy_expr cns cname tenv) e.new_args in
+and addTy_new cns cname ctx e =
+    let msg'        =   addTy_expr cns cname ctx e.new_msg in
+    let args'       =   L.map (addTy_expr cns cname ctx) e.new_args in
     { new_id        =   e.new_id
     ; new_args      =   args'
     ; new_msg       =   msg'          }, e.new_id 
@@ -272,16 +287,16 @@ let has_distinct_sigs (cn:unit cntrct) =
 let addTy_cntrct cns (evs: ty idxlist) cn =
     assert (BL.for_all(arg_has_known_ty (typeof_cns cns))cn.fields  && has_distinct_sigs cn)  ; 
     let ctx  = add_local (add_evnts empty_ctx (values evs)) (binds_of_vars cn.fields ) in
-    { cn_id     =   cn.cn_id
+    { id     =   cn.id
     ; fields    =   cn.fields 
-    ; mthds         =   L.map(addTy_mthd cns cn.cn_id ctx)cn.mthds }
+    ; mthds         =   L.map(addTy_mthd cns cn.id ctx)cn.mthds }
 
 let addTy_toplevel cns (evs:ty idxlist) = function 
     | Cntrct c      -> Cntrct (addTy_cntrct cns evs c)
     | Event  e      -> Event e
 
 let has_distinct_cntrct_names (cns : unit cntrct idxlist) : bool =
-    let cn_names    = (L.map(fun(_,b)->b.cn_id)cns) in
+    let cn_names    = (L.map(fun(_,cn)->cn.id)cns) in
     L.length cns=L.length(BL.unique cn_names)
 
 let addTys (tops : unit toplevel idxlist) : ty toplevel idxlist =

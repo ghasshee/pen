@@ -605,6 +605,7 @@ and codegen_expr_eff le ce ly aln          = function
     | TmLog(id,args,None)   ,TyTuple[]  ->  err "add_stmt: type check first"
     | TmSlfDstrct expr      ,TyTuple[]  ->  codegen_selfDstrct le ce ly expr          
     | TmReturn(ret,cont)    ,_          ->  codegen_return      le ce ly ret cont     
+    (*| TmAbs(x,tyX,(t,tyT))  ,_          ->  codegen_mthd ly 0 (le,ce) {mthd_head=TyMthd(x,[TyVar(x,tyX)],tyT); mthd_body=[SmExpr(t,tyT)]}*)
     | e                     ,_          ->  ($) print_string string_of_expr e; raise Not_found
     
 and op operator l r le ce ly =
@@ -857,22 +858,22 @@ and codegen_stmt ly  (le,ce)       = function
 (***     13. CODEGEN CONTRACT             ***)
 (********************************************)
 
-let label_mthd idx m ce =
+and label_mthd idx m ce =
     let label   =   fresh_label()                               in
     register_entry(Mthd(idx,m))label ; 
                     JUMPDEST label                  >>ce      
 
-let calldatasize (TyMthd(_,args,_)) =
+and calldatasize (TyMthd(_,args,_)) =
     4 (* for signature *) + size_of_args args   
 
-let codegen_mthd_argLen_chk m ce = match m with  
+and codegen_mthd_argLen_chk m ce = match m with  
     | TyDefault     -> ce
     | TyMthd _      ->
     let ce      = PUSH4(Int(calldatasize m))        >>ce        in
     let ce      = CALLDATASIZE                      >>ce        in
                   throw_if_NEQ                        ce    
 
-let codegen_mthd ly idx (le,ce) m  =
+and codegen_mthd ly idx (le,ce) m  =
     let ce      = label_mthd  idx m.mthd_head         ce        in
     let ce      = codegen_mthd_argLen_chk m.mthd_head ce        in
     let le      = add_empty_ctx                    le           in

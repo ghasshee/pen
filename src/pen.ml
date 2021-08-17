@@ -50,18 +50,27 @@ let ()      =
     let abi       : bool                    = (Some true = enable_abi.Option.option_get ())              in
     let lexbuf                      = Lexing.from_channel stdin                                 in
     let _ASTs : unit toplevel list  = parse_with_error lexbuf                                   in
+    pe"------- parse done --------" ; 
     let idx_ASTs                    = to_idxlist _ASTs                                         in
+    pe"------- indexed ASTs ------" ; 
     let idx_typed_ASTs              = Type.addTys idx_ASTs                                      in
+    pe"------- typed -------------" ;
     let idx_ty_opt_ASTs             = Eval.eval idx_typed_ASTs                                  in 
+    pe"------  evaluated ---------" ; 
     let cns                         = filter_map (function Cntrct cn -> Some cn
                                                          | _         -> None ) idx_ty_opt_ASTs  in
+    pe"------ extract cntrcts ----" ; 
     match cns with
     | []  ->  ()
     | _   ->   
     let ccs        : cnstrCode idxlist         = compile_cnstrs cns                        in          
+    pe"----- initial codes of cns built ------"; 
     let cnstrInfos : LI.cnstrInfo idxlist      = map cnstrInfo_of_cnstrCode ccs            in          
+    pe"----- cnstrctor info built ------------";
     let layt                                    = LI.cnstrct_storLayout cnstrInfos          in          
+    pe"----- storage layout built ------------";
     let rc         : rntimeCode                 = compile_rntime layt cns                   in          
+    pe"----- contrct layout built ------------";
     let bytecode   : big_int Evm.program        = compose_bytecode ccs rc (fst(L.hd cns))   in          
     if  abi                                                                                               
         then Abi.prABI idx_ty_opt_ASTs                                                                          

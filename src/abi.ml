@@ -50,7 +50,7 @@ let prABI_mthd (c:ty mthd) : string = match c.mthd_head with
 let prABI_cnstrctr (c:ty cntrct) : string =
     sprintf
         "{\"type\": \"constructor\", \"inputs\":[%s], \"name\": \"%s\", \"outputs\":[], \"payable\": true}"
-        (prABI_inputs (L.filter non_mapping_arg c.fields )) (c.cn_id)
+        (prABI_inputs (L.filter non_mapping_arg c.fields )) (c.id)
 
 let prABI_cntrct seen_cnstrctr (c:ty cntrct) : string =
     let cases               =   c.mthds in

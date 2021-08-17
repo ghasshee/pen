@@ -143,7 +143,7 @@ type 'ty mthd_body              =   'ty stmt list
 type 'ty mthd                   =   { mthd_head         : ty
                                     ; mthd_body         : 'ty mthd_body }
                                 
-type 'ty cntrct                 =   { cn_id             : string
+type 'ty cntrct                 =   { id             : string
                                     ; fields            : ty list
                                     ; mthds             : 'ty mthd list }
 
@@ -193,7 +193,9 @@ let cntrct_name_of_instance     = function
 (***           PRINTING                ***)
 (*****************************************)
 
-let string_of_expr              = function 
+let rec string_of_expr              = function 
+    | TmAbs(x,tyX,(t,_))            -> "λ" ^ x ^ ":" ^ string_of_ty tyX ^ "." ^ string_of_expr t 
+    | TmIdx(i,n)                -> string_of_int i 
     | TmAbort                   -> "abort" 
     | TmReturn(_,_)             -> "return"
     | TmLog(_,_,_)              -> "log"

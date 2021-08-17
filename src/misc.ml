@@ -19,6 +19,15 @@ exception StackOverFlow
 let err                     = failwith
 let errc str                = err("codegen_expr: " ^ str ^ " of unexpected type")
 
+
+
+(*****************************************)
+(**      LIST OPERATERS                 **)
+(*****************************************)
+
+let ps = print_string 
+let pe = print_endline
+
 (*****************************************)
 (**      LIST OPERATERS                 **)
 (*****************************************)
@@ -112,4 +121,6 @@ let lookup_idx f l      =   let i,_ = L.find (f $ snd) l in i
 let empty               =   []
 let idxs     l          =   L.map fst l
 let values   l          =   L.map snd l
+
+
 

@@ -169,4 +169,11 @@ let rec process_commands ctx store = function
 
 *)
 
-let eval a = a 
+let rec eval = function 
+    | [] -> []
+    | (i,cn)::rest -> 
+        
+        (i,cn) :: rest 
+
+let convert_abs2method = ()
+

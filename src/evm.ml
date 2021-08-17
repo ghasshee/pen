@@ -328,4 +328,4 @@ let dup_succ       = function
   | 4               -> DUP5
   | 5               -> DUP6
   | 6               -> DUP7
-  | n               -> print_int n; failwith "more DUP opcodes needed"
+  | n               -> Printf.eprintf "EVM: DUP%d does not exists\n" (n+1); err""

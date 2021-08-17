@@ -28,6 +28,19 @@ type le                         =   context
 let empty_ctx                   = [] 
 let add_empty_ctx ctx           = BdCtx[] :: ctx
 
+let prBd                        = function 
+    | BdName str                    -> printf "BdName(%s) " str 
+
+let prBds                       = L.iter prBd 
+
+let rec lookup_bruijn_idx nm    = function 
+    | []                            -> eprintf"Context: bruijn idx for %s not found\n" nm; raise Not_found
+    | BdName x :: xs                -> if x=nm then 0 else 1+(lookup_bruijn_idx nm xs) 
+
+let add_bruijn_idx ctx x        = BdName x :: ctx 
+
+
+
 let lookup_id_local   nm        = find_by_filter (function BdTy(id,ty)when id=nm -> ty          | _ -> raise Not_found) 
 let lookup_id         nm        = find_by_filter (function BdCtx ctx -> lookup_id_local nm ctx  | _ -> raise Not_found)
 let lookup_evnt       nm        = find_by_filter (function BdEv(id,l) when id=nm -> TyEv(id,l)  | _ -> raise Not_found)

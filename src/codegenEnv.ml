@@ -18,8 +18,8 @@ let empty_ce lookup cns             =   { stack_size    = 0
                                         ; cntrcts       = cns               }
 
 let lookup_cnidx_of_ce  ce  name    =   ce.lookup_cnidx name 
-let lookup_cnidx_of_cns cns name    =   lookup_idx      (fun cn->cn.cn_id=name) cns
-let lookup_icn_of_icns icns name    =   find_by_filter  (fun (i,cn)->if cn.cn_id=name then(i,cn)else raise Not_found) icns
+let lookup_cnidx_of_cns cns name    =   lookup_idx      (fun cn->cn.id=name) cns
+let lookup_icn_of_icns icns name    =   find_by_filter  (fun (i,cn)->if cn.id=name then(i,cn)else raise Not_found) icns
 let lookup_cn           ce  idx     =   lookup idx ce.cntrcts 
 let cntrct_of_name  ce              =   lookup_cn ce $ lookup_cnidx_of_ce ce 
 

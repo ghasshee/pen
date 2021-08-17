@@ -197,7 +197,7 @@ let rec getbind fi ctx i        =   try let (_,bind) = List.nth ctx i in bindshi
                                     with Failure _ -> error fi(getbind_err_msg i(ctxlen ctx))
 
 let getTypeFromContext fi ctx n =   match getbind fi ctx n with 
-    | BindTmVar(tyT)                      -> tyT
+    | BindTmVar(tyT)                    -> tyT
     | BindTmAbb(_,Some(tyT))            -> tyT
     | BindTmAbb(_,None)                 -> error fi ("No type recorded for variable "^(index2name fi ctx n))
     | _                                 -> error fi("getTypeFromContext: Wrong binding"^(index2name fi ctx n))
