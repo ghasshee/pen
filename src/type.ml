@@ -29,11 +29,11 @@ let tyeqv t0 t1                 =   ( t0 = t1 )  ||  ( match t0, t1 with
 
 let assert_tyeqv l r            =   assert (get_ty l=get_ty r) 
 
-let typeof_mthd m               =   match m.mthd_head with 
-    | TyMthd(id,args,ret)           ->  TyMthd(id,L.map ty_of_var args, ret)
-    | TyDefault                     ->  TyMthd("", [], TyTuple[]) 
+let typeof_mthd                 =   function 
+    | TmMthd(TyMthd(id,args,ret),_) ->  TyMthd(id, tys_of_vars args, ret)
+    | TmMthd(TyDefault,_)           ->  TyMthd("", [], TyTuple[]) 
 
-let typeof_cn  cn               =   TyCn(cn.id,L.map ty_of_var cn.fields , L.map typeof_mthd cn.mthds)
+let typeof_cn  cn               =   TyCn(cn.id,tys_of_vars cn.fields, L.map typeof_mthd cn.mthds)
 let typeof_cns                  =   map typeof_cn 
 
 let id_lookup_ty ctx id         =   try TmId id, lookup_id id ctx 
@@ -181,10 +181,10 @@ and addTy_expr cns cname ctx (expr,()) =    match expr with
                                         EpNot e         , TyBool
     | EpArray a                     ->  let e       =   addTy_expr cns cname ctx a.arrId    in
                                         begin match get_ty e with | TyMap(kT,vT)  ->  
-                                        let idx,ty  =   addTy_expr cns cname ctx a.arrIndex in 
+                                        let idx,ty  =   addTy_expr cns cname ctx a.arrIdx in 
                                         assert (tyeqv kT ty) ; 
                                         EpArray { arrId    = e
-                                                ; arrIndex = idx,ty }, vT end  
+                                                ; arrIdx = idx,ty }, vT end  
     | EpSend sd                     ->  let msg     =   addTy_expr  cns cname ctx sd.sd_msg in
                                         let cn      =   addTy_expr cns cname ctx sd.sd_cn   in
                                         begin match sd.sd_mthd with
@@ -214,8 +214,8 @@ and addTy_new cns cname ctx e =
 and addTy_lexpr cns cname ctx (LEpArray aa) = 
     let e = addTy_expr cns cname ctx aa.arrId in
     match get_ty e with
-    | TyMap (kT,vT)     ->  let idx,ty = addTy_expr cns cname ctx aa.arrIndex in
-                            LEpArray { arrId=e; arrIndex=idx,ty }  
+    | TyMap (kT,vT)     ->  let idx,ty = addTy_expr cns cname ctx aa.arrIdx in
+                            LEpArray { arrId=e; arrIdx=idx,ty }  
 
 and addTy_return cns cname ctx ret cont=
     let retTy       =   addTy_expr cns cname ctx ret    in
@@ -225,19 +225,12 @@ and addTy_return cns cname ctx ret cont=
     TmReturn(retTy, contTy), get_ty retTy
 
 
-and addTy_decl cns cname ctx vd =
-    let v           =   addTy_expr cns cname ctx vd.declVal in
-    let id          =   vd.declId     in
-    let ty          =   vd.declTy     in
+and addTy_decl cns cname ctx (ty,id,v) =
+    let v           =   addTy_expr cns cname ctx v in
     assert (is_known_ty (typeof_cns cns) ty);
-    { declTy    = ty
-    ; declId    = id
-    ; declVal   = v  }, add_var ctx id ty  
+    SmDecl(ty,id,v), add_var ctx id ty  
 
 and addTy_stmt cns cname ctx = function 
-    | SmIfThen(b,t)     ->  let b       = addTy_expr        cns cname ctx  b        in
-                            let t       = addTy_stmts       cns cname ctx  t        in
-                            SmIfThen(b,t)   , ctx
     | SmIf(b,t,f)       ->  let b       = addTy_expr        cns cname ctx  b        in
                             let t       = addTy_stmts       cns cname ctx  t        in
                             let f       = addTy_stmts       cns cname ctx  f        in
@@ -245,8 +238,7 @@ and addTy_stmt cns cname ctx = function
     | SmAssign(l,r)     ->  let l       = addTy_lexpr       cns cname ctx  l        in
                             let r       = addTy_expr        cns cname ctx  r        in
                             SmAssign(l,r)   , ctx
-    | SmDecl v          ->  let v,ctx   = addTy_decl        cns cname ctx  v        in
-                            SmDecl v        , ctx
+    | SmDecl(ty,id,v)   ->                addTy_decl        cns cname ctx (ty,id,v) 
     | SmExpr e          ->  let e       = addTy_expr        cns cname ctx  e        in
                             (* assert(get_ty e=TyTuple[]) ; *) 
                             SmExpr e        , ctx
@@ -267,37 +259,35 @@ let retTy_of_mthd = function
     | TyMthd(_,_,retTy)   -> retTy
     | TyDefault             -> TyTuple[]
 
-let addTy_mthd cns cn_name ctx (m:unit mthd) =
-    let retTy       =   retTy_of_mthd  m.mthd_head      in
-    let argTys      =   argTys_of_mthd  m.mthd_head       in
-    let binds       =   binds_of_vars argTys            in
+let addTy_mthd cns cn_name ctx (TmMthd(head,body)) = 
+    let retTy       =   retTy_of_mthd  head             in
+    let argTys      =   argTys_of_mthd head             in
+    let binds       =   binds_of_tys argTys             in
     let ctx'        =   add_retTy ctx retTy             in
     let ctx''       =   add_local ctx' binds            in
-    { mthd_head     =   addTy_mthd_head cns            m.mthd_head
-    ; mthd_body     =   addTy_stmts cns cn_name ctx''  m.mthd_body }
+    TmMthd(addTy_mthd_head cns head, addTy_stmts cns cn_name ctx'' body)
 
 let has_distinct_sigs (cn:unit cntrct) =
-    let mthds       =   cn.mthds in
-    let sigs        =   L.map (fun m -> match m.mthd_head with
-                              | TyDefault   -> None
-                              | tyM         -> Some (string_of_tyMthd tyM) ) mthds in
+    let sigs        =   L.map (function 
+                              | TmMthd(TyDefault,_)   -> None
+                              | TmMthd(tyM,_)         -> Some (string_of_tyMthd tyM)) cn.mthds in
     let uniq_sigs   =   BL.unique sigs in
     L.length sigs=L.length uniq_sigs
 
-let addTy_cntrct cns (evs: ty idxlist) cn =
+let has_distinct_cntrct_names (cns : unit cntrct idxlist) : bool =
+    let cn_names    = (L.map(fun(_,cn)->cn.id)cns) in
+    L.length cns=L.length(BL.unique cn_names)
+
+let addTy_cntrct cns (evs:ty idxlist) cn =
     assert (BL.for_all(arg_has_known_ty (typeof_cns cns))cn.fields  && has_distinct_sigs cn)  ; 
-    let ctx  = add_local (add_evnts empty_ctx (values evs)) (binds_of_vars cn.fields ) in
-    { id     =   cn.id
-    ; fields    =   cn.fields 
+    let ctx         =   add_local (add_evnts empty_ctx(values evs)) (binds_of_tys cn.fields) in
+    { id            =   cn.id
+    ; fields        =   cn.fields 
     ; mthds         =   L.map(addTy_mthd cns cn.id ctx)cn.mthds }
 
 let addTy_toplevel cns (evs:ty idxlist) = function 
     | Cntrct c      -> Cntrct (addTy_cntrct cns evs c)
     | Event  e      -> Event e
-
-let has_distinct_cntrct_names (cns : unit cntrct idxlist) : bool =
-    let cn_names    = (L.map(fun(_,cn)->cn.id)cns) in
-    L.length cns=L.length(BL.unique cn_names)
 
 let addTys (tops : unit toplevel idxlist) : ty toplevel idxlist =
     let cntrcts                 = filter_map (function  | Cntrct c -> Some c

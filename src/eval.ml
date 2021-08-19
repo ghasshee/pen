@@ -1,4 +1,6 @@
 open Format
+open Misc
+open Syntax 
 
 (*
 exception NoRuleApplies
@@ -168,12 +170,32 @@ let rec process_commands ctx store = function
 *) 
 
 *)
+let abs_idx = ref 0
+let fresh_abs_name () =  
+    let i = !abs_idx in 
+    abs_idx := !abs_idx + 1 ; 
+    "abs" ^ string_of_int i 
+
+let rec walk_expr result    = function 
+    | TmAbs(x,tyX,(t,tyT))  -> [TmMthd(TyMthd(fresh_abs_name(), [TyVar(x,tyX)],tyT), [SmExpr(t,tyT)])]
+    | _                     -> []
+
+let rec walk_stmts          = function 
+    | []                    -> [] 
+    | SmExpr (e,ty) :: rest -> walk_expr [] e ++ walk_stmts rest   
+    | _             :: rest ->                   walk_stmts rest 
+
+let walk = walk_stmts 
 
 let rec eval = function 
     | [] -> []
-    | (i,cn)::rest -> 
-        
-        (i,cn) :: rest 
+    | (i,Cntrct cn)::rest -> begin 
+        let {id=id;fields=fileds;mthds=mthds} = cn in  
+        let mthds' = begin match mthds with 
+        | []                    ->  []
+        | TmMthd(_,stmts)::ms   ->  let lambdas = walk stmts in 
+                                    lambdas ++ mthds end in 
+        (i,Cntrct{ cn with mthds=mthds' }) :: rest 
+        end
 
-let convert_abs2method = ()
 

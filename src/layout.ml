@@ -21,48 +21,46 @@ type cnstrInfo                  =
                                 ; fieldArrsSize     : int    
                                 ; fieldTypes        : ty list       }   
 
-let cnstrInfo_of_cn cn initCode =   { cnstrCodeSize = size_of_program initCode
-                                    ; fieldVarsSize = size_of_vars_in_cn  cn
-                                    ; fieldArrsSize = L.length  (arrTys_of_cn cn)
-                                    ; fieldTypes    = L.map ty_of_var cn.fields                         }
-                                                                        
-                                                                        (* The storage during the rntime looks like this:                *) 
-                                                                        (*                                                               *) 
+let cnstrInfo_of_cn cn initCode =   
+                                { cnstrCodeSize     = size_of_program initCode                                
+                                ; fieldVarsSize     = size_of_vars_in_cn  cn                                  
+                                ; fieldArrsSize     = L.length  (arrTys_of_cn cn)                             
+                                ; fieldTypes        = L.map ty_of_var cn.fields     } 
+                                                                         
+                                                                        (* The Storage in Runtime                                        *) 
+                                                                        (* Array elements are placed as in Solidity                      *)    
+                                                                        (*                                                               *)
                                                                         (*  S[0]  := PROGRAM COUNTER                                     *)
-                                                                        (*  S[1]  := ARRAY SEED COUNTER                                  *)
-type storLayout                 =                                       (*  S[2]  := pod cntrct arg0   --+                ---+           *)
-                                { pc                : int               (*  S[3]  := pod cntrct arg1     | ( k ) args        |           *)                     
-                                ; ac                : int               (*   ...                         |                   | n args    *)                  
+type storLayout                 =                                       (*  S[1]  := ARRAY SEED COUNTER                                  *)
+                                { pc                : int               (*  S[2]  := pod cntrct arg0   --+                ---+           *)
+                                ; ac                : int               (*   ...                         |   k  args         | n args    *)                  
                                 ; cnidxs            : idx list          (*  S[k+1]:= pod cntrct argk-1 --+                   |           *)    
                                 ; cnstrSize         : idx -> int        (*  S[k+2]:= array0's seed     --+                   |           *)    
                                 ; fieldVars         : idx -> int data   (*   ...                         | (n-k) arrSeeds    |           *)    
                                 ; fieldArrs         : idx -> int data } (*  S[n+1]:= arraym's seed     --+                ---+           *)    
-                                                                        (*                                                               *)    
-                                                                        (* array elements are placed at the same location as in Solidity *)    
                                                        
-let compute_cnstrSize l idx     =   (lookup idx l).cnstrCodeSize
+let calc_cnstrSize l idx        =   (lookup idx l).cnstrCodeSize
 
-let compute_fieldVars l idx     =   { offst         = 2 
+let calc_fieldVars l idx        =   { offst         = 2 
                                     ; size          =     (lookup idx l).fieldVarsSize         }
-let compute_fieldArrs l idx     =   { offst         = 2 + (lookup idx l).fieldVarsSize
+let calc_fieldArrs l idx        =   { offst         = 2 + (lookup idx l).fieldVarsSize
                                     ; size          =     (lookup idx l).fieldArrsSize         } 
     
 let cnstrct_storLayout idx_lyts =   { pc            = 0              
                                     ; ac            = 1
                                     ; cnidxs        = idxs idx_lyts 
-                                    ; cnstrSize     = compute_cnstrSize idx_lyts 
-                                    ; fieldVars     = compute_fieldVars idx_lyts
-                                    ; fieldArrs     = compute_fieldArrs idx_lyts     } 
+                                    ; cnstrSize     = calc_cnstrSize idx_lyts 
+                                    ; fieldVars     = calc_fieldVars idx_lyts
+                                    ; fieldArrs     = calc_fieldArrs idx_lyts     } 
     
                                                        
 
 (**********************************************************)
 (***                                                    ***)
 (**********************************************************)
-(* rntimeCodeOffset = cnstrCodeSize *)
 type rntimeInfo                 =
                                 { rntimeCodeSize            : int
-                                ; rntimeCnOffsts            : int idxlist
+                                ; rntimeCnOffsts            : int idxlist   (* == cnstrCodeSizes *) 
                                 ; rntimeCnstrOffsts         : int idxlist
                                 ; rntimeCnstrSizes          : int idxlist      }
 
@@ -89,36 +87,33 @@ type cnLayout                   =
                                 ; rntimeCnstrOffsts         : int idxlist
                                 ; sl                        : storLayout        }
 
-let compute_cnstrArgBegin l (ri:rntimeInfo) idx =   compute_cnstrSize l idx + ri.rntimeCodeSize
-let compute_initDataSize  l (ri:rntimeInfo) idx =   compute_cnstrArgBegin l ri idx + (lookup idx l).fieldVarsSize
-let cnstrct_cnLayout      l (ri:rntimeInfo)     =   { initDataSize          = compute_initDataSize l ri
+let calc_cnstrArgBegin l (ri:rntimeInfo) idx    =   calc_cnstrSize l idx + ri.rntimeCodeSize
+let calc_initDataSize  l (ri:rntimeInfo) idx    =   calc_cnstrArgBegin l ri idx + (lookup idx l).fieldVarsSize
+let cnstrct_cnLayout   l (ri:rntimeInfo)        =   { initDataSize          = calc_initDataSize l ri
                                                     ; rntimeCodeSize        = ri.rntimeCodeSize
                                                     ; rntimeCnOffsts        = ri.rntimeCnOffsts
                                                     ; rntimeCnstrOffsts     = ri.rntimeCnstrOffsts
                                                     ; sl                    = cnstrct_storLayout l          }
-    
 
-(* Assuming the layout described above, this definition makes sense. *)
-let rntimeCode_offset layt idx          = layt.cnstrSize idx
 
-let rec realize_imm cnLayt (init_idx:idx) = function 
+let rec realize_imm cnLayt (init_idx:idx)   = function 
     | Big b                         ->  b
     | Int i                         ->  big i
     | Label l                       ->  big (Label.lookup_label l)
     | StorPCIndex                   ->  big (cnLayt.sl.pc)
-    | StorFieldsBegin    idx     ->  big (cnLayt.sl.fieldVars idx).offst
-    | StorFieldsSize     idx     ->  big (cnLayt.sl.fieldVars idx).size
+    | StorFieldsBegin       idx     ->  big (cnLayt.sl.fieldVars idx).offst
+    | StorFieldsSize        idx     ->  big (cnLayt.sl.fieldVars idx).size
     | InitDataSize          idx     ->  big (cnLayt.initDataSize idx)
-    | RntimeCodeOffset      idx     ->  big (rntimeCode_offset cnLayt.sl idx)
+    | RntimeCodeOffset      idx     ->  big (cnLayt.sl.cnstrSize idx)
     | RntimeCodeSize                ->  big (cnLayt.rntimeCodeSize)
     | CnstrCodeSize         idx     ->  big (cnLayt.sl.cnstrSize idx)
     | RntimeCnstrOffset     idx     ->  big (lookup idx cnLayt.rntimeCnstrOffsts)
     | RntimeCntrctOffset    idx     ->  big (lookup idx cnLayt.rntimeCnOffsts)
-    | RntimeMthdLabel(idx,mthd_hd)  ->  let label = lookup_entry (Mthd (idx, mthd_hd)) in
+    | RntimeMthdLabel(idx,mthd_hd)  ->  let label = lookup_entry (Mthd(idx,mthd_hd)) in
                                         big (Label.lookup_label label)
     | Minus (a, b)                  ->  sub_big_int (realize_imm cnLayt init_idx a) (realize_imm cnLayt init_idx b)
 
-let realize_opcode cnLayt (init_idx:idx) (i:imm Evm.opcode) = Evm.(match i with
+let realize_opcode cnLayt (init_idx:idx)    = function 
     | PUSH1  imm      -> PUSH1  (realize_imm cnLayt init_idx imm)
     | PUSH4  imm      -> PUSH4  (realize_imm cnLayt init_idx imm)
     | PUSH32 imm      -> PUSH32 (realize_imm cnLayt init_idx imm)
@@ -190,7 +185,6 @@ let realize_opcode cnLayt (init_idx:idx) (i:imm Evm.opcode) = Evm.(match i with
     | DUP5            -> DUP5
     | DUP6            -> DUP6
     | DUP7            -> DUP7
-    )
 
 let realize_program l init_idx p = L.map (realize_opcode l init_idx) p
 

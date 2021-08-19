@@ -27,6 +27,7 @@ type ty           (* atomic *)  =   TyVoid              (* 256 bits *)
 
 let id_of_var (TyVar(id,_))     =   id 
 let ty_of_var (TyVar(_,ty))     =   ty 
+let tys_of_vars                 =   L.map ty_of_var 
 
 let rec string_of_ty            =   function 
     | TyUint256                 ->  "uint256"
@@ -54,7 +55,13 @@ let split_evnt_args tyEv args   =   match tyEv with TyEv(id,tyEvArgs)  ->
 (***      STATEMENTS & EXPRESSIONS     ***)
 (*****************************************)
 
-type 'ty _call                  =   { call_id           : string
+type 'ty lexpr                  =   LEpArray            of 'ty _array
+                                |   LEpVar              of 'ty exprTy (* ? *) 
+
+and  'ty _array                 =   { arrId             :  'ty exprTy
+                                    ; arrIdx            :  'ty exprTy         }
+
+and  'ty _call                  =   { call_id           : string
                                     ; call_args         : ('ty exprTy) list }
                                 
 and  'ty _new                   =   { new_id            : string
@@ -69,20 +76,17 @@ and  'ty _send                  =   { sd_cn             : 'ty exprTy
 and  'ty return                 =   { ret_expr          :  'ty exprTy 
                                     ; ret_cont          :  'ty exprTy       }
                                 
-and  'ty stmt                   =   
+and  'ty stmt                   =   SmExpr              of 'ty exprTy
                                 |   SmAssign            of 'ty lexpr * 'ty exprTy
-                                |   SmDecl              of 'ty decl
-                                |   SmIfThen            of 'ty exprTy * 'ty stmt list
+                                |   SmDecl              of ty * string * 'ty exprTy 
                                 |   SmIf                of 'ty exprTy * 'ty stmt list * 'ty stmt list
-                                |   SmExpr              of 'ty exprTy
 
-and  'ty exprTy                =   'ty expr * 'ty
+and  'ty exprTy                 =   'ty expr * 'ty
 
 and  'ty expr                   =   EpParen             of 'ty exprTy
                                 |   TmReturn            of 'ty exprTy * 'ty exprTy 
                                 |   TmId                of string
                                 |   TmAbort 
-                                |   TmDecl              of 'ty decl 
                                 |   TmSlfDstrct         of 'ty exprTy
                                 |   TmLog               of string * 'ty exprTy list * ty option (* ty := TyEv *)
                                 |   TmRef               of 'ty exprTy
@@ -103,6 +107,7 @@ and  'ty expr                   =   EpParen             of 'ty exprTy
                                 |   EpCall              of 'ty _call
                                 |   EpNew               of 'ty _new
                                 |   EpSend              of 'ty _send                    (* storage solidation *) 
+                                |   EpArray             of 'ty _array
                                 |   EpLAnd              of 'ty exprTy * 'ty exprTy
                                 |   EpLT                of 'ty exprTy * 'ty exprTy
                                 |   EpGT                of 'ty exprTy * 'ty exprTy
@@ -110,7 +115,6 @@ and  'ty expr                   =   EpParen             of 'ty exprTy
                                 |   EpNEq               of 'ty exprTy * 'ty exprTy
                                 |   EpAddr              of 'ty exprTy
                                 |   EpNot               of 'ty exprTy
-                                |   EpArray             of 'ty array
                                 |   EpValue
                                 |   EpSender
                                 |   EpThis
@@ -120,16 +124,6 @@ and  'ty expr                   =   EpParen             of 'ty exprTy
                                 |   EpMult              of 'ty exprTy * 'ty exprTy
                                 |   EpBalance           of 'ty exprTy
 
-and 'ty lexpr                   =   LEpArray            of 'ty array
-
-and 'ty array                   =   { arrId             :  'ty exprTy
-                                    ; arrIndex          :  'ty exprTy         }
-
-and 'ty decl                    =   { declTy            :   ty
-                                    ; declId            :   string
-                                    ; declVal           :  'ty exprTy         }
-
-
 let get_ty  (_,ty)              =   ty
 let get_tm  (x,_)               =   x
 
@@ -138,12 +132,13 @@ let get_tm  (x,_)               =   x
 (***    METHODs      &    CONTRACTS    ***)
 (*****************************************)
 
-type 'ty mthd_body              =   'ty stmt list
+type 'ty mthd                   =   TmMthd              of ty * 'ty stmt list 
 
+(*
 type 'ty mthd                   =   { mthd_head         : ty
                                     ; mthd_body         : 'ty mthd_body }
-                                
-type 'ty cntrct                 =   { id             : string
+  *)                              
+type 'ty cntrct                 =   { id                : string
                                     ; fields            : ty list
                                     ; mthds             : 'ty mthd list }
 
@@ -193,9 +188,9 @@ let cntrct_name_of_instance     = function
 (***           PRINTING                ***)
 (*****************************************)
 
-let rec string_of_expr              = function 
-    | TmAbs(x,tyX,(t,_))            -> "λ" ^ x ^ ":" ^ string_of_ty tyX ^ "." ^ string_of_expr t 
-    | TmIdx(i,n)                -> string_of_int i 
+let rec string_of_expr          = function 
+    | TmAbs(x,tyX,(t,_))        -> "λ" ^ x ^ ":" ^ string_of_ty tyX ^ "." ^ string_of_expr t 
+    | TmIdx(i,n)                -> "x" ^ string_of_int i 
     | TmAbort                   -> "abort" 
     | TmReturn(_,_)             -> "return"
     | TmLog(_,_,_)              -> "log"
@@ -206,13 +201,13 @@ let rec string_of_expr              = function
     | EpSend        _           -> "send"
     | EpNew         _           -> "new"
     | EpParen       _           -> "()"
-    | EpCall      _             -> "call"
+    | EpCall        _           -> "call"
     | EpNow                     -> "now"
     | EpSender                  -> "sender"
     | EpTrue                    -> "true"
     | EpFalse                   -> "false"
-    | EpUint256   d             -> "declit " ^ string_of_big d
-    | EpUint8     d             -> "declit " ^ string_of_big d
+    | EpUint256   d             -> "uint " ^ string_of_big d
+    | EpUint8     d             -> "uint " ^ string_of_big d
     | EpNot         _           -> "not"
     | EpNEq         _           -> "neq"
     | EpLAnd        _           -> "_ && _"
@@ -221,7 +216,7 @@ let rec string_of_expr              = function
     | EpValue                   -> "value"
     | EpEq          _           -> "equality"
     | EpAddr        _           -> "address"
-    | EpDeref _                 -> "dereference of ..."
+    | EpDeref       _           -> "dereference of ..."
     | EpPlus     (a,b)          -> "... + ..."
     | EpMinus    (a,b)          -> "... - ..."
     | EpMult     (a,b)          -> "... * ..."
@@ -238,21 +233,21 @@ let size_of_ty (* in bytes *)   = function
     | TyAddr                    -> 20
     | TyInstnce _               -> 20 (* address as word *)
     | TyBool                    -> 32
-    | TyRef _                   -> 32
-    | TyTuple []                -> err "size_of_ty TyUnit" 
-    | TyTuple _                 -> err "size_of_ty TyTuple"
-    | TyMap   _                 -> err "size_of_ty TyMap" 
-    | TyCn(id,_,_)          -> err("size_of_ty TyCn: " ^ id)
+    | TyRef     _               -> 32
+    | TyTuple  []               -> err "size_of_ty TyUnit" 
+    | TyTuple   _               -> err "size_of_ty TyTuple"
+    | TyMap     _               -> err "size_of_ty TyMap" 
+    | TyCn(id,_,_)              -> err("size_of_ty TyCn: " ^ id)
 
-let size_of_tys                 = BL.sum $ (L.map size_of_ty) 
-let size_of_args args           = BL.sum (L.map (size_of_ty $ ty_of_var) args)
-let size_of_vars_in_cn cn       = size_of_tys (L.map ty_of_var (varTys_of_cn cn))  
+let size_of_tys                 = BL.sum $ L.map size_of_ty 
+let size_of_args                = BL.sum $ L.map (size_of_ty $ ty_of_var) 
+let size_of_vars_in_cn cn       = ($) size_of_tys (L.map ty_of_var $ varTys_of_cn) cn
 
 let calldata_size_of_ty         = function 
     | TyMap _                   -> err "mapping cannot be a method arg"
     | TyRef _                   -> err "reference type cannot be a method arg"
     | TyTuple _                 -> err "tupletype not implemented"
-    | TyCn _                -> err "cntrct type cannot be a method arg"
+    | TyCn _                    -> err "cntrct type cannot be a method arg"
     | tyT                       -> size_of_ty tyT
 
 let calldata_size_of_arg (TyVar(_,ty))    = calldata_size_of_ty ty

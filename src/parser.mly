@@ -53,7 +53,7 @@ cntrct:
     | EVENT    ID plist(evnt_arg) SEMI              { Event (TyEv($2,$3))                                     }
 
 mthd:
-    | mthd_head block                               { {mthd_head=$1; mthd_body=$2}                              }
+    | mthd_head block                               { TmMthd($1,$2)                              }
 
 block:
     | LBRACE list(stmt) RBRACE                      { $2                                                        }
@@ -85,9 +85,9 @@ ty:
      
 stmt:
     | lexpr EQ tm SEMI                              { SmAssign($1 [],$3 [])                                     }
-    | ty ID EQ tm SEMI                              { reserved $2;SmDecl{declTy=$1; declId=$2; declVal=$4 []}   }
+    | ty ID EQ tm SEMI                 { reserved $2; SmDecl($1,$2,$4 [])                                       }
     | IF tm THEN body ELSE body                     { SmIf($2 [],$4,$6)                                         }
-    | IF tm THEN body                               { SmIfThen ($2 [], $4)                                      }
+    | IF tm THEN body                               { SmIf($2 [],$4,[])                                         }
     |  tm  SEMI                                     { SmExpr ($1 [])                                            }
 
 ret: 
@@ -136,7 +136,7 @@ aTm:
     | NEW ID  arg_list msg             { reserved $2; fun ctx -> EpNew {new_id=$2;new_args=$3 ctx; new_msg=$4 ctx}      ,() }
     |  tm  DOT DEFAULT LPAR RPAR msg                { fun ctx -> EpSend{sd_cn=$1 ctx; sd_mthd=None   ; sd_args=[]    ; sd_msg=$6 ctx},            ()  }
     |  tm  DOT ID    arg_list msg                   { fun ctx -> EpSend{sd_cn=$1 ctx; sd_mthd=Some $3; sd_args=$4 ctx; sd_msg=$5 ctx},            ()  }
-    |  tm  LSQBR  tm  RSQBR                         { fun ctx -> EpArray{arrId=$1 ctx;arrIndex=$3 ctx},                                    ()  }
+    |  tm  LSQBR  tm  RSQBR                         { fun ctx -> EpArray{arrId=$1 ctx;arrIdx=$3 ctx},                                    ()  }
      
 arg_list : 
     | LPAR RPAR                                     { fun ctx -> []                                                         }
@@ -156,5 +156,5 @@ value_info:
     | WITH tm                                       { $2                                                                    }
      
 lexpr:                                              (* expr '[' expr ']' *) 
-    | tm LSQBR tm RSQBR                             { fun ctx -> LEpArray{arrId=$1 ctx; arrIndex=$3 ctx}                    }
+    | tm LSQBR tm RSQBR                             { fun ctx -> LEpArray{arrId=$1 ctx; arrIdx=$3 ctx}                    }
      

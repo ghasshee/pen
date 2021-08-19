@@ -204,9 +204,9 @@ let string_of_opcode string_of_push = function
   | opcode          -> string_of_push opcode
 
 let string_of_push_big = function
-  | PUSH1  v        -> "PUSH1 " ^ string_of_hex (hex_of_big_int v  1)
-  | PUSH4  v        -> "PUSH4 " ^ string_of_hex (hex_of_big_int v  4)
-  | PUSH32 v        -> "PUSH32 "^ string_of_hex (hex_of_big_int v 32)
+  | PUSH1  v        -> "PUSH1 " ^ string_of_hex (hex_of_big v  1)
+  | PUSH4  v        -> "PUSH4 " ^ string_of_hex (hex_of_big v  4)
+  | PUSH32 v        -> "PUSH32 "^ string_of_hex (hex_of_big v 32)
 
 let string_of_opcode_big = string_of_opcode string_of_push_big
 
@@ -224,9 +224,9 @@ let pr_opcodes_big        p = Printf.printf"%s"(string_of_opcodes_big p)
 
 let hex_of_opcode = 
   let h = hex_of_string in function 
-  | PUSH1 i         -> concat_hex (h "60") (hex_of_big_int i  1)
-  | PUSH4 i         -> concat_hex (h "63") (hex_of_big_int i  4)
-  | PUSH32 i        -> concat_hex (h "7f") (hex_of_big_int i 32)
+  | PUSH1 i         -> concat_hex (h "60") (hex_of_big i  1)
+  | PUSH4 i         -> concat_hex (h "63") (hex_of_big i  4)
+  | PUSH32 i        -> concat_hex (h "7f") (hex_of_big i 32)
   | NOT             -> h "19"
   | TIMESTAMP       -> h "42"
   | EQ              -> h "14"

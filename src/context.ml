@@ -34,11 +34,10 @@ let prBd                        = function
 let prBds                       = L.iter prBd 
 
 let rec lookup_bruijn_idx nm    = function 
-    | []                            -> eprintf"Context: bruijn idx for %s not found\n" nm; raise Not_found
+    | []                            -> (*eprintf"Context: bruijn idx for %s not found\n" nm;*) raise Not_found
     | BdName x :: xs                -> if x=nm then 0 else 1+(lookup_bruijn_idx nm xs) 
 
 let add_bruijn_idx ctx x        = BdName x :: ctx 
-
 
 
 let lookup_id_local   nm        = find_by_filter (function BdTy(id,ty)when id=nm -> ty          | _ -> raise Not_found) 
@@ -48,13 +47,15 @@ let lookup_retTy                = find_by_filter (function BdRetTy ty -> ty     
 let lookup_ll key               = find_by_filter (function BdLoc(s,loc) when key=s -> loc       | _ -> raise Not_found)
 let lookup_le key               = find_by_filter (function BdCtx ctx -> lookup_ll key ctx       | _ -> raise Not_found)
 
-let bind_of_ev  (TyEv(id,args)) =   BdEv(id,args)
-let bind_of_var (TyVar(id,ty))  =   BdTy(id,ty)
-let binds_of_vars               =   L.map bind_of_var
+
+let bind_of_ty                  = function 
+    | TyEv(id,args)             ->  BdEv(id,args)
+    | TyVar(id,ty)              ->  BdTy(id,ty)
+let binds_of_tys               =   L.map bind_of_ty
 
 let add_local ctx local         =   BdCtx   local :: ctx 
 let add_retTy ctx retTy         =   BdRetTy retTy :: ctx 
-let add_evnts ctx evs           =   foldl (fun xs x -> (L.cons $ bind_of_ev)x xs) ctx evs  
+let add_evnts ctx evs           =   foldl (fun xs x -> (L.cons $ bind_of_ty) x xs) ctx evs  
 
 let rec add_var  ctx id ty      =   match ctx with 
     | []                            -> err "no current scope" 

@@ -43,9 +43,9 @@ let prABI_mthd_info (TyMthd(id,args,ret)) =
     sprintf "{\"type\":\"function\",\"name\":\"%s\",\"inputs\": [%s],\"outputs\": [%s],\"payable\": true}"
         id (prABI_inputs args) (prABI_output ret)
 
-let prABI_mthd (c:ty mthd) : string = match c.mthd_head with
-    | TyMthd(id,args,ret) ->  prABI_mthd_info (TyMthd(id,args,ret))
-    | TyDefault             ->  prABI_default_mthd
+let prABI_mthd  = function 
+    | TmMthd(tyM,_)             ->  prABI_mthd_info tyM
+    | TmMthd(TyDefault,_)       ->  prABI_default_mthd
 
 let prABI_cnstrctr (c:ty cntrct) : string =
     sprintf

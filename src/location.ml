@@ -1,5 +1,6 @@
-open Misc
+open Printf
 open Big_int
+open Misc
 open Syntax
 
 
@@ -43,7 +44,8 @@ let rec string_of_imm           =   function
   | RntimeCodeSize                  -> "RntimeCodeSize"
   | Minus (a, b)                    -> "(- "^(string_of_imm a)^" "^(string_of_imm b)^")"
 
-let is_const_big (b:big_int)    =   function 
+
+let is_const_big (b:big)        =   function 
   | Big b'                          -> eq_big_int b b'
   | Int i                           -> eq_big_int (big i) b
   | _                               -> false                      
@@ -58,13 +60,15 @@ let is_const_int (i:int)        =   is_const_big (big i)
 type location                   =   Code          of imm data 
                                 |   Stor          of imm data 
                                 |   Calldata      of int data 
+                                |   Mem           of int data 
                                 |   Stack         of int
 
 let string_of_location          =   function 
-    | Stor _                        -> "Storage ..."
-    | Code _                        -> "Code ..."
-    | Calldata c                    -> Printf.sprintf "Calldata offset %d, size %d" c.offst c.size
-    | Stack i                       -> Printf.sprintf "Stack %d" i
+    | Stor _                        -> sprintf "Stor[..] "
+    | Mem  m                        -> sprintf "Mem[%d..%d] "      m.offst (m.offst+m.size-1) 
+    | Code _                        -> sprintf "Code    ... "
+    | Calldata c                    -> sprintf "CallData[%d..%d] " c.offst (c.offst+c.size-1)
+    | Stack i                       -> sprintf "Stack[%d] " i
 
 
 (****************************************************)
@@ -78,14 +82,13 @@ let positions_of_argLens lens   =
                                         loop (used+32-alen :: ret) (used+32) rest in 
     loop [] 4(* signature length *) lens
 
-let argLocs_of_mthd m           =   match m.mthd_head with
-    | TyDefault                 ->  []
-    | TyMthd(id,args,ret)       ->  let sizes       = L.map calldata_size_of_arg args   in
-                                    let positions   = positions_of_argLens sizes        in
-                                    let size_pos    = L.combine positions sizes         in
-                                    let locations   = L.map (fun(o,s)->Calldata{offst=o;size=s}) size_pos in
-                                    let names       = L.map id_of_var args              in
-                                    let argLocs     = L.combine names locations         in
-                                    argLocs
-
+let argLocs_of_mthd                 =   function 
+    | TmMthd(TyDefault,_)           ->  []
+    | TmMthd(TyMthd(id,args,ret),_) ->  let sizes       = L.map calldata_size_of_arg args   in
+                                        let positions   = positions_of_argLens sizes        in
+                                        let size_pos    = L.combine positions sizes         in
+                                        let locations   = L.map (fun(o,s)->Calldata{offst=o;size=s}) size_pos in
+                                        let names       = L.map id_of_var args              in
+                                        let argLocs     = L.combine names locations         in
+                                        argLocs
 

@@ -9,6 +9,7 @@ OBJS = 	misc.cmo \
 		abi.cmo \
 		layout.cmo \
 		codegenEnv.cmo \
+		codeSnipets.cmo \
 		type.cmo \
 		eval.cmo \
 		codegen.cmo \

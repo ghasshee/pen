@@ -7,6 +7,7 @@ open Evm
 open Location 
 
 
+
 type ce                             =   { stack_size    : int
                                         ; program       : imm program
                                         ; lookup_cnidx  : string -> idx
@@ -57,52 +58,49 @@ let (>>) op ce                 = append_opcode ce op
 (* returns the list of cont contract names *)
 let rec stmt_become             =   function 
     | SmExpr        e           ->  expr_become e
-    | SmDecl        v           ->  expr_become v.declVal
-    | SmAssign(LEpArray a,r)    ->  expr_become a.arrIndex @ expr_become r
-    | SmIfThen(c,b)             ->  expr_become c @ stmts_become b
+    | SmDecl(_,_,v)             ->  expr_become v
+    | SmAssign(LEpArray a,r)    ->  expr_become a.arrIdx @ expr_become r
     | SmIf(c,b0,b1)             ->  expr_become c @ stmts_become b0 @ stmts_become b1 
 and stmts_become ss             =   L.concat (L.map stmt_become ss)
-and fncall_become f             =   exprs_become f.call_args
+and predefcall_become f         =   exprs_become f.call_args
 and new_become n                =   exprs_become n.new_args @ expr_become n.new_msg
-and send_expr_become s          =   expr_become s.sd_cn @ exprs_become s.sd_args @ expr_become s.sd_msg
+and send_become s               =   expr_become s.sd_cn @ exprs_become s.sd_args @ expr_become s.sd_msg
 and exprs_become es             =   L.concat (L.map expr_become es)
 and expr_become e               =   match fst e with
-    | EpTrue | EpFalse | EpNow     | EpThis | EpValue | EpSender 
-    | EpUint256   _    | EpUint8 _ | TmId       _     | TmAbort                   
+    | TmAbort | TmUnit | EpTrue | EpFalse | EpNow | EpThis | EpValue | EpSender 
+    | TmId _  | EpUint8 _ | EpUint256 _ 
                                 ->  []
-    | EpParen       e  | EpAddr        e  | EpNot         e         
-    | EpDeref       e  | EpBalance     e  | TmSlfDstrct   e   
+    | EpParen  e  | EpAddr    e  | EpNot         e         
+    | EpDeref  e  | EpBalance e  | TmSlfDstrct   e   
                                 ->  expr_become e
-    | EpLT       (l,r) | EpGT       (l,r) | EpNEq      (l,r) | EpEq       (l,r)           
-    | EpMult     (l,r) | EpPlus     (l,r) | EpLAnd     (l,r) | EpMinus    (l,r)          
+    | EpLT   (l,r) | EpGT   (l,r) | EpNEq  (l,r) | EpEq   (l,r)           
+    | EpMult (l,r) | EpPlus (l,r) | EpLAnd (l,r) | EpMinus(l,r)          
                                 ->  (expr_become l) @ (expr_become r)
-    | EpArray a                 ->  expr_become a.arrIndex
-    | EpCall f                  ->  fncall_become f
+    | EpArray a                 ->  expr_become a.arrIdx
+    | EpCall f                  ->  predefcall_become f
     | EpNew n                   ->  new_become n
-    | EpSend s                  ->  send_expr_become s
+    | EpSend s                  ->  send_become s
     | TmLog(_,l,_)              ->  exprs_become l
-    | TmReturn(ret,cont)        ->  (match ret with | (TmUnit,_)    -> []
-                                                    | e             -> expr_become e)
-                                @   ( expr_become cont ) 
-                                @   (match cntrct_name_of_ret_cont cont with
-                                    | Some name     -> [name]
-                                    | None          -> [] )
+    | TmReturn(ret,cont)        ->  expr_become ret @ expr_become cont @ (match cntrct_name_of_ret_cont cont with
+                                                                         | Some name     -> [name]
+                                                                         | None          -> [] )
+                                
 
-let mthd_become  m        =   stmts_become m.mthd_body
-let mthds_become ms       =   L.concat (L.map mthd_become ms)
-let become cn             =   mthds_become cn.mthds
+let mthd_become(TmMthd(_,body)) =   stmts_become body 
+let mthds_become ms             =   L.concat (L.map mthd_become ms)
+let become cn                   =   mthds_become cn.mthds
 
 
 (* LOOKUP_USUALMETHOD *) 
 
 let lookup_mthd_info_in_cntrct cn mname =
-    let mthd = L.filter (fun c -> match c.mthd_head with
-                        | TyDefault  -> false
-                        | TyMthd(id,_,_) -> id=mname) cn.mthds in
+    let mthd = L.filter (function | TmMthd(TyDefault,_)       -> false
+                                  | TmMthd(TyMthd(id,_,_),_)  -> id=mname) cn.mthds in
+                        
     match mthd with
     | []            ->  raise Not_found
     | _::_::_       ->  eprintf "method %s duplicated\n%!" mname;err "lookup_mthd_info_in_cntrct" 
-    | [a]           ->  begin match a.mthd_head with TyMthd(id,args,retTy) -> TyMthd(id,args,retTy) end
+    | [a]           ->  let TmMthd(tyM,_) = a in tyM 
 
 
 let rec lookup_mthd_info_inner ce (seen:ty cntrct list) cn mname : ty=
