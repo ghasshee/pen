@@ -26,14 +26,13 @@ let tyeqv t0 t1                 =   ( t0 = t1 )  ||  ( match t0, t1 with
                                 | TyAddr, TyInstnce _   -> true
                                 | _     , _             -> false ) 
 
-
 let assert_tyeqv l r            =   assert (get_ty l=get_ty r) 
 
 let typeof_mthd                 =   function 
     | TmMthd(TyMthd(id,args,ret),_) ->  TyMthd(id, tys_of_vars args, ret)
     | TmMthd(TyDefault,_)           ->  TyMthd("", [], TyTuple[]) 
 
-let typeof_cn  cn               =   TyCn(cn.id,tys_of_vars cn.fields, L.map typeof_mthd cn.mthds)
+let typeof_cn  cn               =   TyCn(cn.id, tys_of_vars cn.fields, L.map typeof_mthd cn.mthds)
 let typeof_cns                  =   map typeof_cn 
 
 let id_lookup_ty ctx id         =   try TmId id, lookup_id id ctx 
@@ -43,7 +42,7 @@ let tycn_has_name  name         =   function TyCn(id,_,_) -> id=name
 let itycn_has_name name itycn   =   match get_ty itycn with TyCn(id,_,_) -> id=name 
 let is_known_cntrct tycns nm    =   BL.exists (itycn_has_name nm) tycns
 
-let rec is_known_ty tycns         =   function 
+let rec is_known_ty tycns       =   function 
     | TyUint256 | TyUint8           ->  true
     | TyBytes32 | TyAddr            ->  true
     | TyBool                        ->  true
@@ -53,7 +52,7 @@ let rec is_known_ty tycns         =   function
     | TyMap(a,b)                    ->  is_known_ty tycns a && is_known_ty tycns b
     | TyInstnce cn                  ->  is_known_cntrct tycns cn
 
-let arg_has_known_ty tycns        =   function 
+let arg_has_known_ty tycns      =   function 
     | TyVar(id,ty)                  ->  let ret = is_known_ty tycns ty in
                                         if not ret 
                                             then err("Unknown Type Arg "^string_of_ty ty)
@@ -61,11 +60,11 @@ let arg_has_known_ty tycns        =   function
 
 let addTy_mthd_head cns         =   function 
     | TyDefault                     ->  TyDefault
-    | TyMthd(id,argTys,retTy)     ->  assert (BL.for_all (arg_has_known_ty (typeof_cns cns)) argTys) ; 
+    | TyMthd(id,argTys,retTy)       ->  assert (BL.for_all (arg_has_known_ty (typeof_cns cns)) argTys) ; 
                                         assert (is_known_ty (typeof_cns cns) retTy) ;
                                         TyMthd(id,argTys,retTy)
 
-let call_arg_expectations tycns   =   function 
+let call_arg_expectations tycns =   function 
     | "pre_ecdsarecover"            ->  (=) [TyBytes32;TyUint8;TyBytes32;TyBytes32]
     | "keccak256"                   ->  konst true
     | "iszero"                      ->  fun x -> x=[TyBytes32]||x=[TyUint8]||x=[TyUint256]||x=[TyBool]||x=[TyAddr]
@@ -76,7 +75,7 @@ let call_arg_expectations tycns   =   function
 let typecheck  (ty,(_,t))       =   assert (ty = t)
 let typechecks tys actual       =   L.for_all2 (fun ty (_,a)-> ty=a) tys actual
 
-let check_args_match tycns args   =   function 
+let check_args_match tycns args =   function 
     | Some m                        ->  assert (call_arg_expectations tycns m (L.map get_ty args))
     | None                          ->  assert (isNil (L.map get_ty args))
 
@@ -185,24 +184,24 @@ and addTy_expr cns cname ctx (expr,()) =    match expr with
                                         assert (tyeqv kT ty) ; 
                                         EpArray { arrId    = e
                                                 ; arrIdx = idx,ty }, vT end  
-    | EpSend sd                     ->  let msg     =   addTy_expr  cns cname ctx sd.sd_msg in
-                                        let cn      =   addTy_expr cns cname ctx sd.sd_cn   in
-                                        begin match sd.sd_mthd with
+    | EpSend sd                     ->  let msg     =   addTy_expr  cns cname ctx sd.msg in
+                                        let cn      =   addTy_expr cns cname ctx sd.cn   in
+                                        begin match sd.mthd with
                                         | Some m ->  
                                         let TyMthd(_,_,tyRet) = find_tyMthd m (L.map get_ty (typeof_cns cns)) in            
-                                        let args    =   L.map(addTy_expr cns cname ctx)sd.sd_args in                
-                                        let ref     =   EpSend  { sd_cn     = cn                                        
-                                                                ; sd_mthd   = sd.sd_mthd                                
-                                                                ; sd_args   = args                                      
-                                                                ; sd_msg    = msg }, TyRef tyRet  in              
+                                        let args    =   L.map(addTy_expr cns cname ctx)sd.args in                
+                                        let ref     =   EpSend  { cn     = cn                                        
+                                                                ; mthd   = sd.mthd                                
+                                                                ; args   = args                                      
+                                                                ; msg    = msg }, TyRef tyRet  in              
                                         (match tyRet with                                                               
                                             | TyTuple[]    -> ref                                                          
                                             | ty           -> EpDeref ref, ty )                                            
-                                        | None ->   assert (sd.sd_args=[]) ; 
-                                                    EpSend { sd_cn      = cn
-                                                           ; sd_mthd    = None
-                                                           ; sd_args    = []
-                                                           ; sd_msg     = msg }, TyTuple[]  end
+                                        | None ->   assert (sd.args=[]) ; 
+                                                    EpSend { cn      = cn
+                                                           ; mthd    = None
+                                                           ; args    = []
+                                                           ; msg     = msg }, TyTuple[]  end
 
 and addTy_new cns cname ctx e =
     let msg'        =   addTy_expr cns cname ctx e.new_msg in
@@ -256,7 +255,7 @@ and addTy_stmts cns cname ctx = function
 (* AssignTy Method / Contract / Toplevel  *) 
 (* Default Method Returns Unit(==EmptyTuple) is a specification *) 
 let retTy_of_mthd = function 
-    | TyMthd(_,_,retTy)   -> retTy
+    | TyMthd(_,_,retTy)     -> retTy
     | TyDefault             -> TyTuple[]
 
 let addTy_mthd cns cn_name ctx (TmMthd(head,body)) = 

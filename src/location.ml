@@ -70,6 +70,7 @@ let string_of_location          =   function
     | Calldata c                    -> sprintf "CallData[%d..%d] " c.offst (c.offst+c.size-1)
     | Stack i                       -> sprintf "Stack[%d] " i
 
+let calldata (o,s)              = Calldata {offst=o; size=s} 
 
 (****************************************************)
 (***          arg locations of mthd               ***)
@@ -78,17 +79,16 @@ let string_of_location          =   function
 let positions_of_argLens lens   =
     let rec loop ret used           =   function 
         | []                        ->  L.rev ret
-        | alen::rest                ->  assert (alen>0 && alen<=32);
+        | alen::rest                ->  assert (0<alen&&alen<=32);
                                         loop (used+32-alen :: ret) (used+32) rest in 
     loop [] 4(* signature length *) lens
 
-let argLocs_of_mthd                 =   function 
+let callerArgLocs_of_mthd      =   function 
     | TmMthd(TyDefault,_)           ->  []
     | TmMthd(TyMthd(id,args,ret),_) ->  let sizes       = L.map calldata_size_of_arg args   in
                                         let positions   = positions_of_argLens sizes        in
                                         let size_pos    = L.combine positions sizes         in
-                                        let locations   = L.map (fun(o,s)->Calldata{offst=o;size=s}) size_pos in
+                                        let locations   = L.map calldata size_pos           in
                                         let names       = L.map id_of_var args              in
-                                        let argLocs     = L.combine names locations         in
-                                        argLocs
+                                                          L.combine names locations       
 

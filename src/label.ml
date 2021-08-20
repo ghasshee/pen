@@ -36,6 +36,18 @@ let lookup_entry k              = List.assoc k !entryTbl
 
 
 
+(**********************)
+(***    LAMBDA      ***)
+(**********************)
+
+type lambda_idx                 =   int
+
+let lambda_idx                  =   ref 0 
+let fresh_idx ()                =   let i = !lambda_idx in    
+                                    lambda_idx := i+1; 
+                                    i 
+
+
 
 
 

@@ -15,15 +15,18 @@ type ty           (* atomic *)  =   TyVoid              (* 256 bits *)
                   (* atomic *)  |   TyRef               of ty 
                   (* atomic *)  |   TyTuple             of ty list
                   (* atomic *)  |   TyMap               of ty * ty 
-                  (* atomic *)  |   TyInstnce           of string                       (* type of [b] declared as [bid b] *) 
-                                |   TyMthd              of string * ty list * ty        (*  TyMthd(id, tyArgs, tyRet)             *)
+                  (* atomic *)  |   TyInstnce           of string                       (* type of [b] declared as [bid b]          *) 
+                                |   TyMthd              of string * ty list * ty        (*  TyMthd(id, tyArgs, tyRet)               *)
                                 |   TyDefault
                                 |   TyAbs               of  ty * ty                     (*  TyAbs(tyArgs, tyRet)                    *)
                                 |   TyIdx               of int * int                    
                                 |   TyVar               of string * ty                  (*  TyVar(id, ty)                           *) 
                                 |   TyEvVar             of string * ty * bool           (*  TyEvVar(id,ty,indexed)                  *)
                                 |   TyEv                of string * ty list 
-                                |   TyCn                of string * ty list * ty list   (*  TyCn(id,tyCnArgs,tyMethod list *) 
+                                |   TyCn                of string * ty list * ty list   (*  TyCn(id,tyCnArgs,tyMethod list          *) 
+;;
+
+
 
 let id_of_var (TyVar(id,_))     =   id 
 let ty_of_var (TyVar(_,ty))     =   ty 
@@ -68,10 +71,10 @@ and  'ty _new                   =   { new_id            : string
                                     ; new_args          : 'ty exprTy list
                                     ; new_msg           : 'ty exprTy        }
                                 
-and  'ty _send                  =   { sd_cn             : 'ty exprTy
-                                    ; sd_mthd           : string option
-                                    ; sd_args           : 'ty exprTy list
-                                    ; sd_msg            : 'ty exprTy        }
+and  'ty _send                  =   { cn                : 'ty exprTy
+                                    ; mthd              : string option
+                                    ; args              : 'ty exprTy list
+                                    ; msg               : 'ty exprTy        }
 
 and  'ty return                 =   { ret_expr          :  'ty exprTy 
                                     ; ret_cont          :  'ty exprTy       }
@@ -134,10 +137,6 @@ let get_tm  (x,_)               =   x
 
 type 'ty mthd                   =   TmMthd              of ty * 'ty stmt list 
 
-(*
-type 'ty mthd                   =   { mthd_head         : ty
-                                    ; mthd_body         : 'ty mthd_body }
-  *)                              
 type 'ty cntrct                 =   { id                : string
                                     ; fields            : ty list
                                     ; mthds             : 'ty mthd list }
@@ -148,14 +147,14 @@ let varTys_of_cn cn             =   filter_vars cn.fields
 let arrTys_of_cn cn             =   filter_arrs cn.fields
 
 let string_of_tyMthd (TyMthd(id,args,ret))  =
-    let argTys          = L.map ty_of_var (filter_vars args)    in
+    let argTys          = tys_of_vars (filter_vars args)        in
     let strTys          = L.map string_of_ty argTys             in
     let tys             = S.concat "," strTys                   in
     id    ^ "(" ^ tys ^ ")"
 
 let string_of_evnt  = function TyEv(id,tyEvArgs) -> 
     let args            = args_of_evnt_args tyEvArgs            in 
-    let argTys          = L.map ty_of_var (filter_vars args)    in
+    let argTys          = tys_of_vars (filter_vars args)        in
     let strTys          = L.map string_of_ty argTys             in
     let tys             = S.concat "," strTys                   in
     id ^ "(" ^ tys ^ ")"

@@ -49,22 +49,22 @@ file:
     | list(cntrct) EOF                              { $1                                                        }
 
 cntrct:
-    | CONTRACT ID plist(arg)LBRACE list(mthd)RBRACE { reserved $2; Cntrct{id=$2; mthds=$5; fields=$3}  }
-    | EVENT    ID plist(evnt_arg) SEMI              { Event (TyEv($2,$3))                                     }
+    | CONTRACT ID plist(arg)LBRACE list(mthd)RBRACE { reserved $2; Cntrct{id=$2; mthds=$5; fields=$3}           }
+    | EVENT    ID plist(evnt_arg) SEMI              { Event (TyEv($2,$3))                                       }
 
 mthd:
-    | mthd_head block                               { TmMthd($1,$2)                              }
+    | mthd_head block                               { TmMthd($1,$2)                                             }
 
 block:
     | LBRACE list(stmt) RBRACE                      { $2                                                        }
 
 mthd_head:
     | DEFAULT                                       { TyDefault                                                 }
-    | METHOD ty ID plist(arg)                       { TyMthd($3,$4,$2)                                        }
-    | METHOD LPAR RPAR ID plist(arg)                { TyMthd($4,$5,TyTuple[])                                 }
+    | METHOD ty ID plist(arg)                       { TyMthd($3,$4,$2)                                          }
+    | METHOD LPAR RPAR ID plist(arg)                { TyMthd($4,$5,TyTuple[])                                   }
 
 arg:
-    | ty ID                                         { reserved $2; TyVar($2,$1)                           }
+    | ty ID                                         { reserved $2; TyVar($2,$1)                                 }
 
 evnt_arg:
     | arg                                           { let TyVar(id,ty)=$1 in TyEvVar(id,ty,false)               }
@@ -106,7 +106,7 @@ ret:
 
 tm: 
     | appTm                                         { $1                                                                    } 
-    | LAM ID COLON ty ARROW tm                      { fun ctx -> TmAbs($2, $4, $6 (add_bruijn_idx ctx $2))              ,() } 
+    | LAM ID COLON ty ARROW tm                      { fun ctx -> TmAbs($2, $4, $6(add_bruijn_idx ctx $2))               ,() } 
     | lexpr EQ tm                                   { fun ctx -> TmAssign($1 ctx, $3 ctx)                               ,() }
     | LOG ID  arg_list                              { fun ctx -> TmLog($2,$3 ctx,None)                                  ,() }
     | SELFDESTRUCT tm                               { fun ctx -> TmSlfDstrct($2 ctx)                                    ,() }
@@ -132,10 +132,10 @@ aTm:
     | NOW     LPAR BLOCK RPAR                       { fun ctx -> EpNow                                                  ,() }
     | THIS                                          { fun ctx -> EpThis,                                                           ()  }
     | ADDRESS LPAR  tm   RPAR                       { fun ctx -> EpAddr ($3 ctx)                                        ,() }
-    | ID                               { reserved $1; fun ctx -> prBds ctx; pe $1; begin try TmIdx(lookup_bruijn_idx $1 ctx,len ctx),() with _ -> TmId $1,() end }
+    | ID                               { reserved $1; fun ctx -> prBds ctx;pe $1;(try TmIdx(lookup_bruijn_idx $1 ctx,len ctx),() with _ -> TmId $1,())}
     | NEW ID  arg_list msg             { reserved $2; fun ctx -> EpNew {new_id=$2;new_args=$3 ctx; new_msg=$4 ctx}      ,() }
-    |  tm  DOT DEFAULT LPAR RPAR msg                { fun ctx -> EpSend{sd_cn=$1 ctx; sd_mthd=None   ; sd_args=[]    ; sd_msg=$6 ctx},            ()  }
-    |  tm  DOT ID    arg_list msg                   { fun ctx -> EpSend{sd_cn=$1 ctx; sd_mthd=Some $3; sd_args=$4 ctx; sd_msg=$5 ctx},            ()  }
+    |  tm  DOT DEFAULT LPAR RPAR msg                { fun ctx -> EpSend{cn=$1 ctx; mthd=None   ; args=[]    ; msg=$6 ctx},            ()  }
+    |  tm  DOT ID    arg_list msg                   { fun ctx -> EpSend{cn=$1 ctx; mthd=Some $3; args=$4 ctx; msg=$5 ctx},            ()  }
     |  tm  LSQBR  tm  RSQBR                         { fun ctx -> EpArray{arrId=$1 ctx;arrIdx=$3 ctx},                                    ()  }
      
 arg_list : 

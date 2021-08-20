@@ -358,6 +358,7 @@ and salloc_array_of_push push_array_seed ce =
 (* le is not updated here.  
  * le can only be updated in a variable initialization *)
 and codegen_expr le ce ly aln          = function 
+    | TmAbs(x,tyX,t)        ,TyAbs _    ->                      codegen_fun ly le ce (TmAbs(x,tyX,t))
     | EpAddr(c,TyInstnce i) ,TyAddr     ->                      (c,TyInstnce i)         >>>>(aln,le,ce,ly) 
     | EpValue               ,TyUint256  ->                      CALLVALUE               >>ce      (* Value (wei) Transferred to the account *) 
     | EpNow                 ,TyUint256  ->                      TIMESTAMP               >>ce 
@@ -461,9 +462,9 @@ and mload_ret_value ce =                                            (*          
                   POP                           >>ce                (*                                            retvalue >> .. *)
 
 and codegen_send le ce ly s  =
-    let args    = s.sd_args                                     in
-    let cn      = s.sd_cn                                       in 
-    let m       = s.sd_mthd                                     in 
+    let args    = s.args                                     in
+    let cn      = s.cn                                       in 
+    let m       = s.mthd                                     in 
     match snd cn with
     | TyInstnce cnname ->  (* msg-call to a contract *) 
     let idx     = lookup_cnidx_of_ce ce cnname                     in 
@@ -488,16 +489,16 @@ and codegen_send le ce ly s  =
     let ce      = PUSH1(Int retSize)            >>ce            in  (*                                                     0 >> PCbkp >> .. *) 
     let ce      = DUP1                          >>ce            in  (*                                                0 >> 0 >> PCbkp >> .. *) 
     let ce      = repeat DUP2 4                   ce            in  (*                            0 >> 0 >> 0 >> 0 >> 0 >> 0 >> PCbkp >> .. *) 
-    let ce      = push_msg_and_gas s           le ce ly         in  
+    let ce      = push_msg_and_gas s           le ce ly         in  (* gas-3000 >> addr >> msg >> 0 >> 0 >> 0 >> 0 >> 0 >> 0 >> PCbkp >> .. *) 
     let ce      = call_and_restore_PC             ce            in  (*                                                0 >> 0 >> PCbkp >> .. *)
                   POP                           >>ce                (*                                                     0 >> PCbkp >> .. *)
     | _             -> err "send expr with Wrong type"
 
 and push_msg_and_gas s le ce ly = 
-    let ce = match s.sd_msg with                                    (*                                                     .. *)
+    let ce = match s.msg with                                    (*                                                     .. *)
     | EpFalse,_ -> PUSH1(Int 0)                 >>ce            
     | e         -> e                            >>>>(R,le,ce,ly)in  (*                                            value >> .. *) 
-    let ce      = s.sd_cn                       >>>>(R,le,ce,ly)in  (*                                  cnAddr >> value >> .. *)
+    let ce      = s.cn                       >>>>(R,le,ce,ly)in  (*                                  cnAddr >> value >> .. *)
     let ce      = PUSH4(Int 3000)               >>ce            in  (*                          3000 >> cnAddr >> value >> .. *)
     let ce      = GAS                           >>ce            in  (*                   gas >> 3000 >> cnAddr >> value >> .. *)
                   SUB                           >>ce                (*                      gas-3000 >> cnAddr >> value >> .. *)
@@ -522,7 +523,7 @@ and codegen_selfDstrct le ce ly expr =
 
 and sstore_to_lexpr le ce ly (LEpArray a) = 
     let arr     = a.arrId                                       in
-    let idx     = a.arrIdx                                    in
+    let idx     = a.arrIdx                                      in
     let ce      = idx                           >>>>(R,le,ce,ly)in   (* stack : [value, index] *)
     let ce      = arr                           >>>>(R,le,ce,ly)in   (* stack : [value, index, array_seed] *)
     let ce      = keccak_cat                      ce            in   (* stack : [value, kec(array_seed ^ index)] *)
@@ -569,7 +570,7 @@ and codegen_log_stmt le ce (ly:storLayout) name args evnt =
     let visible, args= split_evnt_args evnt args                in
     let ce      = push_args le ly visible         ce            in
     let ce      = push_evnt_hash  evnt            ce            in
-    let le,ce   = mstore_exprs le ce ly ABIPack args               in  (* stack : [..., size, offset] *)
+    let le,ce   = mstore_exprs le ce ly ABIPack args            in  (* stack : [..., size, offset] *)
     let n       = L.length visible + 1                          in
     let ce      = log n                         >>ce            in  (* deindexee N in logN *)
     le, ce
@@ -585,7 +586,7 @@ and sstore_word_to ce stor_loc      =
                     SSTORE                      >>ce       
 
 and sstore_vars le ce (ly:storLayout) offset idx vars = 
-    let cntrct  =   lookup_cn ce idx                in 
+    let cntrct  =   lookup_cn ce idx                    in 
     let varlocs =   fieldVar_locations offset cntrct    in
     assert(L.length varlocs=L.length vars) ; 
     let ce      =   push_args le ly vars ce             in  (*                                         argk >> .. >> arg1 >> .. *)
@@ -595,10 +596,10 @@ and sstore_vars le ce (ly:storLayout) offset idx vars =
 and cont_call le ce ly (EpCall cont,_) = 
     let cn      =   cont.call_id                        in
     let args    =   cont.call_args                      in
-    let idx     =   lookup_cnidx_of_ce ce cn               in 
+    let idx     =   lookup_cnidx_of_ce ce cn            in 
     let offset  =   (ly.fieldVars idx).offst            in  
-    let ce      =   set_cntrct_pc ce idx                in      (* S[PC] := rntime_offset_of_cn                              .. *) 
-                    sstore_vars le ce ly offset idx args        (* S[l_k]:=argk; .. ; S[l_1]:=arg1                               .. *)
+    let ce      =   set_cntrct_pc ce idx                in      (* S[PC] := rntime_offset_of_cn                                 .. *) 
+                    sstore_vars le ce ly offset idx args        (* S[l_k]:= argk; .. ; S[l_1]:= arg1                            .. *)
 
 (*       mstore_word ty 
  *
@@ -650,10 +651,6 @@ and codegen_stmt ly  (le,ce)       = function
 (***     13. CODEGEN CONTRACT             ***)
 (********************************************)
 
-and label_mthd idx m ce =
-    let label   =   fresh_label()                               in
-    register_entry(Mthd(idx,m))label ; 
-                    JUMPDEST label                  >>ce      
 
 and calldatasize (TyMthd(_,args,_)) =
     4 (* for signature *) + size_of_args args   
@@ -665,20 +662,33 @@ and codegen_mthd_argLen_chk m ce = match m with
     let ce      = CALLDATASIZE                      >>ce        in
                   throw_if_NEQ                        ce    
 
-and codegen_mthd ly idx (le,ce) (TmMthd(head,body))  =
-    let ce      = label_mthd  idx head         ce        in
-    let ce      = codegen_mthd_argLen_chk head ce        in
-    let le      = add_empty_ctx                     le           in
-    let le      = add_mthdArgLocs(TmMthd(head,body))le           in
-    let le,ce   = codegen_stmts body ly le ce           in
+
+and codegen_fun ly le ce (TmAbs(x,tyX,(t,tyT))) = 
+    let cnidx   = len le - 1 in 
+    let id      = "abs" ^ string_of_int (fresh_idx ()) in  
+    let head    = TyMthd(id,[TyVar(x,tyX)],tyT) in
+    let label   = fresh_label() in 
+    register_entry (Mthd(cnidx,head)) label; 
+    let le      = add_mthdCallerArgLocs(TmMthd(head,[SmExpr((t,tyT))]))le in  
+    let ce    = JUMPDEST label                      >>ce        in
+    let ce      = (t,tyT)                             >>>>(R,le,ce,ly) in 
+    ce 
+
+and codegen_mthd ly cnidx (le,ce) (TmMthd(head,body))  =
+    let label = fresh_label() in 
+    register_entry (Mthd(cnidx,head)) label; 
+    let le      = add_empty_ctx                     le          in
+    let le      = add_mthdCallerArgLocs(TmMthd(head,body))le    in
+    let ce    = JUMPDEST label                      >>ce        in 
+    let ce      = codegen_mthd_argLen_chk head ce               in
+    let le,ce   = codegen_stmts body ly le ce                   in
     le,ce
 
 let codegen_mthds ly    = ($$$) foldl codegen_mthd ly
 
 let codegen_cntrct le ce ly (idx,cntrct) =
-    let label   = fresh_label ()                                in      
-    register_entry (Cntrct idx) label ;                    
-    let ce      = JUMPDEST label                    >>ce        in     
+    let label = fresh_label() in register_entry (Cntrct idx) label ;                    
+    let ce    = JUMPDEST label                      >>ce        in     
     let ce      = init_malloc                         ce        in  (* M[0x40]:=0x60                                  *)                                  
     let le,ce   = dispatcher le ce idx cntrct                   in  (*                                                *)
     let le,ce   = codegen_mthds ly idx (le,ce) cntrct.mthds   in  

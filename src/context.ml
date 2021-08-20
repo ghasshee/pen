@@ -48,10 +48,10 @@ let lookup_ll key               = find_by_filter (function BdLoc(s,loc) when key
 let lookup_le key               = find_by_filter (function BdCtx ctx -> lookup_ll key ctx       | _ -> raise Not_found)
 
 
-let bind_of_ty                  = function 
+let bind_of_ty                  =   function 
     | TyEv(id,args)             ->  BdEv(id,args)
     | TyVar(id,ty)              ->  BdTy(id,ty)
-let binds_of_tys               =   L.map bind_of_ty
+let binds_of_tys                =   L.map bind_of_ty
 
 let add_local ctx local         =   BdCtx   local :: ctx 
 let add_retTy ctx retTy         =   BdRetTy retTy :: ctx 
@@ -71,18 +71,18 @@ let add_loc le (key,loc)        =   match le with
     | []                            -> err "add_loc: no block"
     | BdCtx(h)::t                   -> BdCtx(BdLoc(key,loc) :: h) :: t
 let add_locs le locs            =   foldl add_loc le locs
-let add_mthdArgLocs mthd le     =   add_locs le (argLocs_of_mthd mthd)
+let add_mthdCallerArgLocs mthd le     =   add_locs le (callerArgLocs_of_mthd mthd)
 
-let add_fieldVar(le,idx)(TyVar(nm,ty))    =
+let add_fieldVar(le,idx)(TyVar(id,ty))    =
     let size                = size_of_ty ty                             in
     let size                = if 0<size&&size<=32 then 1 else size/32   in 
     let loc                 = Stor{offst=Int idx;size=Int size}         in
-    let le'                 = add_loc le (nm,loc)                       in
+    let le'                 = add_loc le (id,loc)                       in
     le' , idx + size  
-let add_fieldArr(le,idx)(TyVar(nm,TyMap(_,_))) =
+let add_fieldArr(le,idx)(TyVar(id,TyMap(_,_))) =
     let size                = 1                                         in 
     let loc                 = Stor{offst=Int idx;size=Int size}         in
-    let le'                 = add_loc le (nm,loc)                       in
+    let le'                 = add_loc le (id,loc)                       in
     le' , idx + size  
 
 let rntime_init_le (cn:ty cntrct) =

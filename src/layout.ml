@@ -24,8 +24,8 @@ type cnstrInfo                  =
 let cnstrInfo_of_cn cn initCode =   
                                 { cnstrCodeSize     = size_of_program initCode                                
                                 ; fieldVarsSize     = size_of_vars_in_cn  cn                                  
-                                ; fieldArrsSize     = L.length  (arrTys_of_cn cn)                             
-                                ; fieldTypes        = L.map ty_of_var cn.fields     } 
+                                ; fieldArrsSize     = len  (arrTys_of_cn cn)                             
+                                ; fieldTypes        = tys_of_vars cn.fields     } 
                                                                          
                                                                         (* The Storage in Runtime                                        *) 
                                                                         (* Array elements are placed as in Solidity                      *)    
@@ -109,8 +109,7 @@ let rec realize_imm cnLayt (init_idx:idx)   = function
     | CnstrCodeSize         idx     ->  big (cnLayt.sl.cnstrSize idx)
     | RntimeCnstrOffset     idx     ->  big (lookup idx cnLayt.rntimeCnstrOffsts)
     | RntimeCntrctOffset    idx     ->  big (lookup idx cnLayt.rntimeCnOffsts)
-    | RntimeMthdLabel(idx,mthd_hd)  ->  let label = lookup_entry (Mthd(idx,mthd_hd)) in
-                                        big (Label.lookup_label label)
+    | RntimeMthdLabel(idx,mthd_hd)  ->  let label = lookup_entry (Mthd(idx,mthd_hd)) in big (Label.lookup_label label)
     | Minus (a, b)                  ->  sub_big_int (realize_imm cnLayt init_idx a) (realize_imm cnLayt init_idx b)
 
 let realize_opcode cnLayt (init_idx:idx)    = function 
@@ -196,13 +195,13 @@ let rec gen_field_locs offset used_plains used_seeds num_plains = function
 
 (* this needs to take stor_fieldVars_begin *)
 let fieldVar_locations offset (cn:ty cntrct) : int list =
-    let field_tys     = L.map ty_of_var cn.fields       in
+    let field_tys     = tys_of_vars cn.fields       in
     let num_of_plains = count_plain_args field_tys      in
     let ret           = gen_field_locs offset 0 0 num_of_plains field_tys in 
     ret 
 
 let fieldArr_locations (cn:ty cntrct) : int list =
-    let field_tys     = L.map ty_of_var cn.fields       in
+    let field_tys     = tys_of_vars cn.fields       in
     let num_of_plains = count_plain_args field_tys      in
     let total_num     = L.length field_tys              in
     if total_num=num_of_plains 

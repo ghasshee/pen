@@ -64,7 +64,7 @@ let rec stmt_become             =   function
 and stmts_become ss             =   L.concat (L.map stmt_become ss)
 and predefcall_become f         =   exprs_become f.call_args
 and new_become n                =   exprs_become n.new_args @ expr_become n.new_msg
-and send_become s               =   expr_become s.sd_cn @ exprs_become s.sd_args @ expr_become s.sd_msg
+and send_become s               =   expr_become s.cn @ exprs_become s.args @ expr_become s.msg
 and exprs_become es             =   L.concat (L.map expr_become es)
 and expr_become e               =   match fst e with
     | TmAbort | TmUnit | EpTrue | EpFalse | EpNow | EpThis | EpValue | EpSender 
