@@ -178,14 +178,14 @@ and addTy_expr cns cname ctx (expr,()) =    match expr with
     | EpNot  e                      ->  let e       =   addTy_expr cns cname ctx e          in
                                         assert (get_ty e=TyBool) ; 
                                         EpNot e         , TyBool
-    | EpArray a                     ->  let e       =   addTy_expr cns cname ctx a.arrId    in
+    | EpArray a                     ->  let e       =   addTy_expr cns cname ctx a.aid      in
                                         begin match get_ty e with | TyMap(kT,vT)  ->  
-                                        let idx,ty  =   addTy_expr cns cname ctx a.arrIdx in 
+                                        let idx,ty  =   addTy_expr cns cname ctx a.aidx     in 
                                         assert (tyeqv kT ty) ; 
-                                        EpArray { arrId    = e
-                                                ; arrIdx = idx,ty }, vT end  
-    | EpSend sd                     ->  let msg     =   addTy_expr  cns cname ctx sd.msg in
-                                        let cn      =   addTy_expr cns cname ctx sd.cn   in
+                                        EpArray { aid   = e
+                                                ; aidx  = idx,ty }, vT end  
+    | EpSend sd                     ->  let msg     =   addTy_expr cns cname ctx sd.msg     in
+                                        let cn      =   addTy_expr cns cname ctx sd.cn      in
                                         begin match sd.mthd with
                                         | Some m ->  
                                         let TyMthd(_,_,tyRet) = find_tyMthd m (L.map get_ty (typeof_cns cns)) in            
@@ -210,11 +210,11 @@ and addTy_new cns cname ctx e =
     ; new_args      =   args'
     ; new_msg       =   msg'          }, e.new_id 
 
-and addTy_lexpr cns cname ctx (LEpArray aa) = 
-    let e = addTy_expr cns cname ctx aa.arrId in
+and addTy_lexpr cns cname ctx (EpArray aa) = 
+    let e = addTy_expr cns cname ctx aa.aid in 
     match get_ty e with
-    | TyMap (kT,vT)     ->  let idx,ty = addTy_expr cns cname ctx aa.arrIdx in
-                            LEpArray { arrId=e; arrIdx=idx,ty }  
+    | TyMap (kT,vT)     ->  let idx,ty = addTy_expr cns cname ctx aa.aidx in
+                            EpArray { aid=e; aidx=idx,ty }  
 
 and addTy_return cns cname ctx ret cont=
     let retTy       =   addTy_expr cns cname ctx ret    in

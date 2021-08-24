@@ -130,13 +130,13 @@ aTm:
     | SENDER  LPAR  MSG  RPAR                       { fun ctx -> EpSender                                               ,() }
     | BALANCE LPAR  tm   RPAR                       { fun ctx -> EpBalance ($3 ctx)                                     ,() }
     | NOW     LPAR BLOCK RPAR                       { fun ctx -> EpNow                                                  ,() }
-    | THIS                                          { fun ctx -> EpThis,                                                           ()  }
+    | THIS                                          { fun ctx -> EpThis                                                 ,() }
     | ADDRESS LPAR  tm   RPAR                       { fun ctx -> EpAddr ($3 ctx)                                        ,() }
     | ID                               { reserved $1; fun ctx -> prBds ctx;pe $1;(try TmIdx(lookup_bruijn_idx $1 ctx,len ctx),() with _ -> TmId $1,())}
     | NEW ID  arg_list msg             { reserved $2; fun ctx -> EpNew {new_id=$2;new_args=$3 ctx; new_msg=$4 ctx}      ,() }
-    |  tm  DOT DEFAULT LPAR RPAR msg                { fun ctx -> EpSend{cn=$1 ctx; mthd=None   ; args=[]    ; msg=$6 ctx},            ()  }
-    |  tm  DOT ID    arg_list msg                   { fun ctx -> EpSend{cn=$1 ctx; mthd=Some $3; args=$4 ctx; msg=$5 ctx},            ()  }
-    |  tm  LSQBR  tm  RSQBR                         { fun ctx -> EpArray{arrId=$1 ctx;arrIdx=$3 ctx},                                    ()  }
+    |  tm  DOT DEFAULT LPAR RPAR msg                { fun ctx -> EpSend{cn=$1 ctx; mthd=None   ;args=[]    ; msg=$6 ctx},() }
+    |  tm  DOT ID    arg_list msg                   { fun ctx -> EpSend{cn=$1 ctx; mthd=Some $3;args=$4 ctx; msg=$5 ctx},() }
+    |  tm  LSQBR  tm  RSQBR                         { fun ctx -> EpArray{aid=$1 ctx;aidx=$3 ctx}                        ,() }
      
 arg_list : 
     | LPAR RPAR                                     { fun ctx -> []                                                         }
@@ -156,5 +156,5 @@ value_info:
     | WITH tm                                       { $2                                                                    }
      
 lexpr:                                              (* expr '[' expr ']' *) 
-    | tm LSQBR tm RSQBR                             { fun ctx -> LEpArray{arrId=$1 ctx; arrIdx=$3 ctx}                    }
+    | tm LSQBR tm RSQBR                             { fun ctx -> EpArray{aid=$1 ctx; aidx=$3 ctx}                           }
      

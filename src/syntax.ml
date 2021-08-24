@@ -1,4 +1,3 @@
-open Big_int
 open Printf
 open Misc
 
@@ -24,8 +23,6 @@ type ty           (* atomic *)  =   TyVoid              (* 256 bits *)
                                 |   TyEvVar             of string * ty * bool           (*  TyEvVar(id,ty,indexed)                  *)
                                 |   TyEv                of string * ty list 
                                 |   TyCn                of string * ty list * ty list   (*  TyCn(id,tyCnArgs,tyMethod list          *) 
-;;
-
 
 
 let id_of_var (TyVar(id,_))     =   id 
@@ -44,6 +41,9 @@ let rec string_of_ty            =   function
     | TyMap(a,b)                ->  "mapping" 
     | TyCn(id,_,_)              ->  "contract arch "     ^ id
     | TyInstnce     s           ->  "contract instance " ^ s
+    | TyMthd(id,_,_)            ->  "method " ^ id 
+    | TyDefault                 ->  "default" 
+    | _                         ->  "undefined" 
 
 let  arg_of_evnt_arg            =   function TyEvVar(id,ty,visible) -> TyVar(id,ty)
 let args_of_evnt_args           =   L.map arg_of_evnt_arg
@@ -58,11 +58,8 @@ let split_evnt_args tyEv args   =   match tyEv with TyEv(id,tyEvArgs)  ->
 (***      STATEMENTS & EXPRESSIONS     ***)
 (*****************************************)
 
-type 'ty lexpr                  =   LEpArray            of 'ty _array
-                                |   LEpVar              of 'ty exprTy (* ? *) 
-
-and  'ty _array                 =   { arrId             :  'ty exprTy
-                                    ; arrIdx            :  'ty exprTy         }
+type 'ty _array                 =   { aid               : 'ty exprTy
+                                    ; aidx              : 'ty exprTy        }
 
 and  'ty _call                  =   { call_id           : string
                                     ; call_args         : ('ty exprTy) list }
@@ -76,25 +73,22 @@ and  'ty _send                  =   { cn                : 'ty exprTy
                                     ; args              : 'ty exprTy list
                                     ; msg               : 'ty exprTy        }
 
-and  'ty return                 =   { ret_expr          :  'ty exprTy 
-                                    ; ret_cont          :  'ty exprTy       }
-                                
 and  'ty stmt                   =   SmExpr              of 'ty exprTy
-                                |   SmAssign            of 'ty lexpr * 'ty exprTy
+                                |   SmAssign            of 'ty expr * 'ty exprTy
                                 |   SmDecl              of ty * string * 'ty exprTy 
                                 |   SmIf                of 'ty exprTy * 'ty stmt list * 'ty stmt list
 
 and  'ty exprTy                 =   'ty expr * 'ty
 
 and  'ty expr                   =   EpParen             of 'ty exprTy
-                                |   TmReturn            of 'ty exprTy * 'ty exprTy 
+                                |   TmReturn            of 'ty exprTy * 'ty exprTy   (* TmReturn(ret,cont) *)  
                                 |   TmId                of string
                                 |   TmAbort 
                                 |   TmSlfDstrct         of 'ty exprTy
                                 |   TmLog               of string * 'ty exprTy list * ty option (* ty := TyEv *)
                                 |   TmRef               of 'ty exprTy
                                 |   TmDeref             of 'ty exprTy
-                                |   TmAssign            of 'ty lexpr * 'ty exprTy 
+                                |   TmAssign            of 'ty expr * 'ty exprTy 
                                 |   TmLoc               of int 
                                 |   TmIdx               of int * int 
                                 |   TmAbs               of string * ty * 'ty exprTy
@@ -104,8 +98,8 @@ and  'ty expr                   =   EpParen             of 'ty exprTy
                                 |   TmUnit 
                                 |   EpTrue
                                 |   EpFalse
-                                |   EpUint256           of big_int
-                                |   EpUint8             of big_int
+                                |   EpUint256           of big
+                                |   EpUint8             of big
                                 |   EpNow
                                 |   EpCall              of 'ty _call
                                 |   EpNew               of 'ty _new

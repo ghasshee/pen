@@ -187,7 +187,7 @@ let rec walk_stmts          = function
 
 let walk = walk_stmts 
 
-let rec eval = function 
+let rec eval' = function 
     | [] -> []
     | (i,Cntrct cn)::rest -> begin 
         let {id=id;fields=fileds;mthds=mthds} = cn in  
@@ -197,5 +197,5 @@ let rec eval = function
                                     lambdas ++ mthds end in 
         (i,Cntrct{ cn with mthds=mthds' }) :: rest 
         end
-
+let eval a = a 
 

@@ -63,6 +63,9 @@ type location                   =   Code          of imm data
                                 |   Mem           of int data 
                                 |   Stack         of int
 
+let calldata (o,s)              = Calldata {offst=o; size=s} 
+
+
 let string_of_location          =   function 
     | Stor _                        -> sprintf "Stor[..] "
     | Mem  m                        -> sprintf "Mem[%d..%d] "      m.offst (m.offst+m.size-1) 
@@ -70,25 +73,4 @@ let string_of_location          =   function
     | Calldata c                    -> sprintf "CallData[%d..%d] " c.offst (c.offst+c.size-1)
     | Stack i                       -> sprintf "Stack[%d] " i
 
-let calldata (o,s)              = Calldata {offst=o; size=s} 
-
-(****************************************************)
-(***          arg locations of mthd               ***)
-(****************************************************)
-
-let positions_of_argLens lens   =
-    let rec loop ret used           =   function 
-        | []                        ->  L.rev ret
-        | alen::rest                ->  assert (0<alen&&alen<=32);
-                                        loop (used+32-alen :: ret) (used+32) rest in 
-    loop [] 4(* signature length *) lens
-
-let callerArgLocs_of_mthd      =   function 
-    | TmMthd(TyDefault,_)           ->  []
-    | TmMthd(TyMthd(id,args,ret),_) ->  let sizes       = L.map calldata_size_of_arg args   in
-                                        let positions   = positions_of_argLens sizes        in
-                                        let size_pos    = L.combine positions sizes         in
-                                        let locations   = L.map calldata size_pos           in
-                                        let names       = L.map id_of_var args              in
-                                                          L.combine names locations       
 

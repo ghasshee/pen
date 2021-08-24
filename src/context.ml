@@ -62,6 +62,26 @@ let rec add_var  ctx id ty      =   match ctx with
     | BdCtx local:: rest            -> BdCtx (BdTy(id,ty)::local) :: rest 
     | _ :: rest                     -> add_var rest id ty
 
+(****************************************************)
+(***          arg locations of mthd               ***)
+(****************************************************)
+
+let positions_of_argLens lens   =
+    let rec loop ret used           =   function 
+        | []                        ->  L.rev ret
+        | alen::rest                ->  assert (0<alen&&alen<=32);
+                                        loop (used+32-alen :: ret) (used+32) rest in 
+    loop [] 4(* signature length *) lens
+
+let callerArgLocs_of_mthd      =   function 
+    | TmMthd(TyDefault,_)           ->  []
+    | TmMthd(TyMthd(id,args,ret),_) ->  let sizes       = L.map calldata_size_of_arg args   in
+                                        let positions   = positions_of_argLens sizes        in
+                                        let size_pos    = L.combine positions sizes         in
+                                        let locations   = L.map calldata size_pos           in
+                                        let names       = L.map id_of_var args              in
+                                                          L.combine names locations       
+
 (************************************************)
 (**         LL := LOCAL    LOCATIONs           **)
 (**         LE := LOCATION ENVIRONMENTS        **) 
