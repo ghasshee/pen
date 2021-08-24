@@ -100,9 +100,10 @@ let callerArgLocs_of_mthd      =   function
 (**         LE := LOCATION ENVIRONMENTS        **) 
 (************************************************)
     
-let add_loc le (key,loc)        =   match le with
+let rec add_loc le (key,loc)        =   match le with
     | []                            -> err "add_loc: no block"
     | BdCtx(h)::t                   -> BdCtx(BdLoc(key,loc) :: h) :: t
+    | _ :: rest                     -> add_loc rest (key,loc)
 let add_locs le locs            =   foldl add_loc le locs
 let add_mthdCallerArgLocs mthd le     =   add_locs le (callerArgLocs_of_mthd mthd)
 

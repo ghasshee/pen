@@ -345,7 +345,7 @@ and salloc_array_of_push push_array_seed ce =
 (* le is not updated here.  
  * le can only be updated in a variable initialization *)
 and codegen_expr le ce ly aln          = function 
-    | TmAbs(x,tyX,t)        ,TyAbs _    ->                      codegen_fun ly le ce (TmAbs(x,tyX,t))
+    | TmAbs(x,tyX,t)        ,TyAbs _    ->                      codegen_abs ly le ce (TmAbs(x,tyX,t))
     | EpAddr(c,TyInstnce i) ,TyAddr     ->                      (c,TyInstnce i)         >>>>(aln,le,ce,ly) 
     | EpValue               ,TyUint256  ->                      CALLVALUE               >>ce      (* Value (wei) Transferred to the account *) 
     | EpNow                 ,TyUint256  ->                      TIMESTAMP               >>ce 
@@ -513,10 +513,10 @@ and codegen_mthd_argLen_chk m ce = match m with
     let ce      = CALLDATASIZE                      >>ce        in
                   throw_if_NEQ                        ce    
 
-and codegen_app ly le ce (TmApp((t1,_),t2)) = 
+and codegen_app ly le ce (TmApp(t1,t2)) = 
     let label   = fresh_label ()                                    in 
     let le      = add_brjidx le t2                                     in       
-    let ce      = codegen_abs ly le ce t1                           in 
+    let ce      = t1                                >>>>(R,le,ce,ly)   in 
     ce 
 
 and codegen_abs ly le ce (TmAbs(x,tyX,(t,tyT))) = 
