@@ -116,6 +116,7 @@ let realize_opcode cnLayt (init_idx:idx)    = function
     | PUSH1  imm      -> PUSH1  (realize_imm cnLayt init_idx imm)
     | PUSH4  imm      -> PUSH4  (realize_imm cnLayt init_idx imm)
     | PUSH32 imm      -> PUSH32 (realize_imm cnLayt init_idx imm)
+    | Comment s       -> Comment s 
     | NOT             -> NOT
     | TIMESTAMP       -> TIMESTAMP
     | ISZERO          -> ISZERO

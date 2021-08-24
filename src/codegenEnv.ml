@@ -50,7 +50,6 @@ let append_opcode ce opcode         =
 let (>>) op ce                      = append_opcode ce op  
 
 
-
 (*************************************************)
 (*    BECOME := lookup continuation contracts    *) 
 (*************************************************)

@@ -1,4 +1,4 @@
- 
+open Printf 
 open Big_int
 open Misc
 
@@ -24,6 +24,7 @@ type 'imm opcode =
     | LOG0      | LOG1      | LOG2      | LOG3      | LOG4                          (*  A0s *)
     | CREATE    | CALL      | CALLCODE  | RETURN    | DELEGATECALL                  (*  F0s *) 
     | CREATE2   | STATICCALL| REVERT    | INVALID   | SELFDESTRUCT
+    | Comment of string 
 
 type 'imm program       = 'imm opcode list
 
@@ -76,6 +77,7 @@ let stack_popped = function
   | DUP5                                            -> 5
   | DUP6                                            -> 6
   | DUP7                                            -> 7
+  | Comment _ -> 0 
 
 
 let stack_pushed = function
@@ -131,6 +133,7 @@ let stack_pushed = function
   | RETURN                              -> 0
   | DELEGATECALL                        -> 1
   | SELFDESTRUCT                        -> 0
+  | Comment _ -> 0
 
 let string_of_opcode string_of_push = function 
   | NOT             -> "NOT"
@@ -176,7 +179,7 @@ let string_of_opcode string_of_push = function
   | PC              -> "PC"
   | MSIZE           -> "MSIZE"
   | GAS             -> "GAS"
-  | JUMPDEST l      -> "JUMPDEST (print label)"
+  | JUMPDEST l      -> sprintf "JUMPDEST (label %x)" (Label.lookup_label l)
   | SWAP1           -> "SWAP1"
   | SWAP2           -> "SWAP2"
   | SWAP3           -> "SWAP3"
@@ -201,6 +204,7 @@ let string_of_opcode string_of_push = function
   | RETURN          -> "RETURN"
   | DELEGATECALL    -> "DELEGATECALL"
   | SELFDESTRUCT    -> "SELFDESTRUCT"
+  | Comment s       -> "// " ^ s   
   | opcode          -> string_of_push opcode
 
 let string_of_push_big = function
@@ -295,6 +299,7 @@ let hex_of_opcode =
   | RETURN          -> h "f3"
   | DELEGATECALL    -> h "f4"
   | SELFDESTRUCT    -> h "ff"
+  | Comment s       -> h "" 
 
 let log = function 
   | 0               -> LOG0
@@ -313,9 +318,10 @@ let prLn_encoded        (p) = pr_hex        ~prefix:"0x" (string_of_program_ln p
 let encode_program      (p) = string_of_hex ~prefix:"0x" (hex_of_program p) 
 
 let size_of_opcode  = function 
-  | PUSH1 _         -> 2
-  | PUSH4 _         -> 5
-  | PUSH32 _        -> 33
+  | Comment _       -> 0 
+  | PUSH1 _         -> 1 + 1 
+  | PUSH4 _         -> 1 + 4 
+  | PUSH32 _        -> 1 + 32 
   | _               -> 1
 
 let size_of_program p = foldl (fun a i -> a + size_of_opcode i) 0 p 

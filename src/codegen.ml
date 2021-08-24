@@ -150,13 +150,15 @@ let program_of_cc       =   extract_program $ ce_of_cc
 let codegen_cnstr_bytecode cns idx = (* return ce which contains the program *) 
     let cn      =   lookup idx cns                            in 
     let ce      =   empty_ce (lookup_cnidx_of_cns cns) cns    in  (*                                                                                 *)
+    let ce      =   Comment ("Begin Constructor of Cntract " ^ cn.id) >> ce in 
     let ce      =   init_malloc                     ce        in  (* M[64] := 96                                                                     *)
     let ce      =   mstore_fieldVars                ce cn     in  (*                                            alloc(argssize) << argssize << ..    *)
     let ce      =   sstore_fieldVars                ce idx    in  (* S[i..i+sz-1]:= argCodes               i << alloc(argssize) << argssize << ..    *)
     let ce      =   setup_fieldArrs                 ce cn     in  (* S[1]        := #array                 i << alloc(argssize) << argssize << ..    *)
     let ce      =   set_cntrct_pc                   ce idx    in  (* S[PC]       := rntime_cn_offst (returned body)                                  *)
     let ce      =   mstore_rntimeCode               ce idx    in  (*                                      alloc(codesize) << codesize << i <<  ..    *)
-                    RETURN                        >>ce            (* OUTPUT(M[code]) as The BODY code                                    i <<  ..    *)
+    let ce      =   RETURN                        >>ce        in  (* OUTPUT(M[code]) as The BODY code                                    i <<  ..    *)
+                    Comment ("End Constructor of Cntract " ^ cn.id) >> ce 
 
 let compile_cnstr cns idx  : cnstrCode =
     let cn      =   L.assoc idx cns in 
@@ -207,6 +209,7 @@ let push_inputdata32_from databegin ce =
 let dispatcher le ce idx cn  =
     let tyMthds =   L.map(function TmMthd(head,_) -> head) cn.mthds in
     let uMthds  =   filter_method tyMthds                           in 
+    let ce      =   Comment "BEGIN Method Dispatchers "     >>ce    in 
     let ce      =   push_inputdata32_from(Int 0)              ce    in  (*               ABCDxxxxxxxxxxxxxxxxxxxxxxxxxxxxx >> .. *)
     let ce      =   shiftRtop ce Eth.(word_bits-sig_bits)           in  (*                                            ABCD >> .. *)                             
     let ce      =   foldl(dispatch_method idx le)ce uMthds          in  (* JUMP to Method ABCD                                   *)   
@@ -214,6 +217,7 @@ let dispatcher le ce idx cn  =
     let ce      =   if  default_exists tyMthds
                         then dispatch_default idx      le ce        (* JUMP to Default Method                             .. *) 
                         else throw ce                               in  (* JUMP to error                                      .. *) 
+    let ce      =   Comment "END Method Dispatchers "       >>ce    in 
     le,ce
 
 (*********************************************)
@@ -463,20 +467,7 @@ and mload_ret_value ce =                                            (*          
     let ce      = throw_if_NEQ                    ce            in  (* IF 32!=retsize ERROR                       retbegin >> .. *)
                   MLOAD                         >>ce                (*                                         M[retbegin] >> .. *)
 
-and push_fn_args args ce = 
-    foldl (fun ce arg -> PUSH32 arg     >>ce) ce args    
-
-and lookup_fn f ce = f 
-
-and codegen_fncall le ce ly f args = 
-    let label   = fresh_label ()                                in
-    let f       = lookup_fn f ce                                in
-    let ce      = push_fn_args args               ce            in 
-    let ce      = PC                            >>ce            in  (*                                             PC >> .. *)
-    let ce      = PUSH4(Label label)            >>ce            in  (*                                    lebel >> PC >> .. *)      
-    let ce      = PUSH4 f                       >>ce            in  (*                              &f >> label >> PC >> .. *)
-    let ce      = JUMP                          >>ce            in  (*                                    label >> PC >> .. *) 
-                JUMPDEST label                  >>ce 
+                  
 
 and codegen_send le ce ly s  = match snd s.cn with
     | TyInstnce cnname  ->  (* msg-call to a contract *) 
@@ -486,6 +477,7 @@ and codegen_send le ce ly s  = match snd s.cn with
     let m       = lookup_mthd_head ce callee mname              in
     let TyMthd(id,_,reTy) = m in 
     let retSize = size_of_ty reTy                               in  (*                                                                                                              .. *)
+    let ce      = Comment("BEGINE send to "^id) >>ce            in  
     let ce      = reset_PC                        ce            in  (*                                                                                                     PCbkp >> .. *)
     let ce      = PUSH1(Int retSize)            >>ce            in  (*                                                                                          retsize >> PCbkp >> .. *)
     let ce      = DUP1                          >>ce            in  (*                                                                               retsize >> retsize >> PCbkp >> .. *)
@@ -494,7 +486,8 @@ and codegen_send le ce ly s  = match snd s.cn with
     let ce      = mstore_mhash_and_args m s.args le ce ly       in  (*                               &mhash >> argssize+4 >> retbegin >> retsize >> retbegin >> retsize >> PCbkp >> .. *)
     let ce      = push_msg_and_gas s           le ce ly         in  (*  gas-3000 >> cnAddr >> msg >> &mhash >> argssize+4 >> retbegin >> retsize >> retbegin >> retsize >> PCbkp >> .. *)
     let ce      = call_and_restore_PC             ce            in  (*                                                                                       retsize >> retbegin >> .. *)
-                  mload_ret_value                 ce                (*                                                                                                       ret >> .. *)
+    let ce      = mload_ret_value                 ce            in  (*                                                                                                       ret >> .. *)
+                  Comment("END send to "^id)    >>ce 
     | TyAddr            ->  (* send value to an EOA *) 
     let retSize = 0                                             in  (*                                                                   .. *)
     let ce      = reset_PC                        ce            in  (*                                                          PCbkp >> .. *) 
@@ -503,7 +496,8 @@ and codegen_send le ce ly s  = match snd s.cn with
     let ce      = repeat DUP2 4                   ce            in  (*                            0 >> 0 >> 0 >> 0 >> 0 >> 0 >> PCbkp >> .. *) 
     let ce      = push_msg_and_gas s           le ce ly         in  (* gas-3000 >> addr >> msg >> 0 >> 0 >> 0 >> 0 >> 0 >> 0 >> PCbkp >> .. *) 
     let ce      = call_and_restore_PC             ce            in  (*                                                         0 >> 0 >> .. *)
-                  POP                           >>ce                (*                                                              0 >> .. *)
+    let ce      = POP                           >>ce            in  (*                                                              0 >> .. *)
+                  Comment("END send to Addr")   >>ce 
     | _             -> err "send expr with Wrong type"
 
 and codegen_mthd_argLen_chk m ce = match m with  
@@ -527,35 +521,32 @@ and codegen_idx ly le ce (TmIdx(i,n))           =
     let tm      = lookup_brjidx i le                                   in 
     let ce      = tm                                >>>>(R,le,ce,ly)in 
     ce 
-
-
-and codegen_fun ly le ce (TmAbs(x,tyX,(t,tyT))) = 
-    print_string "compiling TmAbs\n"; 
-    let id      = "abs" ^ string_of_int (fresh_idx ())              in  
-    let head    = TyMthd(id,[TyVar(x,tyX)],tyT)                     in
-    let body    = [SmExpr(t,tyT)]                                   in 
-    let m       = TmMthd(head,body)                                 in 
-    let label   = fresh_label()                                     in register_entry (Mthd(-1,head)) label; 
-    let le      = add_mthdCallerArgLocs m le                        in 
-    let ce    = JUMPDEST label                      >>ce            in
-    print_string "debug\n" ;
-    let ce      = (t,tyT)                           >>>>(R,le,ce,ly)in 
-    print_string "compiled TmAbs\n"; 
-    ce 
-
+(*
+and push_fn_args args ce =  foldl (fun ce arg -> PUSH32 arg     >>ce) ce args    
+and codegen_fncall le ce ly f args = 
+    let label   = fresh_label ()                                in
+    let ce      = push_fn_args args               ce            in 
+    let ce      = PC                            >>ce            in  (*                                             PC >> .. *)
+    let ce      = PUSH4(Label label)            >>ce            in  (*                                    lebel >> PC >> .. *)      
+    let ce      = PUSH4 f                       >>ce            in  (*                              &f >> label >> PC >> .. *)
+    let ce      = JUMP                          >>ce            in  (*                                    label >> PC >> .. *) 
+                JUMPDEST label                  >>ce 
+*)
 and codegen_mthd ly cnidx (le,ce) (TmMthd(head,body))  =
-    print_string ("compiling mthd " ^ string_of_ty head ^ "\n"); 
+    let ce      = Comment ("BEGIN " ^  string_of_ty head ) >> ce in  
     let label   = fresh_label()                                   in register_entry (Mthd(cnidx,head)) label; 
     let le      = add_mthdCallerArgLocs(TmMthd(head,body))(add_empty_ctx (add_empty_brj le))    in
     let ce    = JUMPDEST label                      >>ce        in 
     let ce      = codegen_mthd_argLen_chk head ce               in
     let le,ce   = codegen_stmts body ly le ce                   in
-    print_string ("compiled mthd " ^ string_of_ty head ^ "\n"); 
+    let ce      = Comment ("END " ^  string_of_ty head ) >> ce in  
     le,ce
 
 and codegen_expr_stmt le ce ly expr =
+    let ce      = Comment "BEGIN expr-stmt"     >>ce            in
     let ce      = expr                          >>>>(R,le,ce,ly)in
     let ce      = POP                           >>ce            in
+    let ce      = Comment "END   expr-stmt"     >>ce            in
     le, ce
 
 and codegen_selfDstrct le ce ly expr =    
@@ -571,25 +562,33 @@ and sstore_to_lval le ce ly = function
                   SSTORE                        >>ce                 (* S[KEC(aseed^aidx)] := rval                 .. *)
 
 and codegen_assign le ce ly l r =
+    let ce      = Comment "BEGIN Assignment"    >>ce            in 
     let ce      = r                             >>>>(R,le,ce,ly)in   (*                                    r >> .. *)
     let ce      = sstore_to_lval le ce ly l                     in   (* S[KEC(l)] := r                          .. *)  
+    let ce      = Comment "END Assignment"      >>ce            in 
     le, ce
 
 and codegen_decl le ce ly (ty,id,v)  = 
+    let ce      = Comment "BEGIN declaration"   >>ce            in 
     let pos     = get_stack_size ce                             in
     let ce      = v                             >>>>(R,le,ce,ly)in
     let le      = add_loc le(id, Stack(pos+1))                  in
+    let ce      = Comment "END   declaration"   >>ce            in 
     le, ce
 
 and codegen_if le ce ly cond ss1 ss2 =
     let next    = fresh_label()                                 in
     let endif   = fresh_label()                                 in
+    let ce      = Comment "IF"                  >>ce            in 
     let ce      = cond                          >>>>(R,le,ce,ly)in
     let ce      = if_0_GOTO next                  ce            in 
+    let ce      = Comment "THEN"                >>ce            in
     let _,ce    = codegen_stmts ss1 ly         le ce            in (* location env needs to be discarded *)
     let ce      = goto endif                      ce            in
+    let ce      = Comment "ELSE"                >>ce            in
     let ce      = JUMPDEST next                 >>ce            in
     let _,ce    = codegen_stmts ss2 ly         le ce            in (* location env needs to be discarded *)
+    let ce      = Comment "FI"                  >>ce            in 
     let ce      = JUMPDEST endif                >>ce            in
     le,ce
 

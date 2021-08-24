@@ -51,6 +51,7 @@ let rec last                    = function
 
 let (++)                        = L.append
 let len                         = L.length
+let tl                          = L.tl
 
 (*****************************************)
 (**        POLYMORPHIC FUNCTIONS        **)
