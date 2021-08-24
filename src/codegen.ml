@@ -379,6 +379,7 @@ and codegen_expr le ce ly aln          = function
     | EpArray a_i           ,TyMap _    ->  let ce      =       codegen_array a_i le ce ly              in  (*            S[keccak(a[i])] >> .. *)
                                             assert(aln=R);      salloc_array  a_i le ce ly                  (*                     S[1]++ >> .. *)
     | EpArray a             ,      _    ->  assert(aln=R);      codegen_array a   le ce ly                  (*               S[keccak(a)] >> .. *)
+    | TmApp(t1,t2)          ,ty         ->                      codegen_app   ly le ce (TmApp(t1,t2))
     | TmIdx(i,n)            ,ty         ->                      codegen_idx   ly le ce (TmIdx(i,n))          
     | TmId id               ,TyMap(a,b) ->  let loc     =       lookup_le id le                         in 
                                             let ce      =       push_loc ce aln(TyMap(a,b))loc          in 
@@ -514,16 +515,18 @@ and codegen_mthd_argLen_chk m ce = match m with
 
 and codegen_app ly le ce (TmApp((t1,_),t2)) = 
     let label   = fresh_label ()                                    in 
-    let ce      = t2                                >>>>(R,le,ce,ly)in (*                 v2 >> .. *)
-    let ce      = codegen_fun ly le ce t1                           in 
+    let le      = add_brjidx le t2                                     in       
+    let ce      = codegen_abs ly le ce t1                           in 
     ce 
 
 and codegen_abs ly le ce (TmAbs(x,tyX,(t,tyT))) = 
+    let ce      = (t,tyT)                           >>>>(R,le,ce,ly)in
     ce 
 
 and codegen_idx ly le ce (TmIdx(i,n))           = 
+    let tm      = lookup_brjidx i le                                   in 
+    let ce      = tm                                >>>>(R,le,ce,ly)in 
     ce 
-
 
 
 and codegen_fun ly le ce (TmAbs(x,tyX,(t,tyT))) = 
@@ -543,7 +546,7 @@ and codegen_fun ly le ce (TmAbs(x,tyX,(t,tyT))) =
 and codegen_mthd ly cnidx (le,ce) (TmMthd(head,body))  =
     print_string ("compiling mthd " ^ string_of_ty head ^ "\n"); 
     let label   = fresh_label()                                   in register_entry (Mthd(cnidx,head)) label; 
-    let le      = add_mthdCallerArgLocs(TmMthd(head,body))(add_empty_ctx le)    in
+    let le      = add_mthdCallerArgLocs(TmMthd(head,body))(add_empty_ctx (add_empty_brj le))    in
     let ce    = JUMPDEST label                      >>ce        in 
     let ce      = codegen_mthd_argLen_chk head ce               in
     let le,ce   = codegen_stmts body ly le ce                   in

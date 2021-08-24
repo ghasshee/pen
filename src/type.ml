@@ -107,6 +107,11 @@ and addTy_expr cns cname ctx (expr,()) =    match expr with
             (match simplifyty ctx tyT1 with                     (*         Γ ⊢ t1 t2 : T12                  *)   
                 | TyArr(tyT11,tyT12)    -> if (tyeqv ctx) tyT2 tyT11 then tyT12 else error fi "type mismatch" 
                 | _                     -> error fi "arrow type expected" ) *)
+    | TmApp(t1,t2)                  ->  let t2,tyT2 = addTy_expr cns cname ctx t2 in 
+                                        let t1,tyT1 = addTy_expr cns cname ctx t1 in 
+                                        begin match tyT1 with 
+                                        | TyAbs(tyT11,tyT12) when tyeqv tyT2 tyT11 -> TmApp((t1,tyT1),(t2,tyT2)), tyT12
+                                        | _ -> err "addTy_expr: type-checking T-APPABS failed" end 
     | TmAbs(x,tyX,t)                ->  let t',tyT' = addTy_expr cns cname (add_var ctx x tyX) t in 
                                         TmAbs(x,tyX,(t',tyT')), TyAbs(tyX,tyT')
     | TmIdx(i,n)                    ->  begin match ctx with BdCtx local :: _ -> 

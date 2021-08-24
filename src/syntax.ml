@@ -182,6 +182,7 @@ let cntrct_name_of_instance     = function
 (*****************************************)
 
 let rec string_of_expr          = function 
+    | TmApp((t1,_),(t2,_))      -> "(" ^ string_of_expr t1 ^ ")(" ^ string_of_expr t2 ^ ")" 
     | TmAbs(x,tyX,(t,_))        -> "λ" ^ x ^ ":" ^ string_of_ty tyX ^ "." ^ string_of_expr t 
     | TmIdx(i,n)                -> "x" ^ string_of_int i 
     | TmAbort                   -> "abort" 

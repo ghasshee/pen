@@ -23,10 +23,14 @@ type context                    = bind list
                                 | BdCtx   of context
                                 | BdEv    of string * ty list 
                                 | BdLoc   of string * location 
+                                | BdIdx   of ty exprTy 
+                                | BdBrj   of context 
+
 type le                         =   context 
 
 let empty_ctx                   = [] 
 let add_empty_ctx ctx           = BdCtx[] :: ctx
+let add_empty_brj ctx           = BdBrj[] :: ctx
 
 let prBd                        = function 
     | BdName str                    -> printf "BdName(%s) " str 
@@ -39,13 +43,17 @@ let rec lookup_bruijn_idx nm    = function
 
 let add_bruijn_idx ctx x        = BdName x :: ctx 
 
-
 let lookup_id_local   nm        = find_by_filter (function BdTy(id,ty)when id=nm -> ty          | _ -> raise Not_found) 
 let lookup_id         nm        = find_by_filter (function BdCtx ctx -> lookup_id_local nm ctx  | _ -> raise Not_found)
 let lookup_evnt       nm        = find_by_filter (function BdEv(id,l) when id=nm -> TyEv(id,l)  | _ -> raise Not_found)
 let lookup_retTy                = find_by_filter (function BdRetTy ty -> ty                     | _ -> raise Not_found) 
 let lookup_ll key               = find_by_filter (function BdLoc(s,loc) when key=s -> loc       | _ -> raise Not_found)
 let lookup_le key               = find_by_filter (function BdCtx ctx -> lookup_ll key ctx       | _ -> raise Not_found)
+let rec lookup_brjidx_local idx = function 
+    | []                            -> raise Not_found
+    | BdIdx(tm)::rest when idx=0    -> tm 
+    | _::rest                       -> lookup_brjidx_local (idx-1) rest
+let lookup_brjidx       idx     = find_by_filter (function BdBrj ctx -> lookup_brjidx_local idx ctx| _ -> raise Not_found)
 
 
 let bind_of_ty                  =   function 
@@ -58,9 +66,14 @@ let add_retTy ctx retTy         =   BdRetTy retTy :: ctx
 let add_evnts ctx evs           =   foldl (fun xs x -> (L.cons $ bind_of_ty) x xs) ctx evs  
 
 let rec add_var  ctx id ty      =   match ctx with 
-    | []                            -> err "no current scope" 
+    | []                            -> err "add_var: no current scope" 
     | BdCtx local:: rest            -> BdCtx (BdTy(id,ty)::local) :: rest 
     | _ :: rest                     -> add_var rest id ty
+
+let rec add_brjidx ctx tm          =   match ctx with 
+    | []                            -> err "add_brjidx: no current scope" 
+    | BdBrj local:: rest            -> BdBrj (BdIdx(tm)::local) :: rest
+    | _ :: rest                     -> add_brjidx rest tm 
 
 (****************************************************)
 (***          arg locations of mthd               ***)
