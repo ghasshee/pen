@@ -21,6 +21,8 @@ rule read = parse
   | "->"            { ARROW                         }
   | "<-"            { LARROW                        } 
   | "fn"            { LAM                           } 
+  | "let"           { LET                           }
+  | "in"            { IN                            }
   | "contract"      { CONTRACT                      }
   | "default"       { DEFAULT                       }
   | "method"        { METHOD                        }
@@ -51,7 +53,7 @@ rule read = parse
   | ">"             { GT                            }
   | "="             { EQ                            }
   | "new"           { NEW                           }
-  | "with"          { WITH                         }
+  | "with"          { WITH                          }
   | "reentrance"    { REENTRANCE                    }
   | "selfdestruct"  { SELFDESTRUCT                  }
   | "."             { DOT                           }
