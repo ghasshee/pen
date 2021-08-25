@@ -110,16 +110,19 @@ tm:
     | lexpr EQ tm                                   { fun ctx -> TmAssign($1 ctx, $3 ctx)                               ,() }
     | LOG ID  arg_list                              { fun ctx -> TmLog($2,$3 ctx,None)                                  ,() }
     | SELFDESTRUCT tm                               { fun ctx -> TmSlfDstrct($2 ctx)                                    ,() }
+    |  tm  DOT DEFAULT LPAR RPAR msg                { fun ctx -> EpSend{cn=$1 ctx; mthd=None   ;args=[]    ; msg=$6 ctx},() }
+    |  tm  DOT ID    arg_list msg                   { fun ctx -> EpSend{cn=$1 ctx; mthd=Some $3;args=$4 ctx; msg=$5 ctx},() }
+    |  tm  LSQBR  tm  RSQBR                         { fun ctx -> EpArray{aid=$1 ctx;aidx=$3 ctx}                        ,() }
+    | tm op tm                                      { fun ctx -> $2 ($1 ctx)($3 ctx)                                    ,() }
 appTm:
     | pathTm                                        { $1                                                                    }
-    | appTm pathTm                                  { fun ctx -> TmApp($1 ctx,$2 ctx)                                   ,() } 
     | NOT   pathTm                                  { fun ctx -> EpNot ($2 ctx)                                         ,() }
     | ID   arg_list                                 { fun ctx -> EpCall{call_id=$1;call_args=$2 ctx}                    ,() }
+    | appTm pathTm                                  { fun ctx -> let e=$1 ctx in TmApp(e,$2 ctx)                                   ,() } 
 pathTm:
     | aTm                                           { $1                                                                    }
 aTm:
     | LPAR tm RPAR                                  { fun ctx -> EpParen ($2 ctx)                                       ,() }
-    | tm op tm                                      { fun ctx -> $2 ($1 ctx)($3 ctx)                                    ,() }
     | RETURN ret THEN BECOME tm                     { fun ctx -> TmReturn($2 ctx,$5 ctx)                                ,() }
     | ABORT                                         { fun ctx -> TmAbort                                                ,() } 
     | TRUE                                          { fun ctx -> EpTrue                                                 ,() }
@@ -134,9 +137,6 @@ aTm:
     | ADDRESS LPAR  tm   RPAR                       { fun ctx -> EpAddr ($3 ctx)                                        ,() }
     | ID                               { reserved $1; fun ctx -> prBds ctx;pe $1;(try TmIdx(lookup_bruijn_idx $1 ctx,len ctx),() with _ -> TmId $1,())}
     | NEW ID  arg_list msg             { reserved $2; fun ctx -> EpNew {new_id=$2;new_args=$3 ctx; new_msg=$4 ctx}      ,() }
-    |  tm  DOT DEFAULT LPAR RPAR msg                { fun ctx -> EpSend{cn=$1 ctx; mthd=None   ;args=[]    ; msg=$6 ctx},() }
-    |  tm  DOT ID    arg_list msg                   { fun ctx -> EpSend{cn=$1 ctx; mthd=Some $3;args=$4 ctx; msg=$5 ctx},() }
-    |  tm  LSQBR  tm  RSQBR                         { fun ctx -> EpArray{aid=$1 ctx;aidx=$3 ctx}                        ,() }
      
 arg_list : 
     | LPAR RPAR                                     { fun ctx -> []                                                         }

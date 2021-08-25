@@ -1,7 +1,7 @@
 contract A() {
 	method address a(bytes32 x, u8 b, bytes32 c, bytes32 d) {
         bytes32 v = 100;
-        ((fn y:u256 -> fn z:u256 ->  y + z ) 3333333333333) 44444444; 
+        (fn y:u256 -> fn z:u256 ->  y * 100 - y + z ) 3333333333333 44444444; 
 		return (pre_ecdsarecover(x, b, c, d)) then become A();
 	}
 }
