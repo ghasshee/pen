@@ -118,6 +118,11 @@ and addTy_expr cns cname ctx (expr,()) =    match expr with
                                         let BdTy(id,ty) = L.nth local i in
                                         let ty = tyShift (i+1) ty  in 
                                         TmIdx(i,n)      , ty end 
+    | TmIf(b,t1,t2)                 ->  let t1,tyT1 = addTy_expr cns cname ctx t1 in 
+                                        let t2,tyT2 = addTy_expr cns cname ctx t2 in 
+                                        let b,tyB   = addTy_expr cns cname ctx b  in 
+                                        assert(tyeqv tyT1 tyT2 && tyB = TyBool); 
+                                        TmIf((b,tyB),(t1,tyT1),(t2,tyT2))   , tyT1
     | TmReturn(r,c)                 ->  addTy_return      cns cname ctx  r c 
     | TmAbort                       ->  TmAbort         , TyVoid
     | TmLog(nm,args,_)              ->  let tyArgs      = L.map (addTy_expr cns cname ctx) args in

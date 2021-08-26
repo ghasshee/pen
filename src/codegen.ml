@@ -350,6 +350,7 @@ and salloc_array_of_push push_array_seed ce =
  * le can only be updated in a variable initialization *)
 and codegen_expr le ce ly aln          = function 
     | TmAbs(x,tyX,t)        ,TyAbs _    ->                      codegen_abs ly le ce (TmAbs(x,tyX,t))
+    | TmIf(b,t1,t2)         ,tyT        ->                      codegen_if  le ce ly b t1 t2
     | EpAddr(c,TyInstnce i) ,TyAddr     ->                      (c,TyInstnce i)         >>>>(aln,le,ce,ly) 
     | EpValue               ,TyUint256  ->                      CALLVALUE               >>ce      (* Value (wei) Transferred to the account *) 
     | EpNow                 ,TyUint256  ->                      TIMESTAMP               >>ce 
@@ -576,7 +577,23 @@ and codegen_decl le ce ly (ty,id,v)  =
     let ce      = Comment "END   declaration"   >>ce            in 
     le, ce
 
-and codegen_if le ce ly cond ss1 ss2 =
+and codegen_if le ce ly b t1 t2 = 
+    let els     = fresh_label()                                 in 
+    let fi      = fresh_label()                                 in
+    let ce      = Comment "IF"                  >>ce            in 
+    let ce      = b                             >>>>(R,le,ce,ly)in 
+    let ce      = if_0_GOTO els                   ce            in 
+    let ce      = Comment "THEN"                >>ce            in 
+    let ce      = t1                            >>>>(R,le,ce,ly)in
+    let ce      = goto fi                         ce            in 
+    let ce      = Comment "ELSE"                >>ce            in 
+    let ce      = JUMPDEST els                  >>ce            in 
+    let ce      = t2                            >>>>(R,le,ce,ly)in 
+    let ce      = Comment "FI"                  >>ce            in 
+    let ce      = JUMPDEST fi                   >>ce            in 
+    ce
+
+and codegen_ifstmt le ce ly cond ss1 ss2 =
     let next    = fresh_label()                                 in
     let endif   = fresh_label()                                 in
     let ce      = Comment "IF"                  >>ce            in 
@@ -683,7 +700,7 @@ and codegen_stmt ly  (le,ce)       = function
     | SmAssign(l,r)                 ->  codegen_assign      le ce ly l r        
     | SmDecl(ty,id,v)               ->  codegen_decl        le ce ly (ty,id,v)
     | SmExpr expr                   ->  codegen_expr_stmt   le ce ly expr
-    | SmIf(cond,e1,e2)              ->  codegen_if          le ce ly cond e1 e2 
+    | SmIf(cond,e1,e2)              ->  codegen_ifstmt          le ce ly cond e1 e2 
 
 (********************************************)
 (***     13. CODEGEN CONTRACT             ***)
