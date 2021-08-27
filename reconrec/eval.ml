@@ -39,8 +39,8 @@ and eval1 ctx store t = let p str = pr str;pr_tm ctx t; pn() in match t with
     | TmAssign(fi,v,t)when isval ctx v  ->  p"E-ASSIGN1     : "; let t',s'=eval1 ctx store t in TmAssign(fi,v,t'),s'
     | TmAssign(fi,t1,t2)                ->  p"E-ASSIGN2     : "; let t1',s'=eval1 ctx store t1 in TmAssign(fi,t1',t2),s'
     | TmFix(fi,TmAbs(_,_,_,t2))         ->  p"E-FIXBETA     : "; tmSubstTop t t2,store
-    | TmFix(fi,v) when isval ctx v      ->  p"E-FIXBETA     : "; raise NoRuleApplies 
-    | TmFix(fi,t)                       ->  p"E-FIX         : "; let t',s'=eval1 ctx store t in TmFix(fi,t'),s' 
+    | TmFix(fi,v) when isval ctx v      ->  p"E-FIXBETA'    : "; raise NoRuleApplies 
+    | TmFix(fi,t)                       ->  p"E-FIX         : "; let t',s'=eval ctx store t in TmFix(fi,t'),s' 
     | TmTag(fi,l,t,tyT)                 ->  p"E-TAG         : "; let t',s'=eval1 ctx store t in TmTag(fi,l,t',tyT),s'
     | TmVar(fi,n,_)                     ->  p"E-VAR         : "; (match getbind fi ctx n with
         | BindTmAbb(t,_)                    -> t,store
@@ -69,6 +69,8 @@ and eval1 ctx store t = let p str = pr str;pr_tm ctx t; pn() in match t with
                                                                  TmApp(fi,TmFold(f,tyT),t'),s'
     | TmApp(fi,TmUnfold(f,tyT),t)       ->  p"E-UNFLD       : "; let t',s'=eval1 ctx store t in 
                                                                  TmApp(fi,TmUnfold(f,tyT),t'),s'
+    | TmApp(fi,TmFix(f,t),t2)           ->  p"E-APPFIX      : "; let t',s'=eval ctx store (TmFix(f,t)) in
+                                                                 TmApp(fi,t',t2),s'
     | TmApp(fi,TmAbs(_,x,_,u),v) 
         when isval ctx v                ->  p"E-APPABS      : "; tmSubstTop v u ,store
     | TmApp(fi,v,t)                                          
@@ -84,12 +86,15 @@ and eval1 ctx store t = let p str = pr str;pr_tm ctx t; pn() in match t with
     | TmPred(fi,t)                      ->  p"E-PRED        : "; let t',s'=eval1 ctx store t in TmPred(fi,t'),s'
     | TmIsZero(_,TmZero(_))             ->  p"E-ISZROZRO    : "; TmTrue(dummyinfo),store
     | TmTimesfloat(fi,_,_)              ->  p"E-TIMESFLOAT  : "; evalF1 ctx store t 
+    | TmTimes(fi,n,m)                   ->  p"E-TIMES       : "; let n,store'  = eval ctx store n in 
+                                                                 let m,store'' = eval ctx store' m in 
+                                                                 tm_of_int fi (int_of_tm n * int_of_tm m), store''
     | TmIsZero(_,TmSucc(_,nv1)) 
         when isnum ctx nv1              ->  p"E-ISZROSUC    : "; TmFalse(dummyinfo),store
     | TmIsZero(fi,t)                    ->  p"E-ISZRO       : "; let t',s'=eval1 ctx store t in TmIsZero(fi,t'),s'
     | _                                 ->  raise NoRuleApplies
 
-let rec eval ctx store t =
+and eval ctx store t =
     try let t',store' = eval1 ctx store t in eval ctx store' t' 
     with NoRuleApplies -> t,store
 

@@ -26,6 +26,8 @@ let tyeqv t0 t1                 =   ( t0 = t1 )  ||  ( match t0, t1 with
                                 | TyAddr, TyInstnce _   -> true
                                 | _     , _             -> false ) 
 
+let subtype                     = tyeqv 
+
 let assert_tyeqv l r            =   assert (get_ty l=get_ty r) 
 
 let typeof_mthd                 =   function 
@@ -118,6 +120,10 @@ and addTy_expr cns cname ctx (expr,()) =    match expr with
                                         let BdTy(id,ty) = L.nth local i in
                                         let ty = tyShift (i+1) ty  in 
                                         TmIdx(i,n)      , ty end 
+    | TmFix(t)                      ->  let t,tyT   = addTy_expr cns cname ctx t  in 
+                                        let TyAbs(tyT1,tyT2) = tyT in 
+                                        assert(subtype tyT1 tyT2); 
+                                        TmFix(t,tyT), tyT2 
     | TmIf(b,t1,t2)                 ->  let t1,tyT1 = addTy_expr cns cname ctx t1 in 
                                         let t2,tyT2 = addTy_expr cns cname ctx t2 in 
                                         let b,tyB   = addTy_expr cns cname ctx b  in 

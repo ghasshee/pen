@@ -28,7 +28,9 @@ let rec tyeqv seen ctx tyS tyT =
     List.mem (tyS,tyT) seen || match (tyS,tyT) with 
     | TyString,TyString                 -> true
     | TyFloat,TyFloat                   -> true
-    | TyRec(x,tyS1),_                   -> tyeqv((tyS,tyT)::seen)ctx(tySubstTop tyS tyS1) tyT
+    | (TyRec(x1,tyS2),TyRec(_,tyT2))    -> let ctx' = addname ctx x1 in
+                                            tyeqv seen ctx' tyS2 tyT2
+    | TyRec(x,tyS1),_                   -> let ctx' = addname ctx x in tyeqv((tyS,tyT)::seen)ctx'(tySubstTop tyS tyS1) tyT
     | _,TyRec(x,tyT1)                   -> tyeqv((tyS,tyT)::seen)ctx tyS(tySubstTop tyT tyT1)
     | TyId(b1),TyId(b2)                 -> b1 = b2 
     | TyVar(i,_),_ when istyabb ctx i   -> tyeqv seen ctx (gettyabb ctx i) tyT 

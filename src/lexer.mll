@@ -22,6 +22,8 @@ rule read = parse
   | "<-"            { LARROW                        } 
   | "fn"            { LAM                           } 
   | "let"           { LET                           }
+  | "rec"           { REC                           } 
+  | "fix"           { FIX                           } 
   | "in"            { IN                            }
   | "contract"      { CONTRACT                      }
   | "default"       { DEFAULT                       }

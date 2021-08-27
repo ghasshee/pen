@@ -185,7 +185,7 @@ let rec string_of_expr          = function
     | TmApp((t1,_),(t2,_))      -> "(" ^ string_of_expr t1 ^ ")(" ^ string_of_expr t2 ^ ")" 
     | TmAbs(x,tyX,(t,_))        -> "λ" ^ x ^ ":" ^ string_of_ty tyX ^ "." ^ string_of_expr t 
     | TmIdx(i,n)                -> "x" ^ string_of_int i 
-    | TmIf((b,_),(t1,_),(t2,_)) -> "if " ^ string_of_expr b ^ " then " ^ string_of_expr t1 ^ " else " ^ string_of_expr t2 
+    | TmIf((b,_),(t1,_),(t2,_)) -> "if " ^ string_of_expr b ^ " then " ^ string_of_expr t1 ^ " else " ^ string_of_expr t2  
     | TmAbort                   -> "abort" 
     | TmReturn(_,_)             -> "return"
     | TmLog(_,_,_)              -> "log"

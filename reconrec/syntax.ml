@@ -66,6 +66,7 @@ type term =
     | TmSucc        of info * term
     | TmPred        of info * term
     | TmIsZero      of info * term
+    | TmTimes       of info * term * term 
     (* Bool *) 
     | TmTrue        of info
     | TmFalse       of info
@@ -159,6 +160,7 @@ let rec tmWalk onVar onType c   = let (f,g) = (onVar,onType) in function
     | TmProj(fi,t,i)            -> TmProj(fi,tmWalk f g c t,i) 
     | TmFix(fi,t)               -> TmFix(fi,tmWalk f g c t)
     | TmTimesfloat(fi,t1,t2)    -> TmTimesfloat(fi,tmWalk f g c t1,tmWalk f g c t2)
+    | TmTimes(fi,n,m)           -> TmTimes(fi,tmWalk f g c n,tmWalk f g c m) 
     | TmFold(fi,tyT)            -> TmFold(fi,g c tyT)
     | TmUnfold(fi,tyT)          -> TmUnfold(fi,g c tyT) 
     | t                         -> t
@@ -195,6 +197,7 @@ let tmSubstTop     s t      = pe"SUBSTITUTE    : [x↦s]t"; tmShift (-1) (tmSubs
 (* -------------------------------------------------- *) 
 (* Extracting file info *)
 let tmInfo  = function 
+    | TmTimes(fi,_,_)       -> fi 
     | TmRef(fi,_)           -> fi 
     | TmDeref(fi,_)         -> fi 
     | TmAssign(fi,_,_)      -> fi 
@@ -354,6 +357,7 @@ and pr_AppTerm outer ctx   = function
     | TmDeref(_,t)              ->  pr"!"      ;pr_ATerm false ctx t  
     | TmPred(_,t)               ->  pr"pred "  ;pr_ATerm false ctx t
     | TmTimesfloat(_,t1,t2)     ->  pr_AppTerm outer ctx t1;pr" *. ";pr_AppTerm outer ctx t2
+    | TmTimes(_,n,m)            ->  pr_AppTerm outer ctx n; pr" * ";pr_AppTerm outer ctx m
     | TmIsZero(_,t)             ->  pr"iszero ";pr_ATerm false ctx t
     | t                         ->  pr_PathTerm outer ctx t 
 
@@ -387,7 +391,17 @@ and pr_ATerm outer ctx     = function
 
 let pr_tm t = pr_Term true t 
 
+let int_of_tm = function  
+    | TmZero(_)                   -> 0 
+    | TmSucc(_,t)                 -> ( let rec f n = function 
+        | TmZero(_)                 -> n 
+        | TmSucc(_,s)               -> f (n+1) s
+        | _                         -> error dummyinfo "int_of_tm" in f 1 t)
+    | _ -> error dummyinfo  "error int_of_tm Nat type expected"
 
+let rec tm_of_int fi          = function 
+    | 0 -> TmZero(fi) 
+    | n -> TmSucc(fi,tm_of_int fi (n-1))
 
 let pr_bind = function 
     | BindName                  -> pr"NEW NAME"

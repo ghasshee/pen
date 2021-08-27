@@ -63,7 +63,7 @@ let pe = print_endline
 
 %token <Support.info> SUCC
 %token <Support.info> PRED
-%token <Support.info> ISZERO
+%token <Support.info> ISZERO TIMES
 
 %token <Support.info> LAM
 %token <Support.info> IF
@@ -233,6 +233,10 @@ Tm        :
     | IF Tm THEN Tm ELSE Tm           { fun ctx   ->  TmIf($1,$2 ctx,$4 ctx,$6 ctx)                   }
     | LET LCID   EQ Tm IN Tm          { fun ctx   ->  TmLet($1,$2.v,$4 ctx,$6 (addname ctx $2.v))     }
     | LET USCORE EQ Tm IN Tm          { fun ctx   ->  TmLet($1,"_", $4 ctx,$6 (addname ctx "_" ))     }
+    | LETREC LCID EQ Tm IN Tm         { fun ctx   ->  let ctx' = addname ctx $2.v in 
+                                                      TmLet($1,$2.v,
+                                                        TmFix($1,TmAbs($1,$2.v,None,$4 ctx'))
+                                                        ,$6 ctx')                                     }
     | LETREC LCID COLON Ty EQ Tm IN Tm{ fun ctx   ->  let ctx' = addname ctx $2.v in 
                                                       TmLet($1,$2.v,
                                                         TmFix($1,TmAbs($1,$2.v,Some($4 ctx),$6 ctx'))
@@ -247,6 +251,7 @@ AppTm     :
     | PathTm                          { $1                                                            }
     | AppTm PathTm                    { fun ctx   ->  let t=$1 ctx in TmApp(tmInfo t,t,$2 ctx)        }
     | PathTm TIMESFLOAT PathTm        { fun ctx   ->  TmTimesfloat($2,$1 ctx,$3 ctx)                  } 
+    | PathTm STAR PathTm              { fun ctx   ->  TmTimes($2,$1 ctx,$3 ctx)                       }
     | FOLD   LSQUARE Ty RSQUARE       { fun ctx   ->  TmFold($1,   $3 ctx)                            } 
     | UNFOLD LSQUARE Ty RSQUARE       { fun ctx   ->  TmUnfold($1, $3 ctx)                            } 
     | FIX     PathTm                  { fun ctx   ->  TmFix($1, $2 ctx )                              }

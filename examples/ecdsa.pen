@@ -6,6 +6,8 @@ contract A() {
         a + b * b + 1000 ; 
         let u256 a = if true then 1 else 2 in 
         a + 100; 
+        let rec fac : u256 -> u256 = (fn n:u256 -> if n == 0 then 1 else n * (fac (n-1))) in 
+        fac 10;
         (fn y:u256 -> fn z:u256 ->  y * 100 - y + z ) 3333333333333 44444444; 
 		return (pre_ecdsarecover(x, b, c, d)) then become A();
 	}

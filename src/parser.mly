@@ -11,7 +11,7 @@ let reserved x                  =   if BS.starts_with x "pre_" then err "Names '
 %token <string> ID
 %token <Big_int.big_int> EUINT256
 %token <Big_int.big_int> EUINT8
-%token LET IN 
+%token LET IN REC FIX 
 %token LAM ARROW LARROW
 %token ADDRESS UINT256 UINT8 BYTES32
 %token BOOL TRUE FALSE
@@ -78,6 +78,7 @@ ty:
     | ADDRESS                                       { TyAddr                                                    }
     | BOOL                                          { TyBool                                                    }
     | ty DARROW ty                                  { TyMap($1,$3)                                              }
+    | ty ARROW ty                                   { TyAbs($1,$3)                                              } 
     | ID                                            { TyInstnce $1                                              }
 
 %inline body:
@@ -108,6 +109,8 @@ ret:
 tm: 
     | appTm                                         { $1                                                                    } 
     | LET ty ID EQ tm IN tm                         { fun ctx -> TmApp((TmAbs($3,$2,$7(add_bruijn_idx ctx $3)),()),$5 ctx)   ,() } 
+    | LET REC ID COLON ty EQ tm IN tm               { fun ctx -> let ctx' = add_bruijn_idx ctx $3 in 
+                                                                 TmApp((TmAbs($3,$5,$9 ctx'),()),(TmFix(TmAbs($3,$5,$7 ctx'),()),())), ()}  
     | LAM ID COLON ty ARROW tm                      { fun ctx -> TmAbs($2, $4, $6(add_bruijn_idx ctx $2))               ,() } 
     | IF tm THEN tm ELSE tm                         { fun ctx -> TmIf($2 ctx, $4 ctx, $6 ctx)                           ,() }
     | lexpr EQ tm                                   { fun ctx -> TmAssign($1 ctx, $3 ctx)                               ,() }
@@ -119,6 +122,7 @@ tm:
     | tm op tm                                      { fun ctx -> $2 ($1 ctx)($3 ctx)                                    ,() }
 appTm:
     | pathTm                                        { $1                                                                    }
+    | FIX   pathTm                                  { fun ctx -> TmFix($2 ctx)                                          ,() } 
     | NOT   pathTm                                  { fun ctx -> EpNot ($2 ctx)                                         ,() }
     | ID   arg_list                                 { fun ctx -> EpCall{call_id=$1;call_args=$2 ctx}                    ,() }
     | appTm pathTm                                  { fun ctx -> let e=$1 ctx in TmApp(e,$2 ctx)                                   ,() } 

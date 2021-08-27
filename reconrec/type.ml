@@ -1,3 +1,4 @@
+open Printf
 open Support
 open Syntax
 open Subtype
@@ -76,11 +77,25 @@ let rec recon ctx uvar t =
                                     let (tyT2,uvar'',constr'')  = recon ctx uvar' t2 in
                                     let NextUVar(x,uvar''')   = uvar'' () in 
                                     TyId(x),uvar''',List.concat[[(tyT1,TyArr(tyT2,TyId(x)))];constr';constr'']
+    | TmFix(fi,t)               ->  p"CT-FIX         "; 
+                                    let ty,uvar,c = recon ctx uvar t in 
+                                    (match simplifyty ctx ty with 
+        | TyArr(tyS,tyT)            ->  let sol = unify fi ctx "TmFix unification failed:" ((tyS,tyT)::c) in 
+                                        let tyT'  = apply_constr sol tyT in 
+                                        let tyS'  = apply_constr sol tyS in 
+                                        if subtype ctx tyT' tyS' 
+                                            then tyT',uvar,c
+                                            else (pr_ty ctx tyS; pr"->"; pr_ty ctx tyT; error fi ": fix can take 'x' whose type: A -> A")
+        | _                         -> error fi"fix can only take x whose type is A -> A"  )
     | TmZero(fi)                ->  p"CT-ZERO       ";
                                     TyNat,uvar,[]
     | TmSucc(fi,t)              ->  p"CT-SUCC       ";
                                     let tyT,uvar',constr' = recon ctx uvar t in 
                                     TyNat,uvar',(tyT,TyNat)::constr'
+    | TmTimes(fi,n,m)           ->  p"CT-TIMES      ";
+                                    let tyN,uvarN,constrN = recon ctx uvar n in 
+                                    let tyM,uvarM,constrM = recon ctx uvarN m in 
+                                    TyNat,uvarM,constrN@constrM
     | TmPred(fi,t)              ->  p"CT-PRED       ";
                                     let tyT,uvar',constr' = recon ctx uvar t in 
                                     TyNat,uvar',(tyT,TyNat)::constr'

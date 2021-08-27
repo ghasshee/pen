@@ -70,59 +70,61 @@
   52     | IF Tm THEN Tm ELSE Tm
   53     | LET LCID EQ Tm IN Tm
   54     | LET USCORE EQ Tm IN Tm
-  55     | LETREC LCID COLON Ty EQ Tm IN Tm
-  56     | CASE Tm OF Cases
-  57     | AppTm COLONEQ AppTm
-  58     | CONS LTy ATm ATm
-  59     | HEAD LTy ATm
-  60     | TAIL LTy ATm
-  61     | ISNIL LTy ATm
+  55     | LETREC LCID EQ Tm IN Tm
+  56     | LETREC LCID COLON Ty EQ Tm IN Tm
+  57     | CASE Tm OF Cases
+  58     | AppTm COLONEQ AppTm
+  59     | CONS LTy ATm ATm
+  60     | HEAD LTy ATm
+  61     | TAIL LTy ATm
+  62     | ISNIL LTy ATm
 
-  62  AppTm : PathTm
-  63        | AppTm PathTm
-  64        | PathTm TIMESFLOAT PathTm
-  65        | FOLD LSQUARE Ty RSQUARE
-  66        | UNFOLD LSQUARE Ty RSQUARE
-  67        | FIX PathTm
-  68        | REF PathTm
-  69        | BANG PathTm
-  70        | SUCC PathTm
-  71        | PRED PathTm
-  72        | ISZERO PathTm
+  63  AppTm : PathTm
+  64        | AppTm PathTm
+  65        | PathTm TIMESFLOAT PathTm
+  66        | PathTm STAR PathTm
+  67        | FOLD LSQUARE Ty RSQUARE
+  68        | UNFOLD LSQUARE Ty RSQUARE
+  69        | FIX PathTm
+  70        | REF PathTm
+  71        | BANG PathTm
+  72        | SUCC PathTm
+  73        | PRED PathTm
+  74        | ISZERO PathTm
 
-  73  PathTm : PathTm DOT LCID
-  74         | PathTm DOT INTV
-  75         | AscribeTm
+  75  PathTm : PathTm DOT LCID
+  76         | PathTm DOT INTV
+  77         | AscribeTm
 
-  76  AscribeTm : ATm AS Ty
-  77            | ATm
+  78  AscribeTm : ATm AS Ty
+  79            | ATm
 
-  78  ATm : LPAREN TmSeq RPAREN
-  79      | LCURLY Fields RCURLY
-  80      | LT LCID EQ Tm GT AS Ty
-  81      | LCID
-  82      | STRINGV
-  83      | FLOATV
-  84      | UNIT
-  85      | TRUE
-  86      | FALSE
-  87      | INTV
-  88      | NIL LTy
+  80  ATm : LPAREN TmSeq RPAREN
+  81      | LCURLY Fields RCURLY
+  82      | LT LCID EQ Tm GT AS Ty
+  83      | LCID
+  84      | STRINGV
+  85      | FLOATV
+  86      | UNIT
+  87      | TRUE
+  88      | FALSE
+  89      | INTV
+  90      | NIL LTy
 
-  89  TmSeq : Tm
-  90        | Tm SEMI TmSeq
+  91  TmSeq : Tm
+  92        | Tm SEMI TmSeq
 
-  91  Fields :
-  92         | NEFields
+  93  Fields :
+  94         | NEFields
 
-  93  NEFields : Field
-  94           | Field COMMA NEFields
+  95  NEFields : Field
+  96           | Field COMMA NEFields
 
-  95  Field : LCID EQ Tm
-  96        | Tm
+  97  Field : LCID EQ Tm
+  98        | Tm
 
-  97  %entry% : '\001' toplevel
-  98          | '\002' input
+  99  %entry% : '\001' toplevel
+ 100          | '\002' input
 
 state 0
 	$accept : . %entry% $end  (0)
@@ -135,7 +137,7 @@ state 0
 
 
 state 1
-	%entry% : '\001' . toplevel  (97)
+	%entry% : '\001' . toplevel  (99)
 
 	FOLD  shift 4
 	UNFOLD  shift 5
@@ -180,7 +182,7 @@ state 1
 
 
 state 2
-	%entry% : '\002' . input  (98)
+	%entry% : '\002' . input  (100)
 	input : .  (1)
 
 	.  reduce 1
@@ -195,21 +197,21 @@ state 3
 
 
 state 4
-	AppTm : FOLD . LSQUARE Ty RSQUARE  (65)
+	AppTm : FOLD . LSQUARE Ty RSQUARE  (67)
 
 	LSQUARE  shift 43
 	.  error
 
 
 state 5
-	AppTm : UNFOLD . LSQUARE Ty RSQUARE  (66)
+	AppTm : UNFOLD . LSQUARE Ty RSQUARE  (68)
 
 	LSQUARE  shift 44
 	.  error
 
 
 state 6
-	AppTm : REF . PathTm  (68)
+	AppTm : REF . PathTm  (70)
 
 	NIL  shift 11
 	UNIT  shift 15
@@ -230,7 +232,7 @@ state 6
 
 
 state 7
-	Tm : TAIL . LTy ATm  (60)
+	Tm : TAIL . LTy ATm  (61)
 
 	LSQUARE  shift 47
 	.  error
@@ -239,7 +241,7 @@ state 7
 
 
 state 8
-	Tm : HEAD . LTy ATm  (59)
+	Tm : HEAD . LTy ATm  (60)
 
 	LSQUARE  shift 47
 	.  error
@@ -248,7 +250,7 @@ state 8
 
 
 state 9
-	Tm : ISNIL . LTy ATm  (61)
+	Tm : ISNIL . LTy ATm  (62)
 
 	LSQUARE  shift 47
 	.  error
@@ -257,7 +259,7 @@ state 9
 
 
 state 10
-	Tm : CONS . LTy ATm ATm  (58)
+	Tm : CONS . LTy ATm ATm  (59)
 
 	LSQUARE  shift 47
 	.  error
@@ -266,7 +268,7 @@ state 10
 
 
 state 11
-	ATm : NIL . LTy  (88)
+	ATm : NIL . LTy  (90)
 
 	LSQUARE  shift 47
 	.  error
@@ -275,14 +277,15 @@ state 11
 
 
 state 12
-	Tm : LETREC . LCID COLON Ty EQ Tm IN Tm  (55)
+	Tm : LETREC . LCID EQ Tm IN Tm  (55)
+	Tm : LETREC . LCID COLON Ty EQ Tm IN Tm  (56)
 
 	LCID  shift 53
 	.  error
 
 
 state 13
-	AppTm : FIX . PathTm  (67)
+	AppTm : FIX . PathTm  (69)
 
 	NIL  shift 11
 	UNIT  shift 15
@@ -303,7 +306,7 @@ state 13
 
 
 state 14
-	Tm : CASE . Tm OF Cases  (56)
+	Tm : CASE . Tm OF Cases  (57)
 
 	FOLD  shift 4
 	UNFOLD  shift 5
@@ -343,9 +346,9 @@ state 14
 
 
 state 15
-	ATm : UNIT .  (84)
+	ATm : UNIT .  (86)
 
-	.  reduce 84
+	.  reduce 86
 
 
 state 16
@@ -358,7 +361,7 @@ state 16
 
 
 state 17
-	AppTm : SUCC . PathTm  (70)
+	AppTm : SUCC . PathTm  (72)
 
 	NIL  shift 11
 	UNIT  shift 15
@@ -379,7 +382,7 @@ state 17
 
 
 state 18
-	AppTm : PRED . PathTm  (71)
+	AppTm : PRED . PathTm  (73)
 
 	NIL  shift 11
 	UNIT  shift 15
@@ -400,7 +403,7 @@ state 18
 
 
 state 19
-	AppTm : ISZERO . PathTm  (72)
+	AppTm : ISZERO . PathTm  (74)
 
 	NIL  shift 11
 	UNIT  shift 15
@@ -471,15 +474,15 @@ state 21
 
 
 state 22
-	ATm : TRUE .  (85)
+	ATm : TRUE .  (87)
 
-	.  reduce 85
+	.  reduce 87
 
 
 state 23
-	ATm : FALSE .  (86)
+	ATm : FALSE .  (88)
 
-	.  reduce 86
+	.  reduce 88
 
 
 state 24
@@ -495,53 +498,54 @@ state 24
 
 state 25
 	Command : LCID . Binder  (12)
-	ATm : LCID .  (81)
+	ATm : LCID .  (83)
 
 	COLON  shift 66
 	EQ  shift 67
-	NIL  reduce 81
-	TIMESFLOAT  reduce 81
-	AS  reduce 81
-	UNIT  reduce 81
-	WHERE  reduce 81
-	TRUE  reduce 81
-	FALSE  reduce 81
-	LCID  reduce 81
-	INTV  reduce 81
-	FLOATV  reduce 81
-	STRINGV  reduce 81
-	COLONEQ  reduce 81
-	COMMA  reduce 81
-	DOT  reduce 81
-	LCURLY  reduce 81
-	LPAREN  reduce 81
-	LT  reduce 81
-	SEMI  reduce 81
-	DOUBLESEMI  reduce 81
+	NIL  reduce 83
+	TIMESFLOAT  reduce 83
+	AS  reduce 83
+	UNIT  reduce 83
+	WHERE  reduce 83
+	TRUE  reduce 83
+	FALSE  reduce 83
+	LCID  reduce 83
+	INTV  reduce 83
+	FLOATV  reduce 83
+	STRINGV  reduce 83
+	COLONEQ  reduce 83
+	COMMA  reduce 83
+	DOT  reduce 83
+	LCURLY  reduce 83
+	LPAREN  reduce 83
+	LT  reduce 83
+	SEMI  reduce 83
+	STAR  reduce 83
+	DOUBLESEMI  reduce 83
 
 	Binder  goto 68
 
 
 state 26
-	ATm : INTV .  (87)
+	ATm : INTV .  (89)
 
-	.  reduce 87
+	.  reduce 89
 
 
 state 27
-	ATm : FLOATV .  (83)
+	ATm : FLOATV .  (85)
 
-	.  reduce 83
+	.  reduce 85
 
 
 state 28
-	ATm : STRINGV .  (82)
+	ATm : STRINGV .  (84)
 
-	.  reduce 82
+	.  reduce 84
 
 
 state 29
-	AppTm : BANG . PathTm  (69)
+	AppTm : BANG . PathTm  (71)
 
 	NIL  shift 11
 	UNIT  shift 15
@@ -568,8 +572,8 @@ state 30
 
 
 state 31
-	ATm : LCURLY . Fields RCURLY  (79)
-	Fields : .  (91)
+	ATm : LCURLY . Fields RCURLY  (81)
+	Fields : .  (93)
 
 	FOLD  shift 4
 	UNFOLD  shift 5
@@ -599,7 +603,7 @@ state 31
 	LCURLY  shift 31
 	LPAREN  shift 32
 	LT  shift 33
-	RCURLY  reduce 91
+	RCURLY  reduce 93
 
 	Tm  goto 71
 	AppTm  goto 38
@@ -612,7 +616,7 @@ state 31
 
 
 state 32
-	ATm : LPAREN . TmSeq RPAREN  (78)
+	ATm : LPAREN . TmSeq RPAREN  (80)
 
 	FOLD  shift 4
 	UNFOLD  shift 5
@@ -653,16 +657,16 @@ state 32
 
 
 state 33
-	ATm : LT . LCID EQ Tm GT AS Ty  (80)
+	ATm : LT . LCID EQ Tm GT AS Ty  (82)
 
 	LCID  shift 77
 	.  error
 
 
 state 34
-	%entry% : '\001' toplevel .  (97)
+	%entry% : '\001' toplevel .  (99)
 
-	.  reduce 97
+	.  reduce 99
 
 
 state 35
@@ -693,8 +697,8 @@ state 37
 
 state 38
 	Tm : AppTm .  (48)
-	Tm : AppTm . COLONEQ AppTm  (57)
-	AppTm : AppTm . PathTm  (63)
+	Tm : AppTm . COLONEQ AppTm  (58)
+	AppTm : AppTm . PathTm  (64)
 
 	NIL  shift 11
 	UNIT  shift 15
@@ -726,76 +730,79 @@ state 38
 
 
 state 39
-	AscribeTm : ATm . AS Ty  (76)
-	AscribeTm : ATm .  (77)
+	AscribeTm : ATm . AS Ty  (78)
+	AscribeTm : ATm .  (79)
 
 	AS  shift 83
-	NIL  reduce 77
-	TIMESFLOAT  reduce 77
-	OF  reduce 77
-	UNIT  reduce 77
-	WHERE  reduce 77
-	IN  reduce 77
-	THEN  reduce 77
-	ELSE  reduce 77
-	TRUE  reduce 77
-	FALSE  reduce 77
-	LCID  reduce 77
-	INTV  reduce 77
-	FLOATV  reduce 77
-	STRINGV  reduce 77
-	COLONEQ  reduce 77
-	COMMA  reduce 77
-	DOT  reduce 77
-	GT  reduce 77
-	LCURLY  reduce 77
-	LPAREN  reduce 77
-	LT  reduce 77
-	RCURLY  reduce 77
-	RPAREN  reduce 77
-	SEMI  reduce 77
-	VBAR  reduce 77
-	DOUBLESEMI  reduce 77
+	NIL  reduce 79
+	TIMESFLOAT  reduce 79
+	OF  reduce 79
+	UNIT  reduce 79
+	WHERE  reduce 79
+	IN  reduce 79
+	THEN  reduce 79
+	ELSE  reduce 79
+	TRUE  reduce 79
+	FALSE  reduce 79
+	LCID  reduce 79
+	INTV  reduce 79
+	FLOATV  reduce 79
+	STRINGV  reduce 79
+	COLONEQ  reduce 79
+	COMMA  reduce 79
+	DOT  reduce 79
+	GT  reduce 79
+	LCURLY  reduce 79
+	LPAREN  reduce 79
+	LT  reduce 79
+	RCURLY  reduce 79
+	RPAREN  reduce 79
+	SEMI  reduce 79
+	STAR  reduce 79
+	VBAR  reduce 79
+	DOUBLESEMI  reduce 79
 
 
 state 40
-	AppTm : PathTm .  (62)
-	AppTm : PathTm . TIMESFLOAT PathTm  (64)
-	PathTm : PathTm . DOT LCID  (73)
-	PathTm : PathTm . DOT INTV  (74)
+	AppTm : PathTm .  (63)
+	AppTm : PathTm . TIMESFLOAT PathTm  (65)
+	AppTm : PathTm . STAR PathTm  (66)
+	PathTm : PathTm . DOT LCID  (75)
+	PathTm : PathTm . DOT INTV  (76)
 
 	TIMESFLOAT  shift 84
 	DOT  shift 85
-	NIL  reduce 62
-	OF  reduce 62
-	UNIT  reduce 62
-	WHERE  reduce 62
-	IN  reduce 62
-	THEN  reduce 62
-	ELSE  reduce 62
-	TRUE  reduce 62
-	FALSE  reduce 62
-	LCID  reduce 62
-	INTV  reduce 62
-	FLOATV  reduce 62
-	STRINGV  reduce 62
-	COLONEQ  reduce 62
-	COMMA  reduce 62
-	GT  reduce 62
-	LCURLY  reduce 62
-	LPAREN  reduce 62
-	LT  reduce 62
-	RCURLY  reduce 62
-	RPAREN  reduce 62
-	SEMI  reduce 62
-	VBAR  reduce 62
-	DOUBLESEMI  reduce 62
+	STAR  shift 86
+	NIL  reduce 63
+	OF  reduce 63
+	UNIT  reduce 63
+	WHERE  reduce 63
+	IN  reduce 63
+	THEN  reduce 63
+	ELSE  reduce 63
+	TRUE  reduce 63
+	FALSE  reduce 63
+	LCID  reduce 63
+	INTV  reduce 63
+	FLOATV  reduce 63
+	STRINGV  reduce 63
+	COLONEQ  reduce 63
+	COMMA  reduce 63
+	GT  reduce 63
+	LCURLY  reduce 63
+	LPAREN  reduce 63
+	LT  reduce 63
+	RCURLY  reduce 63
+	RPAREN  reduce 63
+	SEMI  reduce 63
+	VBAR  reduce 63
+	DOUBLESEMI  reduce 63
 
 
 state 41
-	PathTm : AscribeTm .  (75)
+	PathTm : AscribeTm .  (77)
 
-	.  reduce 75
+	.  reduce 77
 
 
 state 42
@@ -803,10 +810,10 @@ state 42
 	input : input . SHOWCONTEXT DOUBLESEMI  (3)
 	input : input . DOUBLESEMI  (4)
 	input : input . oneREPL  (5)
-	%entry% : '\002' input .  (98)
+	%entry% : '\002' input .  (100)
 
-	LOAD  shift 86
-	SHOWCONTEXT  shift 87
+	LOAD  shift 87
+	SHOWCONTEXT  shift 88
 	FOLD  shift 4
 	UNFOLD  shift 5
 	REF  shift 6
@@ -836,11 +843,11 @@ state 42
 	LCURLY  shift 31
 	LPAREN  shift 32
 	LT  shift 33
-	DOUBLESEMI  shift 88
-	$end  reduce 98
+	DOUBLESEMI  shift 89
+	$end  reduce 100
 
-	oneREPL  goto 89
-	Command  goto 90
+	oneREPL  goto 90
+	Command  goto 91
 	TmWrap  goto 36
 	Tm  goto 37
 	AppTm  goto 38
@@ -850,264 +857,65 @@ state 42
 
 
 state 43
-	AppTm : FOLD LSQUARE . Ty RSQUARE  (65)
+	AppTm : FOLD LSQUARE . Ty RSQUARE  (67)
 
-	REC  shift 91
-	TOP  shift 92
-	SOURCE  shift 93
-	SINK  shift 94
-	REFTYPE  shift 95
-	LIST  shift 96
-	STRING  shift 97
-	FLOAT  shift 98
-	UNITTYPE  shift 99
-	BOOL  shift 100
-	NAT  shift 101
-	UCID  shift 102
-	LCURLY  shift 103
-	LPAREN  shift 104
-	LT  shift 105
+	REC  shift 92
+	TOP  shift 93
+	SOURCE  shift 94
+	SINK  shift 95
+	REFTYPE  shift 96
+	LIST  shift 97
+	STRING  shift 98
+	FLOAT  shift 99
+	UNITTYPE  shift 100
+	BOOL  shift 101
+	NAT  shift 102
+	UCID  shift 103
+	LCURLY  shift 104
+	LPAREN  shift 105
+	LT  shift 106
 	.  error
 
-	Ty  goto 106
-	ArrowTy  goto 107
-	ATy  goto 108
+	Ty  goto 107
+	ArrowTy  goto 108
+	ATy  goto 109
 
 
 state 44
-	AppTm : UNFOLD LSQUARE . Ty RSQUARE  (66)
+	AppTm : UNFOLD LSQUARE . Ty RSQUARE  (68)
 
-	REC  shift 91
-	TOP  shift 92
-	SOURCE  shift 93
-	SINK  shift 94
-	REFTYPE  shift 95
-	LIST  shift 96
-	STRING  shift 97
-	FLOAT  shift 98
-	UNITTYPE  shift 99
-	BOOL  shift 100
-	NAT  shift 101
-	UCID  shift 102
-	LCURLY  shift 103
-	LPAREN  shift 104
-	LT  shift 105
-	.  error
-
-	Ty  goto 109
-	ArrowTy  goto 107
-	ATy  goto 108
-
-
-state 45
-	ATm : LCID .  (81)
-
-	.  reduce 81
-
-
-state 46
-	AppTm : REF PathTm .  (68)
-	PathTm : PathTm . DOT LCID  (73)
-	PathTm : PathTm . DOT INTV  (74)
-
-	DOT  shift 85
-	NIL  reduce 68
-	OF  reduce 68
-	UNIT  reduce 68
-	WHERE  reduce 68
-	IN  reduce 68
-	THEN  reduce 68
-	ELSE  reduce 68
-	TRUE  reduce 68
-	FALSE  reduce 68
-	LCID  reduce 68
-	INTV  reduce 68
-	FLOATV  reduce 68
-	STRINGV  reduce 68
-	COLONEQ  reduce 68
-	COMMA  reduce 68
-	GT  reduce 68
-	LCURLY  reduce 68
-	LPAREN  reduce 68
-	LT  reduce 68
-	RCURLY  reduce 68
-	RPAREN  reduce 68
-	SEMI  reduce 68
-	VBAR  reduce 68
-	DOUBLESEMI  reduce 68
-
-
-state 47
-	LTy : LSQUARE . Ty RSQUARE  (35)
-
-	REC  shift 91
-	TOP  shift 92
-	SOURCE  shift 93
-	SINK  shift 94
-	REFTYPE  shift 95
-	LIST  shift 96
-	STRING  shift 97
-	FLOAT  shift 98
-	UNITTYPE  shift 99
-	BOOL  shift 100
-	NAT  shift 101
-	UCID  shift 102
-	LCURLY  shift 103
-	LPAREN  shift 104
-	LT  shift 105
+	REC  shift 92
+	TOP  shift 93
+	SOURCE  shift 94
+	SINK  shift 95
+	REFTYPE  shift 96
+	LIST  shift 97
+	STRING  shift 98
+	FLOAT  shift 99
+	UNITTYPE  shift 100
+	BOOL  shift 101
+	NAT  shift 102
+	UCID  shift 103
+	LCURLY  shift 104
+	LPAREN  shift 105
+	LT  shift 106
 	.  error
 
 	Ty  goto 110
-	ArrowTy  goto 107
-	ATy  goto 108
+	ArrowTy  goto 108
+	ATy  goto 109
 
 
-state 48
-	Tm : TAIL LTy . ATm  (60)
+state 45
+	ATm : LCID .  (83)
 
-	NIL  shift 11
-	UNIT  shift 15
-	TRUE  shift 22
-	FALSE  shift 23
-	LCID  shift 45
-	INTV  shift 26
-	FLOATV  shift 27
-	STRINGV  shift 28
-	LCURLY  shift 31
-	LPAREN  shift 32
-	LT  shift 33
-	.  error
-
-	ATm  goto 111
+	.  reduce 83
 
 
-state 49
-	Tm : HEAD LTy . ATm  (59)
-
-	NIL  shift 11
-	UNIT  shift 15
-	TRUE  shift 22
-	FALSE  shift 23
-	LCID  shift 45
-	INTV  shift 26
-	FLOATV  shift 27
-	STRINGV  shift 28
-	LCURLY  shift 31
-	LPAREN  shift 32
-	LT  shift 33
-	.  error
-
-	ATm  goto 112
-
-
-state 50
-	Tm : ISNIL LTy . ATm  (61)
-
-	NIL  shift 11
-	UNIT  shift 15
-	TRUE  shift 22
-	FALSE  shift 23
-	LCID  shift 45
-	INTV  shift 26
-	FLOATV  shift 27
-	STRINGV  shift 28
-	LCURLY  shift 31
-	LPAREN  shift 32
-	LT  shift 33
-	.  error
-
-	ATm  goto 113
-
-
-state 51
-	Tm : CONS LTy . ATm ATm  (58)
-
-	NIL  shift 11
-	UNIT  shift 15
-	TRUE  shift 22
-	FALSE  shift 23
-	LCID  shift 45
-	INTV  shift 26
-	FLOATV  shift 27
-	STRINGV  shift 28
-	LCURLY  shift 31
-	LPAREN  shift 32
-	LT  shift 33
-	.  error
-
-	ATm  goto 114
-
-
-state 52
-	ATm : NIL LTy .  (88)
-
-	.  reduce 88
-
-
-state 53
-	Tm : LETREC LCID . COLON Ty EQ Tm IN Tm  (55)
-
-	COLON  shift 115
-	.  error
-
-
-state 54
-	AppTm : FIX PathTm .  (67)
-	PathTm : PathTm . DOT LCID  (73)
-	PathTm : PathTm . DOT INTV  (74)
-
-	DOT  shift 85
-	NIL  reduce 67
-	OF  reduce 67
-	UNIT  reduce 67
-	WHERE  reduce 67
-	IN  reduce 67
-	THEN  reduce 67
-	ELSE  reduce 67
-	TRUE  reduce 67
-	FALSE  reduce 67
-	LCID  reduce 67
-	INTV  reduce 67
-	FLOATV  reduce 67
-	STRINGV  reduce 67
-	COLONEQ  reduce 67
-	COMMA  reduce 67
-	GT  reduce 67
-	LCURLY  reduce 67
-	LPAREN  reduce 67
-	LT  reduce 67
-	RCURLY  reduce 67
-	RPAREN  reduce 67
-	SEMI  reduce 67
-	VBAR  reduce 67
-	DOUBLESEMI  reduce 67
-
-
-state 55
-	Tm : CASE Tm . OF Cases  (56)
-
-	OF  shift 116
-	.  error
-
-
-state 56
-	Tm : LET LCID . EQ Tm IN Tm  (53)
-
-	EQ  shift 117
-	.  error
-
-
-state 57
-	Tm : LET USCORE . EQ Tm IN Tm  (54)
-
-	EQ  shift 118
-	.  error
-
-
-state 58
-	AppTm : SUCC PathTm .  (70)
-	PathTm : PathTm . DOT LCID  (73)
-	PathTm : PathTm . DOT INTV  (74)
+state 46
+	AppTm : REF PathTm .  (70)
+	PathTm : PathTm . DOT LCID  (75)
+	PathTm : PathTm . DOT INTV  (76)
 
 	DOT  shift 85
 	NIL  reduce 70
@@ -1136,42 +944,179 @@ state 58
 	DOUBLESEMI  reduce 70
 
 
-state 59
-	AppTm : PRED PathTm .  (71)
-	PathTm : PathTm . DOT LCID  (73)
-	PathTm : PathTm . DOT INTV  (74)
+state 47
+	LTy : LSQUARE . Ty RSQUARE  (35)
+
+	REC  shift 92
+	TOP  shift 93
+	SOURCE  shift 94
+	SINK  shift 95
+	REFTYPE  shift 96
+	LIST  shift 97
+	STRING  shift 98
+	FLOAT  shift 99
+	UNITTYPE  shift 100
+	BOOL  shift 101
+	NAT  shift 102
+	UCID  shift 103
+	LCURLY  shift 104
+	LPAREN  shift 105
+	LT  shift 106
+	.  error
+
+	Ty  goto 111
+	ArrowTy  goto 108
+	ATy  goto 109
+
+
+state 48
+	Tm : TAIL LTy . ATm  (61)
+
+	NIL  shift 11
+	UNIT  shift 15
+	TRUE  shift 22
+	FALSE  shift 23
+	LCID  shift 45
+	INTV  shift 26
+	FLOATV  shift 27
+	STRINGV  shift 28
+	LCURLY  shift 31
+	LPAREN  shift 32
+	LT  shift 33
+	.  error
+
+	ATm  goto 112
+
+
+state 49
+	Tm : HEAD LTy . ATm  (60)
+
+	NIL  shift 11
+	UNIT  shift 15
+	TRUE  shift 22
+	FALSE  shift 23
+	LCID  shift 45
+	INTV  shift 26
+	FLOATV  shift 27
+	STRINGV  shift 28
+	LCURLY  shift 31
+	LPAREN  shift 32
+	LT  shift 33
+	.  error
+
+	ATm  goto 113
+
+
+state 50
+	Tm : ISNIL LTy . ATm  (62)
+
+	NIL  shift 11
+	UNIT  shift 15
+	TRUE  shift 22
+	FALSE  shift 23
+	LCID  shift 45
+	INTV  shift 26
+	FLOATV  shift 27
+	STRINGV  shift 28
+	LCURLY  shift 31
+	LPAREN  shift 32
+	LT  shift 33
+	.  error
+
+	ATm  goto 114
+
+
+state 51
+	Tm : CONS LTy . ATm ATm  (59)
+
+	NIL  shift 11
+	UNIT  shift 15
+	TRUE  shift 22
+	FALSE  shift 23
+	LCID  shift 45
+	INTV  shift 26
+	FLOATV  shift 27
+	STRINGV  shift 28
+	LCURLY  shift 31
+	LPAREN  shift 32
+	LT  shift 33
+	.  error
+
+	ATm  goto 115
+
+
+state 52
+	ATm : NIL LTy .  (90)
+
+	.  reduce 90
+
+
+state 53
+	Tm : LETREC LCID . EQ Tm IN Tm  (55)
+	Tm : LETREC LCID . COLON Ty EQ Tm IN Tm  (56)
+
+	COLON  shift 116
+	EQ  shift 117
+	.  error
+
+
+state 54
+	AppTm : FIX PathTm .  (69)
+	PathTm : PathTm . DOT LCID  (75)
+	PathTm : PathTm . DOT INTV  (76)
 
 	DOT  shift 85
-	NIL  reduce 71
-	OF  reduce 71
-	UNIT  reduce 71
-	WHERE  reduce 71
-	IN  reduce 71
-	THEN  reduce 71
-	ELSE  reduce 71
-	TRUE  reduce 71
-	FALSE  reduce 71
-	LCID  reduce 71
-	INTV  reduce 71
-	FLOATV  reduce 71
-	STRINGV  reduce 71
-	COLONEQ  reduce 71
-	COMMA  reduce 71
-	GT  reduce 71
-	LCURLY  reduce 71
-	LPAREN  reduce 71
-	LT  reduce 71
-	RCURLY  reduce 71
-	RPAREN  reduce 71
-	SEMI  reduce 71
-	VBAR  reduce 71
-	DOUBLESEMI  reduce 71
+	NIL  reduce 69
+	OF  reduce 69
+	UNIT  reduce 69
+	WHERE  reduce 69
+	IN  reduce 69
+	THEN  reduce 69
+	ELSE  reduce 69
+	TRUE  reduce 69
+	FALSE  reduce 69
+	LCID  reduce 69
+	INTV  reduce 69
+	FLOATV  reduce 69
+	STRINGV  reduce 69
+	COLONEQ  reduce 69
+	COMMA  reduce 69
+	GT  reduce 69
+	LCURLY  reduce 69
+	LPAREN  reduce 69
+	LT  reduce 69
+	RCURLY  reduce 69
+	RPAREN  reduce 69
+	SEMI  reduce 69
+	VBAR  reduce 69
+	DOUBLESEMI  reduce 69
 
 
-state 60
-	AppTm : ISZERO PathTm .  (72)
-	PathTm : PathTm . DOT LCID  (73)
-	PathTm : PathTm . DOT INTV  (74)
+state 55
+	Tm : CASE Tm . OF Cases  (57)
+
+	OF  shift 118
+	.  error
+
+
+state 56
+	Tm : LET LCID . EQ Tm IN Tm  (53)
+
+	EQ  shift 119
+	.  error
+
+
+state 57
+	Tm : LET USCORE . EQ Tm IN Tm  (54)
+
+	EQ  shift 120
+	.  error
+
+
+state 58
+	AppTm : SUCC PathTm .  (72)
+	PathTm : PathTm . DOT LCID  (75)
+	PathTm : PathTm . DOT INTV  (76)
 
 	DOT  shift 85
 	NIL  reduce 72
@@ -1200,52 +1145,116 @@ state 60
 	DOUBLESEMI  reduce 72
 
 
+state 59
+	AppTm : PRED PathTm .  (73)
+	PathTm : PathTm . DOT LCID  (75)
+	PathTm : PathTm . DOT INTV  (76)
+
+	DOT  shift 85
+	NIL  reduce 73
+	OF  reduce 73
+	UNIT  reduce 73
+	WHERE  reduce 73
+	IN  reduce 73
+	THEN  reduce 73
+	ELSE  reduce 73
+	TRUE  reduce 73
+	FALSE  reduce 73
+	LCID  reduce 73
+	INTV  reduce 73
+	FLOATV  reduce 73
+	STRINGV  reduce 73
+	COLONEQ  reduce 73
+	COMMA  reduce 73
+	GT  reduce 73
+	LCURLY  reduce 73
+	LPAREN  reduce 73
+	LT  reduce 73
+	RCURLY  reduce 73
+	RPAREN  reduce 73
+	SEMI  reduce 73
+	VBAR  reduce 73
+	DOUBLESEMI  reduce 73
+
+
+state 60
+	AppTm : ISZERO PathTm .  (74)
+	PathTm : PathTm . DOT LCID  (75)
+	PathTm : PathTm . DOT INTV  (76)
+
+	DOT  shift 85
+	NIL  reduce 74
+	OF  reduce 74
+	UNIT  reduce 74
+	WHERE  reduce 74
+	IN  reduce 74
+	THEN  reduce 74
+	ELSE  reduce 74
+	TRUE  reduce 74
+	FALSE  reduce 74
+	LCID  reduce 74
+	INTV  reduce 74
+	FLOATV  reduce 74
+	STRINGV  reduce 74
+	COLONEQ  reduce 74
+	COMMA  reduce 74
+	GT  reduce 74
+	LCURLY  reduce 74
+	LPAREN  reduce 74
+	LT  reduce 74
+	RCURLY  reduce 74
+	RPAREN  reduce 74
+	SEMI  reduce 74
+	VBAR  reduce 74
+	DOUBLESEMI  reduce 74
+
+
 state 61
 	Tm : LAM LCID . DOT Tm  (49)
 	Tm : LAM LCID . COLON Ty DOT Tm  (50)
 
-	COLON  shift 119
-	DOT  shift 120
+	COLON  shift 121
+	DOT  shift 122
 	.  error
 
 
 state 62
 	Tm : LAM USCORE . COLON Ty DOT Tm  (51)
 
-	COLON  shift 121
+	COLON  shift 123
 	.  error
 
 
 state 63
 	Tm : IF Tm . THEN Tm ELSE Tm  (52)
 
-	THEN  shift 122
+	THEN  shift 124
 	.  error
 
 
 state 64
 	TyBinder : EQ . Ty  (14)
 
-	REC  shift 91
-	TOP  shift 92
-	SOURCE  shift 93
-	SINK  shift 94
-	REFTYPE  shift 95
-	LIST  shift 96
-	STRING  shift 97
-	FLOAT  shift 98
-	UNITTYPE  shift 99
-	BOOL  shift 100
-	NAT  shift 101
-	UCID  shift 102
-	LCURLY  shift 103
-	LPAREN  shift 104
-	LT  shift 105
+	REC  shift 92
+	TOP  shift 93
+	SOURCE  shift 94
+	SINK  shift 95
+	REFTYPE  shift 96
+	LIST  shift 97
+	STRING  shift 98
+	FLOAT  shift 99
+	UNITTYPE  shift 100
+	BOOL  shift 101
+	NAT  shift 102
+	UCID  shift 103
+	LCURLY  shift 104
+	LPAREN  shift 105
+	LT  shift 106
 	.  error
 
-	Ty  goto 123
-	ArrowTy  goto 107
-	ATy  goto 108
+	Ty  goto 125
+	ArrowTy  goto 108
+	ATy  goto 109
 
 
 state 65
@@ -1257,26 +1266,26 @@ state 65
 state 66
 	Binder : COLON . Ty  (15)
 
-	REC  shift 91
-	TOP  shift 92
-	SOURCE  shift 93
-	SINK  shift 94
-	REFTYPE  shift 95
-	LIST  shift 96
-	STRING  shift 97
-	FLOAT  shift 98
-	UNITTYPE  shift 99
-	BOOL  shift 100
-	NAT  shift 101
-	UCID  shift 102
-	LCURLY  shift 103
-	LPAREN  shift 104
-	LT  shift 105
+	REC  shift 92
+	TOP  shift 93
+	SOURCE  shift 94
+	SINK  shift 95
+	REFTYPE  shift 96
+	LIST  shift 97
+	STRING  shift 98
+	FLOAT  shift 99
+	UNITTYPE  shift 100
+	BOOL  shift 101
+	NAT  shift 102
+	UCID  shift 103
+	LCURLY  shift 104
+	LPAREN  shift 105
+	LT  shift 106
 	.  error
 
-	Ty  goto 124
-	ArrowTy  goto 107
-	ATy  goto 108
+	Ty  goto 126
+	ArrowTy  goto 108
+	ATy  goto 109
 
 
 state 67
@@ -1312,7 +1321,7 @@ state 67
 	LT  shift 33
 	.  error
 
-	Tm  goto 125
+	Tm  goto 127
 	AppTm  goto 38
 	ATm  goto 39
 	PathTm  goto 40
@@ -1326,107 +1335,108 @@ state 68
 
 
 state 69
-	AppTm : BANG PathTm .  (69)
-	PathTm : PathTm . DOT LCID  (73)
-	PathTm : PathTm . DOT INTV  (74)
+	AppTm : BANG PathTm .  (71)
+	PathTm : PathTm . DOT LCID  (75)
+	PathTm : PathTm . DOT INTV  (76)
 
 	DOT  shift 85
-	NIL  reduce 69
-	OF  reduce 69
-	UNIT  reduce 69
-	WHERE  reduce 69
-	IN  reduce 69
-	THEN  reduce 69
-	ELSE  reduce 69
-	TRUE  reduce 69
-	FALSE  reduce 69
-	LCID  reduce 69
-	INTV  reduce 69
-	FLOATV  reduce 69
-	STRINGV  reduce 69
-	COLONEQ  reduce 69
-	COMMA  reduce 69
-	GT  reduce 69
-	LCURLY  reduce 69
-	LPAREN  reduce 69
-	LT  reduce 69
-	RCURLY  reduce 69
-	RPAREN  reduce 69
-	SEMI  reduce 69
-	VBAR  reduce 69
-	DOUBLESEMI  reduce 69
+	NIL  reduce 71
+	OF  reduce 71
+	UNIT  reduce 71
+	WHERE  reduce 71
+	IN  reduce 71
+	THEN  reduce 71
+	ELSE  reduce 71
+	TRUE  reduce 71
+	FALSE  reduce 71
+	LCID  reduce 71
+	INTV  reduce 71
+	FLOATV  reduce 71
+	STRINGV  reduce 71
+	COLONEQ  reduce 71
+	COMMA  reduce 71
+	GT  reduce 71
+	LCURLY  reduce 71
+	LPAREN  reduce 71
+	LT  reduce 71
+	RCURLY  reduce 71
+	RPAREN  reduce 71
+	SEMI  reduce 71
+	VBAR  reduce 71
+	DOUBLESEMI  reduce 71
 
 
 state 70
-	ATm : LCID .  (81)
-	Field : LCID . EQ Tm  (95)
+	ATm : LCID .  (83)
+	Field : LCID . EQ Tm  (97)
 
-	EQ  shift 126
-	NIL  reduce 81
-	TIMESFLOAT  reduce 81
-	AS  reduce 81
-	UNIT  reduce 81
-	TRUE  reduce 81
-	FALSE  reduce 81
-	LCID  reduce 81
-	INTV  reduce 81
-	FLOATV  reduce 81
-	STRINGV  reduce 81
-	COLONEQ  reduce 81
-	COMMA  reduce 81
-	DOT  reduce 81
-	LCURLY  reduce 81
-	LPAREN  reduce 81
-	LT  reduce 81
-	RCURLY  reduce 81
+	EQ  shift 128
+	NIL  reduce 83
+	TIMESFLOAT  reduce 83
+	AS  reduce 83
+	UNIT  reduce 83
+	TRUE  reduce 83
+	FALSE  reduce 83
+	LCID  reduce 83
+	INTV  reduce 83
+	FLOATV  reduce 83
+	STRINGV  reduce 83
+	COLONEQ  reduce 83
+	COMMA  reduce 83
+	DOT  reduce 83
+	LCURLY  reduce 83
+	LPAREN  reduce 83
+	LT  reduce 83
+	RCURLY  reduce 83
+	STAR  reduce 83
 
 
 state 71
-	Field : Tm .  (96)
+	Field : Tm .  (98)
 
-	.  reduce 96
+	.  reduce 98
 
 
 state 72
-	ATm : LCURLY Fields . RCURLY  (79)
+	ATm : LCURLY Fields . RCURLY  (81)
 
-	RCURLY  shift 127
+	RCURLY  shift 129
 	.  error
 
 
 state 73
-	Fields : NEFields .  (92)
+	Fields : NEFields .  (94)
 
-	.  reduce 92
+	.  reduce 94
 
 
 state 74
-	NEFields : Field .  (93)
-	NEFields : Field . COMMA NEFields  (94)
+	NEFields : Field .  (95)
+	NEFields : Field . COMMA NEFields  (96)
 
-	COMMA  shift 128
-	RCURLY  reduce 93
+	COMMA  shift 130
+	RCURLY  reduce 95
 
 
 state 75
-	TmSeq : Tm .  (89)
-	TmSeq : Tm . SEMI TmSeq  (90)
+	TmSeq : Tm .  (91)
+	TmSeq : Tm . SEMI TmSeq  (92)
 
-	SEMI  shift 129
-	RPAREN  reduce 89
+	SEMI  shift 131
+	RPAREN  reduce 91
 
 
 state 76
-	ATm : LPAREN TmSeq . RPAREN  (78)
+	ATm : LPAREN TmSeq . RPAREN  (80)
 
-	RPAREN  shift 130
+	RPAREN  shift 132
 	.  error
 
 
 state 77
-	ATm : LT LCID . EQ Tm GT AS Ty  (80)
+	ATm : LT LCID . EQ Tm GT AS Ty  (82)
 
-	EQ  shift 131
+	EQ  shift 133
 	.  error
 
 
@@ -1465,7 +1475,7 @@ state 78
 	LT  shift 33
 	.  error
 
-	toplevel  goto 132
+	toplevel  goto 134
 	Command  goto 35
 	TmWrap  goto 36
 	Tm  goto 37
@@ -1478,19 +1488,19 @@ state 78
 state 79
 	TmWrap : TmWrap COMMA . LCID EQ Tm  (42)
 
-	LCID  shift 133
+	LCID  shift 135
 	.  error
 
 
 state 80
 	TmWrap : Tm WHERE . LCID EQ Tm  (43)
 
-	LCID  shift 134
+	LCID  shift 136
 	.  error
 
 
 state 81
-	Tm : AppTm COLONEQ . AppTm  (57)
+	Tm : AppTm COLONEQ . AppTm  (58)
 
 	FOLD  shift 4
 	UNFOLD  shift 5
@@ -1513,71 +1523,71 @@ state 81
 	LT  shift 33
 	.  error
 
-	AppTm  goto 135
+	AppTm  goto 137
 	ATm  goto 39
 	PathTm  goto 40
 	AscribeTm  goto 41
 
 
 state 82
-	AppTm : AppTm PathTm .  (63)
-	PathTm : PathTm . DOT LCID  (73)
-	PathTm : PathTm . DOT INTV  (74)
+	AppTm : AppTm PathTm .  (64)
+	PathTm : PathTm . DOT LCID  (75)
+	PathTm : PathTm . DOT INTV  (76)
 
 	DOT  shift 85
-	NIL  reduce 63
-	OF  reduce 63
-	UNIT  reduce 63
-	WHERE  reduce 63
-	IN  reduce 63
-	THEN  reduce 63
-	ELSE  reduce 63
-	TRUE  reduce 63
-	FALSE  reduce 63
-	LCID  reduce 63
-	INTV  reduce 63
-	FLOATV  reduce 63
-	STRINGV  reduce 63
-	COLONEQ  reduce 63
-	COMMA  reduce 63
-	GT  reduce 63
-	LCURLY  reduce 63
-	LPAREN  reduce 63
-	LT  reduce 63
-	RCURLY  reduce 63
-	RPAREN  reduce 63
-	SEMI  reduce 63
-	VBAR  reduce 63
-	DOUBLESEMI  reduce 63
+	NIL  reduce 64
+	OF  reduce 64
+	UNIT  reduce 64
+	WHERE  reduce 64
+	IN  reduce 64
+	THEN  reduce 64
+	ELSE  reduce 64
+	TRUE  reduce 64
+	FALSE  reduce 64
+	LCID  reduce 64
+	INTV  reduce 64
+	FLOATV  reduce 64
+	STRINGV  reduce 64
+	COLONEQ  reduce 64
+	COMMA  reduce 64
+	GT  reduce 64
+	LCURLY  reduce 64
+	LPAREN  reduce 64
+	LT  reduce 64
+	RCURLY  reduce 64
+	RPAREN  reduce 64
+	SEMI  reduce 64
+	VBAR  reduce 64
+	DOUBLESEMI  reduce 64
 
 
 state 83
-	AscribeTm : ATm AS . Ty  (76)
+	AscribeTm : ATm AS . Ty  (78)
 
-	REC  shift 91
-	TOP  shift 92
-	SOURCE  shift 93
-	SINK  shift 94
-	REFTYPE  shift 95
-	LIST  shift 96
-	STRING  shift 97
-	FLOAT  shift 98
-	UNITTYPE  shift 99
-	BOOL  shift 100
-	NAT  shift 101
-	UCID  shift 102
-	LCURLY  shift 103
-	LPAREN  shift 104
-	LT  shift 105
+	REC  shift 92
+	TOP  shift 93
+	SOURCE  shift 94
+	SINK  shift 95
+	REFTYPE  shift 96
+	LIST  shift 97
+	STRING  shift 98
+	FLOAT  shift 99
+	UNITTYPE  shift 100
+	BOOL  shift 101
+	NAT  shift 102
+	UCID  shift 103
+	LCURLY  shift 104
+	LPAREN  shift 105
+	LT  shift 106
 	.  error
 
-	Ty  goto 136
-	ArrowTy  goto 107
-	ATy  goto 108
+	Ty  goto 138
+	ArrowTy  goto 108
+	ATy  goto 109
 
 
 state 84
-	AppTm : PathTm TIMESFLOAT . PathTm  (64)
+	AppTm : PathTm TIMESFLOAT . PathTm  (65)
 
 	NIL  shift 11
 	UNIT  shift 15
@@ -1593,288 +1603,309 @@ state 84
 	.  error
 
 	ATm  goto 39
-	PathTm  goto 137
+	PathTm  goto 139
 	AscribeTm  goto 41
 
 
 state 85
-	PathTm : PathTm DOT . LCID  (73)
-	PathTm : PathTm DOT . INTV  (74)
+	PathTm : PathTm DOT . LCID  (75)
+	PathTm : PathTm DOT . INTV  (76)
 
-	LCID  shift 138
-	INTV  shift 139
+	LCID  shift 140
+	INTV  shift 141
 	.  error
 
 
 state 86
+	AppTm : PathTm STAR . PathTm  (66)
+
+	NIL  shift 11
+	UNIT  shift 15
+	TRUE  shift 22
+	FALSE  shift 23
+	LCID  shift 45
+	INTV  shift 26
+	FLOATV  shift 27
+	STRINGV  shift 28
+	LCURLY  shift 31
+	LPAREN  shift 32
+	LT  shift 33
+	.  error
+
+	ATm  goto 39
+	PathTm  goto 142
+	AscribeTm  goto 41
+
+
+state 87
 	input : input LOAD .  (2)
 
 	.  reduce 2
 
 
-state 87
+state 88
 	input : input SHOWCONTEXT . DOUBLESEMI  (3)
 
-	DOUBLESEMI  shift 140
+	DOUBLESEMI  shift 143
 	.  error
 
 
-state 88
+state 89
 	input : input DOUBLESEMI .  (4)
 
 	.  reduce 4
 
 
-state 89
+state 90
 	input : input oneREPL .  (5)
 
 	.  reduce 5
 
 
-state 90
+state 91
 	oneREPL : Command . DOUBLESEMI  (6)
 	oneREPL : Command . SEMI oneREPL  (7)
 
-	SEMI  shift 141
-	DOUBLESEMI  shift 142
-	.  error
-
-
-state 91
-	Ty : REC . UCID DOT Ty  (18)
-
-	UCID  shift 143
+	SEMI  shift 144
+	DOUBLESEMI  shift 145
 	.  error
 
 
 state 92
+	Ty : REC . UCID DOT Ty  (18)
+
+	UCID  shift 146
+	.  error
+
+
+state 93
 	ATy : TOP .  (26)
 
 	.  reduce 26
 
 
-state 93
+state 94
 	Ty : SOURCE . ATy  (20)
 
-	TOP  shift 92
-	LIST  shift 96
-	STRING  shift 97
-	FLOAT  shift 98
-	UNITTYPE  shift 99
-	BOOL  shift 100
-	NAT  shift 101
-	UCID  shift 102
-	LCURLY  shift 103
-	LPAREN  shift 104
-	LT  shift 105
+	TOP  shift 93
+	LIST  shift 97
+	STRING  shift 98
+	FLOAT  shift 99
+	UNITTYPE  shift 100
+	BOOL  shift 101
+	NAT  shift 102
+	UCID  shift 103
+	LCURLY  shift 104
+	LPAREN  shift 105
+	LT  shift 106
 	.  error
 
-	ATy  goto 144
-
-
-state 94
-	Ty : SINK . ATy  (21)
-
-	TOP  shift 92
-	LIST  shift 96
-	STRING  shift 97
-	FLOAT  shift 98
-	UNITTYPE  shift 99
-	BOOL  shift 100
-	NAT  shift 101
-	UCID  shift 102
-	LCURLY  shift 103
-	LPAREN  shift 104
-	LT  shift 105
-	.  error
-
-	ATy  goto 145
+	ATy  goto 147
 
 
 state 95
-	Ty : REFTYPE . ATy  (19)
+	Ty : SINK . ATy  (21)
 
-	TOP  shift 92
-	LIST  shift 96
-	STRING  shift 97
-	FLOAT  shift 98
-	UNITTYPE  shift 99
-	BOOL  shift 100
-	NAT  shift 101
-	UCID  shift 102
-	LCURLY  shift 103
-	LPAREN  shift 104
-	LT  shift 105
+	TOP  shift 93
+	LIST  shift 97
+	STRING  shift 98
+	FLOAT  shift 99
+	UNITTYPE  shift 100
+	BOOL  shift 101
+	NAT  shift 102
+	UCID  shift 103
+	LCURLY  shift 104
+	LPAREN  shift 105
+	LT  shift 106
 	.  error
 
-	ATy  goto 146
+	ATy  goto 148
 
 
 state 96
-	ATy : LIST . Ty  (34)
+	Ty : REFTYPE . ATy  (19)
 
-	REC  shift 91
-	TOP  shift 92
-	SOURCE  shift 93
-	SINK  shift 94
-	REFTYPE  shift 95
-	LIST  shift 96
-	STRING  shift 97
-	FLOAT  shift 98
-	UNITTYPE  shift 99
-	BOOL  shift 100
-	NAT  shift 101
-	UCID  shift 102
-	LCURLY  shift 103
-	LPAREN  shift 104
-	LT  shift 105
+	TOP  shift 93
+	LIST  shift 97
+	STRING  shift 98
+	FLOAT  shift 99
+	UNITTYPE  shift 100
+	BOOL  shift 101
+	NAT  shift 102
+	UCID  shift 103
+	LCURLY  shift 104
+	LPAREN  shift 105
+	LT  shift 106
 	.  error
 
-	Ty  goto 147
-	ArrowTy  goto 107
-	ATy  goto 108
+	ATy  goto 149
 
 
 state 97
+	ATy : LIST . Ty  (34)
+
+	REC  shift 92
+	TOP  shift 93
+	SOURCE  shift 94
+	SINK  shift 95
+	REFTYPE  shift 96
+	LIST  shift 97
+	STRING  shift 98
+	FLOAT  shift 99
+	UNITTYPE  shift 100
+	BOOL  shift 101
+	NAT  shift 102
+	UCID  shift 103
+	LCURLY  shift 104
+	LPAREN  shift 105
+	LT  shift 106
+	.  error
+
+	Ty  goto 150
+	ArrowTy  goto 108
+	ATy  goto 109
+
+
+state 98
 	ATy : STRING .  (28)
 
 	.  reduce 28
 
 
-state 98
+state 99
 	ATy : FLOAT .  (27)
 
 	.  reduce 27
 
 
-state 99
+state 100
 	ATy : UNITTYPE .  (31)
 
 	.  reduce 31
 
 
-state 100
+state 101
 	ATy : BOOL .  (29)
 
 	.  reduce 29
 
 
-state 101
+state 102
 	ATy : NAT .  (30)
 
 	.  reduce 30
 
 
-state 102
+state 103
 	ATy : UCID .  (25)
 
 	.  reduce 25
 
 
-state 103
+state 104
 	ATy : LCURLY . TyFields RCURLY  (32)
 	TyFields : .  (36)
 
-	REC  shift 91
-	TOP  shift 92
-	SOURCE  shift 93
-	SINK  shift 94
-	REFTYPE  shift 95
-	LIST  shift 96
-	STRING  shift 97
-	FLOAT  shift 98
-	UNITTYPE  shift 99
-	BOOL  shift 100
-	NAT  shift 101
-	UCID  shift 102
-	LCID  shift 148
-	LCURLY  shift 103
-	LPAREN  shift 104
-	LT  shift 105
+	REC  shift 92
+	TOP  shift 93
+	SOURCE  shift 94
+	SINK  shift 95
+	REFTYPE  shift 96
+	LIST  shift 97
+	STRING  shift 98
+	FLOAT  shift 99
+	UNITTYPE  shift 100
+	BOOL  shift 101
+	NAT  shift 102
+	UCID  shift 103
+	LCID  shift 151
+	LCURLY  shift 104
+	LPAREN  shift 105
+	LT  shift 106
 	RCURLY  reduce 36
 
-	Ty  goto 149
-	ArrowTy  goto 107
-	ATy  goto 108
-	TyFields  goto 150
-	NETyFields  goto 151
-	TyField  goto 152
-
-
-state 104
-	ATy : LPAREN . Ty RPAREN  (24)
-
-	REC  shift 91
-	TOP  shift 92
-	SOURCE  shift 93
-	SINK  shift 94
-	REFTYPE  shift 95
-	LIST  shift 96
-	STRING  shift 97
-	FLOAT  shift 98
-	UNITTYPE  shift 99
-	BOOL  shift 100
-	NAT  shift 101
-	UCID  shift 102
-	LCURLY  shift 103
-	LPAREN  shift 104
-	LT  shift 105
-	.  error
-
-	Ty  goto 153
-	ArrowTy  goto 107
-	ATy  goto 108
+	Ty  goto 152
+	ArrowTy  goto 108
+	ATy  goto 109
+	TyFields  goto 153
+	NETyFields  goto 154
+	TyField  goto 155
 
 
 state 105
-	ATy : LT . TyFields GT  (33)
-	TyFields : .  (36)
+	ATy : LPAREN . Ty RPAREN  (24)
 
-	REC  shift 91
-	TOP  shift 92
-	SOURCE  shift 93
-	SINK  shift 94
-	REFTYPE  shift 95
-	LIST  shift 96
-	STRING  shift 97
-	FLOAT  shift 98
-	UNITTYPE  shift 99
-	BOOL  shift 100
-	NAT  shift 101
-	UCID  shift 102
-	LCID  shift 148
-	LCURLY  shift 103
-	LPAREN  shift 104
-	LT  shift 105
-	GT  reduce 36
+	REC  shift 92
+	TOP  shift 93
+	SOURCE  shift 94
+	SINK  shift 95
+	REFTYPE  shift 96
+	LIST  shift 97
+	STRING  shift 98
+	FLOAT  shift 99
+	UNITTYPE  shift 100
+	BOOL  shift 101
+	NAT  shift 102
+	UCID  shift 103
+	LCURLY  shift 104
+	LPAREN  shift 105
+	LT  shift 106
+	.  error
 
-	Ty  goto 149
-	ArrowTy  goto 107
-	ATy  goto 108
-	TyFields  goto 154
-	NETyFields  goto 151
-	TyField  goto 152
+	Ty  goto 156
+	ArrowTy  goto 108
+	ATy  goto 109
 
 
 state 106
-	AppTm : FOLD LSQUARE Ty . RSQUARE  (65)
+	ATy : LT . TyFields GT  (33)
+	TyFields : .  (36)
 
-	RSQUARE  shift 155
-	.  error
+	REC  shift 92
+	TOP  shift 93
+	SOURCE  shift 94
+	SINK  shift 95
+	REFTYPE  shift 96
+	LIST  shift 97
+	STRING  shift 98
+	FLOAT  shift 99
+	UNITTYPE  shift 100
+	BOOL  shift 101
+	NAT  shift 102
+	UCID  shift 103
+	LCID  shift 151
+	LCURLY  shift 104
+	LPAREN  shift 105
+	LT  shift 106
+	GT  reduce 36
+
+	Ty  goto 152
+	ArrowTy  goto 108
+	ATy  goto 109
+	TyFields  goto 157
+	NETyFields  goto 154
+	TyField  goto 155
 
 
 state 107
+	AppTm : FOLD LSQUARE Ty . RSQUARE  (67)
+
+	RSQUARE  shift 158
+	.  error
+
+
+state 108
 	Ty : ArrowTy .  (17)
 
 	.  reduce 17
 
 
-108: shift/reduce conflict (shift 156, reduce 23) on ARROW
-state 108
+109: shift/reduce conflict (shift 159, reduce 23) on ARROW
+state 109
 	ArrowTy : ATy . ARROW ArrowTy  (22)
 	ArrowTy : ATy .  (23)
 
-	ARROW  shift 156
+	ARROW  shift 159
 	NIL  reduce 23
 	TIMESFLOAT  reduce 23
 	OF  reduce 23
@@ -1902,44 +1933,45 @@ state 108
 	RPAREN  reduce 23
 	RSQUARE  reduce 23
 	SEMI  reduce 23
+	STAR  reduce 23
 	VBAR  reduce 23
 	DOUBLESEMI  reduce 23
 
 
-state 109
-	AppTm : UNFOLD LSQUARE Ty . RSQUARE  (66)
-
-	RSQUARE  shift 157
-	.  error
-
-
 state 110
-	LTy : LSQUARE Ty . RSQUARE  (35)
+	AppTm : UNFOLD LSQUARE Ty . RSQUARE  (68)
 
-	RSQUARE  shift 158
+	RSQUARE  shift 160
 	.  error
 
 
 state 111
-	Tm : TAIL LTy ATm .  (60)
+	LTy : LSQUARE Ty . RSQUARE  (35)
 
-	.  reduce 60
+	RSQUARE  shift 161
+	.  error
 
 
 state 112
-	Tm : HEAD LTy ATm .  (59)
-
-	.  reduce 59
-
-
-state 113
-	Tm : ISNIL LTy ATm .  (61)
+	Tm : TAIL LTy ATm .  (61)
 
 	.  reduce 61
 
 
+state 113
+	Tm : HEAD LTy ATm .  (60)
+
+	.  reduce 60
+
+
 state 114
-	Tm : CONS LTy ATm . ATm  (58)
+	Tm : ISNIL LTy ATm .  (62)
+
+	.  reduce 62
+
+
+state 115
+	Tm : CONS LTy ATm . ATm  (59)
 
 	NIL  shift 11
 	UNIT  shift 15
@@ -1954,46 +1986,36 @@ state 114
 	LT  shift 33
 	.  error
 
-	ATm  goto 159
-
-
-state 115
-	Tm : LETREC LCID COLON . Ty EQ Tm IN Tm  (55)
-
-	REC  shift 91
-	TOP  shift 92
-	SOURCE  shift 93
-	SINK  shift 94
-	REFTYPE  shift 95
-	LIST  shift 96
-	STRING  shift 97
-	FLOAT  shift 98
-	UNITTYPE  shift 99
-	BOOL  shift 100
-	NAT  shift 101
-	UCID  shift 102
-	LCURLY  shift 103
-	LPAREN  shift 104
-	LT  shift 105
-	.  error
-
-	Ty  goto 160
-	ArrowTy  goto 107
-	ATy  goto 108
+	ATm  goto 162
 
 
 state 116
-	Tm : CASE Tm OF . Cases  (56)
+	Tm : LETREC LCID COLON . Ty EQ Tm IN Tm  (56)
 
-	LT  shift 161
+	REC  shift 92
+	TOP  shift 93
+	SOURCE  shift 94
+	SINK  shift 95
+	REFTYPE  shift 96
+	LIST  shift 97
+	STRING  shift 98
+	FLOAT  shift 99
+	UNITTYPE  shift 100
+	BOOL  shift 101
+	NAT  shift 102
+	UCID  shift 103
+	LCURLY  shift 104
+	LPAREN  shift 105
+	LT  shift 106
 	.  error
 
-	Cases  goto 162
-	Case  goto 163
+	Ty  goto 163
+	ArrowTy  goto 108
+	ATy  goto 109
 
 
 state 117
-	Tm : LET LCID EQ . Tm IN Tm  (53)
+	Tm : LETREC LCID EQ . Tm IN Tm  (55)
 
 	FOLD  shift 4
 	UNFOLD  shift 5
@@ -2033,72 +2055,17 @@ state 117
 
 
 state 118
-	Tm : LET USCORE EQ . Tm IN Tm  (54)
+	Tm : CASE Tm OF . Cases  (57)
 
-	FOLD  shift 4
-	UNFOLD  shift 5
-	REF  shift 6
-	TAIL  shift 7
-	HEAD  shift 8
-	ISNIL  shift 9
-	CONS  shift 10
-	NIL  shift 11
-	LETREC  shift 12
-	FIX  shift 13
-	CASE  shift 14
-	UNIT  shift 15
-	LET  shift 16
-	SUCC  shift 17
-	PRED  shift 18
-	ISZERO  shift 19
-	LAM  shift 20
-	IF  shift 21
-	TRUE  shift 22
-	FALSE  shift 23
-	LCID  shift 45
-	INTV  shift 26
-	FLOATV  shift 27
-	STRINGV  shift 28
-	BANG  shift 29
-	LCURLY  shift 31
-	LPAREN  shift 32
-	LT  shift 33
+	LT  shift 165
 	.  error
 
-	Tm  goto 165
-	AppTm  goto 38
-	ATm  goto 39
-	PathTm  goto 40
-	AscribeTm  goto 41
+	Cases  goto 166
+	Case  goto 167
 
 
 state 119
-	Tm : LAM LCID COLON . Ty DOT Tm  (50)
-
-	REC  shift 91
-	TOP  shift 92
-	SOURCE  shift 93
-	SINK  shift 94
-	REFTYPE  shift 95
-	LIST  shift 96
-	STRING  shift 97
-	FLOAT  shift 98
-	UNITTYPE  shift 99
-	BOOL  shift 100
-	NAT  shift 101
-	UCID  shift 102
-	LCURLY  shift 103
-	LPAREN  shift 104
-	LT  shift 105
-	.  error
-
-	Ty  goto 166
-	ArrowTy  goto 107
-	ATy  goto 108
-
-
-state 120
-	Tm : LAM LCID DOT . Tm  (49)
+	Tm : LET LCID EQ . Tm IN Tm  (53)
 
 	FOLD  shift 4
 	UNFOLD  shift 5
@@ -2130,40 +2097,15 @@ state 120
 	LT  shift 33
 	.  error
 
-	Tm  goto 167
+	Tm  goto 168
 	AppTm  goto 38
 	ATm  goto 39
 	PathTm  goto 40
 	AscribeTm  goto 41
 
 
-state 121
-	Tm : LAM USCORE COLON . Ty DOT Tm  (51)
-
-	REC  shift 91
-	TOP  shift 92
-	SOURCE  shift 93
-	SINK  shift 94
-	REFTYPE  shift 95
-	LIST  shift 96
-	STRING  shift 97
-	FLOAT  shift 98
-	UNITTYPE  shift 99
-	BOOL  shift 100
-	NAT  shift 101
-	UCID  shift 102
-	LCURLY  shift 103
-	LPAREN  shift 104
-	LT  shift 105
-	.  error
-
-	Ty  goto 168
-	ArrowTy  goto 107
-	ATy  goto 108
-
-
-state 122
-	Tm : IF Tm THEN . Tm ELSE Tm  (52)
+state 120
+	Tm : LET USCORE EQ . Tm IN Tm  (54)
 
 	FOLD  shift 4
 	UNFOLD  shift 5
@@ -2202,161 +2144,98 @@ state 122
 	AscribeTm  goto 41
 
 
-state 123
-	TyBinder : EQ Ty .  (14)
+state 121
+	Tm : LAM LCID COLON . Ty DOT Tm  (50)
 
-	.  reduce 14
+	REC  shift 92
+	TOP  shift 93
+	SOURCE  shift 94
+	SINK  shift 95
+	REFTYPE  shift 96
+	LIST  shift 97
+	STRING  shift 98
+	FLOAT  shift 99
+	UNITTYPE  shift 100
+	BOOL  shift 101
+	NAT  shift 102
+	UCID  shift 103
+	LCURLY  shift 104
+	LPAREN  shift 105
+	LT  shift 106
+	.  error
+
+	Ty  goto 170
+	ArrowTy  goto 108
+	ATy  goto 109
+
+
+state 122
+	Tm : LAM LCID DOT . Tm  (49)
+
+	FOLD  shift 4
+	UNFOLD  shift 5
+	REF  shift 6
+	TAIL  shift 7
+	HEAD  shift 8
+	ISNIL  shift 9
+	CONS  shift 10
+	NIL  shift 11
+	LETREC  shift 12
+	FIX  shift 13
+	CASE  shift 14
+	UNIT  shift 15
+	LET  shift 16
+	SUCC  shift 17
+	PRED  shift 18
+	ISZERO  shift 19
+	LAM  shift 20
+	IF  shift 21
+	TRUE  shift 22
+	FALSE  shift 23
+	LCID  shift 45
+	INTV  shift 26
+	FLOATV  shift 27
+	STRINGV  shift 28
+	BANG  shift 29
+	LCURLY  shift 31
+	LPAREN  shift 32
+	LT  shift 33
+	.  error
+
+	Tm  goto 171
+	AppTm  goto 38
+	ATm  goto 39
+	PathTm  goto 40
+	AscribeTm  goto 41
+
+
+state 123
+	Tm : LAM USCORE COLON . Ty DOT Tm  (51)
+
+	REC  shift 92
+	TOP  shift 93
+	SOURCE  shift 94
+	SINK  shift 95
+	REFTYPE  shift 96
+	LIST  shift 97
+	STRING  shift 98
+	FLOAT  shift 99
+	UNITTYPE  shift 100
+	BOOL  shift 101
+	NAT  shift 102
+	UCID  shift 103
+	LCURLY  shift 104
+	LPAREN  shift 105
+	LT  shift 106
+	.  error
+
+	Ty  goto 172
+	ArrowTy  goto 108
+	ATy  goto 109
 
 
 state 124
-	Binder : COLON Ty .  (15)
-
-	.  reduce 15
-
-
-state 125
-	Binder : EQ Tm .  (16)
-
-	.  reduce 16
-
-
-state 126
-	Field : LCID EQ . Tm  (95)
-
-	FOLD  shift 4
-	UNFOLD  shift 5
-	REF  shift 6
-	TAIL  shift 7
-	HEAD  shift 8
-	ISNIL  shift 9
-	CONS  shift 10
-	NIL  shift 11
-	LETREC  shift 12
-	FIX  shift 13
-	CASE  shift 14
-	UNIT  shift 15
-	LET  shift 16
-	SUCC  shift 17
-	PRED  shift 18
-	ISZERO  shift 19
-	LAM  shift 20
-	IF  shift 21
-	TRUE  shift 22
-	FALSE  shift 23
-	LCID  shift 45
-	INTV  shift 26
-	FLOATV  shift 27
-	STRINGV  shift 28
-	BANG  shift 29
-	LCURLY  shift 31
-	LPAREN  shift 32
-	LT  shift 33
-	.  error
-
-	Tm  goto 170
-	AppTm  goto 38
-	ATm  goto 39
-	PathTm  goto 40
-	AscribeTm  goto 41
-
-
-state 127
-	ATm : LCURLY Fields RCURLY .  (79)
-
-	.  reduce 79
-
-
-state 128
-	NEFields : Field COMMA . NEFields  (94)
-
-	FOLD  shift 4
-	UNFOLD  shift 5
-	REF  shift 6
-	TAIL  shift 7
-	HEAD  shift 8
-	ISNIL  shift 9
-	CONS  shift 10
-	NIL  shift 11
-	LETREC  shift 12
-	FIX  shift 13
-	CASE  shift 14
-	UNIT  shift 15
-	LET  shift 16
-	SUCC  shift 17
-	PRED  shift 18
-	ISZERO  shift 19
-	LAM  shift 20
-	IF  shift 21
-	TRUE  shift 22
-	FALSE  shift 23
-	LCID  shift 70
-	INTV  shift 26
-	FLOATV  shift 27
-	STRINGV  shift 28
-	BANG  shift 29
-	LCURLY  shift 31
-	LPAREN  shift 32
-	LT  shift 33
-	.  error
-
-	Tm  goto 71
-	AppTm  goto 38
-	ATm  goto 39
-	PathTm  goto 40
-	AscribeTm  goto 41
-	NEFields  goto 171
-	Field  goto 74
-
-
-state 129
-	TmSeq : Tm SEMI . TmSeq  (90)
-
-	FOLD  shift 4
-	UNFOLD  shift 5
-	REF  shift 6
-	TAIL  shift 7
-	HEAD  shift 8
-	ISNIL  shift 9
-	CONS  shift 10
-	NIL  shift 11
-	LETREC  shift 12
-	FIX  shift 13
-	CASE  shift 14
-	UNIT  shift 15
-	LET  shift 16
-	SUCC  shift 17
-	PRED  shift 18
-	ISZERO  shift 19
-	LAM  shift 20
-	IF  shift 21
-	TRUE  shift 22
-	FALSE  shift 23
-	LCID  shift 45
-	INTV  shift 26
-	FLOATV  shift 27
-	STRINGV  shift 28
-	BANG  shift 29
-	LCURLY  shift 31
-	LPAREN  shift 32
-	LT  shift 33
-	.  error
-
-	Tm  goto 75
-	AppTm  goto 38
-	ATm  goto 39
-	PathTm  goto 40
-	AscribeTm  goto 41
-	TmSeq  goto 172
-
-
-state 130
-	ATm : LPAREN TmSeq RPAREN .  (78)
-
-	.  reduce 78
-
-
-state 131
-	ATm : LT LCID EQ . Tm GT AS Ty  (80)
+	Tm : IF Tm THEN . Tm ELSE Tm  (52)
 
 	FOLD  shift 4
 	UNFOLD  shift 5
@@ -2395,29 +2274,222 @@ state 131
 	AscribeTm  goto 41
 
 
+state 125
+	TyBinder : EQ Ty .  (14)
+
+	.  reduce 14
+
+
+state 126
+	Binder : COLON Ty .  (15)
+
+	.  reduce 15
+
+
+state 127
+	Binder : EQ Tm .  (16)
+
+	.  reduce 16
+
+
+state 128
+	Field : LCID EQ . Tm  (97)
+
+	FOLD  shift 4
+	UNFOLD  shift 5
+	REF  shift 6
+	TAIL  shift 7
+	HEAD  shift 8
+	ISNIL  shift 9
+	CONS  shift 10
+	NIL  shift 11
+	LETREC  shift 12
+	FIX  shift 13
+	CASE  shift 14
+	UNIT  shift 15
+	LET  shift 16
+	SUCC  shift 17
+	PRED  shift 18
+	ISZERO  shift 19
+	LAM  shift 20
+	IF  shift 21
+	TRUE  shift 22
+	FALSE  shift 23
+	LCID  shift 45
+	INTV  shift 26
+	FLOATV  shift 27
+	STRINGV  shift 28
+	BANG  shift 29
+	LCURLY  shift 31
+	LPAREN  shift 32
+	LT  shift 33
+	.  error
+
+	Tm  goto 174
+	AppTm  goto 38
+	ATm  goto 39
+	PathTm  goto 40
+	AscribeTm  goto 41
+
+
+state 129
+	ATm : LCURLY Fields RCURLY .  (81)
+
+	.  reduce 81
+
+
+state 130
+	NEFields : Field COMMA . NEFields  (96)
+
+	FOLD  shift 4
+	UNFOLD  shift 5
+	REF  shift 6
+	TAIL  shift 7
+	HEAD  shift 8
+	ISNIL  shift 9
+	CONS  shift 10
+	NIL  shift 11
+	LETREC  shift 12
+	FIX  shift 13
+	CASE  shift 14
+	UNIT  shift 15
+	LET  shift 16
+	SUCC  shift 17
+	PRED  shift 18
+	ISZERO  shift 19
+	LAM  shift 20
+	IF  shift 21
+	TRUE  shift 22
+	FALSE  shift 23
+	LCID  shift 70
+	INTV  shift 26
+	FLOATV  shift 27
+	STRINGV  shift 28
+	BANG  shift 29
+	LCURLY  shift 31
+	LPAREN  shift 32
+	LT  shift 33
+	.  error
+
+	Tm  goto 71
+	AppTm  goto 38
+	ATm  goto 39
+	PathTm  goto 40
+	AscribeTm  goto 41
+	NEFields  goto 175
+	Field  goto 74
+
+
+state 131
+	TmSeq : Tm SEMI . TmSeq  (92)
+
+	FOLD  shift 4
+	UNFOLD  shift 5
+	REF  shift 6
+	TAIL  shift 7
+	HEAD  shift 8
+	ISNIL  shift 9
+	CONS  shift 10
+	NIL  shift 11
+	LETREC  shift 12
+	FIX  shift 13
+	CASE  shift 14
+	UNIT  shift 15
+	LET  shift 16
+	SUCC  shift 17
+	PRED  shift 18
+	ISZERO  shift 19
+	LAM  shift 20
+	IF  shift 21
+	TRUE  shift 22
+	FALSE  shift 23
+	LCID  shift 45
+	INTV  shift 26
+	FLOATV  shift 27
+	STRINGV  shift 28
+	BANG  shift 29
+	LCURLY  shift 31
+	LPAREN  shift 32
+	LT  shift 33
+	.  error
+
+	Tm  goto 75
+	AppTm  goto 38
+	ATm  goto 39
+	PathTm  goto 40
+	AscribeTm  goto 41
+	TmSeq  goto 176
+
+
 state 132
+	ATm : LPAREN TmSeq RPAREN .  (80)
+
+	.  reduce 80
+
+
+state 133
+	ATm : LT LCID EQ . Tm GT AS Ty  (82)
+
+	FOLD  shift 4
+	UNFOLD  shift 5
+	REF  shift 6
+	TAIL  shift 7
+	HEAD  shift 8
+	ISNIL  shift 9
+	CONS  shift 10
+	NIL  shift 11
+	LETREC  shift 12
+	FIX  shift 13
+	CASE  shift 14
+	UNIT  shift 15
+	LET  shift 16
+	SUCC  shift 17
+	PRED  shift 18
+	ISZERO  shift 19
+	LAM  shift 20
+	IF  shift 21
+	TRUE  shift 22
+	FALSE  shift 23
+	LCID  shift 45
+	INTV  shift 26
+	FLOATV  shift 27
+	STRINGV  shift 28
+	BANG  shift 29
+	LCURLY  shift 31
+	LPAREN  shift 32
+	LT  shift 33
+	.  error
+
+	Tm  goto 177
+	AppTm  goto 38
+	ATm  goto 39
+	PathTm  goto 40
+	AscribeTm  goto 41
+
+
+state 134
 	toplevel : Command SEMI toplevel .  (9)
 
 	.  reduce 9
 
 
-state 133
+state 135
 	TmWrap : TmWrap COMMA LCID . EQ Tm  (42)
 
-	EQ  shift 174
+	EQ  shift 178
 	.  error
 
 
-state 134
+state 136
 	TmWrap : Tm WHERE LCID . EQ Tm  (43)
 
-	EQ  shift 175
+	EQ  shift 179
 	.  error
 
 
-state 135
-	Tm : AppTm COLONEQ AppTm .  (57)
-	AppTm : AppTm . PathTm  (63)
+state 137
+	Tm : AppTm COLONEQ AppTm .  (58)
+	AppTm : AppTm . PathTm  (64)
 
 	NIL  shift 11
 	UNIT  shift 15
@@ -2430,80 +2502,112 @@ state 135
 	LCURLY  shift 31
 	LPAREN  shift 32
 	LT  shift 33
-	OF  reduce 57
-	WHERE  reduce 57
-	IN  reduce 57
-	THEN  reduce 57
-	ELSE  reduce 57
-	COMMA  reduce 57
-	GT  reduce 57
-	RCURLY  reduce 57
-	RPAREN  reduce 57
-	SEMI  reduce 57
-	DOUBLESEMI  reduce 57
+	OF  reduce 58
+	WHERE  reduce 58
+	IN  reduce 58
+	THEN  reduce 58
+	ELSE  reduce 58
+	COMMA  reduce 58
+	GT  reduce 58
+	RCURLY  reduce 58
+	RPAREN  reduce 58
+	SEMI  reduce 58
+	DOUBLESEMI  reduce 58
 
 	ATm  goto 39
 	PathTm  goto 82
 	AscribeTm  goto 41
 
 
-state 136
-	AscribeTm : ATm AS Ty .  (76)
+state 138
+	AscribeTm : ATm AS Ty .  (78)
+
+	.  reduce 78
+
+
+state 139
+	AppTm : PathTm TIMESFLOAT PathTm .  (65)
+	PathTm : PathTm . DOT LCID  (75)
+	PathTm : PathTm . DOT INTV  (76)
+
+	DOT  shift 85
+	NIL  reduce 65
+	OF  reduce 65
+	UNIT  reduce 65
+	WHERE  reduce 65
+	IN  reduce 65
+	THEN  reduce 65
+	ELSE  reduce 65
+	TRUE  reduce 65
+	FALSE  reduce 65
+	LCID  reduce 65
+	INTV  reduce 65
+	FLOATV  reduce 65
+	STRINGV  reduce 65
+	COLONEQ  reduce 65
+	COMMA  reduce 65
+	GT  reduce 65
+	LCURLY  reduce 65
+	LPAREN  reduce 65
+	LT  reduce 65
+	RCURLY  reduce 65
+	RPAREN  reduce 65
+	SEMI  reduce 65
+	VBAR  reduce 65
+	DOUBLESEMI  reduce 65
+
+
+state 140
+	PathTm : PathTm DOT LCID .  (75)
+
+	.  reduce 75
+
+
+state 141
+	PathTm : PathTm DOT INTV .  (76)
 
 	.  reduce 76
 
 
-state 137
-	AppTm : PathTm TIMESFLOAT PathTm .  (64)
-	PathTm : PathTm . DOT LCID  (73)
-	PathTm : PathTm . DOT INTV  (74)
+state 142
+	AppTm : PathTm STAR PathTm .  (66)
+	PathTm : PathTm . DOT LCID  (75)
+	PathTm : PathTm . DOT INTV  (76)
 
 	DOT  shift 85
-	NIL  reduce 64
-	OF  reduce 64
-	UNIT  reduce 64
-	WHERE  reduce 64
-	IN  reduce 64
-	THEN  reduce 64
-	ELSE  reduce 64
-	TRUE  reduce 64
-	FALSE  reduce 64
-	LCID  reduce 64
-	INTV  reduce 64
-	FLOATV  reduce 64
-	STRINGV  reduce 64
-	COLONEQ  reduce 64
-	COMMA  reduce 64
-	GT  reduce 64
-	LCURLY  reduce 64
-	LPAREN  reduce 64
-	LT  reduce 64
-	RCURLY  reduce 64
-	RPAREN  reduce 64
-	SEMI  reduce 64
-	VBAR  reduce 64
-	DOUBLESEMI  reduce 64
+	NIL  reduce 66
+	OF  reduce 66
+	UNIT  reduce 66
+	WHERE  reduce 66
+	IN  reduce 66
+	THEN  reduce 66
+	ELSE  reduce 66
+	TRUE  reduce 66
+	FALSE  reduce 66
+	LCID  reduce 66
+	INTV  reduce 66
+	FLOATV  reduce 66
+	STRINGV  reduce 66
+	COLONEQ  reduce 66
+	COMMA  reduce 66
+	GT  reduce 66
+	LCURLY  reduce 66
+	LPAREN  reduce 66
+	LT  reduce 66
+	RCURLY  reduce 66
+	RPAREN  reduce 66
+	SEMI  reduce 66
+	VBAR  reduce 66
+	DOUBLESEMI  reduce 66
 
 
-state 138
-	PathTm : PathTm DOT LCID .  (73)
-
-	.  reduce 73
-
-
-state 139
-	PathTm : PathTm DOT INTV .  (74)
-
-	.  reduce 74
-
-
-state 140
+state 143
 	input : input SHOWCONTEXT DOUBLESEMI .  (3)
 
 	.  reduce 3
 
 
-state 141
+state 144
 	oneREPL : Command SEMI . oneREPL  (7)
 
 	FOLD  shift 4
@@ -2537,8 +2641,8 @@ state 141
 	LT  shift 33
 	.  error
 
-	oneREPL  goto 176
-	Command  goto 90
+	oneREPL  goto 180
+	Command  goto 91
 	TmWrap  goto 36
 	Tm  goto 37
 	AppTm  goto 38
@@ -2547,161 +2651,168 @@ state 141
 	AscribeTm  goto 41
 
 
-state 142
+state 145
 	oneREPL : Command DOUBLESEMI .  (6)
 
 	.  reduce 6
 
 
-state 143
+state 146
 	Ty : REC UCID . DOT Ty  (18)
 
-	DOT  shift 177
+	DOT  shift 181
 	.  error
 
 
-state 144
+state 147
 	Ty : SOURCE ATy .  (20)
 
 	.  reduce 20
 
 
-state 145
+state 148
 	Ty : SINK ATy .  (21)
 
 	.  reduce 21
 
 
-state 146
+state 149
 	Ty : REFTYPE ATy .  (19)
 
 	.  reduce 19
 
 
-state 147
+state 150
 	ATy : LIST Ty .  (34)
 
 	.  reduce 34
 
 
-state 148
+state 151
 	TyField : LCID . COLON Ty  (40)
 
-	COLON  shift 178
+	COLON  shift 182
 	.  error
 
 
-state 149
+state 152
 	TyField : Ty .  (41)
 
 	.  reduce 41
 
 
-state 150
+state 153
 	ATy : LCURLY TyFields . RCURLY  (32)
 
-	RCURLY  shift 179
+	RCURLY  shift 183
 	.  error
 
 
-state 151
+state 154
 	TyFields : NETyFields .  (37)
 
 	.  reduce 37
 
 
-state 152
+state 155
 	NETyFields : TyField .  (38)
 	NETyFields : TyField . COMMA NETyFields  (39)
 
-	COMMA  shift 180
+	COMMA  shift 184
 	GT  reduce 38
 	RCURLY  reduce 38
 
 
-state 153
+state 156
 	ATy : LPAREN Ty . RPAREN  (24)
 
-	RPAREN  shift 181
+	RPAREN  shift 185
 	.  error
-
-
-state 154
-	ATy : LT TyFields . GT  (33)
-
-	GT  shift 182
-	.  error
-
-
-state 155
-	AppTm : FOLD LSQUARE Ty RSQUARE .  (65)
-
-	.  reduce 65
-
-
-state 156
-	ArrowTy : ATy ARROW . ArrowTy  (22)
-
-	TOP  shift 92
-	LIST  shift 96
-	STRING  shift 97
-	FLOAT  shift 98
-	UNITTYPE  shift 99
-	BOOL  shift 100
-	NAT  shift 101
-	UCID  shift 102
-	LCURLY  shift 103
-	LPAREN  shift 104
-	LT  shift 105
-	.  error
-
-	ArrowTy  goto 183
-	ATy  goto 108
 
 
 state 157
-	AppTm : UNFOLD LSQUARE Ty RSQUARE .  (66)
+	ATy : LT TyFields . GT  (33)
 
-	.  reduce 66
+	GT  shift 186
+	.  error
 
 
 state 158
+	AppTm : FOLD LSQUARE Ty RSQUARE .  (67)
+
+	.  reduce 67
+
+
+state 159
+	ArrowTy : ATy ARROW . ArrowTy  (22)
+
+	TOP  shift 93
+	LIST  shift 97
+	STRING  shift 98
+	FLOAT  shift 99
+	UNITTYPE  shift 100
+	BOOL  shift 101
+	NAT  shift 102
+	UCID  shift 103
+	LCURLY  shift 104
+	LPAREN  shift 105
+	LT  shift 106
+	.  error
+
+	ArrowTy  goto 187
+	ATy  goto 109
+
+
+state 160
+	AppTm : UNFOLD LSQUARE Ty RSQUARE .  (68)
+
+	.  reduce 68
+
+
+state 161
 	LTy : LSQUARE Ty RSQUARE .  (35)
 
 	.  reduce 35
 
 
-state 159
-	Tm : CONS LTy ATm ATm .  (58)
-
-	.  reduce 58
-
-
-state 160
-	Tm : LETREC LCID COLON Ty . EQ Tm IN Tm  (55)
-
-	EQ  shift 184
-	.  error
-
-
-state 161
-	Case : LT . LCID EQ LCID GT DARROW AppTm  (47)
-
-	LCID  shift 185
-	.  error
-
-
 state 162
-	Tm : CASE Tm OF Cases .  (56)
+	Tm : CONS LTy ATm ATm .  (59)
 
-	.  reduce 56
+	.  reduce 59
 
 
 state 163
+	Tm : LETREC LCID COLON Ty . EQ Tm IN Tm  (56)
+
+	EQ  shift 188
+	.  error
+
+
+state 164
+	Tm : LETREC LCID EQ Tm . IN Tm  (55)
+
+	IN  shift 189
+	.  error
+
+
+state 165
+	Case : LT . LCID EQ LCID GT DARROW AppTm  (47)
+
+	LCID  shift 190
+	.  error
+
+
+state 166
+	Tm : CASE Tm OF Cases .  (57)
+
+	.  reduce 57
+
+
+state 167
 	Cases : Case .  (45)
 	Cases : Case . VBAR Cases  (46)
 
-	VBAR  shift 186
+	VBAR  shift 191
 	OF  reduce 45
 	WHERE  reduce 45
 	IN  reduce 45
@@ -2715,262 +2826,74 @@ state 163
 	DOUBLESEMI  reduce 45
 
 
-state 164
+state 168
 	Tm : LET LCID EQ Tm . IN Tm  (53)
 
-	IN  shift 187
+	IN  shift 192
 	.  error
 
 
-state 165
+state 169
 	Tm : LET USCORE EQ Tm . IN Tm  (54)
 
-	IN  shift 188
+	IN  shift 193
 	.  error
 
 
-state 166
+state 170
 	Tm : LAM LCID COLON Ty . DOT Tm  (50)
 
-	DOT  shift 189
+	DOT  shift 194
 	.  error
 
 
-state 167
+state 171
 	Tm : LAM LCID DOT Tm .  (49)
 
 	.  reduce 49
 
 
-state 168
+state 172
 	Tm : LAM USCORE COLON Ty . DOT Tm  (51)
 
-	DOT  shift 190
+	DOT  shift 195
 	.  error
-
-
-state 169
-	Tm : IF Tm THEN Tm . ELSE Tm  (52)
-
-	ELSE  shift 191
-	.  error
-
-
-state 170
-	Field : LCID EQ Tm .  (95)
-
-	.  reduce 95
-
-
-state 171
-	NEFields : Field COMMA NEFields .  (94)
-
-	.  reduce 94
-
-
-state 172
-	TmSeq : Tm SEMI TmSeq .  (90)
-
-	.  reduce 90
 
 
 state 173
-	ATm : LT LCID EQ Tm . GT AS Ty  (80)
+	Tm : IF Tm THEN Tm . ELSE Tm  (52)
 
-	GT  shift 192
+	ELSE  shift 196
 	.  error
 
 
 state 174
-	TmWrap : TmWrap COMMA LCID EQ . Tm  (42)
+	Field : LCID EQ Tm .  (97)
 
-	FOLD  shift 4
-	UNFOLD  shift 5
-	REF  shift 6
-	TAIL  shift 7
-	HEAD  shift 8
-	ISNIL  shift 9
-	CONS  shift 10
-	NIL  shift 11
-	LETREC  shift 12
-	FIX  shift 13
-	CASE  shift 14
-	UNIT  shift 15
-	LET  shift 16
-	SUCC  shift 17
-	PRED  shift 18
-	ISZERO  shift 19
-	LAM  shift 20
-	IF  shift 21
-	TRUE  shift 22
-	FALSE  shift 23
-	LCID  shift 45
-	INTV  shift 26
-	FLOATV  shift 27
-	STRINGV  shift 28
-	BANG  shift 29
-	LCURLY  shift 31
-	LPAREN  shift 32
-	LT  shift 33
-	.  error
-
-	Tm  goto 193
-	AppTm  goto 38
-	ATm  goto 39
-	PathTm  goto 40
-	AscribeTm  goto 41
+	.  reduce 97
 
 
 state 175
-	TmWrap : Tm WHERE LCID EQ . Tm  (43)
+	NEFields : Field COMMA NEFields .  (96)
 
-	FOLD  shift 4
-	UNFOLD  shift 5
-	REF  shift 6
-	TAIL  shift 7
-	HEAD  shift 8
-	ISNIL  shift 9
-	CONS  shift 10
-	NIL  shift 11
-	LETREC  shift 12
-	FIX  shift 13
-	CASE  shift 14
-	UNIT  shift 15
-	LET  shift 16
-	SUCC  shift 17
-	PRED  shift 18
-	ISZERO  shift 19
-	LAM  shift 20
-	IF  shift 21
-	TRUE  shift 22
-	FALSE  shift 23
-	LCID  shift 45
-	INTV  shift 26
-	FLOATV  shift 27
-	STRINGV  shift 28
-	BANG  shift 29
-	LCURLY  shift 31
-	LPAREN  shift 32
-	LT  shift 33
-	.  error
-
-	Tm  goto 194
-	AppTm  goto 38
-	ATm  goto 39
-	PathTm  goto 40
-	AscribeTm  goto 41
+	.  reduce 96
 
 
 state 176
-	oneREPL : Command SEMI oneREPL .  (7)
+	TmSeq : Tm SEMI TmSeq .  (92)
 
-	.  reduce 7
+	.  reduce 92
 
 
 state 177
-	Ty : REC UCID DOT . Ty  (18)
+	ATm : LT LCID EQ Tm . GT AS Ty  (82)
 
-	REC  shift 91
-	TOP  shift 92
-	SOURCE  shift 93
-	SINK  shift 94
-	REFTYPE  shift 95
-	LIST  shift 96
-	STRING  shift 97
-	FLOAT  shift 98
-	UNITTYPE  shift 99
-	BOOL  shift 100
-	NAT  shift 101
-	UCID  shift 102
-	LCURLY  shift 103
-	LPAREN  shift 104
-	LT  shift 105
+	GT  shift 197
 	.  error
-
-	Ty  goto 195
-	ArrowTy  goto 107
-	ATy  goto 108
 
 
 state 178
-	TyField : LCID COLON . Ty  (40)
-
-	REC  shift 91
-	TOP  shift 92
-	SOURCE  shift 93
-	SINK  shift 94
-	REFTYPE  shift 95
-	LIST  shift 96
-	STRING  shift 97
-	FLOAT  shift 98
-	UNITTYPE  shift 99
-	BOOL  shift 100
-	NAT  shift 101
-	UCID  shift 102
-	LCURLY  shift 103
-	LPAREN  shift 104
-	LT  shift 105
-	.  error
-
-	Ty  goto 196
-	ArrowTy  goto 107
-	ATy  goto 108
-
-
-state 179
-	ATy : LCURLY TyFields RCURLY .  (32)
-
-	.  reduce 32
-
-
-state 180
-	NETyFields : TyField COMMA . NETyFields  (39)
-
-	REC  shift 91
-	TOP  shift 92
-	SOURCE  shift 93
-	SINK  shift 94
-	REFTYPE  shift 95
-	LIST  shift 96
-	STRING  shift 97
-	FLOAT  shift 98
-	UNITTYPE  shift 99
-	BOOL  shift 100
-	NAT  shift 101
-	UCID  shift 102
-	LCID  shift 148
-	LCURLY  shift 103
-	LPAREN  shift 104
-	LT  shift 105
-	.  error
-
-	Ty  goto 149
-	ArrowTy  goto 107
-	ATy  goto 108
-	NETyFields  goto 197
-	TyField  goto 152
-
-
-state 181
-	ATy : LPAREN Ty RPAREN .  (24)
-
-	.  reduce 24
-
-
-state 182
-	ATy : LT TyFields GT .  (33)
-
-	.  reduce 33
-
-
-state 183
-	ArrowTy : ATy ARROW ArrowTy .  (22)
-
-	.  reduce 22
-
-
-state 184
-	Tm : LETREC LCID COLON Ty EQ . Tm IN Tm  (55)
+	TmWrap : TmWrap COMMA LCID EQ . Tm  (42)
 
 	FOLD  shift 4
 	UNFOLD  shift 5
@@ -3009,105 +2932,156 @@ state 184
 	AscribeTm  goto 41
 
 
-state 185
-	Case : LT LCID . EQ LCID GT DARROW AppTm  (47)
+state 179
+	TmWrap : Tm WHERE LCID EQ . Tm  (43)
 
-	EQ  shift 199
+	FOLD  shift 4
+	UNFOLD  shift 5
+	REF  shift 6
+	TAIL  shift 7
+	HEAD  shift 8
+	ISNIL  shift 9
+	CONS  shift 10
+	NIL  shift 11
+	LETREC  shift 12
+	FIX  shift 13
+	CASE  shift 14
+	UNIT  shift 15
+	LET  shift 16
+	SUCC  shift 17
+	PRED  shift 18
+	ISZERO  shift 19
+	LAM  shift 20
+	IF  shift 21
+	TRUE  shift 22
+	FALSE  shift 23
+	LCID  shift 45
+	INTV  shift 26
+	FLOATV  shift 27
+	STRINGV  shift 28
+	BANG  shift 29
+	LCURLY  shift 31
+	LPAREN  shift 32
+	LT  shift 33
 	.  error
+
+	Tm  goto 199
+	AppTm  goto 38
+	ATm  goto 39
+	PathTm  goto 40
+	AscribeTm  goto 41
+
+
+state 180
+	oneREPL : Command SEMI oneREPL .  (7)
+
+	.  reduce 7
+
+
+state 181
+	Ty : REC UCID DOT . Ty  (18)
+
+	REC  shift 92
+	TOP  shift 93
+	SOURCE  shift 94
+	SINK  shift 95
+	REFTYPE  shift 96
+	LIST  shift 97
+	STRING  shift 98
+	FLOAT  shift 99
+	UNITTYPE  shift 100
+	BOOL  shift 101
+	NAT  shift 102
+	UCID  shift 103
+	LCURLY  shift 104
+	LPAREN  shift 105
+	LT  shift 106
+	.  error
+
+	Ty  goto 200
+	ArrowTy  goto 108
+	ATy  goto 109
+
+
+state 182
+	TyField : LCID COLON . Ty  (40)
+
+	REC  shift 92
+	TOP  shift 93
+	SOURCE  shift 94
+	SINK  shift 95
+	REFTYPE  shift 96
+	LIST  shift 97
+	STRING  shift 98
+	FLOAT  shift 99
+	UNITTYPE  shift 100
+	BOOL  shift 101
+	NAT  shift 102
+	UCID  shift 103
+	LCURLY  shift 104
+	LPAREN  shift 105
+	LT  shift 106
+	.  error
+
+	Ty  goto 201
+	ArrowTy  goto 108
+	ATy  goto 109
+
+
+state 183
+	ATy : LCURLY TyFields RCURLY .  (32)
+
+	.  reduce 32
+
+
+state 184
+	NETyFields : TyField COMMA . NETyFields  (39)
+
+	REC  shift 92
+	TOP  shift 93
+	SOURCE  shift 94
+	SINK  shift 95
+	REFTYPE  shift 96
+	LIST  shift 97
+	STRING  shift 98
+	FLOAT  shift 99
+	UNITTYPE  shift 100
+	BOOL  shift 101
+	NAT  shift 102
+	UCID  shift 103
+	LCID  shift 151
+	LCURLY  shift 104
+	LPAREN  shift 105
+	LT  shift 106
+	.  error
+
+	Ty  goto 152
+	ArrowTy  goto 108
+	ATy  goto 109
+	NETyFields  goto 202
+	TyField  goto 155
+
+
+state 185
+	ATy : LPAREN Ty RPAREN .  (24)
+
+	.  reduce 24
 
 
 state 186
-	Cases : Case VBAR . Cases  (46)
+	ATy : LT TyFields GT .  (33)
 
-	LT  shift 161
-	.  error
-
-	Cases  goto 200
-	Case  goto 163
+	.  reduce 33
 
 
 state 187
-	Tm : LET LCID EQ Tm IN . Tm  (53)
+	ArrowTy : ATy ARROW ArrowTy .  (22)
 
-	FOLD  shift 4
-	UNFOLD  shift 5
-	REF  shift 6
-	TAIL  shift 7
-	HEAD  shift 8
-	ISNIL  shift 9
-	CONS  shift 10
-	NIL  shift 11
-	LETREC  shift 12
-	FIX  shift 13
-	CASE  shift 14
-	UNIT  shift 15
-	LET  shift 16
-	SUCC  shift 17
-	PRED  shift 18
-	ISZERO  shift 19
-	LAM  shift 20
-	IF  shift 21
-	TRUE  shift 22
-	FALSE  shift 23
-	LCID  shift 45
-	INTV  shift 26
-	FLOATV  shift 27
-	STRINGV  shift 28
-	BANG  shift 29
-	LCURLY  shift 31
-	LPAREN  shift 32
-	LT  shift 33
-	.  error
-
-	Tm  goto 201
-	AppTm  goto 38
-	ATm  goto 39
-	PathTm  goto 40
-	AscribeTm  goto 41
+	.  reduce 22
 
 
 state 188
-	Tm : LET USCORE EQ Tm IN . Tm  (54)
-
-	FOLD  shift 4
-	UNFOLD  shift 5
-	REF  shift 6
-	TAIL  shift 7
-	HEAD  shift 8
-	ISNIL  shift 9
-	CONS  shift 10
-	NIL  shift 11
-	LETREC  shift 12
-	FIX  shift 13
-	CASE  shift 14
-	UNIT  shift 15
-	LET  shift 16
-	SUCC  shift 17
-	PRED  shift 18
-	ISZERO  shift 19
-	LAM  shift 20
-	IF  shift 21
-	TRUE  shift 22
-	FALSE  shift 23
-	LCID  shift 45
-	INTV  shift 26
-	FLOATV  shift 27
-	STRINGV  shift 28
-	BANG  shift 29
-	LCURLY  shift 31
-	LPAREN  shift 32
-	LT  shift 33
-	.  error
-
-	Tm  goto 202
-	AppTm  goto 38
-	ATm  goto 39
-	PathTm  goto 40
-	AscribeTm  goto 41
-
-
-state 189
-	Tm : LAM LCID COLON Ty DOT . Tm  (50)
+	Tm : LETREC LCID COLON Ty EQ . Tm IN Tm  (56)
 
 	FOLD  shift 4
 	UNFOLD  shift 5
@@ -3146,8 +3120,8 @@ state 189
 	AscribeTm  goto 41
 
 
-state 190
-	Tm : LAM USCORE COLON Ty DOT . Tm  (51)
+state 189
+	Tm : LETREC LCID EQ Tm IN . Tm  (55)
 
 	FOLD  shift 4
 	UNFOLD  shift 5
@@ -3186,8 +3160,25 @@ state 190
 	AscribeTm  goto 41
 
 
+state 190
+	Case : LT LCID . EQ LCID GT DARROW AppTm  (47)
+
+	EQ  shift 205
+	.  error
+
+
 state 191
-	Tm : IF Tm THEN Tm ELSE . Tm  (52)
+	Cases : Case VBAR . Cases  (46)
+
+	LT  shift 165
+	.  error
+
+	Cases  goto 206
+	Case  goto 167
+
+
+state 192
+	Tm : LET LCID EQ Tm IN . Tm  (53)
 
 	FOLD  shift 4
 	UNFOLD  shift 5
@@ -3219,127 +3210,95 @@ state 191
 	LT  shift 33
 	.  error
 
-	Tm  goto 205
+	Tm  goto 207
 	AppTm  goto 38
 	ATm  goto 39
 	PathTm  goto 40
 	AscribeTm  goto 41
 
 
-state 192
-	ATm : LT LCID EQ Tm GT . AS Ty  (80)
+state 193
+	Tm : LET USCORE EQ Tm IN . Tm  (54)
 
-	AS  shift 206
+	FOLD  shift 4
+	UNFOLD  shift 5
+	REF  shift 6
+	TAIL  shift 7
+	HEAD  shift 8
+	ISNIL  shift 9
+	CONS  shift 10
+	NIL  shift 11
+	LETREC  shift 12
+	FIX  shift 13
+	CASE  shift 14
+	UNIT  shift 15
+	LET  shift 16
+	SUCC  shift 17
+	PRED  shift 18
+	ISZERO  shift 19
+	LAM  shift 20
+	IF  shift 21
+	TRUE  shift 22
+	FALSE  shift 23
+	LCID  shift 45
+	INTV  shift 26
+	FLOATV  shift 27
+	STRINGV  shift 28
+	BANG  shift 29
+	LCURLY  shift 31
+	LPAREN  shift 32
+	LT  shift 33
 	.  error
 
-
-state 193
-	TmWrap : TmWrap COMMA LCID EQ Tm .  (42)
-
-	.  reduce 42
+	Tm  goto 208
+	AppTm  goto 38
+	ATm  goto 39
+	PathTm  goto 40
+	AscribeTm  goto 41
 
 
 state 194
-	TmWrap : Tm WHERE LCID EQ Tm .  (43)
+	Tm : LAM LCID COLON Ty DOT . Tm  (50)
 
-	.  reduce 43
+	FOLD  shift 4
+	UNFOLD  shift 5
+	REF  shift 6
+	TAIL  shift 7
+	HEAD  shift 8
+	ISNIL  shift 9
+	CONS  shift 10
+	NIL  shift 11
+	LETREC  shift 12
+	FIX  shift 13
+	CASE  shift 14
+	UNIT  shift 15
+	LET  shift 16
+	SUCC  shift 17
+	PRED  shift 18
+	ISZERO  shift 19
+	LAM  shift 20
+	IF  shift 21
+	TRUE  shift 22
+	FALSE  shift 23
+	LCID  shift 45
+	INTV  shift 26
+	FLOATV  shift 27
+	STRINGV  shift 28
+	BANG  shift 29
+	LCURLY  shift 31
+	LPAREN  shift 32
+	LT  shift 33
+	.  error
+
+	Tm  goto 209
+	AppTm  goto 38
+	ATm  goto 39
+	PathTm  goto 40
+	AscribeTm  goto 41
 
 
 state 195
-	Ty : REC UCID DOT Ty .  (18)
-
-	.  reduce 18
-
-
-state 196
-	TyField : LCID COLON Ty .  (40)
-
-	.  reduce 40
-
-
-state 197
-	NETyFields : TyField COMMA NETyFields .  (39)
-
-	.  reduce 39
-
-
-state 198
-	Tm : LETREC LCID COLON Ty EQ Tm . IN Tm  (55)
-
-	IN  shift 207
-	.  error
-
-
-state 199
-	Case : LT LCID EQ . LCID GT DARROW AppTm  (47)
-
-	LCID  shift 208
-	.  error
-
-
-state 200
-	Cases : Case VBAR Cases .  (46)
-
-	.  reduce 46
-
-
-state 201
-	Tm : LET LCID EQ Tm IN Tm .  (53)
-
-	.  reduce 53
-
-
-state 202
-	Tm : LET USCORE EQ Tm IN Tm .  (54)
-
-	.  reduce 54
-
-
-state 203
-	Tm : LAM LCID COLON Ty DOT Tm .  (50)
-
-	.  reduce 50
-
-
-state 204
-	Tm : LAM USCORE COLON Ty DOT Tm .  (51)
-
-	.  reduce 51
-
-
-state 205
-	Tm : IF Tm THEN Tm ELSE Tm .  (52)
-
-	.  reduce 52
-
-
-state 206
-	ATm : LT LCID EQ Tm GT AS . Ty  (80)
-
-	REC  shift 91
-	TOP  shift 92
-	SOURCE  shift 93
-	SINK  shift 94
-	REFTYPE  shift 95
-	LIST  shift 96
-	STRING  shift 97
-	FLOAT  shift 98
-	UNITTYPE  shift 99
-	BOOL  shift 100
-	NAT  shift 101
-	UCID  shift 102
-	LCURLY  shift 103
-	LPAREN  shift 104
-	LT  shift 105
-	.  error
-
-	Ty  goto 209
-	ArrowTy  goto 107
-	ATy  goto 108
-
-
-state 207
-	Tm : LETREC LCID COLON Ty EQ Tm IN . Tm  (55)
+	Tm : LAM USCORE COLON Ty DOT . Tm  (51)
 
 	FOLD  shift 4
 	UNFOLD  shift 5
@@ -3378,33 +3337,231 @@ state 207
 	AscribeTm  goto 41
 
 
-state 208
-	Case : LT LCID EQ LCID . GT DARROW AppTm  (47)
+state 196
+	Tm : IF Tm THEN Tm ELSE . Tm  (52)
 
-	GT  shift 211
+	FOLD  shift 4
+	UNFOLD  shift 5
+	REF  shift 6
+	TAIL  shift 7
+	HEAD  shift 8
+	ISNIL  shift 9
+	CONS  shift 10
+	NIL  shift 11
+	LETREC  shift 12
+	FIX  shift 13
+	CASE  shift 14
+	UNIT  shift 15
+	LET  shift 16
+	SUCC  shift 17
+	PRED  shift 18
+	ISZERO  shift 19
+	LAM  shift 20
+	IF  shift 21
+	TRUE  shift 22
+	FALSE  shift 23
+	LCID  shift 45
+	INTV  shift 26
+	FLOATV  shift 27
+	STRINGV  shift 28
+	BANG  shift 29
+	LCURLY  shift 31
+	LPAREN  shift 32
+	LT  shift 33
+	.  error
+
+	Tm  goto 211
+	AppTm  goto 38
+	ATm  goto 39
+	PathTm  goto 40
+	AscribeTm  goto 41
+
+
+state 197
+	ATm : LT LCID EQ Tm GT . AS Ty  (82)
+
+	AS  shift 212
 	.  error
 
 
-state 209
-	ATm : LT LCID EQ Tm GT AS Ty .  (80)
+state 198
+	TmWrap : TmWrap COMMA LCID EQ Tm .  (42)
 
-	.  reduce 80
+	.  reduce 42
 
 
-state 210
-	Tm : LETREC LCID COLON Ty EQ Tm IN Tm .  (55)
+state 199
+	TmWrap : Tm WHERE LCID EQ Tm .  (43)
+
+	.  reduce 43
+
+
+state 200
+	Ty : REC UCID DOT Ty .  (18)
+
+	.  reduce 18
+
+
+state 201
+	TyField : LCID COLON Ty .  (40)
+
+	.  reduce 40
+
+
+state 202
+	NETyFields : TyField COMMA NETyFields .  (39)
+
+	.  reduce 39
+
+
+state 203
+	Tm : LETREC LCID COLON Ty EQ Tm . IN Tm  (56)
+
+	IN  shift 213
+	.  error
+
+
+state 204
+	Tm : LETREC LCID EQ Tm IN Tm .  (55)
 
 	.  reduce 55
 
 
-state 211
-	Case : LT LCID EQ LCID GT . DARROW AppTm  (47)
+state 205
+	Case : LT LCID EQ . LCID GT DARROW AppTm  (47)
 
-	DARROW  shift 212
+	LCID  shift 214
 	.  error
 
 
+state 206
+	Cases : Case VBAR Cases .  (46)
+
+	.  reduce 46
+
+
+state 207
+	Tm : LET LCID EQ Tm IN Tm .  (53)
+
+	.  reduce 53
+
+
+state 208
+	Tm : LET USCORE EQ Tm IN Tm .  (54)
+
+	.  reduce 54
+
+
+state 209
+	Tm : LAM LCID COLON Ty DOT Tm .  (50)
+
+	.  reduce 50
+
+
+state 210
+	Tm : LAM USCORE COLON Ty DOT Tm .  (51)
+
+	.  reduce 51
+
+
+state 211
+	Tm : IF Tm THEN Tm ELSE Tm .  (52)
+
+	.  reduce 52
+
+
 state 212
+	ATm : LT LCID EQ Tm GT AS . Ty  (82)
+
+	REC  shift 92
+	TOP  shift 93
+	SOURCE  shift 94
+	SINK  shift 95
+	REFTYPE  shift 96
+	LIST  shift 97
+	STRING  shift 98
+	FLOAT  shift 99
+	UNITTYPE  shift 100
+	BOOL  shift 101
+	NAT  shift 102
+	UCID  shift 103
+	LCURLY  shift 104
+	LPAREN  shift 105
+	LT  shift 106
+	.  error
+
+	Ty  goto 215
+	ArrowTy  goto 108
+	ATy  goto 109
+
+
+state 213
+	Tm : LETREC LCID COLON Ty EQ Tm IN . Tm  (56)
+
+	FOLD  shift 4
+	UNFOLD  shift 5
+	REF  shift 6
+	TAIL  shift 7
+	HEAD  shift 8
+	ISNIL  shift 9
+	CONS  shift 10
+	NIL  shift 11
+	LETREC  shift 12
+	FIX  shift 13
+	CASE  shift 14
+	UNIT  shift 15
+	LET  shift 16
+	SUCC  shift 17
+	PRED  shift 18
+	ISZERO  shift 19
+	LAM  shift 20
+	IF  shift 21
+	TRUE  shift 22
+	FALSE  shift 23
+	LCID  shift 45
+	INTV  shift 26
+	FLOATV  shift 27
+	STRINGV  shift 28
+	BANG  shift 29
+	LCURLY  shift 31
+	LPAREN  shift 32
+	LT  shift 33
+	.  error
+
+	Tm  goto 216
+	AppTm  goto 38
+	ATm  goto 39
+	PathTm  goto 40
+	AscribeTm  goto 41
+
+
+state 214
+	Case : LT LCID EQ LCID . GT DARROW AppTm  (47)
+
+	GT  shift 217
+	.  error
+
+
+state 215
+	ATm : LT LCID EQ Tm GT AS Ty .  (82)
+
+	.  reduce 82
+
+
+state 216
+	Tm : LETREC LCID COLON Ty EQ Tm IN Tm .  (56)
+
+	.  reduce 56
+
+
+state 217
+	Case : LT LCID EQ LCID GT . DARROW AppTm  (47)
+
+	DARROW  shift 218
+	.  error
+
+
+state 218
 	Case : LT LCID EQ LCID GT DARROW . AppTm  (47)
 
 	FOLD  shift 4
@@ -3428,15 +3585,15 @@ state 212
 	LT  shift 33
 	.  error
 
-	AppTm  goto 213
+	AppTm  goto 219
 	ATm  goto 39
 	PathTm  goto 40
 	AscribeTm  goto 41
 
 
-state 213
+state 219
 	Case : LT LCID EQ LCID GT DARROW AppTm .  (47)
-	AppTm : AppTm . PathTm  (63)
+	AppTm : AppTm . PathTm  (64)
 
 	NIL  shift 11
 	UNIT  shift 15
@@ -3467,8 +3624,8 @@ state 213
 	AscribeTm  goto 41
 
 
-State 108 contains 1 shift/reduce conflict.
+State 109 contains 1 shift/reduce conflict.
 
 
-90 terminals, 27 nonterminals
-99 grammar rules, 214 states
+91 terminals, 27 nonterminals
+101 grammar rules, 220 states
