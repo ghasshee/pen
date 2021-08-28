@@ -25,7 +25,7 @@ let reserved x                  =   if BS.starts_with x "pre_" then err "Names '
 %token WITH
 %token RETURN BECOME
 %token ABORT REENTRANCE
-%token NEW SELFDESTRUCT
+%token NEW SELFDESTRUCT CALL 
 %token SENDER MSG VALUE BALANCE
 %token THIS NOW UNIT
 %token EVENT LOG 
@@ -124,12 +124,11 @@ appTm:
     | pathTm                                        { $1                                                                    }
     | FIX   pathTm                                  { fun ctx -> TmFix($2 ctx)                                          ,() } 
     | NOT   pathTm                                  { fun ctx -> EpNot ($2 ctx)                                         ,() }
-    | ID   arg_list                                 { fun ctx -> EpCall{call_id=$1;call_args=$2 ctx}                    ,() }
     | appTm pathTm                                  { fun ctx -> let e=$1 ctx in TmApp(e,$2 ctx)                                   ,() } 
 pathTm:
     | aTm                                           { $1                                                                    }
 aTm:
-    | LPAR tm RPAR                                  { fun ctx -> EpParen ($2 ctx)                                       ,() }
+    | LPAR tm RPAR                                  { $2 }
     | RETURN ret THEN BECOME tm                     { fun ctx -> TmReturn($2 ctx,$5 ctx)                                ,() }
     | ABORT                                         { fun ctx -> TmAbort                                                ,() } 
     | TRUE                                          { fun ctx -> EpTrue                                                 ,() }
@@ -144,6 +143,7 @@ aTm:
     | ADDRESS LPAR  tm   RPAR                       { fun ctx -> EpAddr ($3 ctx)                                        ,() }
     | ID                               { reserved $1; fun ctx -> prBds ctx;pe $1;(try TmIdx(lookup_bruijn_idx $1 ctx,len ctx),() with _ -> TmId $1,())}
     | NEW ID  arg_list msg             { reserved $2; fun ctx -> EpNew {new_id=$2;new_args=$3 ctx; new_msg=$4 ctx}      ,() }
+    | CALL ID arg_list                              { fun ctx -> EpCall{call_id=$2;call_args=$3 ctx}                    ,() }
      
 arg_list : 
     | LPAR RPAR                                     { fun ctx -> []                                                         }

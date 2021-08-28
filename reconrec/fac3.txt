@@ -1,0 +1,241 @@
+
+let fac = fix (λfac. λn. if iszero n then 1 else n * fac (pred n)) in fac 3
+----------------------------------------------------
+CT-LETPOLY-ALG: (|Γ|=0) let fac = fix (λfac.
+                                          λn.
+                                            if iszero n
+                                            then 1
+                                            else n * fac (pred n))
+                         in
+                         fac 3
+CT-FIX         : (|Γ|=0) fix (λfac.
+                                 λn. if iszero n then 1 else n * fac (pred n))
+CT-ABS(UNTYPE): (|Γ|=0) λfac. λn. if iszero n then 1 else n * fac (pred n)
+CT-ABS(UNTYPE): (|Γ|=1) λn. if iszero n then 1 else n * fac (pred n)
+CT-IF         : (|Γ|=2) if iszero n then 1 else n * fac (pred n)
+CT-ISZERO     : (|Γ|=2) iszero n
+CT-VAR        : (|Γ|=2) n
+CT-SUCC       : (|Γ|=2) 1
+CT-ZERO       : (|Γ|=2) 0
+CT-TIMES      : (|Γ|=2) n * fac (pred n)
+CT-VAR        : (|Γ|=2) n
+CT-APP        : (|Γ|=2) fac (pred n)
+CT-VAR        : (|Γ|=2) fac
+CT-PRED       : (|Γ|=2) pred n
+CT-VAR        : (|Γ|=2) n
+SIMPLIFYTY    : ?X0 → (?X1 → 𝐍)
+UNIFY: ?X0, ?X1→𝐍
+UNIFY: 𝐁, 𝐁
+UNIFY: 𝐍, 𝐍
+UNIFY: ?X1, 𝐍
+UNIFY: 𝐍, 𝐍
+UNIFY: 𝐍→𝐍, 𝐍→?X2
+UNIFY: 𝐍, 𝐍
+UNIFY: 𝐍, ?X2
+UNIFY: 𝐍, 𝐍
+SIMPLIFYTY    : 𝐍 → 𝐍
+SIMPLIFYTY    : 𝐍 → 𝐍
+SIMPLIFYTY    : 𝐍
+SIMPLIFYTY    : 𝐍
+SIMPLIFYTY    : 𝐍
+SIMPLIFYTY    : 𝐍
+UNIFY: 𝐁, 𝐁
+UNIFY: 𝐍, 𝐍
+UNIFY: ?X1, 𝐍
+UNIFY: 𝐍, 𝐍
+UNIFY: ?X0, 𝐍→?X2
+UNIFY: 𝐍, 𝐍
+CT-APP        : (|Γ|=1) ?X3 3
+CT-VAR        : (|Γ|=1) ?X3
+CT-SUCC       : (|Γ|=1) 3
+CT-SUCC       : (|Γ|=1) 2
+CT-SUCC       : (|Γ|=1) 1
+CT-ZERO       : (|Γ|=1) 0
+----------------   TYPE CHECKED !   ----------------
+E-LET         : let fac = fix (λfac.
+                                 λn. if iszero n then 1 else n * fac (pred n))
+                in
+                fac 3
+E-FIXBETA     : fix (λfac. λn. if iszero n then 1 else n * fac (pred n))
+SUBSTITUTE    : [x↦s]t
+E-LETV        : let fac = λn.
+                            if iszero n
+                            then 1
+                            else n * (fix (λfac.
+                                             λn'.
+                                               if iszero n'
+                                               then 1
+                                               else n' * fac (pred n')))
+                                     (pred n)
+                in
+                fac 3
+SUBSTITUTE    : [x↦s]t
+E-APPABS      : (λn.
+                   if iszero n
+                   then 1
+                   else n * (fix (λfac.
+                                    λn'.
+                                      if iszero n'
+                                      then 1
+                                      else n' * fac (pred n')))
+                            (pred n))
+                3
+SUBSTITUTE    : [x↦s]t
+E-IF          : if iszero 3
+                then 1
+                else 3 * (fix (λfac.
+                                 λn. if iszero n then 1 else n * fac (pred n)))
+                         (pred 3)
+E-ISZROSUC    : iszero 3
+E-IFFLASE     : if false
+                then 1
+                else 3 * (fix (λfac.
+                                 λn. if iszero n then 1 else n * fac (pred n)))
+                         (pred 3)
+E-TIMES       : 3 * (fix (λfac. λn. if iszero n then 1 else n * fac (pred n)))
+                    (pred 3)
+E-SUCC        : 3
+E-SUCC        : 2
+E-SUCC        : 1
+E-APPFIX      : (fix (λfac. λn. if iszero n then 1 else n * fac (pred n)))
+                (pred 3)
+E-FIXBETA     : fix (λfac. λn. if iszero n then 1 else n * fac (pred n))
+SUBSTITUTE    : [x↦s]t
+E-APP1        : (λn.
+                   if iszero n
+                   then 1
+                   else n * (fix (λfac.
+                                    λn'.
+                                      if iszero n'
+                                      then 1
+                                      else n' * fac (pred n')))
+                            (pred n))
+                (pred 3)
+E-PREDSUC     : pred 3
+E-APPABS      : (λn.
+                   if iszero n
+                   then 1
+                   else n * (fix (λfac.
+                                    λn'.
+                                      if iszero n'
+                                      then 1
+                                      else n' * fac (pred n')))
+                            (pred n))
+                2
+SUBSTITUTE    : [x↦s]t
+E-IF          : if iszero 2
+                then 1
+                else 2 * (fix (λfac.
+                                 λn. if iszero n then 1 else n * fac (pred n)))
+                         (pred 2)
+E-ISZROSUC    : iszero 2
+E-IFFLASE     : if false
+                then 1
+                else 2 * (fix (λfac.
+                                 λn. if iszero n then 1 else n * fac (pred n)))
+                         (pred 2)
+E-TIMES       : 2 * (fix (λfac. λn. if iszero n then 1 else n * fac (pred n)))
+                    (pred 2)
+E-SUCC        : 2
+E-SUCC        : 1
+E-APPFIX      : (fix (λfac. λn. if iszero n then 1 else n * fac (pred n)))
+                (pred 2)
+E-FIXBETA     : fix (λfac. λn. if iszero n then 1 else n * fac (pred n))
+SUBSTITUTE    : [x↦s]t
+E-APP1        : (λn.
+                   if iszero n
+                   then 1
+                   else n * (fix (λfac.
+                                    λn'.
+                                      if iszero n'
+                                      then 1
+                                      else n' * fac (pred n')))
+                            (pred n))
+                (pred 2)
+E-PREDSUC     : pred 2
+E-APPABS      : (λn.
+                   if iszero n
+                   then 1
+                   else n * (fix (λfac.
+                                    λn'.
+                                      if iszero n'
+                                      then 1
+                                      else n' * fac (pred n')))
+                            (pred n))
+                1
+SUBSTITUTE    : [x↦s]t
+E-IF          : if iszero 1
+                then 1
+                else 1 * (fix (λfac.
+                                 λn. if iszero n then 1 else n * fac (pred n)))
+                         (pred 1)
+E-ISZROSUC    : iszero 1
+E-IFFLASE     : if false
+                then 1
+                else 1 * (fix (λfac.
+                                 λn. if iszero n then 1 else n * fac (pred n)))
+                         (pred 1)
+E-TIMES       : 1 * (fix (λfac. λn. if iszero n then 1 else n * fac (pred n)))
+                    (pred 1)
+E-SUCC        : 1
+E-APPFIX      : (fix (λfac. λn. if iszero n then 1 else n * fac (pred n)))
+                (pred 1)
+E-FIXBETA     : fix (λfac. λn. if iszero n then 1 else n * fac (pred n))
+SUBSTITUTE    : [x↦s]t
+E-APP1        : (λn.
+                   if iszero n
+                   then 1
+                   else n * (fix (λfac.
+                                    λn'.
+                                      if iszero n'
+                                      then 1
+                                      else n' * fac (pred n')))
+                            (pred n))
+                (pred 1)
+E-PREDSUC     : pred 1
+E-APPABS      : (λn.
+                   if iszero n
+                   then 1
+                   else n * (fix (λfac.
+                                    λn'.
+                                      if iszero n'
+                                      then 1
+                                      else n' * fac (pred n')))
+                            (pred n))
+                0
+SUBSTITUTE    : [x↦s]t
+E-IF          : if iszero 0
+                then 1
+                else 0 * (fix (λfac.
+                                 λn. if iszero n then 1 else n * fac (pred n)))
+                         (pred 0)
+E-ISZROZRO    : iszero 0
+E-IFTRUE      : if true
+                then 1
+                else 0 * (fix (λfac.
+                                 λn. if iszero n then 1 else n * fac (pred n)))
+                         (pred 0)
+E-SUCC        : 1
+E-SUCC        : 1
+E-SUCC        : 2
+E-SUCC        : 1
+E-SUCC        : 6
+E-SUCC        : 5
+E-SUCC        : 4
+E-SUCC        : 3
+E-SUCC        : 2
+E-SUCC        : 1
+----------------   EVAL FINISHED !  ----------------
+{𝐍→𝐍=𝐍→?X4, 𝐍=𝐍, 𝐍=𝐍, 𝐍=𝐍}
+----------------  CONSTRAINTS LIST  ----------------
+UNIFY: 𝐍→𝐍, 𝐍→?X4
+UNIFY: 𝐍, 𝐍
+UNIFY: 𝐍, ?X4
+UNIFY: 𝐍, 𝐍
+UNIFY: 𝐍, 𝐍
+UNIFY: 𝐍, 𝐍
+{?X4=𝐍}
+----------------   SOLUTION FOUND ! ----------------
+6
+  : 𝐍
+

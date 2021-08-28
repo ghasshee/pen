@@ -181,6 +181,14 @@ let cntrct_name_of_instance     = function
 (***           PRINTING                ***)
 (*****************************************)
 
+let rec string_of_tm  e         = match fst e with 
+    | TmApp(t1,t2)              -> "App(" ^ string_of_tm t1 ^ "," ^ string_of_tm t2 ^ ")"
+    | TmAbs(x,tyX,t)            -> "(λ" ^ x ^ ":" ^ string_of_ty tyX ^ "→" ^ string_of_tm t ^ ")"
+    | TmIdx(i,n)                -> "Idx" ^ string_of_int i 
+    | TmIf(b,t,t')              -> "(If " ^ string_of_tm b ^ " Then " ^ string_of_tm t ^ " Else " ^ string_of_tm t' ^ ")"
+    | _                         -> "Undefined" 
+
+
 let rec string_of_expr          = function 
     | TmApp((t1,_),(t2,_))      -> "(" ^ string_of_expr t1 ^ ")(" ^ string_of_expr t2 ^ ")" 
     | TmAbs(x,tyX,(t,_))        -> "λ" ^ x ^ ":" ^ string_of_ty tyX ^ "." ^ string_of_expr t 

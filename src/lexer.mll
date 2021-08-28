@@ -28,6 +28,7 @@ rule read = parse
   | "contract"      { CONTRACT                      }
   | "default"       { DEFAULT                       }
   | "method"        { METHOD                        }
+  | "call"          { CALL                          } 
   | "abort"         { ABORT                         }
   | "u8"            { UINT8                         }
   | "u256"          { UINT256                       }
