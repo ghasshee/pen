@@ -15,73 +15,76 @@ let id      = ['a'-'z' 'A'-'Z' '_'] ['a'-'z' 'A'-'Z' '0'-'9' '_']*
 let comment = "//" (_ # ['\r' '\n'])* newline
 
 rule read = parse
-  | white           { read lexbuf }
-  | comment         { new_line lexbuf; read lexbuf }
-  | newline         { new_line lexbuf; read lexbuf }
-  | "->"            { ARROW                         }
-  | "<-"            { LARROW                        } 
-  | "fn"            { LAM                           } 
-  | "let"           { LET                           }
-  | "rec"           { REC                           } 
-  | "fix"           { FIX                           } 
-  | "in"            { IN                            }
-  | "contract"      { CONTRACT                      }
-  | "default"       { DEFAULT                       }
-  | "method"        { METHOD                        }
-  | "call"          { CALL                          } 
-  | "abort"         { ABORT                         }
-  | "u8"            { UINT8                         }
-  | "u256"          { UINT256                       }
-  | "bytes32"       { BYTES32                       }
-  | "address"       { ADDRESS                       }
-  | "bool"          { BOOL                          }
-  | "["             { LSQBR                         }
-  | "]"             { RSQBR                         }
-  | "if"            { IF                            }
-  | "else"          { ELSE                          }
-  | "true"          { TRUE                          }
-  | "false"         { FALSE                         }
-  | "then"          { THEN                          }
-  | "become"        { BECOME                        }
-  | "return"        { RETURN                        }
-  | ";"             { SEMI                          }
-  | "("             { LPAR                          }
-  | ")"             { RPAR                          }
-  | "{"             { LBRACE                        }
-  | "}"             { RBRACE                        }
-  | ","             { COMMA                         }
-  | "=="            { EQEQ                          }
-  | "!="            { NEQ                           }
-  | "<"             { LT                            }
-  | ">"             { GT                            }
-  | "="             { EQ                            }
-  | "new"           { NEW                           }
-  | "with"          { WITH                          }
-  | "reentrance"    { REENTRANCE                    }
-  | "selfdestruct"  { SELFDESTRUCT                  }
-  | "."             { DOT                           }
-  | ":"             { COLON                         }
-  | "not"           { NOT                           }
-  | "msg"           { MSG                           }
-  | "value"         { VALUE                         }  (* transferred value (wei) *)
-  | "sender"        { SENDER                        }
-  | "this"          { THIS                          }
-  | "balance"       { BALANCE                       }
-  | "now"           { NOW                           }
-  | "block"         { BLOCK                         }
-  | "unit"          { UNIT                          }
-  | "&&"            { LAND                          }
-  | "=>"            { DARROW                        }
-  | "+"             { PLUS                          }
-  | "-"             { MINUS                         }
-  | "*"             { MULT                          }
-  | "event"         { EVENT                         }
-  | "log"           { LOG                           }
-  | "visible"       { INDEXED                       }
-  | digit+ as i     { EUINT256 (Big_int.big_int_of_string i) }
+  | white               { read lexbuf }
+  | comment             { new_line lexbuf; read lexbuf }
+  | newline             { new_line lexbuf; read lexbuf }
+  | "->"                { ARROW                         }
+  | "<-"                { LARROW                        } 
+  | "fn"                { LAM                           } 
+  | "let"               { LET                           }
+  | "rec"               { REC                           } 
+  | "fix"               { FIX                           } 
+  | "in"                { IN                            }
+  | "iszero"            { ISZERO                        }
+  | "pre_ecdsarecover"  { ECDSARECOVER                  }
+  | "keccak256"         { KECCAK                        }
+  | "contract"          { CONTRACT                      }
+  | "default"           { DEFAULT                       }
+  | "method"            { METHOD                        }
+  | "call"              { CALL                          } 
+  | "abort"             { ABORT                         }
+  | "u8"                { UINT8                         }
+  | "u256"              { UINT256                       }
+  | "bytes32"           { BYTES32                       }
+  | "address"           { ADDRESS                       }
+  | "bool"              { BOOL                          }
+  | "["                 { LSQBR                         }
+  | "]"                 { RSQBR                         }
+  | "if"                { IF                            }
+  | "else"              { ELSE                          }
+  | "true"              { TRUE                          }
+  | "false"             { FALSE                         }
+  | "then"              { THEN                          }
+  | "become"            { BECOME                        }
+  | "return"            { RETURN                        }
+  | ";"                 { SEMI                          }
+  | "("                 { LPAR                          }
+  | ")"                 { RPAR                          }
+  | "{"                 { LBRACE                        }
+  | "}"                 { RBRACE                        }
+  | ","                 { COMMA                         }
+  | "=="                { EQEQ                          }
+  | "!="                { NEQ                           }
+  | "<"                 { LT                            }
+  | ">"                 { GT                            }
+  | "="                 { EQ                            }
+  | "new"               { NEW                           }
+  | "with"              { WITH                          }
+  | "reentrance"        { REENTRANCE                    }
+  | "selfdestruct"      { SELFDESTRUCT                  }
+  | "."                 { DOT                           }
+  | ":"                 { COLON                         }
+  | "not"               { NOT                           }
+  | "msg"               { MSG                           }
+  | "value"             { VALUE                         }  (* transferred value (wei) *)
+  | "sender"            { SENDER                        }
+  | "this"              { THIS                          }
+  | "balance"           { BALANCE                       }
+  | "now"               { NOW                           }
+  | "block"             { BLOCK                         }
+  | "unit"              { UNIT                          }
+  | "&&"                { LAND                          }
+  | "=>"                { DARROW                        }
+  | "+"                 { PLUS                          }
+  | "-"                 { MINUS                         }
+  | "*"                 { MULT                          }
+  | "event"             { EVENT                         }
+  | "log"               { LOG                           }
+  | "visible"           { INDEXED                       }
+  | digit+ as i         { EUINT256 (Big_int.big_int_of_string i) }
   (* uint8 has at most three digits *)
   | digit digit? digit? "u8" as i {
       let last = String.length i - 2 in
       EUINT8 (Big_int.big_int_of_string (String.sub i 0 last)) }
-  | id              { ID (lexeme lexbuf) }
-  | eof             { EOF           }
+  | id                  { ID (lexeme lexbuf) }
+  | eof                 { EOF           }

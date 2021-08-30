@@ -32,6 +32,7 @@ let reserved x                  =   if BS.starts_with x "pre_" then err "Names '
 %token BLOCK
 %token INDEXED
 %token EOF
+%token ISZERO ECDSARECOVER KECCAK
 
 %right DARROW
 
@@ -94,23 +95,25 @@ stmt:
 
 ret: 
     |                                               { fun ctx -> TmUnit                                  ,()    }
+    | call                                          { $1                                                        }
     | tm                                            { $1                                                        }
 
 %inline op:
     | LT                                            { fun l r -> EpLT(l,r)                                      }
     | GT                                            { fun l r -> EpGT(l,r)                                      }
-    | EQEQ                                          { fun l r -> EpEq(l,r)                                      }
+    | EQEQ                                          { fun l r -> TmEq(l,r)                                      }
     | NEQ                                           { fun l r -> EpNEq(l,r)                                     }
     | LAND                                          { fun l r -> EpLAnd(l,r)                                    } 
     | PLUS                                          { fun l r -> EpPlus(l,r)                                    }
-    | MULT                                          { fun l r -> EpMult(l,r)                                    }
-    | MINUS                                         { fun l r -> EpMinus(l,r)                                   }
+    | MULT                                          { fun l r -> TmMul(l,r)                                    }
+    | MINUS                                         { fun l r -> TmMinus(l,r)                                   }
 
 tm: 
     | appTm                                         { $1                                                                    } 
     | LET ty ID EQ tm IN tm                         { fun ctx -> TmApp((TmAbs($3,$2,$7(add_bruijn_idx ctx $3)),()),$5 ctx)   ,() } 
-    | LET REC ID COLON ty EQ tm IN tm               { fun ctx -> let ctx' = add_bruijn_idx ctx $3 in 
-                                                                 TmApp((TmAbs($3,$5,$9 ctx'),()),(TmFix(TmAbs($3,$5,$7 ctx'),()),())), ()}  
+    | LET REC ID COLON ty EQ tm IN tm               { fun ctx -> let ctx' = add_rec_idx ctx $3 in 
+                                                                 let ctx  = add_bruijn_idx ctx $3 in 
+                                                                 TmApp((TmAbs($3,$5,$9 ctx),()),(TmFix(TmAbs($3,$5,$7 ctx'),()),())), ()}  
     | LAM ID COLON ty ARROW tm                      { fun ctx -> TmAbs($2, $4, $6(add_bruijn_idx ctx $2))               ,() } 
     | IF tm THEN tm ELSE tm                         { fun ctx -> TmIf($2 ctx, $4 ctx, $6 ctx)                           ,() }
     | lexpr EQ tm                                   { fun ctx -> TmAssign($1 ctx, $3 ctx)                               ,() }
@@ -124,27 +127,33 @@ appTm:
     | pathTm                                        { $1                                                                    }
     | FIX   pathTm                                  { fun ctx -> TmFix($2 ctx)                                          ,() } 
     | NOT   pathTm                                  { fun ctx -> EpNot ($2 ctx)                                         ,() }
-    | appTm pathTm                                  { fun ctx -> let e=$1 ctx in TmApp(e,$2 ctx)                                   ,() } 
+    | ISZERO arg_list                               { fun ctx -> EpCall{call_id="iszero";call_args=$2 ctx}              ,() }
+    | ECDSARECOVER arg_list                         { fun ctx -> EpCall{call_id="pre_ecdsarecover";call_args=$2 ctx}    ,() }
+    | KECCAK arg_list                               { fun ctx -> EpCall{call_id="keccak256";call_args=$2 ctx}           ,() }
+    | appTm pathTm                                  { fun ctx -> TmApp($1 ctx,$2 ctx)                                   ,() } 
 pathTm:
     | aTm                                           { $1                                                                    }
 aTm:
     | LPAR tm RPAR                                  { $2 }
-    | RETURN ret THEN BECOME tm                     { fun ctx -> TmReturn($2 ctx,$5 ctx)                                ,() }
+    | RETURN ret THEN BECOME call                   { fun ctx -> TmReturn($2 ctx,$5 ctx)                                ,() }
     | ABORT                                         { fun ctx -> TmAbort                                                ,() } 
     | TRUE                                          { fun ctx -> EpTrue                                                 ,() }
     | FALSE                                         { fun ctx -> EpFalse                                                ,() }
-    | EUINT256                                      { fun ctx -> EpUint256 $1                                           ,() }
-    | EUINT8                                        { fun ctx -> EpUint256 $1                                           ,() }
+    | EUINT256                                      { fun ctx -> TmUint $1                                           ,() }
+    | EUINT8                                        { fun ctx -> TmUint $1                                           ,() }
     | VALUE   LPAR  MSG  RPAR                       { fun ctx -> EpValue                                                ,() }
     | SENDER  LPAR  MSG  RPAR                       { fun ctx -> EpSender                                               ,() }
     | BALANCE LPAR  tm   RPAR                       { fun ctx -> EpBalance ($3 ctx)                                     ,() }
     | NOW     LPAR BLOCK RPAR                       { fun ctx -> EpNow                                                  ,() }
     | THIS                                          { fun ctx -> EpThis                                                 ,() }
     | ADDRESS LPAR  tm   RPAR                       { fun ctx -> EpAddr ($3 ctx)                                        ,() }
-    | ID                               { reserved $1; fun ctx -> prBds ctx;pe $1;(try TmIdx(lookup_bruijn_idx $1 ctx,len ctx),() with _ -> TmId $1,())}
+    | ID                               { reserved $1; fun ctx -> prBds ctx;pe $1; begin 
+                                                                 try TmIdx(lookup_bruijn_idx $1 ctx,len ctx),() with _ -> 
+                                                                 try TmIdxRec(lookup_rec_idx $1 ctx),()  with _ -> 
+                                                                     TmId $1,() end }
     | NEW ID  arg_list msg             { reserved $2; fun ctx -> EpNew {new_id=$2;new_args=$3 ctx; new_msg=$4 ctx}      ,() }
-    | CALL ID arg_list                              { fun ctx -> EpCall{call_id=$2;call_args=$3 ctx}                    ,() }
-     
+call: 
+    | ID arg_list                                   { fun ctx -> EpCall{call_id=$1;call_args=$2 ctx}                    ,() }
 arg_list : 
     | LPAR RPAR                                     { fun ctx -> []                                                         }
     | LPAR args RPAR                                { fun ctx -> $2 ctx                                                     } 

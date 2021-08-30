@@ -80,7 +80,7 @@ and  'ty stmt                   =   SmExpr              of 'ty exprTy
 
 and  'ty exprTy                 =   'ty expr * 'ty
 
-and  'ty expr                   =   EpParen             of 'ty exprTy
+and  'ty expr                   =   
                                 |   TmReturn            of 'ty exprTy * 'ty exprTy   (* TmReturn(ret,cont) *)  
                                 |   TmId                of string
                                 |   TmAbort 
@@ -91,6 +91,7 @@ and  'ty expr                   =   EpParen             of 'ty exprTy
                                 |   TmAssign            of 'ty expr * 'ty exprTy 
                                 |   TmLoc               of int 
                                 |   TmIdx               of int * int 
+                                |   TmIdxRec            of int 
                                 |   TmAbs               of string * ty * 'ty exprTy
                                 |   TmApp               of 'ty exprTy * 'ty exprTy  
                                 |   TmIf                of 'ty exprTy * 'ty exprTy * 'ty exprTy 
@@ -98,7 +99,7 @@ and  'ty expr                   =   EpParen             of 'ty exprTy
                                 |   TmUnit 
                                 |   EpTrue
                                 |   EpFalse
-                                |   EpUint256           of big
+                                |   TmUint           of big
                                 |   EpUint8             of big
                                 |   EpNow
                                 |   EpCall              of 'ty _call
@@ -108,7 +109,7 @@ and  'ty expr                   =   EpParen             of 'ty exprTy
                                 |   EpLAnd              of 'ty exprTy * 'ty exprTy
                                 |   EpLT                of 'ty exprTy * 'ty exprTy
                                 |   EpGT                of 'ty exprTy * 'ty exprTy
-                                |   EpEq                of 'ty exprTy * 'ty exprTy
+                                |   TmEq                of 'ty exprTy * 'ty exprTy
                                 |   EpNEq               of 'ty exprTy * 'ty exprTy
                                 |   EpAddr              of 'ty exprTy
                                 |   EpNot               of 'ty exprTy
@@ -117,8 +118,8 @@ and  'ty expr                   =   EpParen             of 'ty exprTy
                                 |   EpThis
                                 |   EpDeref             of 'ty exprTy
                                 |   EpPlus              of 'ty exprTy * 'ty exprTy
-                                |   EpMinus             of 'ty exprTy * 'ty exprTy
-                                |   EpMult              of 'ty exprTy * 'ty exprTy
+                                |   TmMinus             of 'ty exprTy * 'ty exprTy
+                                |   TmMul              of 'ty exprTy * 'ty exprTy
                                 |   EpBalance           of 'ty exprTy
 
 let get_ty  (_,ty)              =   ty
@@ -181,35 +182,32 @@ let cntrct_name_of_instance     = function
 (***           PRINTING                ***)
 (*****************************************)
 
-let rec string_of_tm  e         = match fst e with 
-    | TmApp(t1,t2)              -> "App(" ^ string_of_tm t1 ^ "," ^ string_of_tm t2 ^ ")"
-    | TmAbs(x,tyX,t)            -> "(λ" ^ x ^ ":" ^ string_of_ty tyX ^ "→" ^ string_of_tm t ^ ")"
-    | TmIdx(i,n)                -> "Idx" ^ string_of_int i 
-    | TmIf(b,t,t')              -> "(If " ^ string_of_tm b ^ " Then " ^ string_of_tm t ^ " Else " ^ string_of_tm t' ^ ")"
-    | _                         -> "Undefined" 
-
-
 let rec string_of_expr          = function 
+    | TmFix(t,_)                -> "fix(" ^ string_of_expr t ^ ")"
     | TmApp((t1,_),(t2,_))      -> "(" ^ string_of_expr t1 ^ ")(" ^ string_of_expr t2 ^ ")" 
     | TmAbs(x,tyX,(t,_))        -> "λ" ^ x ^ ":" ^ string_of_ty tyX ^ "." ^ string_of_expr t 
     | TmIdx(i,n)                -> "x" ^ string_of_int i 
+    | TmIdxRec(i)               -> "rec" ^ string_of_int i 
     | TmIf((b,_),(t1,_),(t2,_)) -> "if " ^ string_of_expr b ^ " then " ^ string_of_expr t1 ^ " else " ^ string_of_expr t2  
     | TmAbort                   -> "abort" 
-    | TmReturn(_,_)             -> "return"
+    | TmReturn((r,_),_)         -> "return" ^ string_of_expr r 
     | TmLog(_,_,_)              -> "log"
     | TmSlfDstrct _             -> "selfdestruct"
     | TmId        str           -> "id " ^ str
+    | TmEq          _           -> "equality"
+    | TmUint   d                -> "uint " ^ string_of_big d
+    | TmUnit                    -> "()"
+    | TmMinus ((a,_),(b,_))     -> string_of_expr a ^ " - " ^ string_of_expr b
+    | TmMul   ((a,_),(b,_))     -> string_of_expr a ^ " * " ^ string_of_expr b
     | EpThis                    -> "this"
     | EpArray       _           -> "a[idx]"
     | EpSend        _           -> "send"
     | EpNew         _           -> "new"
-    | EpParen       _           -> "()"
     | EpCall        _           -> "call"
     | EpNow                     -> "now"
     | EpSender                  -> "sender"
     | EpTrue                    -> "true"
     | EpFalse                   -> "false"
-    | EpUint256   d             -> "uint " ^ string_of_big d
     | EpUint8     d             -> "uint " ^ string_of_big d
     | EpNot         _           -> "not"
     | EpNEq         _           -> "neq"
@@ -217,13 +215,27 @@ let rec string_of_expr          = function
     | EpLT          _           -> "lt"
     | EpGT          _           -> "gt"
     | EpValue                   -> "value"
-    | EpEq          _           -> "equality"
     | EpAddr        _           -> "address"
     | EpDeref       _           -> "dereference of ..."
-    | EpPlus     (a,b)          -> "... + ..."
-    | EpMinus    (a,b)          -> "... - ..."
-    | EpMult     (a,b)          -> "... * ..."
+    | EpPlus  ((a,_),(b,_))     -> string_of_expr a ^ " + " ^ string_of_expr b
     | EpBalance     _           -> "balance"
+
+let rec string_of_tm  e         = match fst e with 
+    | TmApp(t1,t2)              -> "App(" ^ string_of_tm t1 ^ "," ^ string_of_tm t2 ^ ")"
+    | TmAbs(x,tyX,t)            -> "(λ" ^ x ^ ":" ^ string_of_ty tyX ^ "." ^ string_of_tm t ^ ")"
+    | TmIdx(i,n)                -> "Idx" ^ string_of_int i 
+    | TmIdxRec(i)               -> "Rec" ^ string_of_int i 
+    | TmIf(b,t,t')              -> "(If " ^ string_of_tm b ^ " Then " ^ string_of_tm t ^ " Else " ^ string_of_tm t' ^ ")"
+    | TmFix(t)                  -> "Fix(" ^ string_of_tm t ^ ")" 
+    | TmEq(a,b)                 -> string_of_tm a ^ "==" ^ string_of_tm b
+    | TmUint(b)                 -> string_of_big b 
+    | TmId(str)                 -> str
+    | TmMul(a,b)                -> string_of_tm a ^ " * " ^ string_of_tm b
+    | TmMinus(a,b)              -> string_of_tm a ^ " - " ^ string_of_tm b 
+    | TmUnit                    -> "()" 
+    | EpSend _                  -> "send" 
+    | e                         -> string_of_expr e 
+
 
 (*****************************************)
 (***              SIZE                 ***)

@@ -98,51 +98,38 @@ let rec addTy_call cns cname ctx c =
     ; call_args = argTys    }, reT
 
 
-and addTy_expr cns cname ctx (expr,()) =    match expr with
- (*   | TmAbs(fi,x,tyT1,t2)       ->  p "T-ABS         : ";
-            let ctx'    = addbind ctx x (BindTmVar(tyT1)) in    (*          Γ,x:T1 ⊢ t2 : T2                *)  
-            let tyT2    = typeof ctx' t2 in                     (*       --------------------- T-Abs        *)
-            TyArr(tyT1,tyShift(-1)tyT2)                         (*       Γ ⊢ λx:T1.t2 : T1→T2               *)
-    | TmApp(fi,t1,t2)           ->  p "T-APP         : ";     
-            let tyT1 = typeof ctx t1 in                         (*   Γ |- t1 : T2→T12 ∧ Γ ⊢ t2 : T2         *)
-            let tyT2 = typeof ctx t2 in                         (*   ------------------------------- T-App  *)
-            (match simplifyty ctx tyT1 with                     (*         Γ ⊢ t1 t2 : T12                  *)   
-                | TyArr(tyT11,tyT12)    -> if (tyeqv ctx) tyT2 tyT11 then tyT12 else error fi "type mismatch" 
-                | _                     -> error fi "arrow type expected" ) *)
-    | TmApp(t1,t2)                  ->  pe "tmapp "; 
-                                        let t1,tyT1 = addTy_expr cns cname ctx t1 in 
-                                        pe (string_of_expr t1);
+and addTy_expr cns cname ctx (expr,()) = pe(string_of_tm (expr,()));match expr with
+    | TmApp(t1,t2)                  ->  let t1,tyT1 = addTy_expr cns cname ctx t1 in 
                                         let t2,tyT2 = addTy_expr cns cname ctx t2 in 
-                                        pe (string_of_expr t2);
-                                        begin match tyT1 with 
-                                        | TyAbs(tyT11,tyT12) when tyeqv tyT2 tyT11 -> TmApp((t1,tyT1),(t2,tyT2)), tyT12
-                                        | _ -> err "addTy_expr: type-checking T-APPABS failed" end 
-    | TmAbs(x,tyX,t)                ->  printf "tmabs(%s)\n" x;  
-                                        let t',tyT' = addTy_expr cns cname (add_var ctx x tyX) t in 
+                                        begin match t1,tyT1 with 
+                                        | _,TyAbs(tyT11,tyT12) when tyeqv tyT2 tyT11 -> TmApp((t1,tyT1),(t2,tyT2)), tyT12
+                                        | TmFix _ , tyT                              -> TmApp((t1,tyT1),(t2,tyT2)), tyT
+                                        | TmIdxRec _ , tyT                            -> TmApp((t1,tyT1),(t2,tyT2)), tyT
+                                        | t -> pe(string_of_tm t); err "addTy_expr: type-checking T-APPABS failed" end 
+    | TmAbs(x,tyX,t)                ->  let t',tyT' = addTy_expr cns cname (add_var ctx x tyX) t in 
                                         TmAbs(x,tyX,(t',tyT')), TyAbs(tyX,tyT')
-    | TmIdx(i,n)                    ->  printf"tmidx(%d)\n" i; 
-                                        begin match ctx with 
+    | TmIdx(i,n)                    ->  begin match ctx with 
                                         | BdCtx local :: _ ->
-                                        pe "local context found"; 
                                         let BdTy(id,ty) = L.nth local i in
                                         let ty = tyShift (i+1) ty  in 
                                         TmIdx(i,n)      , ty 
                                         | a :: rest -> addTy_expr cns cname rest (expr,()) 
                                         | _ -> err "addTy_expr: TmIdx: Notfound" end 
-
-    | TmFix(t)                      ->  
-                                        pe"tmfix "; 
-                                        let t,tyT   = addTy_expr cns cname ctx t  in 
-                                        let TyAbs(tyT1,tyT2) = tyT in 
-                                        assert(subtype tyT1 tyT2); 
-                                        TmFix(t,tyT), tyT2 
-    | TmIf(b,t1,t2)                 ->  pe"tmIf ";
-                                        let b,tyB   = addTy_expr cns cname ctx b  in 
-                                        pe (string_of_expr b);
+    | TmFix(TmAbs(r,tyR,t),_)       ->  let t',tyT' = addTy_expr cns cname (add_var ctx r tyR) t in 
+                                        let tyT = TyAbs(tyR,tyT') in 
+                                        let t   = TmAbs(r,tyR,(t',tyT')) in 
+                                        assert(subtype tyR tyT'); 
+                                        TmFix(t,tyT), tyT' 
+    | TmIdxRec(i)                   ->  begin match ctx with 
+                                        | BdCtx local :: _ -> 
+                                        let BdTy(id,ty) = L.nth local i in 
+                                        let ty = tyShift (i+1) ty in 
+                                        TmIdxRec(i) , ty 
+                                        | a :: rest         -> addTy_expr cns cname rest (expr,())
+                                        | _                 -> err "addTy_expr: TmIdxRec: Not found" end 
+    | TmIf(b,t1,t2)                 ->  let b,tyB   = addTy_expr cns cname ctx b  in 
                                         let t1,tyT1 = addTy_expr cns cname ctx t1 in 
-                                        pe (string_of_expr t1);
                                         let t2,tyT2 = addTy_expr cns cname ctx t2 in 
-                                        pe (string_of_expr t1);
                                         assert(tyeqv tyT1 tyT2 && tyB = TyBool); 
                                         TmIf((b,tyB),(t1,tyT1),(t2,tyT2))   , tyT1
     | TmReturn(r,c)                 ->  addTy_return      cns cname ctx  r c 
@@ -155,13 +142,12 @@ and addTy_expr cns cname ctx (expr,()) =    match expr with
     | TmSlfDstrct e                 ->  let e       = addTy_expr        cns cname ctx  e        in
                                         TmSlfDstrct e   , TyTuple[]
     | TmUnit                        ->  TmUnit          , TyTuple[] 
-    | EpParen     e                 ->  addTy_expr cns cname ctx e 
     | EpThis                        ->  EpThis          , TyInstnce cname
     | EpTrue                        ->  EpTrue          , TyBool
     | EpFalse                       ->  EpFalse         , TyBool
     | EpSender                      ->  EpSender        , TyAddr
     | EpNow                         ->  EpNow           , TyUint256
-    | EpUint256   d                 ->  EpUint256   d   , TyUint256
+    | TmUint   d                 ->  TmUint   d   , TyUint256
     | EpUint8     d                 ->  EpUint8     d   , TyUint8
     | EpValue                       ->  EpValue         , TyUint256
     | EpAddr      e                 ->  let e       =   addTy_expr cns cname ctx e          in
@@ -191,25 +177,22 @@ and addTy_expr cns cname ctx (expr,()) =    match expr with
                                         let r       =   addTy_expr cns cname ctx r          in
                                         assert_tyeqv l r ;
                                         EpNEq (l, r)    , TyBool
-    | EpEq (l, r)                   ->  let l       =   addTy_expr cns cname ctx l          in
+    | TmEq (l, r)                   ->  let l       =   addTy_expr cns cname ctx l          in
                                         let r       =   addTy_expr cns cname ctx r          in
                                         assert_tyeqv l r ; 
-                                        EpEq (l, r)     , TyBool
+                                        TmEq (l, r)     , TyBool
     | EpPlus (l, r)                 ->  let l       =   addTy_expr cns cname ctx l          in
                                         let r       =   addTy_expr cns cname ctx r          in
                                         assert_tyeqv l r ;
                                         EpPlus (l, r)   , get_ty l
-    | EpMinus (l, r)                ->  let l       =   addTy_expr cns cname ctx l          in
+    | TmMinus (l, r)                ->  let l       =   addTy_expr cns cname ctx l          in
                                         let r       =   addTy_expr cns cname ctx r          in
                                         assert_tyeqv l r; 
-                                        EpMinus (l, r)  , get_ty l
-    | EpMult (l, r)                 ->  pe"mult";  
-                                        (pe $ string_of_tm ) l;  
-                                        let l       =   addTy_expr cns cname ctx l          in
-                                        (pe $ string_of_expr $ fst ) r;  
+                                        TmMinus (l, r)  , get_ty l
+    | TmMul (l, r)                 ->  let l       =   addTy_expr cns cname ctx l          in
                                         let r       =   addTy_expr cns cname ctx r          in
                                         assert_tyeqv l r; 
-                                        EpMult (l, r)   , snd l
+                                        TmMul (l, r)   , snd l
     | EpNot  e                      ->  let e       =   addTy_expr cns cname ctx e          in
                                         assert (get_ty e=TyBool) ; 
                                         EpNot e         , TyBool

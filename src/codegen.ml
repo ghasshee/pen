@@ -348,25 +348,29 @@ and salloc_array_of_push push_array_seed ce =
 
 (* le is not updated here.  
  * le can only be updated in a variable initialization *)
-and codegen_expr le ce ly aln          = function 
+and codegen_expr le ce ly aln  e        = pe (string_of_tm e); match e with 
+    | TmApp(t1,t2)          ,ty         ->                      codegen_app ly le ce (TmApp(t1,t2))
     | TmAbs(x,tyX,t)        ,TyAbs _    ->                      codegen_abs ly le ce (TmAbs(x,tyX,t))
-    | TmIf(b,t1,t2)         ,tyT        ->                      codegen_if  le ce ly b t1 t2
+    | TmFix(t)              ,ty         ->                      codegen_fix ly le ce (TmFix(t)) 
+    | TmIdx(i,n)            ,ty         ->                      codegen_idx ly le ce (TmIdx(i,n))          
+    | TmIdxRec(i)           ,ty         ->                      codegen_idxrec ly le ce (TmIdxRec(i))
+    | TmIf(b,t1,t2)         ,tyT        ->                      codegen_if  ly le ce (TmIf(b,t1,t2))
     | EpAddr(c,TyInstnce i) ,TyAddr     ->                      (c,TyInstnce i)         >>>>(aln,le,ce,ly) 
     | EpValue               ,TyUint256  ->                      CALLVALUE               >>ce      (* Value (wei) Transferred to the account *) 
     | EpNow                 ,TyUint256  ->                      TIMESTAMP               >>ce 
     | EpFalse               ,TyBool     ->  assert(aln=R);      PUSH1(Big big_0)        >>ce  
     | EpTrue                ,TyBool     ->  assert(aln=R);      PUSH1(Big big_1)        >>ce  
-    | EpUint256 d           ,TyUint256  ->  assert(aln=R);      PUSH32(Big d)           >>ce  
+    | TmUint d           ,TyUint256  ->  assert(aln=R);      PUSH32(Big d)           >>ce  
     | EpUint8 d             ,TyUint8    ->  assert(aln=R);      PUSH1(Big d)            >>ce  
     | EpPlus (l,r)          ,TyUint256  ->                      op ADD l r             le ce ly             
     | EpPlus (l,r)          ,TyUint8    ->                      op ADD l r             le ce ly              
-    | EpMinus(l,r)          ,TyUint256  ->                      op SUB l r             le ce ly             
-    | EpMinus(l,r)          ,TyUint8    ->                      op SUB l r             le ce ly             
-    | EpMult (l,r)          ,TyUint256  ->                      op MUL l r             le ce ly             
-    | EpMult (l,r)          ,TyUint8    ->                      op MUL l r             le ce ly             
+    | TmMinus(l,r)          ,TyUint256  ->                      op SUB l r             le ce ly             
+    | TmMinus(l,r)          ,TyUint8    ->                      op SUB l r             le ce ly             
+    | TmMul (l,r)          ,TyUint256  ->                      op MUL l r             le ce ly             
+    | TmMul (l,r)          ,TyUint8    ->                      op MUL l r             le ce ly             
     | EpLT   (l,r)          ,TyBool     ->  assert(aln=R);      op LT  l r             le ce ly           
     | EpGT   (l,r)          ,TyBool     ->  assert(aln=R);      op GT  l r             le ce ly           
-    | EpEq   (l,r)          ,TyBool     ->  assert(aln=R);      op EQ  l r             le ce ly           
+    | TmEq   (l,r)          ,TyBool     ->  assert(aln=R);      op EQ  l r             le ce ly           
     | EpNEq  (l,r)          ,TyBool     ->  let ce      =       op EQ  l r             le ce ly           in
                                             assert(aln=R);      ISZERO                  >>ce            
     | EpNot expr            ,TyBool     ->  let ce      =       expr                    >>>>(aln,le,ce,ly)in
@@ -384,8 +388,6 @@ and codegen_expr le ce ly aln          = function
     | EpArray a_i           ,TyMap _    ->  let ce      =       codegen_array a_i le ce ly              in  (*            S[keccak(a[i])] >> .. *)
                                             assert(aln=R);      salloc_array  a_i le ce ly                  (*                     S[1]++ >> .. *)
     | EpArray a             ,      _    ->  assert(aln=R);      codegen_array a   le ce ly                  (*               S[keccak(a)] >> .. *)
-    | TmApp(t1,t2)          ,ty         ->                      codegen_app   ly le ce (TmApp(t1,t2))
-    | TmIdx(i,n)            ,ty         ->                      codegen_idx   ly le ce (TmIdx(i,n))          
     | TmId id               ,TyMap(a,b) ->  let loc     =       lookup_le id le                         in 
                                             let ce      =       push_loc ce aln(TyMap(a,b))loc          in 
                                                                 salloc_array_of_loc le ce loc          
@@ -508,20 +510,59 @@ and codegen_mthd_argLen_chk m ce = match m with
     let ce      = CALLDATASIZE                      >>ce        in
                   throw_if_NEQ                        ce    
 
-and codegen_app ly le ce (TmApp(t1,t2)) = 
-    let label   = fresh_label ()                                    in 
-    let le      = add_brjidx le t2                                     in       
-    let ce      = t1                                >>>>(R,le,ce,ly)   in 
+and codegen_fix ly le ce (TmFix(TmAbs(phi,tyPhi,f),_)) = 
+    let ssize   = get_stack_size ce                                 in 
+    let start   = fresh_label ()                                    in 
+    printf "! add_recursion_param(stacksize %d,label%d)\n" ssize start; 
+    let le      = add_recursion_param le ssize start                in
+    let ce      = JUMPDEST start                    >>ce            in 
+    let TmAbs(x,tyX,tm),_ = f in
+    let ce      = tm                                >>>>(R,le,ce,ly)in 
     ce 
 
-and codegen_abs ly le ce (TmAbs(x,tyX,(t,tyT))) = 
-    let ce      = (t,tyT)                           >>>>(R,le,ce,ly)in
+and codegen_app ly le ce (TmApp(t1,t2)) = 
+    let label   = fresh_label ()                                    in 
+    match fst t1 with 
+    | TmIdx(i,n)  -> 
+    let tm      = lookup_brjidx i le in 
+    codegen_app ly le ce (TmApp(tm,t2))
+    | _ -> 
+    printf "! add_brjidx %s\n" (string_of_tm t2); 
+    let le      = add_brjidx le t2                                  in       
+                  t1                                >>>>(R,le,ce,ly)   
+
+and codegen_abs ly le ce (TmAbs(x,tyX,t)) = 
+    let ce      = t                                 >>>>(R,le,ce,ly)in
+    ce 
+
+and codegen_idxrec ly le ce (TmIdxRec(i))       = 
+    let ssize, start = lookup_recursion_param le in 
+    let ce           = dup_nth_from_bottom ssize ce in 
+    let ce          = goto start ce in 
     ce 
 
 and codegen_idx ly le ce (TmIdx(i,n))           = 
     let tm      = lookup_brjidx i le                                   in 
+    pe ("codegen_idx: " ^ string_of_tm tm);
     let ce      = tm                                >>>>(R,le,ce,ly)in 
     ce 
+
+and codegen_if ly le ce (TmIf(b,t1,t2)) = 
+    let els     = fresh_label()                                 in 
+    let fi      = fresh_label()                                 in
+    let ce      = Comment "IF"                  >>ce            in 
+    let ce      = b                             >>>>(R,le,ce,ly)in 
+    let ce      = if_0_GOTO els                   ce            in 
+    let ce      = Comment "THEN"                >>ce            in 
+    let ce      = t1                            >>>>(R,le,ce,ly)in
+    let ce      = goto fi                         ce            in 
+    let ce      = Comment "ELSE"                >>ce            in 
+    let ce      = JUMPDEST els                  >>ce            in 
+    let ce      = t2                            >>>>(R,le,ce,ly)in 
+    let ce      = Comment "FI"                  >>ce            in 
+    let ce      = JUMPDEST fi                   >>ce            in 
+    ce
+
 (*
 and push_fn_args args ce =  foldl (fun ce arg -> PUSH32 arg     >>ce) ce args    
 and codegen_fncall le ce ly f args = 
@@ -544,6 +585,7 @@ and codegen_mthd ly cnidx (le,ce) (TmMthd(head,body))  =
     le,ce
 
 and codegen_expr_stmt le ce ly expr =
+    pe(string_of_tm expr); 
     let ce      = Comment "BEGIN expr-stmt"     >>ce            in
     let ce      = expr                          >>>>(R,le,ce,ly)in
     let ce      = POP                           >>ce            in
@@ -576,22 +618,6 @@ and codegen_decl le ce ly (ty,id,v)  =
     let le      = add_loc le(id, Stack(pos+1))                  in
     let ce      = Comment "END   declaration"   >>ce            in 
     le, ce
-
-and codegen_if le ce ly b t1 t2 = 
-    let els     = fresh_label()                                 in 
-    let fi      = fresh_label()                                 in
-    let ce      = Comment "IF"                  >>ce            in 
-    let ce      = b                             >>>>(R,le,ce,ly)in 
-    let ce      = if_0_GOTO els                   ce            in 
-    let ce      = Comment "THEN"                >>ce            in 
-    let ce      = t1                            >>>>(R,le,ce,ly)in
-    let ce      = goto fi                         ce            in 
-    let ce      = Comment "ELSE"                >>ce            in 
-    let ce      = JUMPDEST els                  >>ce            in 
-    let ce      = t2                            >>>>(R,le,ce,ly)in 
-    let ce      = Comment "FI"                  >>ce            in 
-    let ce      = JUMPDEST fi                   >>ce            in 
-    ce
 
 and codegen_ifstmt le ce ly cond ss1 ss2 =
     let next    = fresh_label()                                 in

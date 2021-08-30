@@ -3,6 +3,7 @@ open    Printf
 open    Misc
 open    Syntax
 open    Location
+open    Label
 
 module  L   = List
 module  S   = String
@@ -25,6 +26,9 @@ type context                    = bind list
                                 | BdLoc   of string * location 
                                 | BdIdx   of ty exprTy 
                                 | BdBrj   of context 
+                                | BdRec   of int * label   (* BdRec(argloc, start) *) 
+                                | BdRecName of string
+                            
 
 type le                         =   context 
 
@@ -34,14 +38,31 @@ let add_empty_brj ctx           = BdBrj[] :: ctx
 
 let prBd                        = function 
     | BdName str                    -> printf "BdName(%s) " str 
+    | BdRecName str                 -> printf "BdRecName(%s) " str
 
 let prBds                       = L.iter prBd 
 
 let rec lookup_bruijn_idx nm    = function 
     | []                            -> (*eprintf"Context: bruijn idx for %s not found\n" nm;*) raise Not_found
     | BdName x :: xs                -> if x=nm then 0 else 1+(lookup_bruijn_idx nm xs) 
+    | _ :: xs                       -> lookup_bruijn_idx nm xs 
 
 let add_bruijn_idx ctx x        = BdName x :: ctx 
+
+let rec lookup_rec_idx nm    = function 
+    | []                            -> (*eprintf"Context: bruijn idx for %s not found\n" nm;*) raise Not_found
+    | BdRecName x :: xs             -> if x=nm then 0 else 1+(lookup_rec_idx nm xs) 
+    | _ :: xs                       -> lookup_rec_idx nm xs 
+
+let add_rec_idx ctx x        = BdRecName x :: ctx 
+
+let rec lookup_recursion_param = function 
+    | []                            -> pe"lookup_recursion_param: lookup failed"; raise Not_found
+    | (BdRec(ssize,start))::rest    -> ssize,start 
+    | _ :: rest                     -> lookup_recursion_param rest 
+
+let add_recursion_param ctx ssize start  = BdRec(ssize,start) :: ctx
+
 
 let lookup_id_local   nm        = find_by_filter (function BdTy(id,ty)when id=nm -> ty          | _ -> raise Not_found) 
 let lookup_id         nm        = find_by_filter (function BdCtx ctx -> lookup_id_local nm ctx  | _ -> raise Not_found)
