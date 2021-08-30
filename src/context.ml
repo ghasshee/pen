@@ -29,6 +29,19 @@ type context                    = bind list
                                 | BdRec   of int * label   (* BdRec(argloc, start) *) 
                                 | BdRecName of string
                             
+let string_of_bind              = function 
+    | BdRec(i,l)                    -> sprintf "BdRec(stack %d, label%d)" i l 
+    | BdBrj ctx                     -> sprintf "BdBrj %s" "local" 
+    | BdLoc(s,l)                    -> sprintf "BdLoc(%s,location)" s 
+    | BdName s                      -> sprintf "BdName(%s)" s 
+    | BdRecName s                   -> sprintf "BdRecName(%s)" s 
+    | BdCtx ctx                     -> sprintf "BdCtx %s" "local" 
+    | _                             -> "Bd" 
+
+let rec string_of_ctx           = function 
+    | []                            -> ""
+    | x::xs                         -> string_of_bind x ^ "," ^ string_of_ctx xs 
+
 
 type le                         =   context 
 
@@ -89,12 +102,12 @@ let add_evnts ctx evs           =   foldl (fun xs x -> (L.cons $ bind_of_ty) x x
 let rec add_var  ctx id ty      =   match ctx with 
     | []                            -> err "add_var: no current scope" 
     | BdCtx local:: rest            -> BdCtx (BdTy(id,ty)::local) :: rest 
-    | _ :: rest                     -> add_var rest id ty
+    | x :: rest                     -> x :: add_var rest id ty
 
 let rec add_brjidx ctx tm          =   match ctx with 
     | []                            -> err "add_brjidx: no current scope" 
     | BdBrj local:: rest            -> BdBrj (BdIdx(tm)::local) :: rest
-    | _ :: rest                     -> add_brjidx rest tm 
+    | x :: rest                     -> x :: add_brjidx rest tm 
 
 (****************************************************)
 (***          arg locations of mthd               ***)

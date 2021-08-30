@@ -348,7 +348,7 @@ and salloc_array_of_push push_array_seed ce =
 
 (* le is not updated here.  
  * le can only be updated in a variable initialization *)
-and codegen_expr le ce ly aln  e        = pe (string_of_tm e); match e with 
+and codegen_expr le ce ly aln  e        = pe (string_of_tm e); pe (string_of_ctx le); match e with 
     | TmApp(t1,t2)          ,ty         ->                      codegen_app ly le ce (TmApp(t1,t2))
     | TmAbs(x,tyX,t)        ,TyAbs _    ->                      codegen_abs ly le ce (TmAbs(x,tyX,t))
     | TmFix(t)              ,ty         ->                      codegen_fix ly le ce (TmFix(t)) 
