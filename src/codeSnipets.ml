@@ -15,7 +15,7 @@ open Layout
 open CodegenEnv
 open Evm
 
-module Eth  = Crypto 
+module Crpt  = Crypto 
 module BL   = BatList
 module L    = List
 
@@ -64,8 +64,7 @@ let push_storRange ce (data : imm data) =
                     SLOAD                           >>ce 
 
 let dup_nth_from_bottom n ce  =
-    let diff   =(get_stack_size ce)-n in assert(diff>=0) ; 
-                dup_succ diff                       >>ce 
+                dup_succ(get_stack_size ce - n)     >>ce 
 
 let shiftRtop ce bits =
     assert (0 <= bits && bits < 256) ; 
@@ -84,11 +83,11 @@ let shiftLtop ce bits =
     let ce    = EXP                                 >>ce    in  (*      2**bits >> x >> .. *) 
                 MUL                                 >>ce        (*       (2**bits)*x >> .. *) 
 
-let incr_top (inc : int) ce =
+let incr_top inc ce =
     let ce    = PUSH32 (Int inc)                    >>ce    in
                 ADD                                 >>ce      
 
-let sincr (idx : int) ce = 
+let sincr idx ce = 
     let ce    = PUSH1(Int idx)                      >>ce    in  (*                                      i >> .. *) 
     let ce    = SLOAD                               >>ce    in  (*                                   S[i] >> .. *) 
     let ce    = DUP1                                >>ce    in  (*                           S[i] >> S[i] >> .. *) 
@@ -117,23 +116,24 @@ let keccak_cat ce =                                             (*              
 (******************************************************)
                 
 let reset_PC ce   =
-    let ce    = PUSH1 (Int 0)                       >>ce    in  (*                             0 >> .. *)
-    let ce    = SLOAD                               >>ce    in  (*                          S[0] >> .. *)
-    let ce    = PUSH1 (Int 0)                       >>ce    in  (*                     0 >> S[0] >> .. *)
-    let ce    = DUP1                                >>ce    in  (*                0 >> 0 >> S[0] >> .. *)
-                SSTORE                              >>ce        (* S'[0]=0                  S[0] >> .. *)
+    let ce      = PUSH1 StorPCIndex                 >>ce    in  (*                             0 >> .. *)
+    let ce      = SLOAD                             >>ce    in  (*                          S[0] >> .. *)
+    let ce      = PUSH1 StorPCIndex                 >>ce    in  (*                     0 >> S[0] >> .. *)
+    let ce      = DUP1                              >>ce    in  (*                0 >> 0 >> S[0] >> .. *)
+                  SSTORE                            >>ce        (* S'[0]=0                  S[0] >> .. *)
 
+let restore_PC ce       =                                        (*                   bkp_PC >> .. *)
+    let ce      = PUSH1 StorPCIndex                 >>ce    in   (*              0 >> bkp_PC >> .. *)
+                  SSTORE                            >>ce         (* S'[0]=bkp_pc                .. *)             
 
-(** [restore_PC]   *)  
-(*                                                 
- *     BEFORE             AFTER                    
- *    +--------+                                     
- *    | bkp_pc |                                     
- *  --+--------+--    --+--------+--  *)
-let restore_PC ce       =                                        (*                   bkp_pc >> .. *)
-    let ce    = PUSH1(Int 0)                        >>ce    in   (*              0 >> bkp_pc >> .. *)
-                SSTORE                              >>ce         (* S'[0]=bkp_pc                .. *)             
+let set_PC ce idx =                                             (*                                                       .. *)
+    let ce      = PUSH32(RntimeCntrctOffset idx)    >>ce    in  (*                                       rn_cn_offset >> .. *) 
+    let ce      = PUSH1 StorPCIndex                 >>ce    in  (*                             storPC >> rn_cn_offset >> .. *) 
+                  SSTORE                            >>ce        (* S[storPC] := rn_cn_offset                             .. *) 
 
+let get_PC ce =
+    let ce      = PUSH1 StorPCIndex                 >>ce    in
+                  SLOAD                             >>ce 
 
 
 (****************************************)
@@ -142,7 +142,7 @@ let restore_PC ce       =                                        (*             
 
 (**  [malloc]                              Addr     Val              Addr     Val     
  *                                         +--------+--------+       +--------+--------+
- *                                         |   64   |   a    |       |   64   | a+size |
+ *                                         | 0x40   |   a    |       | 0x40   | a+size |
  *      BEFORE            AFTER            +--------+--------+       +--------+--------+
  *                                         | ...    |  ...   |       | ...    |  ...   |
  *   +----------+      +----------+        +--------+--------+       +--------+--------+
@@ -153,6 +153,11 @@ let restore_PC ce       =                                        (*             
  *      size := pop();                     | a+size |        |     --> a+size |        |
  *      a    := alloc(size);               +--------+--------+       +--------+--------+
  *      push(a)                                BEFORE MEM                AFTER MEM      *)
+
+let init_malloc ce =                                            (* initialize as M[64] := 96  ( M[0x40] := 0x60 ) *)
+    let ce      = PUSH1 (Int 0x60)                  >>ce    in
+    let ce      = PUSH1 (Int 0x40)                  >>ce    in
+                  MSTORE                            >>ce    
 
 let malloc ce    =                                              (*  STACK                                            len >> .. *)
     let ce    = PUSH1 (Int 0x40)                    >>ce    in  (*                                             64 >> len >> .. *)
@@ -187,11 +192,11 @@ let mstore_whole_code ce =
                 CODECOPY                            >>ce        (*        to           from           alloc(size) >> size >> .. *)
 
 let push_mthd_hash m ce =
-    let b     = Eth.(big_of_hex $ hash_ty_mthd)m            in  
+    let b     = Crpt.(big_of_hex $ hash_ty_mthd)m            in  
                 PUSH4(Big b)                        >>ce    
 
 let push_evnt_hash ev ce =
-    let b     = Eth.(big_of_hex $ hash_of_evnt)ev           in  
+    let b     = Crpt.(big_of_hex $ hash_of_evnt)ev           in  
                 PUSH4(Big b)                        >>ce             
 
 let mstore_mthd_hash mthd ce =
@@ -203,19 +208,3 @@ let mstore_mthd_hash mthd ce =
                 MSTORE                              >>ce        (* M[alloc(4)] := hash                       alloc(4) >> 4 >> .. *)
 
 
-
-(**   6.1. Init MemAlloc       *****)
-let init_malloc ce =                                            (* initialize as M[64] := 96  ( M[0x40] := 0x60 ) *)
-    let ce      = PUSH1 (Int 0x60)                  >>ce    in
-    let ce      = PUSH1 (Int 0x40)                  >>ce    in
-                  MSTORE                            >>ce    
-
-(**   6.2.  CONTRACT PC        *****) 
-let set_cntrct_pc ce idx =                                      (*                                                       .. *)
-    let ce      = PUSH32(RntimeCntrctOffset idx)    >>ce    in  (*                                       rn_cn_offset >> .. *) 
-    let ce      = PUSH32 StorPCIndex                >>ce    in  (*                             storPC >> rn_cn_offset >> .. *) 
-                  SSTORE                            >>ce        (* S[storPC] := rn_cn_offset                             .. *) 
-
-let get_cntrct_pc ce =
-    let ce      = PUSH32 StorPCIndex                >>ce    in
-                  SLOAD                             >>ce 

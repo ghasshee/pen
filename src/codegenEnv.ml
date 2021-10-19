@@ -65,7 +65,7 @@ and stmt_become                     =   function
     | SmIf(c,b,b')                  ->  expr_become c @ stmts_become b @ stmts_become b'
 and exprs_become es                 =   L.concat (L.map expr_become es)
 and expr_become  e                  =   match fst e with
-    | TmAbort | TmUnit | EpTrue | EpFalse | EpNow | EpThis | EpValue | EpSender | TmId _  | EpUint8 _ | TmUint _ -> []
+    | TmAbort  | TmUnit  | EpTrue | EpFalse | EpNow | EpThis | EpValue | EpSender | TmId _  | EpUint8 _ | TmUint _ -> []
     | EpAddr e | EpNot e | EpDeref e | EpBalance e | TmSlfDstrct e ->  expr_become e
     | EpLT   (l,r) | EpGT   (l,r) | EpNEq  (l,r) | TmEq   (l,r)           
     | TmMul (l,r) | EpPlus (l,r) | EpLAnd (l,r) | TmMinus(l,r)          

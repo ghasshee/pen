@@ -4,7 +4,7 @@ contract A() {
         let u256 a = 1 in 
         let u256 b = 900 in 
         a + b * b + 1000 ; 
-        let rec fac : u256 -> u256 = (fn n:u256 -> if n == 0 then 1 else n * (fac (n-1))) in  fac 10;
+        let rec fac : u256 -> u256 = (fn n:u256 -> if n == 0 then 1 else (fac (n-1)) * n) in  fac 10;
         (fn y:u256 -> fn z:u256 ->  y * 100 - y + z ) 3333333333333 44444444; 
 		return pre_ecdsarecover(x, b, c, d) then become A();
 	}

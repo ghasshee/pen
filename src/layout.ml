@@ -15,54 +15,49 @@ module L    = List
 (***                                                    ***)
 (**********************************************************)
 
-type cnstrInfo                  =
-                                { cnstrCodeSize     : int
-                                ; fieldVarsSize     : int      
-                                ; fieldArrsSize     : int    
-                                ; fieldTypes        : ty list       }   
+type cnstrInfo                  =   { cnstrCodeSize     : int
+                                    ; fieldVarsSize     : int      
+                                    ; fieldArrsSize     : int    
+                                    ; fieldTypes        : ty list       }   
 
-let cnstrInfo_of_cn cn initCode =   
-                                { cnstrCodeSize     = size_of_program initCode                                
-                                ; fieldVarsSize     = size_of_vars_in_cn  cn                                  
-                                ; fieldArrsSize     = len  (arrTys_of_cn cn)                             
-                                ; fieldTypes        = tys_of_vars cn.fields     } 
-                                                                         
-                                                                        (* The Storage in Runtime                                        *) 
-                                                                        (* Array elements are placed as in Solidity                      *)    
-                                                                        (*                                                               *)
-                                                                        (*  S[0]  := PROGRAM COUNTER                                     *)
-type storLayout                 =                                       (*  S[1]  := ARRAY SEED COUNTER                                  *)
-                                { pc                : int               (*  S[2]  := pod cntrct arg0   --+                ---+           *)
-                                ; ac                : int               (*   ...                         |   k  args         | n args    *)                  
-                                ; cnidxs            : idx list          (*  S[k+1]:= pod cntrct argk-1 --+                   |           *)    
-                                ; cnstrSize         : idx -> int        (*  S[k+2]:= array0's seed     --+                   |           *)    
-                                ; fieldVars         : idx -> int data   (*   ...                         | (n-k) arrSeeds    |           *)    
-                                ; fieldArrs         : idx -> int data } (*  S[n+1]:= arraym's seed     --+                ---+           *)    
-                                                       
+let cnstrInfo_of_cn cn initCode =   { cnstrCodeSize     = size_of_program initCode                                
+                                    ; fieldVarsSize     = size_of_vars_in_cn  cn                                  
+                                    ; fieldArrsSize     = len  (arrTys_of_cn cn)                             
+                                    ; fieldTypes        = tys_of_vars cn.fields     } 
+                                                                            
+type storLayout                 =   { pc                : int               (* The Storage in Runtime                                        *) 
+                                    ; ac                : int               (* Array elements are placed as in Solidity                      *)                  
+                                    ; cnidxs            : idx list          (*                                                               *)    
+                                    ; cnstrSize         : idx -> int        (*  S[0]  := PROGRAM COUNTER                                     *)    
+                                    ; fieldVars         : idx -> int data   (*  S[1]  := ARRAY SEED COUNTER                                  *)    
+                                    ; fieldArrs         : idx -> int data } (*  S[2]  := pod cntrct arg0   --+                ---+           *)    
+                                                                            (*   ...                         |   k  args         | n args    *)  
+                                                                            (*  S[k+1]:= pod cntrct argk-1 --+                   |           *)  
+                                                                            (*  S[k+2]:= array0's seed     --+                   |           *)  
+                                                                            (*   ...                         | (n-k) arrSeeds    |           *)  
+                                                                            (*  S[n+1]:= arraym's seed     --+                ---+           *)  
+
 let calc_cnstrSize l idx        =   (lookup idx l).cnstrCodeSize
 
-let calc_fieldVars l idx        =   { offst         = 2 
-                                    ; size          =     (lookup idx l).fieldVarsSize         }
-let calc_fieldArrs l idx        =   { offst         = 2 + (lookup idx l).fieldVarsSize
-                                    ; size          =     (lookup idx l).fieldArrsSize         } 
+let calc_fieldVars l idx        =   { offst             = 2 
+                                    ; size              =     (lookup idx l).fieldVarsSize      }
+let calc_fieldArrs l idx        =   { offst             = 2 + (lookup idx l).fieldVarsSize
+                                    ; size              =     (lookup idx l).fieldArrsSize      } 
     
-let cnstrct_storLayout idx_lyts =   { pc            = 0              
-                                    ; ac            = 1
-                                    ; cnidxs        = idxs idx_lyts 
-                                    ; cnstrSize     = calc_cnstrSize idx_lyts 
-                                    ; fieldVars     = calc_fieldVars idx_lyts
-                                    ; fieldArrs     = calc_fieldArrs idx_lyts     } 
-    
-                                                       
+let cnstrct_storLayout idx_lyts =   { pc                = 0              
+                                    ; ac                = 1
+                                    ; cnidxs            = idxs idx_lyts 
+                                    ; cnstrSize         = calc_cnstrSize idx_lyts 
+                                    ; fieldVars         = calc_fieldVars idx_lyts
+                                    ; fieldArrs         = calc_fieldArrs idx_lyts               } 
 
 (**********************************************************)
 (***                                                    ***)
 (**********************************************************)
-type rntimeInfo                 =
-                                { rntimeCodeSize            : int
-                                ; rntimeCnOffsts            : int idxlist   (* == cnstrCodeSizes *) 
-                                ; rntimeCnstrOffsts         : int idxlist
-                                ; rntimeCnstrSizes          : int idxlist      }
+type rntimeInfo                 =   { rntimeCodeSize    : int
+                                    ; rntimeCnOffsts    : int idxlist   (* == cnstrCodeSizes *) 
+                                    ; rntimeCnstrOffsts : int idxlist
+                                    ; rntimeCnstrSizes  : int idxlist                           }
 
 (* init_data := Contract Creation Code                                                                          *) 
 (* The initial data is organized like this:                                                                     *)
@@ -71,7 +66,6 @@ type rntimeInfo                 =
 (* | rntime code  ---+                                                                                          *)
 (* | cnstr  args   | |                                                                                          *)
 (* +---------------+ |                                                                                          *)
-(*                   |                                                                                          *)
 (*                   |  the rntime code is organized like this:                                                 *)
 (*                   |  +----------------------------------+       the rntime code for a particular cntrct      *)
 (*                   +->|dispatcher that jumps to StoredPC |      +--------------------------------------+      *)
@@ -80,12 +74,11 @@ type rntimeInfo                 =
 (*                      |rntime code for cntrct C          |      | rntime code for method g             |      *)
 (*                      +----------------------------------+      +--------------------------------------+      *)
 
-type cnLayout                   =                                                   
-                                { initDataSize              : idx -> int                      
-                                ; rntimeCodeSize            : int                   
-                                ; rntimeCnOffsts            : int idxlist               
-                                ; rntimeCnstrOffsts         : int idxlist
-                                ; sl                        : storLayout        }
+type cnLayout                   =   { initDataSize              : idx -> int                      
+                                    ; rntimeCodeSize            : int                   
+                                    ; rntimeCnOffsts            : int idxlist               
+                                    ; rntimeCnstrOffsts         : int idxlist
+                                    ; sl                        : storLayout        }
 
 let calc_cnstrArgBegin l (ri:rntimeInfo) idx    =   calc_cnstrSize l idx + ri.rntimeCodeSize
 let calc_initDataSize  l (ri:rntimeInfo) idx    =   calc_cnstrArgBegin l ri idx + (lookup idx l).fieldVarsSize
@@ -94,7 +87,6 @@ let cnstrct_cnLayout   l (ri:rntimeInfo)        =   { initDataSize          = ca
                                                     ; rntimeCnOffsts        = ri.rntimeCnOffsts
                                                     ; rntimeCnstrOffsts     = ri.rntimeCnstrOffsts
                                                     ; sl                    = cnstrct_storLayout l          }
-
 
 let rec realize_imm cnLayt (init_idx:idx)   = function 
     | Big b                         ->  b
@@ -196,13 +188,13 @@ let rec gen_field_locs offset used_plains used_seeds num_plains = function
 
 (* this needs to take stor_fieldVars_begin *)
 let fieldVar_locations offset (cn:ty cntrct) : int list =
-    let field_tys     = tys_of_vars cn.fields       in
+    let field_tys     = tys_of_vars cn.fields           in
     let num_of_plains = count_plain_args field_tys      in
     let ret           = gen_field_locs offset 0 0 num_of_plains field_tys in 
     ret 
 
 let fieldArr_locations (cn:ty cntrct) : int list =
-    let field_tys     = tys_of_vars cn.fields       in
+    let field_tys     = tys_of_vars cn.fields           in
     let num_of_plains = count_plain_args field_tys      in
     let total_num     = L.length field_tys              in
     if total_num=num_of_plains 
