@@ -140,6 +140,32 @@ let get_PC ce =
 (***     5. MEMORY OPERATIONS         ***)
 (****************************************)
 
+let _KECCAK1 = 0x00
+let _KECCAK2 = 0x20 
+let _HP      = 0x40        (* HEAP Pointer *) 
+let initHP   = 0x1000000   (* Initial HEAP Head *) 
+let _EPR     = 0x60        (* Escaping Variable Record Pointer *) 
+let initEPR  = 0x100
+let _MSP     = 0x80 
+let initMSP  = 0x100000
+
+let getMSP ce = 
+    let ce      = PUSH1 _MSP    >>ce in 
+                  MLOAD         >>ce 
+
+let mPUSH x ce = 
+    let ce      = PUSH32 x      >>ce in   
+    let ce      = getMSP          ce in 
+    let ce      = DUP           >>ce in 
+    let ce      = PUSH1 0x20    >>ce in 
+    let ce      = ADD           >>ce in 
+    let ce      = PUSH1 _MSP    >>ce in 
+    let ce      = MSTORE        >>ce in 
+                  MSTORE        >>ce   
+
+
+
+
 (**  [malloc]                              Addr     Val              Addr     Val     
  *                                         +--------+--------+       +--------+--------+
  *                                         | 0x40   |   a    |       | 0x40   | a+size |
