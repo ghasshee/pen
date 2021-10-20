@@ -177,14 +177,26 @@ let mPUSH x ce =
     let ce      = DUP1              >>ce in (*                                             M[SP] >> M[SP] >> x >> .. *)
     let ce      = PUSH32 maxMSP     >>ce in (*                                   maxSP >>  M[SP] >> M[SP] >> x >> .. *) 
     let ce      = LT                >>ce in (*                               maxSP<M[SP] ? 1 : 0 >> M[SP] >> x >> .. *) 
-    let ce      = throw               ce in (*                                                      M[SP] >> x >> .. *)
+    let ce      = throw_if            ce in (*                                                      M[SP] >> x >> .. *)
     let ce      = DUP1              >>ce in (*                                             M[SP] >> M[SP] >> x >> .. *)         
     let ce      = PUSH1(Int 0x20)   >>ce in (*                                    0x20 >>  M[SP] >> M[SP] >> x >> .. *)
     let ce      = ADD               >>ce in (*                                        0x20+M[SP] >> M[SP] >> x >> .. *)
     let ce      = PUSH1 _MSP        >>ce in (*                                  SP >> 0x20+M[SP] >> M[SP] >> x >> .. *)
-    let ce      = MSTORE            >>ce in (* M[SP]    := M[SP]++0x20                              M[SP] >> x >> .. *)
+    let ce      = MSTORE            >>ce in (* M[SP]    := M[SP]+0x20                              M[SP] >> x >> .. *)
                   MSTORE            >>ce    (* M[M[SP]] := x                                                      .. *) 
 
+let mPOP    ce  = 
+    let ce      = PUSH1 (Int 0x20)  >>ce in 
+    let ce      = getMSP              ce in 
+    let ce      = DUP1              >>ce in 
+    let ce      = PUSH32 initMSP    >>ce in (* initMSP >> M[SP] >> M[SP] >> 0x20 >> .. *)  
+    let ce      = GT                >>ce in (*   initMSP>M[SP]? >> M[SP] >> 0x20 >> .. *) 
+    let ce      = throw_if            ce in (*                    M[SP] >> 0x20 >> .. *)    
+    let ce      = SUB               >>ce in (*                       M[SP]-0x20 >> .. *)
+    let ce      = PUSH1 _MSP        >>ce in (*                 SP >> M[SP]-0x20 >> .. *) 
+                  MSTORE            >>ce    (* M[SP] := M[SP]-0x20              >> .. *) 
+
+    
 
 
 (**  [malloc]                              Addr     Val              Addr     Val     
