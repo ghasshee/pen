@@ -19,25 +19,35 @@ module Crpt  = Crypto
 module BL   = BatList
 module L    = List
 
+let error_label = Int 3
 
 (******************************************************)
 (***     1. ERROR HANDLING                          ***)
 (******************************************************)
+let error_loop ce = 
+    let error   =   fresh_label ()                          in 
+    let boost   =   fresh_label ()                          in 
+    let ce      =   PUSH1(Label boost)              >>ce    in 
+    let ce      =   JUMP                            >>ce    in 
+    let ce      =   JUMPDEST error                  >>ce    in 
+    let ce      =   PUSH1(Label error)              >>ce    in 
+    let ce      =   JUMP                            >>ce    in 
+                    JUMPDEST boost                  >>ce    
 
 let throw ce         = (* the same with solc. *)
-    let ce      =   PUSH1(Int 2)                    >>ce    in
+    let ce      =   PUSH1 error_label               >>ce    in
                     JUMP                            >>ce 
 
 let throw_if_0 ce    =                                          (*                                  i >> .. *)   
     let ce      =   DUP1                            >>ce    in  (*                             i >> i >> .. *)
     let ce      =   ISZERO                          >>ce    in  (*                             b >> i >> .. *)
-    let ce      =   PUSH1(Int 0)                    >>ce    in  (*                        0 >> b >> i >> .. *)
+    let ce      =   PUSH1 error_label               >>ce    in  (*                        0 >> b >> i >> .. *)
                     JUMPI                           >>ce        (* {GOTO 0 if b}                    i >> .. *)
       
 let throw_if_NEQ ce   =                                         (*                             a >> b >> .. *) 
     let ce      =   EQ                              >>ce    in  (*                               a==b >> .. *)
     let ce      =   ISZERO                          >>ce    in  (*                               a!=b >> .. *)    
-    let ce      =   PUSH1(Int 0)                    >>ce    in  (*                          0 >> a!=b >> .. *)
+    let ce      =   PUSH1 error_label               >>ce    in  (*                          0 >> a!=b >> .. *)
                     JUMPI                           >>ce        (* {IF a!=b THEN GOTO 0}                 .. *)
 
 let if_0_GOTO lbl ce = 
@@ -140,29 +150,32 @@ let get_PC ce =
 (***     5. MEMORY OPERATIONS         ***)
 (****************************************)
 
-let _KECCAK1 = 0x00
-let _KECCAK2 = 0x20 
-let _HP      = 0x40        (* HEAP Pointer *) 
-let initHP   = 0x1000000   (* Initial HEAP Head *) 
-let _EPR     = 0x60        (* Escaping Variable Record Pointer *) 
-let initEPR  = 0x100
-let _MSP     = 0x80 
-let initMSP  = 0x100000
+let _KECCAK1 = Int 0x00
+let _KECCAK2 = Int 0x20 
+let _HP      = Int 0x40        (* HEAP Pointer *) 
+let initHP   = Int 0x1000000   (* Initial HEAP Head *) 
+let _EPR     = Int 0x60        (* Escaping Variable Record Pointer *) 
+let initEPR  = Int 0x100
+let _MSP     = Int 0x80 
+let initMSP  = Int 0x100000
+let maxMSP   = let Int i = initHP in Int (i-1)  
 
 let getMSP ce = 
-    let ce      = PUSH1 _MSP    >>ce in 
-                  MLOAD         >>ce 
+    let ce      = PUSH1 _MSP        >>ce in 
+                  MLOAD             >>ce 
 
 let mPUSH x ce = 
-    let ce      = PUSH32 x      >>ce in   
-    let ce      = getMSP          ce in 
-    let ce      = DUP           >>ce in 
-    let ce      = PUSH1 0x20    >>ce in 
-    let ce      = ADD           >>ce in 
-    let ce      = PUSH1 _MSP    >>ce in 
-    let ce      = MSTORE        >>ce in 
-                  MSTORE        >>ce   
-
+    let ce      = PUSH32 x          >>ce in (*                                                               x >> .. *)
+    let ce      = getMSP              ce in (*                                                      M[SP] >> x >> .. *)
+    let ce      = DUP1              >>ce in (*                                             M[SP] >> M[SP] >> x >> .. *)
+    let ce      = PUSH32 maxMSP     >>ce in (*                                   maxSP >>  M[SP] >> M[SP] >> x >> .. *) 
+    let ce      = LT                >>ce in (*                               maxSP<M[SP] ? 1 : 0 >> M[SP] >> x >> .. *) 
+    let ce      = DUP1              >>ce in (*                                             M[SP] >> M[SP] >> x >> .. *)         
+    let ce      = PUSH1(Int 0x20)   >>ce in (*                                    0x20 >>  M[SP] >> M[SP] >> x >> .. *)
+    let ce      = ADD               >>ce in (*                                        0x20+M[SP] >> M[SP] >> x >> .. *)
+    let ce      = PUSH1 _MSP        >>ce in (*                                  SP >> 0x20+M[SP] >> M[SP] >> x >> .. *)
+    let ce      = MSTORE            >>ce in (* M[SP]    := M[SP]++0x20                              M[SP] >> x >> .. *)
+                  MSTORE            >>ce    (* M[M[SP]] := x                                                      .. *) 
 
 
 
