@@ -29,35 +29,42 @@ let error_loop ce =
     let boost   =   fresh_label ()                          in 
     let ce      =   PUSH1(Label boost)              >>ce    in 
     let ce      =   JUMP                            >>ce    in 
+    let ce      =   Comment "BEGIN ERROR LOOP"      >>ce    in 
     let ce      =   JUMPDEST error                  >>ce    in 
     let ce      =   PUSH1(Label error)              >>ce    in 
     let ce      =   JUMP                            >>ce    in 
+    let ce      =   Comment "END   ERROR LOOP"      >>ce    in 
                     JUMPDEST boost                  >>ce    
 
 let throw ce         = (* the same with solc. *)
     let ce      =   PUSH1 error_label               >>ce    in
                     JUMP                            >>ce 
 
+let throw_if ce     =                                           (*                               cond >> .. *)
+    let ce      =   PUSH1 error_label               >>ce    in  (*                   errlabel >> cond >> .. *)
+                    JUMPI                           >>ce        (* if cond then goto err                 .. *) 
+
 let throw_if_0 ce    =                                          (*                                  i >> .. *)   
     let ce      =   DUP1                            >>ce    in  (*                             i >> i >> .. *)
-    let ce      =   ISZERO                          >>ce    in  (*                             b >> i >> .. *)
-    let ce      =   PUSH1 error_label               >>ce    in  (*                        0 >> b >> i >> .. *)
-                    JUMPI                           >>ce        (* {GOTO 0 if b}                    i >> .. *)
+    let ce      =   ISZERO                          >>ce    in  (*                 i==0 ? 1 : 0  >> i >> .. *)
+                    throw_if                          ce        (*                                  i >> .. *) 
       
 let throw_if_NEQ ce   =                                         (*                             a >> b >> .. *) 
     let ce      =   EQ                              >>ce    in  (*                               a==b >> .. *)
     let ce      =   ISZERO                          >>ce    in  (*                               a!=b >> .. *)    
-    let ce      =   PUSH1 error_label               >>ce    in  (*                          0 >> a!=b >> .. *)
-                    JUMPI                           >>ce        (* {IF a!=b THEN GOTO 0}                 .. *)
+                    throw_if                          ce        (* if a!=b then throw                    .. *) 
 
-let if_0_GOTO lbl ce = 
-    let ce      =   ISZERO                          >>ce    in 
-    let ce      =   PUSH4(Label lbl)                >>ce    in 
-                    JUMPI                           >>ce    
-
-let goto la   ce    = 
+let goto    la ce   = 
     let ce      =   PUSH4(Label la)                 >>ce    in 
                     JUMP                            >>ce 
+
+let if_GOTO la ce   = 
+    let ce      =   PUSH4(Label la)                 >>ce    in 
+                    JUMPI                           >>ce 
+
+let if_0_GOTO la ce = 
+    let ce      =   ISZERO                          >>ce    in 
+                    if_GOTO la                        ce  
 
 let repeat opcode n ce = foldn n ((>>)opcode) ce
 
@@ -170,6 +177,7 @@ let mPUSH x ce =
     let ce      = DUP1              >>ce in (*                                             M[SP] >> M[SP] >> x >> .. *)
     let ce      = PUSH32 maxMSP     >>ce in (*                                   maxSP >>  M[SP] >> M[SP] >> x >> .. *) 
     let ce      = LT                >>ce in (*                               maxSP<M[SP] ? 1 : 0 >> M[SP] >> x >> .. *) 
+    let ce      = throw               ce in (*                                                      M[SP] >> x >> .. *)
     let ce      = DUP1              >>ce in (*                                             M[SP] >> M[SP] >> x >> .. *)         
     let ce      = PUSH1(Int 0x20)   >>ce in (*                                    0x20 >>  M[SP] >> M[SP] >> x >> .. *)
     let ce      = ADD               >>ce in (*                                        0x20+M[SP] >> M[SP] >> x >> .. *)
