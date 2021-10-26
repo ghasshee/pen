@@ -247,7 +247,7 @@ let mPOP    ce  =
     let ce      = MLOAD                     >>ce in (*                                                   M[SP] >> 0x20 >> .. *) 
     let ce      = check_NOT_LT _MS_MIN        ce in (*                                                   M[SP] >> 0x20 >> .. *)
     let ce      = SUB                       >>ce in (*                                                      M[SP]-0x20 >> .. *)
-    let ce      = PUSH1 _MSP                >>ce in (*                                                SP >> M[SP]-0x20 >> .. *) 
+    let ce      = PUSH32 _MSP               >>ce in (*                                                SP >> M[SP]-0x20 >> .. *) 
                   MSTORE                    >>ce    (* M[SP] := M[SP]-0x20                                             >> .. *) 
 
 

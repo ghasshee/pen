@@ -16,7 +16,7 @@ let fresh_label ()              =   let l          = !current_label in
                                     l
 
 let register_label label line   =   labelTbl := (label,line) :: !labelTbl  
-let lookup_label   label        =   List.assoc label !labelTbl
+let lookup_label   label        =   List.assoc label !labelTbl 
                                     
 
 (**********************)

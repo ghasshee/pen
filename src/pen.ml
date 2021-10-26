@@ -71,6 +71,12 @@ let ()      =
     pe"----- storage layout built ------------";
     let rc         : rntimeCode                 = compile_rntime layt cns                   in          
     pe"----- contrct layout built ------------";
+    let tycn = L.hd cns in 
+    pe "----" ; 
+    let cn   = fst tycn in 
+    pe "----" ; 
+    let bytecode   : big_int Evm.program = compose_bytecode ccs rc cn in 
+    pe "----" ; 
     let bytecode   : big_int Evm.program        = compose_bytecode ccs rc (fst(L.hd cns))   in          
     if  abi                                                                                               
         then Abi.prABI idx_ty_opt_ASTs                                                                          

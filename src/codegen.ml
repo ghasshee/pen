@@ -512,7 +512,7 @@ and codegen_mthd_argLen_chk m ce = match m with
 
 
 and escape_ARG arg retlabel le ce ly a = 
-    let ce      = PUSH4(Label retlabel)         >>ce              in     
+    let ce      = PUSH32(Label retlabel)         >>ce              in     
     let ce      = arg                           >>>>(a,le,ce,ly)  in 
                   ePUSH                           ce               
         
@@ -549,7 +549,8 @@ and codegen_app ly le ce (TmApp(t1,t2)) = match fst t1 with
     | TmFix(f,n,ty,tm)  -> 
     let ret     = fresh_label ()                                in 
     let ce      = escape_ARG t2 ret le ce ly R                  in 
-                  codegen_fix ly le ce (TmFix(f,n,ty,tm)) 
+    let ce      = codegen_fix ly le ce (TmFix(f,n,ty,tm))       in
+                  JUMPDEST ret >>ce 
     | _ -> 
     printf "! add_brjidx %s\n" (string_of_tm t2); 
     let le      = add_brjidx le t2                                      in       
@@ -812,7 +813,7 @@ let program_of_cnstrs ccs           =
 
 let compose_bytecode ccs rc idx : big_int Evm.program =
     let cnstrInfos          = map cnstrInfo_of_cnstrCode  ccs                       in
-    let rntimeInfo          =    rntimeInfo_of_rntimeCode rc ccs                    in
+    let rntimeInfo          = rntimeInfo_of_rntimeCode rc ccs                       in
     let cnly                = cnstrct_cnLayout cnstrInfos rntimeInfo                in
     let cnstrCode           = lookup idx ccs                                        in
     let imm_cnstr           = realize_program cnly idx(program_of_cc cnstrCode)     in

@@ -103,6 +103,7 @@ let rec realize_imm cnLayt (init_idx:idx)   = function
     | RntimeCntrctOffset    idx     ->  big (lookup idx cnLayt.rntimeCnOffsts)
     | RntimeMthdLabel(idx,mthd_hd)  ->  let label = lookup_entry (Mthd(idx,mthd_hd)) in big (Label.lookup_label label)
     | Minus (a, b)                  ->  sub_big_int (realize_imm cnLayt init_idx a) (realize_imm cnLayt init_idx b)
+    | e -> err " hoge " 
 
 let realize_opcode cnLayt (init_idx:idx)    = function 
     | PUSH1  imm      -> PUSH1  (realize_imm cnLayt init_idx imm)
