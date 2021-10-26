@@ -353,9 +353,9 @@ and salloc_array_of_push push_array_seed ce =
 and codegen_expr le ce ly aln  e        = pe (string_of_tm e); pe (string_of_ctx le); match e with 
     | TmApp(t1,t2)          ,ty         ->                      codegen_app     ly le ce (TmApp(t1,t2))
     | TmAbs(x,tyX,t)        ,TyAbs _    ->                      codegen_abs     ly le ce (TmAbs(x,tyX,t))
- (* | TmFix(t)              ,ty         ->                      codegen_fix     ly le ce (TmFix(t)) *)
+    | TmFix(f,n,tyF,t)      ,ty         ->                      codegen_fix     ly le ce (TmFix(f,n,tyF,t))
     | TmIdx(i,n)            ,ty         ->                      codegen_idx     ly le ce (TmIdx(i,n))          
- (* | TmIdxRec(i)           ,ty         ->                      codegen_idxrec  ly le ce (TmIdxRec(i)) *)
+    | TmIdxStrct(i)         ,ty         ->                      codegen_idxstruct ly le ce (TmIdxStrct(i))
     | TmIf(b,t1,t2)         ,tyT        ->                      codegen_if      ly le ce (TmIf(b,t1,t2)) 
     | EpAddr(c,TyInstnce i) ,TyAddr     ->                      (c,TyInstnce i)         >>>>(aln,le,ce,ly) 
     | EpValue               ,TyUint256  ->                      CALLVALUE               >>ce      (* Value (wei) Transferred to the account *) 
@@ -513,38 +513,6 @@ and codegen_mthd_argLen_chk m ce = match m with
                   throw_if_NEQ                        ce    
 
 
-(*  PURE_CALL f N                         PURE_RETURN                              
- *                                                                                                                        
- *                                                                                                          
- *    push RETAddr                          get RETAddr                                                                     
- *                                          set RET                                                                         
- *    push M[LCL]                          
- *    push M[ARG]                           set SP                                                                          
- *    push M[THIS]                          restore THAT                                                                                  
- *    push M[THAT]                          restore THIS                                                                                  
- *    M[ARG]   := STACKHEIGHT - N - 4       goto RETAddr                                                                                  
- *    goto f                                                                                                                
- *    (LABEL RETAddr)                                                                                                       
- *
- *
- *
- *  TmFix(TmAbs(f,TmAbs(n,tm))) 
- *  
- *  goto start 
- *  (Label f) 
- *    tm >>>> 
- *    |   (   ...             ) 
- *    |   (  push (arg - 1)   ) 
- *    |   (  PURE_CALL f      )
- *    |   (   ...             ) 
- *    +-  (  PURE_RETURN      )  
- *  (Label start)
- *    push n   
- *    PURE_CALL f 
- *  (Label RETAddr) 
- *
- *)                                                                                                                       
-                                                                                                                          
 
 and escape_ARG arg retlabel le ce ly a = 
     let ce      = PUSH4(Label retlabel)         >>ce              in     
@@ -554,13 +522,12 @@ and escape_ARG arg retlabel le ce ly a =
 and get_escaped_ARG ce        = 
                  ce 
 
-and codegen_idxrec aln ly le ce (TmApp((TmIdxRec(i),_),arg))       = 
+and codegen_app_idxrec aln ly le ce (TmApp((TmIdxRec(i),_),arg))       = 
     let retlabel        = fresh_label ()                                in 
     let start           = lookup_recursion_param le                     in 
     let ce              = escape_ARG arg retlabel le ce ly aln          in 
-    let ce              = goto start ce                                 in 
-    let ce              = JUMPDEST retlabel                             in 
-    ce 
+    let ce              = goto start                  ce                in 
+                          JUMPDEST retlabel         >>ce                         
 
 and codegen_fix ly le ce (TmFix(phi,n,ty,tm)) = 
     let start   = fresh_label ()                                        in 
@@ -571,14 +538,17 @@ and codegen_fix ly le ce (TmFix(phi,n,ty,tm)) =
     let ce      = ePOP                                ce                in  (*                    retAddr >> tm >> .. *) 
     let ce      = JUMP                              >>ce                in  (* GOTO retAddr                  tm >> .. *)
     ce 
-(*
-and codegen_idxstruct aln ly le ce (TmIdxStrct(i)) = 
+
+and codegen_idxstruct ly le ce (TmIdxStrct(i)) = 
                   get_escaped_arg ce  
-*)
+
+
 and codegen_app ly le ce (TmApp(t1,t2)) = match fst t1 with 
     | TmIdx(i,n)        -> 
     let tm      = lookup_brjidx i le in 
                   codegen_app ly le ce (TmApp(tm,t2))
+    | TmIdxRec(i)       -> 
+                  codegen_app_idxrec R ly le ce (TmApp(t1,t2))
     | TmFix(f,n,ty,tm)  -> 
     let ret     = fresh_label ()                                in 
     let ce      = escape_ARG t2 ret le ce ly R                  in 
