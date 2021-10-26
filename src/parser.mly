@@ -112,9 +112,9 @@ tm:
     | appTm                                         { $1                                                                    } 
     | LET ty ID EQ tm IN tm                         { fun ctx -> TmApp((TmAbs($3,$2,$7(add_bruijn_idx ctx $3)),()),$5 ctx)   ,() } 
     | LET REC ID ID COLON ty EQ tm IN tm            { fun ctx -> let ctx' = add_rec_idx ctx $3 in 
-                                                                 let ctx''= add_struct_idx ctx $4 in 
-                                                                 let ctx  = add_bruijn_idx ctx $3 in 
-                                                                 TmApp((TmAbs($3,$6,$10 ctx),()),(TmFix($3,$4,$6,$8 ctx''),())), ()}  
+                                                                 let ctx''= add_struct_idx ctx' $4 in 
+                                                                 let ctx  = add_bruijn_idx ctx ($3^"'") in 
+                                                                 TmApp((TmAbs(($3^"'"),$6,$10 ctx),()),(TmFix($3,$4,$6,$8 ctx''),())), ()}  
     | LAM ID COLON ty ARROW tm                      { fun ctx -> TmAbs($2, $4, $6(add_bruijn_idx ctx $2))               ,() } 
     | IF tm THEN tm ELSE tm                         { fun ctx -> TmIf($2 ctx, $4 ctx, $6 ctx)                           ,() }
     | lexpr EQ tm                                   { fun ctx -> TmAssign($1 ctx, $3 ctx)                               ,() }

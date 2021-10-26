@@ -362,14 +362,11 @@ and codegen_expr le ce ly aln  e        = pe (string_of_tm e); pe (string_of_ctx
     | EpNow                 ,TyUint256  ->                      TIMESTAMP               >>ce 
     | EpFalse               ,TyBool     ->  assert(aln=R);      PUSH1(Big big_0)        >>ce  
     | EpTrue                ,TyBool     ->  assert(aln=R);      PUSH1(Big big_1)        >>ce  
-    | TmUint d              ,TyUint256  ->  assert(aln=R);      PUSH32(Big d)           >>ce  
+    | TmUint d              ,_          ->  assert(aln=R);      PUSH32(Big d)           >>ce  
     | EpUint8 d             ,TyUint8    ->  assert(aln=R);      PUSH1(Big d)            >>ce  
-    | EpPlus (l,r)          ,TyUint256  ->                      op ADD l r             le ce ly             
-    | EpPlus (l,r)          ,TyUint8    ->                      op ADD l r             le ce ly              
-    | TmMinus(l,r)          ,TyUint256  ->                      op SUB l r             le ce ly             
-    | TmMinus(l,r)          ,TyUint8    ->                      op SUB l r             le ce ly             
-    | TmMul (l,r)           ,TyUint256  ->                      op MUL l r             le ce ly             
-    | TmMul (l,r)           ,TyUint8    ->                      op MUL l r             le ce ly             
+    | EpPlus (l,r)          ,_          ->                      op ADD l r             le ce ly             
+    | TmMinus(l,r)          ,_          ->                      op SUB l r             le ce ly             
+    | TmMul (l,r)           ,_          ->                      op MUL l r             le ce ly             
     | EpLT   (l,r)          ,TyBool     ->  assert(aln=R);      op LT  l r             le ce ly           
     | EpGT   (l,r)          ,TyBool     ->  assert(aln=R);      op GT  l r             le ce ly           
     | TmEq   (l,r)          ,TyBool     ->  assert(aln=R);      op EQ  l r             le ce ly           

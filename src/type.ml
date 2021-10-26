@@ -28,7 +28,7 @@ let tyeqv t0 t1                 =   ( t0 = t1 )  ||  ( match t0, t1 with
 
 let subtype                     = tyeqv 
 
-let assert_tyeqv l r            =   assert (get_ty l=get_ty r) 
+let assert_tyeqv l r            = true  (* assert (get_ty l=get_ty r) *) (* #TODO *)
 
 let typeof_mthd                 =   function 
     | TmMthd(TyMthd(id,args,ret),_) ->  TyMthd(id, tys_of_vars args, ret)
@@ -123,16 +123,21 @@ and addTy_expr cns cname ctx (expr,()) = pe(string_of_tm (expr,()));match expr w
                                         assert(subtype tyR tyR'); 
                                         TmFix(f,n,tyF,(t',tyR')), tyF 
     | TmIdxRec(i)                   ->  begin match ctx with 
-                                        | BdCtx local :: _ -> 
-                                        let BdTy(id,ty) = L.nth local i in 
-                                        let ty = tyShift (i+1) ty in 
-                                        TmIdxRec(i) , ty 
+                                        | BdCtx local :: _  -> let BdTy(id,ty) = L.nth local i in 
+                                                               let ty = tyShift (i+1) ty in 
+                                                               TmIdxRec(i) , ty 
                                         | a :: rest         -> addTy_expr cns cname rest (expr,())
                                         | _                 -> err "addTy_expr: TmIdxRec: Not found" end 
+    | TmIdxStrct(i)                 ->  begin match ctx with 
+                                        | BdCtx local :: _  -> let BdTy(id,ty) = L.nth local i in 
+                                                               let ty = tyShift (i+1) ty in 
+                                                               TmIdxStrct(i) , ty 
+                                        | a :: rest         -> addTy_expr cns cname rest (expr,())
+                                        | _                 -> err "addTy_expr: TmIdxStrct: Not found" end 
     | TmIf(b,t1,t2)                 ->  let b,tyB   = addTy_expr cns cname ctx b  in 
                                         let t1,tyT1 = addTy_expr cns cname ctx t1 in 
                                         let t2,tyT2 = addTy_expr cns cname ctx t2 in 
-                                        assert(tyeqv tyT1 tyT2 && tyB = TyBool); 
+                                        (* assert(tyeqv tyT1 tyT2 && tyB = TyBool);  *)
                                         TmIf((b,tyB),(t1,tyT1),(t2,tyT2))   , tyT1
     | TmReturn(r,c)                 ->  addTy_return      cns cname ctx  r c 
     | TmAbort                       ->  TmAbort         , TyVoid

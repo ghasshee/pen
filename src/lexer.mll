@@ -11,7 +11,7 @@
 let white   = [' ' '\t']+
 let newline = '\r' | '\n' | "\r\n"
 let digit   = ['0'-'9']
-let id      = ['a'-'z' 'A'-'Z' '_'] ['a'-'z' 'A'-'Z' '0'-'9' '_']*
+let id      = ['a'-'z' 'A'-'Z' '_'] ['a'-'z' 'A'-'Z' '0'-'9' '_' '\'']*
 let comment = "//" (_ # ['\r' '\n'])* newline
 
 rule read = parse

@@ -61,21 +61,21 @@ let prBds                       = L.iter prBd
 let rec lookup_bruijn_idx nm    = function 
     | []                            -> (*eprintf"Context: bruijn idx for %s not found\n" nm;*) raise Not_found
     | BdName x :: xs                -> if x=nm then 0 else 1+(lookup_bruijn_idx nm xs) 
-    | _ :: xs                       -> lookup_bruijn_idx nm xs 
+    | _ :: xs                       -> 1 + lookup_bruijn_idx nm xs 
 
 let add_bruijn_idx ctx x        = BdName x :: ctx 
 
 let rec lookup_rec_idx nm    = function 
     | []                            -> (*eprintf"Context: bruijn idx for %s not found\n" nm;*) raise Not_found
     | BdRecName x :: xs             -> if x=nm then 0 else 1+(lookup_rec_idx nm xs) 
-    | _ :: xs                       -> lookup_rec_idx nm xs 
+    | _ :: xs                       -> 1 + lookup_rec_idx nm xs 
 
 let add_rec_idx ctx x        = BdRecName x :: ctx 
 
 let rec lookup_struct_idx nm = function 
     | []                            -> raise Not_found
     | BdStruct x :: xs              -> if x=nm then 0 else 1+(lookup_struct_idx nm xs)
-    | _ :: xs                       -> lookup_struct_idx nm xs 
+    | _ :: xs                       -> 1 + lookup_struct_idx nm xs 
 
 let add_struct_idx ctx x     = BdStruct x :: ctx 
 
@@ -93,6 +93,7 @@ let lookup_evnt       nm        = find_by_filter (function BdEv(id,l) when id=nm
 let lookup_retTy                = find_by_filter (function BdRetTy ty -> ty                     | _ -> raise Not_found) 
 let lookup_ll key               = find_by_filter (function BdLoc(s,loc) when key=s -> loc       | _ -> raise Not_found)
 let lookup_le key               = find_by_filter (function BdCtx ctx -> lookup_ll key ctx       | _ -> raise Not_found)
+
 let rec lookup_brjidx_local idx = function 
     | []                            -> raise Not_found
     | BdIdx(tm)::rest when idx=0    -> tm 
