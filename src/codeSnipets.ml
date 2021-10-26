@@ -127,6 +127,18 @@ let keccak_cat ce =                                             (*              
                 SHA3                                >>ce        (*                                  sha3(M[0x00..0x3F]) >> .. *)
                                                                 (*                                     sha3(a++b)             *)
 
+let check_NOT_GT bound ce =                         (*                                         x >> .. *)
+    let ce      = DUP1                      >>ce in (*                                    x >> x >> .. *)
+    let ce      = PUSH32 bound              >>ce in (*                           bound >> x >> x >> .. *) 
+    let ce      = LT                        >>ce in (*                          bound<x?1:0 >> x >> .. *) 
+                  throw_if                    ce    (* IF x<bound THEN error                   x >> .. *)
+
+let check_NOT_LT bound ce =                         (*                                         x >> .. *)
+    let ce      = DUP1                      >>ce in (*                                    x >> x >> .. *)
+    let ce      = PUSH32 bound              >>ce in (*                           bound >> x >> x >> .. *) 
+    let ce      = GT                        >>ce in (*                          bound>x?1:0 >> x >> .. *) 
+                  throw_if                    ce    (* IF x<bound then error                   x >> .. *)
+
 
 (******************************************************)
 (***     4. PROGRAM COUNTER on STORAGE              ***)
@@ -157,44 +169,87 @@ let get_PC ce =
 (***     5. MEMORY OPERATIONS         ***)
 (****************************************)
 
-let _KECCAK1 = Int 0x00
-let _KECCAK2 = Int 0x20 
-let _HP      = Int 0x40        (* HEAP Pointer *) 
-let initHP   = Int 0x1000000   (* Initial HEAP Head *) 
-let _EPR     = Int 0x60        (* Escaping Variable Record Pointer *) 
-let initEPR  = Int 0x100
-let _MSP     = Int 0x80 
-let initMSP  = Int 0x100000
-let maxMSP   = let Int i = initHP in Int (i-1)  
+let _KECCAK1    = Int 0x00
+let _KECCAK2    = Int 0x20 
+let _HP         = Int 0x40         (* HEAP Pointer *) 
+let _HP_MIN     = Int 0x1000000    (* Initial HEAP Head *) 
+let _MSP        = Int 0x80         (* Memory Stack : Another Stack different from EVM Stack *) 
+let _MS_MIN     = Int 0x800000
+let _MS_MAX     = let Int i = _HP_MIN in Int (i-1)  
+let _EP         = Int 0x60         (* Escaping Variable Record Pointer *) 
+let _EP_MIN     = Int 0x100
+let _EP_MAX     = let Int i = _MS_MIN in Int (i-2)
 
-let getMSP ce = 
-    let ce      = PUSH1 _MSP        >>ce in 
-                  MLOAD             >>ce 
+let mPUSH_from_STACK ce = 
+    let ce      = PUSH32 _MSP               >>ce in (*                                                         sp >> x >> .. *)
+    let ce      = MLOAD                     >>ce in (*                                                      M[sp] >> x >> .. *) 
+    let ce      = check_NOT_GT _MS_MAX        ce in (*                                                      M[sp] >> x >> .. *)
+    let ce      = DUP1                      >>ce in (*                                             M[sp] >> M[sp] >> x >> .. *)         
+    let ce      = PUSH1(Int 0x20)           >>ce in (*                                    0x20 >>  M[sp] >> M[sp] >> x >> .. *)
+    let ce      = ADD                       >>ce in (*                                        0x20+M[sp] >> M[sp] >> x >> .. *)
+    let ce      = PUSH32 _MSP               >>ce in (*                                  SP >> 0x20+M[sp] >> M[sp] >> x >> .. *)
+    let ce      = MSTORE                    >>ce in (* M[sp]    := M[sp]+0x20                               M[sp] >> x >> .. *)
+                  MSTORE                    >>ce    (* M[M[sp]] := x                                                      .. *) 
 
-let mPUSH x ce = 
-    let ce      = PUSH32 x          >>ce in (*                                                               x >> .. *)
-    let ce      = getMSP              ce in (*                                                      M[SP] >> x >> .. *)
-    let ce      = DUP1              >>ce in (*                                             M[SP] >> M[SP] >> x >> .. *)
-    let ce      = PUSH32 maxMSP     >>ce in (*                                   maxSP >>  M[SP] >> M[SP] >> x >> .. *) 
-    let ce      = LT                >>ce in (*                               maxSP<M[SP] ? 1 : 0 >> M[SP] >> x >> .. *) 
-    let ce      = throw_if            ce in (*                                                      M[SP] >> x >> .. *)
-    let ce      = DUP1              >>ce in (*                                             M[SP] >> M[SP] >> x >> .. *)         
-    let ce      = PUSH1(Int 0x20)   >>ce in (*                                    0x20 >>  M[SP] >> M[SP] >> x >> .. *)
-    let ce      = ADD               >>ce in (*                                        0x20+M[SP] >> M[SP] >> x >> .. *)
-    let ce      = PUSH1 _MSP        >>ce in (*                                  SP >> 0x20+M[SP] >> M[SP] >> x >> .. *)
-    let ce      = MSTORE            >>ce in (* M[SP]    := M[SP]+0x20                              M[SP] >> x >> .. *)
-                  MSTORE            >>ce    (* M[M[SP]] := x                                                      .. *) 
+let mPUSH      x  ce = mPUSH_from_STACK ( PUSH32 x >>ce ) ;; 
+
+let ePUSH         ce =                              (*                                                         x >> retlabel >> .. *) 
+    let ce      = PUSH32 _EP                >>ce in (*                                                  EP >>  x >> retlabel >> .. *)
+    let ce      = MLOAD                     >>ce in (*                                               M[EP] >>  x >> retlabel >> .. *)
+    let ce      = check_NOT_GT _EP_MAX        ce in (*                                               M[EP] >>  x >> retlabel >> .. *)
+    let ce      = DUP1                      >>ce in (*                                      M[EP] >> M[EP] >>  x >> retlabel >> .. *)
+    let ce      = PUSH1(Int 0x40)           >>ce in (*                              0x40 >> M[EP] >> M[EP] >>  x >> retlabel >> .. *)
+    let ce      = ADD                       >>ce in (*                                 0x40+M[EP] >> M[EP] >>  x >> retlabel >> .. *)
+    let ce      = PUSH32 _EP                >>ce in (*                           EP >> 0x40+M[EP] >> M[EP] >>  x >> retlabel >> .. *)
+    let ce      = MSTORE                    >>ce in (* M[EP]    := M[EP]+0x40                        M[EP] >>  x >> retlabel >> .. *)
+    let ce      = SWAP1                     >>ce in (*                                                x >> M[EP] >> retlabel >> .. *)              
+    let ce      = DUP2                      >>ce in (*                                      M[EP] >>  x >> M[EP] >> retlabel >> .. *) 
+    let ce      = MSTORE                    >>ce in (* M[M[EP]] := x                                       M[EP] >> retlabel >> .. *)
+    let ce      = PUSH1(Int 0x20)           >>ce in (*                                             0x20 >> M[EP] >> retlabel >> .. *)
+    let ce      = ADD                       >>ce in (*                                                0x20+M[EP] >> retlabel >> .. *)
+                  MSTORE                    >>ce    (* M[M[EP]+0x20] := retAddr                                                 .. *)
+
+let get_escaped_arg ce =                            (*                                                .. *)
+    let ce      = PUSH1 (Int 0x40)          >>ce in (*                                        0x40 >> .. *)
+    let ce      = PUSH32 _EP                >>ce in (*                                  EP >> 0x40 >> .. *)
+    let ce      = MLOAD                     >>ce in (*                               M[EP] >> 0x40 >> .. *)
+    let ce      = SUB                       >>ce in (*                                  M[EP]-0x40 >> .. *)
+                  MLOAD                     >>ce    (*                                 escaped_arg >> .. *)
+
+let ePOP          ce =                              (*                                                                                     .. *)  
+    let ce      = PUSH32 _EP                >>ce in (*                                                                              EP  >> .. *)
+    let ce      = MLOAD                     >>ce in (*                                                                            M[EP] >> .. *) 
+    let ce      = PUSH1 (Int 0x40)          >>ce in (*                                                                    0x40 >> M[EP] >> .. *)
+    let ce      = PUSH1 (Int 0x20)          >>ce in (*                                                            0x20 >> 0x40 >> M[EP] >> .. *) 
+    let ce      = DUP2                      >>ce in (*                                                   M[EP] >> 0x20 >> 0x40 >> M[EP] >> .. *)  
+    let ce      = SUB                       >>ce in (*                                                      M[EP]-0x20 >> 0x40 >> M[EP] >> .. *)
+    let ce      = check_NOT_LT _EP_MIN        ce in (*                                                      M[EP]-0x20 >> 0x40 >> M[EP] >> .. *)
+    let ce      = MLOAD                     >>ce in (*                                                         retAddr >> 0x40 >> M[EP] >> .. *)
+    let ce      = SWAP2                     >>ce in (*                                                         M[EP] >> 0x40 >> retAddr >> .. *)
+    let ce      = SUB                       >>ce in (*                                                            M[EP]-0x40 >> retAddr >> .. *)
+    let ce      = PUSH32 _EP                >>ce in (*                                                      EP >> M[EP]-0x40 >> retAddr >> .. *)
+                  MSTORE                    >>ce    (* M[EP] := M[EP]-0x40                                                      retAddr >> .. *)
+
+let mPOP_to_STACK ce = 
+    let ce      = PUSH1 (Int 0x20)          >>ce in (*                                                            0x20 >> .. *) 
+    let ce      = PUSH32 _MSP               >>ce in (*                                                      sp >> 0x20 >> .. *)
+    let ce      = MLOAD                     >>ce in (*                                                   M[sp] >> 0x20 >> .. *) 
+    let ce      = check_NOT_LT _MS_MIN        ce in (*                                                   M[sp] >> 0x20 >> .. *)    
+    let ce      = SUB                       >>ce in (*                                                      M[sp]-0x20 >> .. *)
+    let ce      = DUP1                      >>ce in (*                                        M[sp]-0x20 >> M[sp]-0x20 >> .. *)
+    let ce      = PUSH32 _MSP               >>ce in (*                                  SP >> M[sp]-0x20 >> M[sp]-0x20 >> .. *) 
+    let ce      = MSTORE                    >>ce in (* M[sp] := M[sp]-0x20                                  M[sp]-0x20 >> .. *) 
+                  MLOAD                     >>ce    (*                                                   M[M[sp]-0x20] >> .. *)
 
 let mPOP    ce  = 
-    let ce      = PUSH1 (Int 0x20)  >>ce in 
-    let ce      = getMSP              ce in 
-    let ce      = DUP1              >>ce in 
-    let ce      = PUSH32 initMSP    >>ce in (* initMSP >> M[SP] >> M[SP] >> 0x20 >> .. *)  
-    let ce      = GT                >>ce in (*   initMSP>M[SP]? >> M[SP] >> 0x20 >> .. *) 
-    let ce      = throw_if            ce in (*                    M[SP] >> 0x20 >> .. *)    
-    let ce      = SUB               >>ce in (*                       M[SP]-0x20 >> .. *)
-    let ce      = PUSH1 _MSP        >>ce in (*                 SP >> M[SP]-0x20 >> .. *) 
-                  MSTORE            >>ce    (* M[SP] := M[SP]-0x20              >> .. *) 
+    let ce      = PUSH1 (Int 0x20)          >>ce in (*                                                            0x20 >> .. *) 
+    let ce      = PUSH32 _MSP               >>ce in (*                                                     SP  >> 0x20 >> .. *)
+    let ce      = MLOAD                     >>ce in (*                                                   M[SP] >> 0x20 >> .. *) 
+    let ce      = check_NOT_LT _MS_MIN        ce in (*                                                   M[SP] >> 0x20 >> .. *)
+    let ce      = SUB                       >>ce in (*                                                      M[SP]-0x20 >> .. *)
+    let ce      = PUSH1 _MSP                >>ce in (*                                                SP >> M[SP]-0x20 >> .. *) 
+                  MSTORE                    >>ce    (* M[SP] := M[SP]-0x20                                             >> .. *) 
+
 
     
 

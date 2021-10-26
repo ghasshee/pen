@@ -92,10 +92,11 @@ and  'ty expr                   =
                                 |   TmLoc               of int 
                                 |   TmIdx               of int * int 
                                 |   TmIdxRec            of int 
+                                |   TmIdxStrct          of int 
                                 |   TmAbs               of string * ty * 'ty exprTy
                                 |   TmApp               of 'ty exprTy * 'ty exprTy  
                                 |   TmIf                of 'ty exprTy * 'ty exprTy * 'ty exprTy 
-                                |   TmFix               of 'ty exprTy
+                                |   TmFix               of string * string * ty * 'ty exprTy
                                 |   TmUnit 
                                 |   EpTrue
                                 |   EpFalse
@@ -183,11 +184,12 @@ let cntrct_name_of_instance     = function
 (*****************************************)
 
 let rec string_of_expr          = function 
-    | TmFix(t,_)                -> "fix(" ^ string_of_expr t ^ ")"
+    | TmFix(f,n,_,_)            -> "fix(" ^ f ^ ")"
     | TmApp((t1,_),(t2,_))      -> "(" ^ string_of_expr t1 ^ ")(" ^ string_of_expr t2 ^ ")" 
     | TmAbs(x,tyX,(t,_))        -> "λ" ^ x ^ ":" ^ string_of_ty tyX ^ "." ^ string_of_expr t 
     | TmIdx(i,n)                -> "x" ^ string_of_int i 
     | TmIdxRec(i)               -> "rec" ^ string_of_int i 
+    | TmIdxStrct(i)             -> "{struct " ^ string_of_int i ^ "}"
     | TmIf((b,_),(t1,_),(t2,_)) -> "if " ^ string_of_expr b ^ " then " ^ string_of_expr t1 ^ " else " ^ string_of_expr t2  
     | TmAbort                   -> "abort" 
     | TmReturn((r,_),_)         -> "return" ^ string_of_expr r 
@@ -225,8 +227,9 @@ let rec string_of_tm  e         = match fst e with
     | TmAbs(x,tyX,t)            -> "(λ" ^ x ^ ":" ^ string_of_ty tyX ^ "." ^ string_of_tm t ^ ")"
     | TmIdx(i,n)                -> "Idx" ^ string_of_int i 
     | TmIdxRec(i)               -> "Rec" ^ string_of_int i 
+    | TmIdxStrct(i)             -> "{struct " ^ string_of_int i ^ "}"
     | TmIf(b,t,t')              -> "(If " ^ string_of_tm b ^ " Then " ^ string_of_tm t ^ " Else " ^ string_of_tm t' ^ ")"
-    | TmFix(t)                  -> "Fix(" ^ string_of_tm t ^ ")" 
+    | TmFix(f,n,_,t)            -> "Fix(λ" ^ f ^ " " ^ n ^ "→" ^ string_of_tm t ^ ")" 
     | TmEq(a,b)                 -> string_of_tm a ^ "==" ^ string_of_tm b
     | TmUint(b)                 -> string_of_big b 
     | TmId(str)                 -> str

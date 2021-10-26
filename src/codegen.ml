@@ -22,6 +22,10 @@ module Crpt  = Crypto
 module BL   = BatList
 module L    = List
 
+
+let calldatasize (TyMthd(_,args,_)) =
+    4 (* for signature *) + size_of_args args   
+
 (******************************************************)
 (***     0. ALIGNMENT R ? L ?                       ***)
 (******************************************************)
@@ -179,8 +183,8 @@ let empty_rntimeCode lookup_cn layouts =
 
 let init_rntimeCode lookup_cn layouts : rntimeCode =
     let ce      =   empty_ce lookup_cn layouts                      in
-    let ce      =   error_loop ce in 
-    let ce      =   get_PC                             ce    in
+    let ce      =   error_loop ce                                   in 
+    let ce      =   get_PC                                    ce    in
     let ce      =   JUMP                                    >>ce    in
     { rntime_ce             = ce
     ; rntime_cn_offsets     = [] }
@@ -347,12 +351,12 @@ and salloc_array_of_push push_array_seed ce =
 (* le is not updated here.  
  * le can only be updated in a variable initialization *)
 and codegen_expr le ce ly aln  e        = pe (string_of_tm e); pe (string_of_ctx le); match e with 
-    | TmApp(t1,t2)          ,ty         ->                      codegen_app ly le ce (TmApp(t1,t2))
-    | TmAbs(x,tyX,t)        ,TyAbs _    ->                      codegen_abs ly le ce (TmAbs(x,tyX,t))
- (* | TmFix(t)              ,ty         ->                      codegen_fix ly le ce (TmFix(t)) *)
-    | TmIdx(i,n)            ,ty         ->                      codegen_idx ly le ce (TmIdx(i,n))          
-    | TmIdxRec(i)           ,ty         ->                      codegen_idxrec ly le ce (TmIdxRec(i))
-    | TmIf(b,t1,t2)         ,tyT        ->                      codegen_if  ly le ce (TmIf(b,t1,t2))
+    | TmApp(t1,t2)          ,ty         ->                      codegen_app     ly le ce (TmApp(t1,t2))
+    | TmAbs(x,tyX,t)        ,TyAbs _    ->                      codegen_abs     ly le ce (TmAbs(x,tyX,t))
+ (* | TmFix(t)              ,ty         ->                      codegen_fix     ly le ce (TmFix(t)) *)
+    | TmIdx(i,n)            ,ty         ->                      codegen_idx     ly le ce (TmIdx(i,n))          
+ (* | TmIdxRec(i)           ,ty         ->                      codegen_idxrec  ly le ce (TmIdxRec(i)) *)
+    | TmIf(b,t1,t2)         ,tyT        ->                      codegen_if      ly le ce (TmIf(b,t1,t2)) 
     | EpAddr(c,TyInstnce i) ,TyAddr     ->                      (c,TyInstnce i)         >>>>(aln,le,ce,ly) 
     | EpValue               ,TyUint256  ->                      CALLVALUE               >>ce      (* Value (wei) Transferred to the account *) 
     | EpNow                 ,TyUint256  ->                      TIMESTAMP               >>ce 
@@ -412,6 +416,7 @@ and op operator l r le ce ly =
                 operator                        >>ce 
 
 and (>>>>) expr (aln,le,ce,ly)  = codegen_expr le ce ly aln expr 
+
 
 and checked_codegen_LAnd l r le ce ly aln = 
     assert(aln=R);         
@@ -541,28 +546,43 @@ and codegen_mthd_argLen_chk m ce = match m with
  *)                                                                                                                       
                                                                                                                           
 
+and escape_ARG arg retlabel le ce ly a = 
+    let ce      = PUSH4(Label retlabel)         >>ce              in     
+    let ce      = arg                           >>>>(a,le,ce,ly)  in 
+                  ePUSH                           ce               
+        
+and get_escaped_ARG ce        = 
+                 ce 
 
-and codegen_fix ly le ce (TmFix(TmAbs(phi,tyPhi,(TmAbs(n,tyN,tm),_)),_)) = 
-    let ssize   = get_stack_size ce                                     in 
-    let start   = fresh_label ()                                        in 
-    printf "! add_recursion_param(stacksize %d,label%d)\n" ssize start; 
-    let le      = add_recursion_param le ssize start                    in
-    let ce      = JUMPDEST start                    >>ce                in 
-    let ce      = tm                                >>>>(R,le,ce,ly)    in 
+and codegen_idxrec aln ly le ce (TmApp((TmIdxRec(i),_),arg))       = 
+    let retlabel        = fresh_label ()                                in 
+    let start           = lookup_recursion_param le                     in 
+    let ce              = escape_ARG arg retlabel le ce ly aln          in 
+    let ce              = goto start ce                                 in 
+    let ce              = JUMPDEST retlabel                             in 
     ce 
 
+and codegen_fix ly le ce (TmFix(phi,n,ty,tm)) = 
+    let start   = fresh_label ()                                        in 
+    printf "! add_recursion_param(label%d)\n" start; 
+    let le      = add_recursion_param le start                          in
+    let ce      = JUMPDEST start                    >>ce                in 
+    let ce      = tm                                >>>>(R,le,ce,ly)    in  (*                               tm >> .. *)
+    let ce      = ePOP                                ce                in  (*                    retAddr >> tm >> .. *) 
+    let ce      = JUMP                              >>ce                in  (* GOTO retAddr                  tm >> .. *)
+    ce 
+(*
+and codegen_idxstruct aln ly le ce (TmIdxStrct(i)) = 
+                  get_escaped_arg ce  
+*)
 and codegen_app ly le ce (TmApp(t1,t2)) = match fst t1 with 
-    | TmIdx(i,n) -> 
+    | TmIdx(i,n)        -> 
     let tm      = lookup_brjidx i le in 
-    codegen_app ly le ce (TmApp(tm,t2))
-    | TmFix(TmAbs(f,tyF,(TmAbs(n,tyN,tm),_)),_)     -> 
-    let ce      = t2                                >>>>(R,le,ce,ly)    in 
-    let ssize   = get_stack_size ce                                     in 
-    let start   = fresh_label ()                                        in 
-    let le      = add_recursion_param le ssize start                    in 
-    let ce      = JUMPDEST start                    >>ce                in 
-    let ce      = tm                                >>>>(R,le,ce,ly)    in 
-    ce 
+                  codegen_app ly le ce (TmApp(tm,t2))
+    | TmFix(f,n,ty,tm)  -> 
+    let ret     = fresh_label ()                                in 
+    let ce      = escape_ARG t2 ret le ce ly R                  in 
+                  codegen_fix ly le ce (TmFix(f,n,ty,tm)) 
     | _ -> 
     printf "! add_brjidx %s\n" (string_of_tm t2); 
     let le      = add_brjidx le t2                                      in       
@@ -572,17 +592,12 @@ and codegen_abs ly le ce (TmAbs(x,tyX,t)) =
     let ce      = t                                 >>>>(R,le,ce,ly)    in
     ce 
 
-and codegen_idxrec ly le ce (TmIdxRec(i))       = 
-    let ssize, start    = lookup_recursion_param le                     in 
-    let ce              = dup_nth_from_bottom ssize ce                  in 
-    let ce              = goto start ce in 
-    ce 
-
 and codegen_idx ly le ce (TmIdx(i,n))           = 
     let tm      = lookup_brjidx i le                                    in 
     pe ("codegen_idx: " ^ string_of_tm tm);
     let ce      = tm                                >>>>(R,le,ce,ly)    in 
     ce 
+
 
 and codegen_if ly le ce (TmIf(b,t1,t2)) = 
     let elif    = fresh_label()                                         in 
@@ -769,9 +784,6 @@ and codegen_stmt ly  (le,ce)       = function
 (***     7. CODEGEN CONTRACT             ***)
 (********************************************)
 
-
-and calldatasize (TyMthd(_,args,_)) =
-    4 (* for signature *) + size_of_args args   
 
 
 let codegen_mthds ly    = ($$$) foldl codegen_mthd ly

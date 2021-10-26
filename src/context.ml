@@ -26,15 +26,17 @@ type context                    = bind list
                                 | BdLoc   of string * location 
                                 | BdIdx   of ty exprTy 
                                 | BdBrj   of context 
-                                | BdRec   of int * label   (* BdRec(argloc, start) *) 
+                                | BdRec   of label   (* BdRec(start) *) 
                                 | BdRecName of string
+                                | BdStruct of string 
                             
 let string_of_bind              = function 
-    | BdRec(i,l)                    -> sprintf "BdRec(stack %d, label%d)" i l 
+    | BdRec(l)                      -> sprintf "BdRec(label %d)" l 
     | BdBrj ctx                     -> sprintf "BdBrj %s" "local" 
     | BdLoc(s,l)                    -> sprintf "BdLoc(%s,location)" s 
     | BdName s                      -> sprintf "BdName(%s)" s 
     | BdRecName s                   -> sprintf "BdRecName(%s)" s 
+    | BdStruct s                    -> sprintf "BdStruct(%s)" s 
     | BdCtx ctx                     -> sprintf "BdCtx %s" "local" 
     | _                             -> "Bd" 
 
@@ -52,6 +54,7 @@ let add_empty_brj ctx           = BdBrj[] :: ctx
 let prBd                        = function 
     | BdName str                    -> printf "BdName(%s) " str 
     | BdRecName str                 -> printf "BdRecName(%s) " str
+    | BdStruct str                  -> printf "BdStruct(%s) " str 
 
 let prBds                       = L.iter prBd 
 
@@ -69,12 +72,19 @@ let rec lookup_rec_idx nm    = function
 
 let add_rec_idx ctx x        = BdRecName x :: ctx 
 
+let rec lookup_struct_idx nm = function 
+    | []                            -> raise Not_found
+    | BdStruct x :: xs              -> if x=nm then 0 else 1+(lookup_struct_idx nm xs)
+    | _ :: xs                       -> lookup_struct_idx nm xs 
+
+let add_struct_idx ctx x     = BdStruct x :: ctx 
+
 let rec lookup_recursion_param = function 
     | []                            -> pe"lookup_recursion_param: lookup failed"; raise Not_found
-    | (BdRec(ssize,start))::rest    -> ssize,start 
+    | (BdRec(start))::rest          -> start 
     | _ :: rest                     -> lookup_recursion_param rest 
 
-let add_recursion_param ctx ssize start  = BdRec(ssize,start) :: ctx
+let add_recursion_param ctx start  = BdRec(start) :: ctx
 
 
 let lookup_id_local   nm        = find_by_filter (function BdTy(id,ty)when id=nm -> ty          | _ -> raise Not_found) 

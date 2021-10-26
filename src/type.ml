@@ -115,11 +115,13 @@ and addTy_expr cns cname ctx (expr,()) = pe(string_of_tm (expr,()));match expr w
                                         TmIdx(i,n)      , ty 
                                         | a :: rest -> addTy_expr cns cname rest (expr,()) 
                                         | _ -> err "addTy_expr: TmIdx: Notfound" end 
-    | TmFix(TmAbs(r,tyR,t),_)       ->  let t',tyT' = addTy_expr cns cname (add_var ctx r tyR) t in 
-                                        let tyT = TyAbs(tyR,tyT') in 
-                                        let t   = TmAbs(r,tyR,(t',tyT')) in 
-                                        assert(subtype tyR tyT'); 
-                                        TmFix(t,tyT), tyT' 
+    | TmFix(f,n,TyAbs(tyN,tyR),t)   ->  let ctx' = add_var ctx f (TyAbs(tyN,tyR)) in 
+                                        let ctx''= add_var ctx n tyN in 
+                                        let t',tyR' = addTy_expr cns cname ctx'' t in 
+                                        let tyF' = TyAbs(tyN,tyR') in 
+                                        let tyF  = TyAbs(tyN,tyR)  in 
+                                        assert(subtype tyR tyR'); 
+                                        TmFix(f,n,tyF,(t',tyR')), tyF 
     | TmIdxRec(i)                   ->  begin match ctx with 
                                         | BdCtx local :: _ -> 
                                         let BdTy(id,ty) = L.nth local i in 

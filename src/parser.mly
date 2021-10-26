@@ -111,9 +111,10 @@ ret:
 tm: 
     | appTm                                         { $1                                                                    } 
     | LET ty ID EQ tm IN tm                         { fun ctx -> TmApp((TmAbs($3,$2,$7(add_bruijn_idx ctx $3)),()),$5 ctx)   ,() } 
-    | LET REC ID COLON ty EQ tm IN tm               { fun ctx -> let ctx' = add_rec_idx ctx $3 in 
+    | LET REC ID ID COLON ty EQ tm IN tm            { fun ctx -> let ctx' = add_rec_idx ctx $3 in 
+                                                                 let ctx''= add_struct_idx ctx $4 in 
                                                                  let ctx  = add_bruijn_idx ctx $3 in 
-                                                                 TmApp((TmAbs($3,$5,$9 ctx),()),(TmFix(TmAbs($3,$5,$7 ctx'),()),())), ()}  
+                                                                 TmApp((TmAbs($3,$6,$10 ctx),()),(TmFix($3,$4,$6,$8 ctx''),())), ()}  
     | LAM ID COLON ty ARROW tm                      { fun ctx -> TmAbs($2, $4, $6(add_bruijn_idx ctx $2))               ,() } 
     | IF tm THEN tm ELSE tm                         { fun ctx -> TmIf($2 ctx, $4 ctx, $6 ctx)                           ,() }
     | lexpr EQ tm                                   { fun ctx -> TmAssign($1 ctx, $3 ctx)                               ,() }
@@ -125,7 +126,6 @@ tm:
     | tm op tm                                      { fun ctx -> $2 ($1 ctx)($3 ctx)                                    ,() }
 appTm:
     | pathTm                                        { $1                                                                    }
-    | FIX   pathTm                                  { fun ctx -> TmFix($2 ctx)                                          ,() } 
     | NOT   pathTm                                  { fun ctx -> EpNot ($2 ctx)                                         ,() }
     | ISZERO arg_list                               { fun ctx -> EpCall{call_id="iszero";call_args=$2 ctx}              ,() }
     | ECDSARECOVER arg_list                         { fun ctx -> EpCall{call_id="pre_ecdsarecover";call_args=$2 ctx}    ,() }
@@ -149,7 +149,8 @@ aTm:
     | ADDRESS LPAR  tm   RPAR                       { fun ctx -> EpAddr ($3 ctx)                                        ,() }
     | ID                               { reserved $1; fun ctx -> prBds ctx;pe $1; begin 
                                                                  try TmIdx(lookup_bruijn_idx $1 ctx,len ctx),() with _ -> 
-                                                                 try TmIdxRec(lookup_rec_idx $1 ctx),()  with _ -> 
+                                                                 try TmIdxRec(lookup_rec_idx $1 ctx)        ,() with _ -> 
+                                                                 try TmIdxStrct(lookup_struct_idx $1 ctx)   ,() with _ -> 
                                                                      TmId $1,() end }
     | NEW ID  arg_list msg             { reserved $2; fun ctx -> EpNew {new_id=$2;new_args=$3 ctx; new_msg=$4 ctx}      ,() }
 call: 
