@@ -527,6 +527,7 @@ and codegen_app_idxrec aln ly le ce (TmApp((TmIdxRec(i),_),arg))       =
                           JUMPDEST retlabel         >>ce                         
 
 and codegen_fix ly le ce (TmFix(phi,n,ty,tm)) = 
+    let ce      = Comment "BEGIN_FIX"               >>ce                in 
     let start   = fresh_label ()                                        in 
     printf "! add_recursion_param(label%d)\n" start; 
     let le      = add_recursion_param le start                          in
@@ -534,6 +535,7 @@ and codegen_fix ly le ce (TmFix(phi,n,ty,tm)) =
     let ce      = tm                                >>>>(R,le,ce,ly)    in  (*                               tm >> .. *)
     let ce      = ePOP                                ce                in  (*                    retAddr >> tm >> .. *) 
     let ce      = JUMP                              >>ce                in  (* GOTO retAddr                  tm >> .. *)
+    let ce      = Comment "END_FIX"                 >>ce                in 
     ce 
 
 and codegen_idxstruct ly le ce (TmIdxStrct(i)) = 
