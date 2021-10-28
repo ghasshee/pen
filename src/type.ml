@@ -23,12 +23,12 @@ let find_tyMthd       mname = find_by_filter (function TyCn(_,_,tyCnMthds) -> fi
 (***********************************)
 
 let tyeqv t0 t1                 =   ( t0 = t1 )  ||  ( match t0, t1 with
-                                | TyAddr, TyInstnce _   -> true
+                                | TyAddr, TyInstnc _    -> true
                                 | _     , _             -> false ) 
 
 let subtype                     = tyeqv 
 
-let assert_tyeqv l r            = true  (* assert (get_ty l=get_ty r) *) (* #TODO *)
+let assert_tyeqv l r            = assert (get_ty l=get_ty r) 
 
 let typeof_mthd                 =   function 
     | TmMthd(TyMthd(id,args,ret),_) ->  TyMthd(id, tys_of_vars args, ret)
@@ -45,20 +45,18 @@ let itycn_has_name name itycn   =   match get_ty itycn with TyCn(id,_,_) -> id=n
 let is_known_cntrct tycns nm    =   BL.exists (itycn_has_name nm) tycns
 
 let rec is_known_ty tycns       =   function 
-    | TyUint256 | TyUint8           ->  true
     | TyBytes32 | TyAddr            ->  true
-    | TyBool                        ->  true
+    | TyU256 | TyU8 | TyBool        ->  true
     | TyTuple []                    ->  true
     | TyTuple l                     ->  BL.for_all (is_known_ty tycns) l
     | TyRef l                       ->  is_known_ty tycns l
     | TyMap(a,b)                    ->  is_known_ty tycns a && is_known_ty tycns b
-    | TyInstnce cn                  ->  is_known_cntrct tycns cn
+    | TyInstnc cn                   ->  is_known_cntrct tycns cn
 
 let arg_has_known_ty tycns      =   function 
-    | TyVar(id,ty)                  ->  let ret = is_known_ty tycns ty in
-                                        if not ret 
-                                            then err("Unknown Type Arg "^string_of_ty ty)
-                                            else ret
+    | TyVar(id,ty)                  ->  if is_known_ty tycns ty 
+                                            then true
+                                            else err("Unknown Arg Type "^string_of_ty ty)
 
 let addTy_mthd_head cns         =   function 
     | TyDefault                     ->  TyDefault
@@ -67,9 +65,9 @@ let addTy_mthd_head cns         =   function
                                         TyMthd(id,argTys,retTy)
 
 let call_arg_expectations tycns =   function 
-    | "pre_ecdsarecover"            ->  (=) [TyBytes32;TyUint8;TyBytes32;TyBytes32]
+    | "pre_ecdsarecover"            ->  (=) [TyBytes32;TyU8;TyBytes32;TyBytes32]
     | "keccak256"                   ->  konst true
-    | "iszero"                      ->  fun x -> x=[TyBytes32]||x=[TyUint8]||x=[TyUint256]||x=[TyBool]||x=[TyAddr]
+    | "iszero"                      ->  fun x -> x=[TyBytes32]||x=[TyU8]||x=[TyU256]||x=[TyBool]||x=[TyAddr]
     | name                          ->  let cn_idx       = lookup_idx (tycn_has_name name) tycns in
                                         match lookup cn_idx tycns with TyCn(_,tyCnArgs,_) -> 
                                         (=) tyCnArgs
@@ -85,7 +83,7 @@ let rec addTy_call cns cname ctx c =
     let argTys  = L.map (addTy_expr cns cname ctx) c.call_args in
     check_args_match (typeof_cns cns) argTys (Some c.call_id) ; 
     let reT     = match c.call_id with
-        | "value" when true         ->  TyUint256 (* check the arg is 'msg' *) 
+        | "value" when true         ->  TyU256 (* check the arg is 'msg' *) 
         | "pre_ecdsarecover"        ->  TyAddr
         | "keccak256"               ->  TyBytes32
         | "iszero"                  ->  begin match argTys with
@@ -98,14 +96,14 @@ let rec addTy_call cns cname ctx c =
     ; call_args = argTys    }, reT
 
 
-and addTy_expr cns cname ctx (expr,()) = pe(string_of_tm (expr,()));match expr with
+and addTy_expr cns cname ctx (expr,()) = pe("addTy_expr: " ^ string_of_tm (expr,()));match expr with
     | TmApp(t1,t2)                  ->  let t1,tyT1 = addTy_expr cns cname ctx t1 in 
                                         let t2,tyT2 = addTy_expr cns cname ctx t2 in 
                                         begin match t1,tyT1 with 
-                                        | _,TyAbs(tyT11,tyT12) when tyeqv tyT2 tyT11 -> TmApp((t1,tyT1),(t2,tyT2)), tyT12
-                                        | TmFix _ , tyT                              -> TmApp((t1,tyT1),(t2,tyT2)), tyT
-                                        | TmIdxRec _ , tyT                            -> TmApp((t1,tyT1),(t2,tyT2)), tyT
-                                        | t -> pe(string_of_tm t); err "addTy_expr: type-checking T-APPABS failed" end 
+                                        | _,TyAbs(tyT11,tyT12) when tyeqv tyT2 tyT11    -> TmApp((t1,tyT1),(t2,tyT2)), tyT12
+                                        | TmFix _ , tyT                                 -> TmApp((t1,tyT1),(t2,tyT2)), tyT
+                                        | TmIdxRec _ , tyT                              -> TmApp((t1,tyT1),(t2,tyT2)), tyT
+                                        | t                                             -> pe(string_of_tm t); err"addTy_expr: T-APPABS failed" end 
     | TmAbs(x,tyX,t)                ->  let t',tyT' = addTy_expr cns cname (add_var ctx x tyX) t in 
                                         TmAbs(x,tyX,(t',tyT')), TyAbs(tyX,tyT')
     | TmIdx(i,n)                    ->  begin match ctx with 
@@ -149,14 +147,14 @@ and addTy_expr cns cname ctx (expr,()) = pe(string_of_tm (expr,()));match expr w
     | TmSlfDstrct e                 ->  let e       = addTy_expr        cns cname ctx  e        in
                                         TmSlfDstrct e   , TyTuple[]
     | TmUnit                        ->  TmUnit          , TyTuple[] 
-    | EpThis                        ->  EpThis          , TyInstnce cname
+    | EpThis                        ->  EpThis          , TyInstnc cname
     | EpTrue                        ->  EpTrue          , TyBool
     | EpFalse                       ->  EpFalse         , TyBool
     | EpSender                      ->  EpSender        , TyAddr
-    | EpNow                         ->  EpNow           , TyUint256
-    | TmUint   d                 ->  TmUint   d   , TyUint256
-    | EpUint8     d                 ->  EpUint8     d   , TyUint8
-    | EpValue                       ->  EpValue         , TyUint256
+    | EpNow                         ->  EpNow           , TyU256
+    | TmUint   d                 ->  TmUint   d   , TyU256
+    | EpUint8     d                 ->  EpUint8     d   , TyU8
+    | EpValue                       ->  EpValue         , TyU256
     | EpAddr      e                 ->  let e       =   addTy_expr cns cname ctx e          in
                                         EpAddr e        , TyAddr
     | EpCall    c                   ->  let c,ty    =   addTy_call cns cname ctx c          in
@@ -164,9 +162,9 @@ and addTy_expr cns cname ctx (expr,()) = pe(string_of_tm (expr,()));match expr w
     | TmId     s                    ->  id_lookup_ty ctx s
     | EpBalance   e                 ->  let e       =   addTy_expr cns cname ctx e          in
                                         assert (tyeqv TyAddr (get_ty e));
-                                        EpBalance e     , TyUint256
+                                        EpBalance e     , TyU256
     | EpNew       n                 ->  let n,nm    =   addTy_new cns cname ctx n           in
-                                        EpNew n         , TyInstnce nm
+                                        EpNew n         , TyInstnc nm
     | EpLAnd (l, r)                 ->  let l       =   addTy_expr cns cname ctx l          in
                                         typecheck (TyBool,l);
                                         let r       =   addTy_expr cns cname ctx r          in

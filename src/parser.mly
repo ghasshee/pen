@@ -73,14 +73,14 @@ evnt_arg:
     | INDEXED ty ID                                 { TyEvVar($3,$2,true)                                       }
 
 ty:
-    | UINT256                                       { TyUint256                                                 }
-    | UINT8                                         { TyUint8                                                   }
+    | UINT256                                       { TyU256                                                 }
+    | UINT8                                         { TyU8                                                   }
     | BYTES32                                       { TyBytes32                                                 }
     | ADDRESS                                       { TyAddr                                                    }
     | BOOL                                          { TyBool                                                    }
     | ty DARROW ty                                  { TyMap($1,$3)                                              }
     | ty ARROW ty                                   { TyAbs($1,$3)                                              } 
-    | ID                                            { TyInstnce $1                                              }
+    | ID                                            { TyInstnc $1                                              }
 
 %inline body:
     | stmt                                          { [$1]                                                      }
@@ -169,7 +169,7 @@ msg:
     | value_info                                    { $1                                                                    }
      
 value_info:
-    | (* empty *)                                   { fun ctx -> EpFalse,()                                                 }
+    | (* empty *)                                   { fun ctx -> TmZero, ()                                                 }
     | WITH tm                                       { $2                                                                    }
      
 lexpr:                                              (* expr '[' expr ']' *) 

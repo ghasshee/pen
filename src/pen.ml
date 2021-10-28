@@ -26,7 +26,7 @@ let parse_with_error lexbuf =
     try Parser.file Lexer.read lexbuf with
     | SyntaxError e -> fprintf stderr "%a: %s\n"           pr_pos lexbuf e;exit (-1)
     | Parser.Error  -> fprintf stderr "%a: syntax error\n" pr_pos lexbuf  ;exit (-1)
-    | _             -> fprintf stderr "%a: syntax error\n" pr_pos lexbuf  ;exit (-1)
+    | e             -> fprintf stderr "%a: Unknown syntax error\n" pr_pos lexbuf  ; raise e; exit (-1)
 
 
 let enable_abi              = StdOpt.store_true () 
@@ -49,36 +49,35 @@ let ()      =
     if files<>[] then e"Pass the contents to stdin.\n" else
     let abi       : bool                    = (Some true = enable_abi.Option.option_get ())     in
     let asm       : bool                    = (Some true = enable_asm.Option.option_get ())     in
-    let lexbuf                      = Lexing.from_channel stdin                                 in
-    let _ASTs : unit toplevel list  = parse_with_error lexbuf                                   in
+    pe"---- compilation start ----" ; 
+    let lexbuf                              = Lexing.from_channel stdin                                 in
+    pe"------- lexing done -------" ; 
+    let _ASTs : unit toplevel list          = parse_with_error lexbuf                                   in
     pe"------- parse done --------" ; 
-    let idx_ASTs                    = to_idxlist _ASTs                                          in
+    let idx_ASTs                            = to_idxlist _ASTs                                          in
     pe"------- indexed ASTs ------" ; 
-    let idx_typed_ASTs              = Type.addTys idx_ASTs                                      in
+    let idx_typed_ASTs                      = Type.addTys idx_ASTs                                      in
     pe"------- typed -------------" ;
-    let idx_ty_opt_ASTs             = Eval.eval idx_typed_ASTs                                  in 
+    let idx_ty_opt_ASTs                     = Eval.eval idx_typed_ASTs                                  in 
     pe"------  evaluated ---------" ; 
-    let cns                         = filter_map (function Cntrct cn -> Some cn
-                                                         | _         -> None ) idx_ty_opt_ASTs  in
+    let cns                                 = filter_map (function Cntrct cn -> Some cn
+                                                                 | _         -> None ) idx_ty_opt_ASTs  in
     pe"------ extract cntrcts ----" ; 
     match cns with
     | []  ->  ()
     | _   ->   
     let ccs        : cnstrCode idxlist         = compile_cnstrs cns                        in          
-    pe"----- initial codes of cns built ------"; 
+    pe"------ initial codes of cns built ------"; 
     let cnstrInfos : LI.cnstrInfo idxlist      = map cnstrInfo_of_cnstrCode ccs            in          
-    pe"----- cnstrctor info built ------------";
+    pe"------ cnstrctor info built ------------";
     let layt                                    = LI.cnstrct_storLayout cnstrInfos          in          
-    pe"----- storage layout built ------------";
+    pe"------ storage layout built ------------";
     let rc         : rntimeCode                 = compile_rntime layt cns                   in          
-    pe"----- contrct layout built ------------";
-    let tycn = L.hd cns in 
-    pe "----" ; 
-    let cn   = fst tycn in 
-    pe "----" ; 
-    let bytecode   : big_int Evm.program = compose_bytecode ccs rc cn in 
-    pe "----" ; 
-    let bytecode   : big_int Evm.program        = compose_bytecode ccs rc (fst(L.hd cns))   in          
+    pe"------ contrct layout built ------------";
+    let tycn                                    = L.hd cns in 
+    let cn                                      = fst tycn in 
+    let bytecode   : big_int Evm.program        = compose_bytecode ccs rc cn in 
+    pe"------ bytecode composed ---------------" ; 
     if  abi                                                                                               
         then Abi.prABI idx_ty_opt_ASTs                                                                          
         else if asm 

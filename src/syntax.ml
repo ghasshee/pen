@@ -6,15 +6,15 @@ module BL   = BatList
 
 
 type ty           (* atomic *)  =   TyVoid              (* 256 bits *) 
-                  (* atomic *)  |   TyUint256           (* 256 bits *) 
-                  (* atomic *)  |   TyUint8             (*   8 bits *) 
+                  (* atomic *)  |   TyU256           (* 256 bits *) 
+                  (* atomic *)  |   TyU8             (*   8 bits *) 
                   (* atomic *)  |   TyBytes32           (* 256 bits *) 
                   (* atomic *)  |   TyAddr              (* 160 bits *) 
                   (* atomic *)  |   TyBool 
                   (* atomic *)  |   TyRef               of ty 
                   (* atomic *)  |   TyTuple             of ty list
                   (* atomic *)  |   TyMap               of ty * ty 
-                  (* atomic *)  |   TyInstnce           of string                       (* type of [b] declared as [bid b]          *) 
+                  (* atomic *)  |   TyInstnc           of string                       (* type of [b] declared as [bid b]          *) 
                                 |   TyMthd              of string * ty list * ty        (*  TyMthd(id, tyArgs, tyRet)               *)
                                 |   TyDefault
                                 |   TyAbs               of  ty * ty                     (*  TyAbs(tyArgs, tyRet)                    *)
@@ -30,8 +30,8 @@ let ty_of_var (TyVar(_,ty))     =   ty
 let tys_of_vars                 =   L.map ty_of_var 
 
 let rec string_of_ty            =   function 
-    | TyUint256                 ->  "uint256"
-    | TyUint8                   ->  "uint8" 
+    | TyU256                 ->  "uint256"
+    | TyU8                   ->  "uint8" 
     | TyBytes32                 ->  "bytes32" 
     | TyAddr                    ->  "address" 
     | TyBool                    ->  "bool" 
@@ -40,7 +40,7 @@ let rec string_of_ty            =   function
     | TyTuple            _      ->  "tuple" 
     | TyMap(a,b)                ->  "mapping" 
     | TyCn(id,_,_)              ->  "contract arch "     ^ id
-    | TyInstnce     s           ->  "contract instance " ^ s
+    | TyInstnc     s           ->  "contract instance " ^ s
     | TyMthd(id,_,_)            ->  "method " ^ id 
     | TyDefault                 ->  "default" 
     | _                         ->  "undefined" 
@@ -98,14 +98,16 @@ and  'ty expr                   =
                                 |   TmIf                of 'ty exprTy * 'ty exprTy * 'ty exprTy 
                                 |   TmFix               of string * string * ty * 'ty exprTy
                                 |   TmUnit 
+                                |   TmZero 
                                 |   EpTrue
                                 |   EpFalse
-                                |   TmUint           of big
+                                |   TmUint              of big
                                 |   EpUint8             of big
                                 |   EpNow
                                 |   EpCall              of 'ty _call
                                 |   EpNew               of 'ty _new
                                 |   EpSend              of 'ty _send                    (* storage solidation *) 
+                                |   TmSend              of 'ty exprTy * string option * 'ty exprTy list * 'ty exprTy (* TmSend(cn, mname, args, msg) *) 
                                 |   EpArray             of 'ty _array
                                 |   EpLAnd              of 'ty exprTy * 'ty exprTy
                                 |   EpLT                of 'ty exprTy * 'ty exprTy
@@ -176,7 +178,7 @@ let argTys_of_mthd                = function
     | TyDefault                 -> []
 
 let cntrct_name_of_instance     = function
-    | _,(TyInstnce cn,_)        -> cn
+    | _,(TyInstnc cn,_)        -> cn
 
 
 (*****************************************)
@@ -184,6 +186,7 @@ let cntrct_name_of_instance     = function
 (*****************************************)
 
 let rec string_of_expr          = function 
+    | TmZero                    -> "O" 
     | TmFix(f,n,_,_)            -> "fix(" ^ f ^ ")"
     | TmApp((t1,_),(t2,_))      -> "(" ^ string_of_expr t1 ^ ")(" ^ string_of_expr t2 ^ ")" 
     | TmAbs(x,tyX,(t,_))        -> "λ" ^ x ^ ":" ^ string_of_ty tyX ^ "." ^ string_of_expr t 
@@ -236,6 +239,7 @@ let rec string_of_tm  e         = match fst e with
     | TmMul(a,b)                -> string_of_tm a ^ " * " ^ string_of_tm b
     | TmMinus(a,b)              -> string_of_tm a ^ " - " ^ string_of_tm b 
     | TmUnit                    -> "()" 
+    | TmZero                    -> "O" 
     | EpSend _                  -> "send" 
     | e                         -> string_of_expr e 
 
@@ -245,11 +249,11 @@ let rec string_of_tm  e         = match fst e with
 (*****************************************)
 
 let size_of_ty (* in bytes *)   = function
-    | TyUint8                   ->  1
-    | TyUint256                 -> 32
+    | TyU8                      ->  1
+    | TyU256                    -> 32
     | TyBytes32                 -> 32
     | TyAddr                    -> 20
-    | TyInstnce _               -> 20 (* address as word *)
+    | TyInstnc _                -> 20 (* address as word *)
     | TyBool                    -> 32
     | TyRef     _               -> 32
     | TyTuple  []               -> err "size_of_ty TyUnit" 
@@ -285,7 +289,6 @@ let non_mapping_arg             = function
     | _                         -> err "not an arg"
 
 let count_plain_args            = L.length $ (L.filter (not $ is_mapping)) 
-
 
 
 

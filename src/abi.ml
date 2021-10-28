@@ -14,8 +14,8 @@ module BS = BatString
 module BB = BatBig_int
 
 let abi_string_of_ty       = function 
-    | TyUint256                ->  "uint256" 
-    | TyUint8                  ->  "uint8"   
+    | TyU256                ->  "uint256" 
+    | TyU8                  ->  "uint8"   
     | TyBytes32               ->  "bytes32" 
     | TyAddr                  ->  "address"
     | TyBool                  ->  "bool"
