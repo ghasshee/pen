@@ -151,7 +151,7 @@ and addTy_expr cns cname ctx (expr,()) = pe("addTy_expr: " ^ string_of_tm (expr,
     | EpFalse                       ->  EpFalse         , TyBool
     | EpSender                      ->  EpSender        , TyAddr
     | EpNow                         ->  EpNow           , TyU256
-    | TmUint   d                 ->  TmUint   d   , TyU256
+    | TmUint   d                    ->  TmUint      d   , TyU256
     | EpUint8     d                 ->  EpUint8     d   , TyU8
     | EpValue                       ->  EpValue         , TyU256
     | EpAddr      e                 ->  let e       =   addTy_expr cns cname ctx e          in
