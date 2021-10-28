@@ -512,22 +512,23 @@ and codegen_mthd_argLen_chk m ce = match m with
 
 
 and escape_ARG arg retlabel le ce ly a = 
-    let ce      = PUSH32(Label retlabel)         >>ce              in     
-    let ce      = arg                           >>>>(a,le,ce,ly)  in 
-                  ePUSH                           ce               
-        
-and get_escaped_ARG ce        = 
-                 ce 
+    let ce      = Comment "ESCAPE START"        >>ce                    in 
+    let ce      = PUSH32(Label retlabel)        >>ce                    in     
+    let ce      = arg                           >>>>(a,le,ce,ly)        in 
+    let ce      = ePUSH                           ce                    in
+                  Comment "ESCAPE DONE"         >>ce 
 
 and codegen_app_idxrec aln ly le ce (TmApp((TmIdxRec(i),_),arg))       = 
-    let retlabel        = fresh_label ()                                in 
-    let start           = lookup_recursion_param le                     in 
-    let ce              = escape_ARG arg retlabel le ce ly aln          in 
-    let ce              = goto start                  ce                in 
-                          JUMPDEST retlabel         >>ce                         
+    let ce      = Comment "BEGIN APP-REC"           >>ce                in
+    let retaddr = fresh_label ()                                        in 
+    let start   = lookup_recursion_param le                             in 
+    let ce      = escape_ARG arg retaddr le ce ly aln                   in 
+    let ce      = goto start                          ce                in 
+    let ce      = JUMPDEST retaddr                  >>ce                in       
+                  Comment "END APP-REC"             >>ce 
 
 and codegen_fix ly le ce (TmFix(phi,n,ty,tm)) = 
-    let ce      = Comment "BEGIN_FIX"               >>ce                in 
+    let ce      = Comment "BEGIN FIX"               >>ce                in 
     let start   = fresh_label ()                                        in 
     printf "! add_recursion_param(label%d)\n" start; 
     let le      = add_recursion_param le start                          in
@@ -535,12 +536,13 @@ and codegen_fix ly le ce (TmFix(phi,n,ty,tm)) =
     let ce      = tm                                >>>>(R,le,ce,ly)    in  (*                               tm >> .. *)
     let ce      = ePOP                                ce                in  (*                    retAddr >> tm >> .. *) 
     let ce      = JUMP                              >>ce                in  (* GOTO retAddr                  tm >> .. *)
-    let ce      = Comment "END_FIX"                 >>ce                in 
+    let ce      = Comment "END FIX"                 >>ce                in 
     ce 
 
 and codegen_idxstruct ly le ce (TmIdxStrct(i)) = 
-                  get_escaped_arg ce  
-
+    let ce      = Comment "BEGIN Struct Parameter"  >>ce in
+    let ce      = get_escaped_arg                     ce in 
+                  Comment "END Struct Parameter"    >>ce
 
 and codegen_app ly le ce (TmApp(t1,t2)) = match fst t1 with 
     | TmIdx(i,n)        -> 
