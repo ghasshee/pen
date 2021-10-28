@@ -226,12 +226,11 @@ let dispatcher le ce idx cn  =
 (***     4.    CODEGEN  PRECONTRACT        ***)
 (*********************************************)
 
-let rec codegen_predef_call le ce ly aln cr reT = 
-    match cr.call_id with 
-    | "pre_ecdsarecover"    ->  assert(aln=R);  codegen_ECDSArecover le ce ly     cr.call_args
-    | "keccak256"           ->  assert(aln=R);  codegen_keccak256    le ce ly     cr.call_args    
-    | "iszero"              ->                  codegen_iszero       le ce ly aln cr.call_args reT
-    | _                     ->  err "codegen_predef_call: Direct Contract Call is Not supported. Specify a Method Call."
+let rec codegen_predef_call aln ly le ce id args rety = match id with 
+    | "pre_ecdsarecover"    ->  assert(aln=R);  codegen_ECDSArecover le ce ly     args
+    | "keccak256"           ->  assert(aln=R);  codegen_keccak256    le ce ly     args    
+    | "iszero"              ->                  codegen_iszero       le ce ly aln args rety
+    | _                     ->  err "codegen_predef_call: Direct Contract Call is Not supported. Specify a Method."
 
 and codegen_iszero le ce ly aln args reT = match args with
     | [arg] ->  assert(reT=TyBool) ; 
@@ -377,7 +376,7 @@ and codegen_expr le ce ly aln  e        = pe (string_of_tm e); pe (string_of_ctx
     | EpLAnd (l,r)          ,TyBool     ->                  checked_codegen_LAnd l r le ce ly aln   
     | EpSend s              ,_          ->  assert(aln=R);  codegen_send le ce ly s
     | EpNew n               ,TyInstnc _ ->  assert(aln=R);  codegen_new  le ce ly n 
-    | EpCall call           ,tyRet      ->                  codegen_predef_call le ce ly aln call tyRet
+    | TmCall(id,args)       ,rety       ->                  codegen_predef_call aln ly le ce id args rety
     | EpSender              ,TyAddr     ->                  align_addr (CALLER  >>ce)  aln
     | EpThis                ,_          ->                  align_addr (ADDRESS >>ce) aln     
     | EpArray a_i           ,TyMap _    ->  let ce      =   codegen_array a_i le ce ly              in  (*            S[keccak(a[i])] >> .. *)
@@ -674,9 +673,7 @@ and sstore_vars le ce (ly:storLayout) offset idx vars =
     let ce      =   sstore_words_to varlocs ce          in  (*  S[l_k]:=argk; .. ; S[l_1]:=arg1                              .. *)
     le,ce
 
-and cont_call le ce ly (EpCall cont,_) = 
-    let cn      =   cont.call_id                        in
-    let args    =   cont.call_args                      in
+and cont_call le ce ly (TmCall(cn,args),_) = 
     let idx     =   lookup_cnidx_of_ce ce cn            in 
     let offset  =   (ly.fieldVars idx).offst            in  
     let ce      =   Comment "Setting Cont"  >>ce        in 

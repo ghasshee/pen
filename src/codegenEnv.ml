@@ -71,7 +71,7 @@ and expr_become  e                  =   match fst e with
     | TmMul (l,r) | EpPlus (l,r) | EpLAnd (l,r) | TmMinus(l,r)          
                                     ->  (expr_become l) @ (expr_become r)
     | EpArray a                     ->  expr_become a.aidx
-    | EpCall f                      ->  exprs_become f.call_args 
+    | TmCall(id,args)               ->  exprs_become args 
     | EpNew n                       ->  exprs_become n.new_args @ expr_become n.new_msg
     | EpSend s                      ->  expr_become s.cn @ exprs_become s.args @ expr_become s.msg
     | TmLog(_,l,_)                  ->  exprs_become l

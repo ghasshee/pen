@@ -79,10 +79,10 @@ let check_args_match tycns args =   function
     | Some m                        ->  assert (call_arg_expectations tycns m (L.map get_ty args))
     | None                          ->  assert (isNil (L.map get_ty args))
 
-let rec addTy_call cns cname ctx c =
-    let argTys  = L.map (addTy_expr cns cname ctx) c.call_args in
-    check_args_match (typeof_cns cns) argTys (Some c.call_id) ; 
-    let reT     = match c.call_id with
+let rec addTy_call cns cname ctx (TmCall(id,args)) =
+    let argTys  = L.map (addTy_expr cns cname ctx) args in
+    check_args_match (typeof_cns cns) argTys (Some id) ; 
+    let reT     = match id with
         | "value" when true         ->  TyU256 (* check the arg is 'msg' *) 
         | "pre_ecdsarecover"        ->  TyAddr
         | "keccak256"               ->  TyBytes32
@@ -92,8 +92,7 @@ let rec addTy_call cns cname ctx c =
         | cnname when true          ->  let i,cn = lookup_icn_of_icns cns cnname in 
                                         typeof_cn cn 
         | _                         ->  err "addTy_call: should not happen" in
-    { call_id   = c.call_id 
-    ; call_args = argTys    }, reT
+    TmCall(id, argTys) , reT 
 
 
 and addTy_expr cns cname ctx (expr,()) = pe("addTy_expr: " ^ string_of_tm (expr,()));match expr with
@@ -108,8 +107,8 @@ and addTy_expr cns cname ctx (expr,()) = pe("addTy_expr: " ^ string_of_tm (expr,
                                         TmAbs(x,tyX,(t',tyT')), TyAbs(tyX,tyT')
     | TmIdx(i,n)                    ->  begin match ctx with 
                                         | BdCtx local :: _ ->
-                                        let BdTy(id,ty) = L.nth local i in
-                                        let ty = tyShift (i+1) ty  in 
+                                        let BdTy(id,ty) = L.nth local i     in
+                                        let ty          = tyShift (i+1) ty  in 
                                         TmIdx(i,n)      , ty 
                                         | a :: rest -> addTy_expr cns cname rest (expr,()) 
                                         | _ -> err "addTy_expr: TmIdx: Notfound" end 
@@ -157,8 +156,7 @@ and addTy_expr cns cname ctx (expr,()) = pe("addTy_expr: " ^ string_of_tm (expr,
     | EpValue                       ->  EpValue         , TyU256
     | EpAddr      e                 ->  let e       =   addTy_expr cns cname ctx e          in
                                         EpAddr e        , TyAddr
-    | EpCall    c                   ->  let c,ty    =   addTy_call cns cname ctx c          in
-                                        EpCall c        , ty
+    | TmCall(id,args)               ->  addTy_call cns cname ctx expr          
     | TmId     s                    ->  id_lookup_ty ctx s
     | EpBalance   e                 ->  let e       =   addTy_expr cns cname ctx e          in
                                         assert (tyeqv TyAddr (get_ty e));

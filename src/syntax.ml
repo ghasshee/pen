@@ -14,7 +14,7 @@ type ty           (* atomic *)  =   TyVoid              (* 256 bits *)
                   (* atomic *)  |   TyRef               of ty 
                   (* atomic *)  |   TyTuple             of ty list
                   (* atomic *)  |   TyMap               of ty * ty 
-                  (* atomic *)  |   TyInstnc           of string                       (* type of [b] declared as [bid b]          *) 
+                  (* atomic *)  |   TyInstnc            of string                       (* type of [b] declared as [bid b]          *) 
                                 |   TyMthd              of string * ty list * ty        (*  TyMthd(id, tyArgs, tyRet)               *)
                                 |   TyDefault
                                 |   TyAbs               of  ty * ty                     (*  TyAbs(tyArgs, tyRet)                    *)
@@ -30,8 +30,8 @@ let ty_of_var (TyVar(_,ty))     =   ty
 let tys_of_vars                 =   L.map ty_of_var 
 
 let rec string_of_ty            =   function 
-    | TyU256                 ->  "uint256"
-    | TyU8                   ->  "uint8" 
+    | TyU256                    ->  "uint256"
+    | TyU8                      ->  "uint8" 
     | TyBytes32                 ->  "bytes32" 
     | TyAddr                    ->  "address" 
     | TyBool                    ->  "bool" 
@@ -40,7 +40,8 @@ let rec string_of_ty            =   function
     | TyTuple            _      ->  "tuple" 
     | TyMap(a,b)                ->  "mapping" 
     | TyCn(id,_,_)              ->  "contract arch "     ^ id
-    | TyInstnc     s           ->  "contract instance " ^ s
+    | TyInstnc     s            
+    ->  "contract instance " ^ s
     | TyMthd(id,_,_)            ->  "method " ^ id 
     | TyDefault                 ->  "default" 
     | _                         ->  "undefined" 
@@ -60,10 +61,10 @@ let split_evnt_args tyEv args   =   match tyEv with TyEv(id,tyEvArgs)  ->
 
 type 'ty _array                 =   { aid               : 'ty exprTy
                                     ; aidx              : 'ty exprTy        }
-
+(*
 and  'ty _call                  =   { call_id           : string
                                     ; call_args         : ('ty exprTy) list }
-                                
+  *)                              
 and  'ty _new                   =   { new_id            : string
                                     ; new_args          : 'ty exprTy list
                                     ; new_msg           : 'ty exprTy        }
@@ -104,7 +105,8 @@ and  'ty expr                   =
                                 |   TmUint              of big
                                 |   EpUint8             of big
                                 |   EpNow
-                                |   EpCall              of 'ty _call
+                                (*|   EpCall              of 'ty _call*)
+                                |   TmCall              of string * 'ty exprTy list   (* TmCall(cnname, args) *) 
                                 |   EpNew               of 'ty _new
                                 |   EpSend              of 'ty _send                    (* storage solidation *) 
                                 |   TmSend              of 'ty exprTy * string option * 'ty exprTy list * 'ty exprTy (* TmSend(cn, mname, args, msg) *) 
@@ -170,7 +172,7 @@ let default_exists              =   L.exists      (function   | TyDefault       
                                                               | TyMthd(_,_,_)             -> false  )
 
 let cntrct_name_of_ret_cont     = function 
-    | EpCall c,_                -> Some c.call_id
+    | TmCall(id,args),_         -> Some id
     | _,_                       -> None
 
 let argTys_of_mthd                = function 
@@ -204,11 +206,11 @@ let rec string_of_expr          = function
     | TmUnit                    -> "()"
     | TmMinus ((a,_),(b,_))     -> string_of_expr a ^ " - " ^ string_of_expr b
     | TmMul   ((a,_),(b,_))     -> string_of_expr a ^ " * " ^ string_of_expr b
+    | TmCall(id,args)           -> "call(" ^ id ^ ")" 
     | EpThis                    -> "this"
     | EpArray       _           -> "a[idx]"
     | EpSend        _           -> "send"
     | EpNew         _           -> "new"
-    | EpCall        _           -> "call"
     | EpNow                     -> "now"
     | EpSender                  -> "sender"
     | EpTrue                    -> "true"

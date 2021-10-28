@@ -127,9 +127,9 @@ tm:
 appTm:
     | pathTm                                        { $1                                                                    }
     | NOT   pathTm                                  { fun ctx -> EpNot ($2 ctx)                                         ,() }
-    | ISZERO arg_list                               { fun ctx -> EpCall{call_id="iszero";call_args=$2 ctx}              ,() }
-    | ECDSARECOVER arg_list                         { fun ctx -> EpCall{call_id="pre_ecdsarecover";call_args=$2 ctx}    ,() }
-    | KECCAK arg_list                               { fun ctx -> EpCall{call_id="keccak256";call_args=$2 ctx}           ,() }
+    | ISZERO arg_list                               { fun ctx -> TmCall("iszero"          ,$2 ctx)                      ,() }
+    | ECDSARECOVER arg_list                         { fun ctx -> TmCall("pre_ecdsarecover",$2 ctx)                      ,() }
+    | KECCAK arg_list                               { fun ctx -> TmCall("keccak256"       ,$2 ctx)                      ,() }
     | appTm pathTm                                  { fun ctx -> TmApp($1 ctx,$2 ctx)                                   ,() } 
 pathTm:
     | aTm                                           { $1                                                                    }
@@ -139,8 +139,8 @@ aTm:
     | ABORT                                         { fun ctx -> TmAbort                                                ,() } 
     | TRUE                                          { fun ctx -> EpTrue                                                 ,() }
     | FALSE                                         { fun ctx -> EpFalse                                                ,() }
-    | EUINT256                                      { fun ctx -> TmUint $1                                           ,() }
-    | EUINT8                                        { fun ctx -> TmUint $1                                           ,() }
+    | EUINT256                                      { fun ctx -> TmUint $1                                              ,() }
+    | EUINT8                                        { fun ctx -> TmUint $1                                              ,() }
     | VALUE   LPAR  MSG  RPAR                       { fun ctx -> EpValue                                                ,() }
     | SENDER  LPAR  MSG  RPAR                       { fun ctx -> EpSender                                               ,() }
     | BALANCE LPAR  tm   RPAR                       { fun ctx -> EpBalance ($3 ctx)                                     ,() }
@@ -149,12 +149,12 @@ aTm:
     | ADDRESS LPAR  tm   RPAR                       { fun ctx -> EpAddr ($3 ctx)                                        ,() }
     | ID                               { reserved $1; fun ctx -> prBds ctx;pe $1; begin 
                                                                  try TmIdx(lookup_bruijn_idx $1 ctx,len ctx),() with _ -> 
-                                                                 try TmIdxRec(lookup_rec_idx ($1^"'") ctx)        ,() with _ -> 
+                                                                 try TmIdxRec(lookup_rec_idx ($1^"'") ctx)  ,() with _ -> 
                                                                  try TmIdxStrct(lookup_struct_idx $1 ctx)   ,() with _ -> 
                                                                      TmId $1,() end }
     | NEW ID  arg_list msg             { reserved $2; fun ctx -> EpNew {new_id=$2;new_args=$3 ctx; new_msg=$4 ctx}      ,() }
 call: 
-    | ID arg_list                                   { fun ctx -> EpCall{call_id=$1;call_args=$2 ctx}                    ,() }
+    | ID arg_list                                   { fun ctx -> TmCall($1,$2 ctx)                                      ,() }
 arg_list : 
     | LPAR RPAR                                     { fun ctx -> []                                                         }
     | LPAR args RPAR                                { fun ctx -> $2 ctx                                                     } 
