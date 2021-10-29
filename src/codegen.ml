@@ -357,7 +357,7 @@ and codegen_expr le ce ly aln  e        = pe (string_of_tm e); pe (string_of_ctx
     | TmIdxStrct(i)         ,ty         ->                  codegen_idstrct ly le ce (TmIdxStrct(i))
     | TmIf(b,t1,t2)         ,ty         ->                  codegen_if      ly le ce (TmIf(b,t1,t2)) 
     | EpAddr(c,TyInstnc i)  ,TyAddr     ->                  (c,TyInstnc i)          >>>>(aln,ly,le,ce) 
-    | EpBalance e           ,TyU256     ->                  BALANCE >> ( e          >>>>(R,ly,le,ce) )
+    | Balanc e           ,TyU256     ->                  BALANCE >> ( e          >>>>(R,ly,le,ce) )
     | EpValue               ,TyU256     ->                  CALLVALUE               >>ce      (* Value (wei) Transferred to the account *) 
     | TmZero                ,_          ->                  PUSH1(Int 0)            >>ce 
     | EpNow                 ,TyU256     ->                  TIMESTAMP               >>ce 

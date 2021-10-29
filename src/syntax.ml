@@ -119,7 +119,7 @@ and  'ty expr                   =
                                 |   EpPlus              of 'ty exprTy * 'ty exprTy
                                 |   TmMinus             of 'ty exprTy * 'ty exprTy
                                 |   TmMul               of 'ty exprTy * 'ty exprTy
-                                |   EpBalance           of 'ty exprTy
+                                |   Balanc           of 'ty exprTy
 
 let get_ty  (_,ty)              =   ty
 let get_tm  (x,_)               =   x
@@ -211,7 +211,7 @@ let rec string_of_expr          = function
     | EpAddr        _           -> "address"
     | EpDeref       _           -> "dereference of ..."
     | EpPlus  ((a,_),(b,_))     -> string_of_expr a ^ " + " ^ string_of_expr b
-    | EpBalance     _           -> "balance"
+    | Balanc     _           -> "balance"
 
 let rec string_of_tm  e         = match fst e with 
     | TmApp(t1,t2)              -> "TmApp(" ^ string_of_tm t1 ^ "," ^ string_of_tm t2 ^ ")"

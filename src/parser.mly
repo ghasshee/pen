@@ -143,7 +143,7 @@ aTm:
     | EUINT8                                        { fun ctx -> TmU256 $1                                              ,() }
     | VALUE   LPAR  MSG  RPAR                       { fun ctx -> EpValue                                                ,() }
     | SENDER  LPAR  MSG  RPAR                       { fun ctx -> EpSender                                               ,() }
-    | BALANCE LPAR  tm   RPAR                       { fun ctx -> EpBalance ($3 ctx)                                     ,() }
+    | BALANCE LPAR  tm   RPAR                       { fun ctx -> Balanc ($3 ctx)                                     ,() }
     | NOW     LPAR BLOCK RPAR                       { fun ctx -> EpNow                                                  ,() }
     | THIS                                          { fun ctx -> EpThis                                                 ,() }
     | ADDRESS LPAR  tm   RPAR                       { fun ctx -> EpAddr ($3 ctx)                                        ,() }

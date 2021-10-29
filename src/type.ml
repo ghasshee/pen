@@ -164,13 +164,12 @@ and addTy_expr cns cname ctx expr = pe("addTy_expr: " ^ string_of_tm expr );matc
     | EpSender                      ->  EpSender        , TyAddr
     | EpNow                         ->  EpNow           , TyU256
     | TmU256      d                 ->  TmU256      d   , TyU256
-    | TmU8        d                 ->  TmU8     d   , TyU8
+    | TmU8        d                 ->  TmU8        d   , TyU8
     | EpValue                       ->  EpValue         , TyU256
     | EpAddr      e                 ->  let e       =   addTy_expr cns cname ctx e          in
-                                        EpAddr e        , TyAddr
-    | EpBalance   e                 ->  let e       =   addTy_expr cns cname ctx e          in
-                                        assert(tyeqv TyAddr (get_ty e));
-                                        EpBalance e     , TyU256
+                                        EpAddr e            , TyAddr
+    | Balanc   e                 ->  let e,TyAddr=   addTy_expr cns cname ctx e          in
+                                        Balanc(e,TyAddr), TyU256
     | TmNew(id,args,msg)            ->  addTy_new  cns cname ctx id args msg    
     | EpLAnd (l, r)                 ->  let l       =   addTy_expr cns cname ctx l          in
                                         typecheck (TyBool,l);
@@ -229,10 +228,9 @@ and addTy_new cns cname ctx id args msg =
     TmNew(id,args,msg) , TyInstnc id 
 
 and addTy_lexpr cns cname ctx (TmArray(id,idx)) = 
-    let id          =   addTy_expr cns cname ctx id   in 
-    let idx         =   addTy_expr cns cname ctx idx  in 
-    let TyMap(k,v)  =   get_ty id                     in 
-    TmArray(id,idx) 
+    let s,TyMap(k,v)=   addTy_expr cns cname ctx id     in 
+    let idx         =   addTy_expr cns cname ctx idx    in 
+    TmArray((s,TyMap(k,v)),idx) 
 
 and addTy_return cns cname ctx ret cont=
     let ret         =   addTy_expr cns cname ctx ret    in
