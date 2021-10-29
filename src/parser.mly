@@ -111,17 +111,17 @@ ret:
 tm: 
     | appTm                                         { $1                                                                    } 
     | LET ty ID EQ tm IN tm                         { fun ctx -> TmApp((TmAbs($3,$2,$7(add_bruijn_idx ctx $3)),()),$5 ctx)   ,() } 
-    | LET REC ID ID COLON ty EQ tm IN tm            { fun ctx -> let ctx' = add_rec_idx ctx ($3^"'") in 
+    | LET REC ID ID COLON ty EQ tm IN tm            { fun ctx -> let ctx' = add_rec_idx ctx($3^"'") in 
                                                                  let ctx''= add_struct_idx ctx' $4 in 
-                                                                 let ctx  = add_bruijn_idx ctx ($3) in 
-                                                                 TmApp((TmAbs(($3),$6,$10 ctx),()),(TmFix(($3^"'"),$4,$6,$8 ctx''),())), ()}  
+                                                                 let ctx  = add_bruijn_idx ctx  $3 in 
+                                                                 TmApp((TmAbs($3,$6,$10 ctx),()),(TmFix(($3^"'"),$4,$6,$8 ctx''),())), ()}  
     | LAM ID COLON ty ARROW tm                      { fun ctx -> TmAbs($2, $4, $6(add_bruijn_idx ctx $2))               ,() } 
     | IF tm THEN tm ELSE tm                         { fun ctx -> TmIf($2 ctx, $4 ctx, $6 ctx)                           ,() }
     | lexpr EQ tm                                   { fun ctx -> TmAssign($1 ctx, $3 ctx)                               ,() }
     | LOG ID  arg_list                              { fun ctx -> TmLog($2,$3 ctx,None)                                  ,() }
     | SELFDESTRUCT tm                               { fun ctx -> TmSlfDstrct($2 ctx)                                    ,() }
-    |  tm  DOT DEFAULT LPAR RPAR msg                { fun ctx -> EpSend{cn=$1 ctx; mthd=None   ;args=[]    ; msg=$6 ctx},() }
-    |  tm  DOT ID    arg_list msg                   { fun ctx -> EpSend{cn=$1 ctx; mthd=Some $3;args=$4 ctx; msg=$5 ctx},() }
+    |  tm  DOT DEFAULT LPAR RPAR msg                { fun ctx -> TmSend($1 ctx,None,[],$6 ctx)                          ,() }
+    |  tm  DOT ID    arg_list msg                   { fun ctx -> TmSend($1 ctx,Some $3,$4 ctx,$5 ctx)                   ,() }
     |  tm  LSQBR  tm  RSQBR                         { fun ctx -> TmArray($1 ctx,$3 ctx)                                 ,() }
     | tm op tm                                      { fun ctx -> $2 ($1 ctx)($3 ctx)                                    ,() }
 appTm:

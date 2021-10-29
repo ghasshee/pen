@@ -73,7 +73,7 @@ and expr_become  e                  =   match fst e with
     | TmArray(id,idx)               ->  expr_become idx
     | TmCall(id,args)               ->  exprs_become args 
     | EpNew n                       ->  exprs_become n.new_args @ expr_become n.new_msg
-    | EpSend s                      ->  expr_become s.cn @ exprs_become s.args @ expr_become s.msg
+    | TmSend(cn,_,args,msg)         ->  expr_become cn @ exprs_become args @ expr_become msg
     | TmLog(_,l,_)                  ->  exprs_become l
     | TmReturn(ret,cont)            ->  expr_become ret @ expr_become cont @ (match cntrct_name_of_ret_cont cont with
                                                                          | Some name     -> [name]

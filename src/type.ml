@@ -26,8 +26,10 @@ let tyeqv t0 t1                 =   ( t0 = t1 )  ||  ( match t0, t1 with
                                 | TyAddr, TyInstnc _    -> true
                                 | _     , _             -> false ) 
 
-let assert_tyeqv l r            =   pe(sprintf "asserting %s(typeof %s)=%s(typeof %s)" (string_of_ty (get_ty l))(string_of_tm l)  (string_of_ty (get_ty r)) (string_of_tm r) ); 
-                                    assert (get_ty l = get_ty r) 
+let assert_tyeqv l r            =   let tyl = get_ty l in
+                                    let tyr = get_ty r in 
+                                    printf "asserting %s(typeof %s)=%s(typeof %s)\n" (string_of_ty tyl) (string_of_tm l)  (string_of_ty tyr ) (string_of_tm r); 
+                                    assert (tyl = tyr) 
                                 
 let typeof_mthd                 =   function 
     | TmMthd(TyMthd(id,args,ret),_) ->  TyMthd(id, tys_of_vars args, ret)
@@ -142,7 +144,7 @@ and addTy_expr cns cname ctx expr = pe("addTy_expr: " ^ string_of_tm expr );matc
     | TmIf(b,t1,t2)                 ->  let b,tyB   = addTy_expr cns cname ctx b  in 
                                         let t1,tyT1 = addTy_expr cns cname ctx t1 in 
                                         let t2,tyT2 = addTy_expr cns cname ctx t2 in 
-                                        (* assert(tyeqv tyT1 tyT2 && tyB = TyBool);  *) (* #TODO *) 
+                                        assert(tyeqv tyT1 tyT2 && tyB = TyBool); 
                                         TmIf((b,tyB),(t1,tyT1),(t2,tyT2))   , tyT1
     | TmReturn(r,c)                 ->  addTy_return      cns cname ctx  r c 
     | TmCall(id,args)               ->  addTy_call cns cname ctx (TmCall(id,args))          
@@ -161,7 +163,7 @@ and addTy_expr cns cname ctx expr = pe("addTy_expr: " ^ string_of_tm expr );matc
     | EpFalse                       ->  EpFalse         , TyBool
     | EpSender                      ->  EpSender        , TyAddr
     | EpNow                         ->  EpNow           , TyU256
-    | TmU256   d                    ->  TmU256   d      , TyU256
+    | TmU256      d                 ->  TmU256      d   , TyU256
     | EpUint8     d                 ->  EpUint8     d   , TyU8
     | EpValue                       ->  EpValue         , TyU256
     | EpAddr      e                 ->  let e       =   addTy_expr cns cname ctx e          in
@@ -212,24 +214,15 @@ and addTy_expr cns cname ctx expr = pe("addTy_expr: " ^ string_of_tm expr );matc
                                         let idx,ty  =   addTy_expr cns cname ctx idx        in 
                                         assert (tyeqv kT ty) ; 
                                         TmArray(id,(idx,ty)) , vT end  
-    | EpSend sd                     ->  let msg     =   addTy_expr cns cname ctx sd.msg     in
-                                        let cn      =   addTy_expr cns cname ctx sd.cn      in
-                                        begin match sd.mthd with
-                                        | Some m ->  
-                                        let TyMthd(_,_,tyRet) = find_tyMthd m (L.map get_ty (typeof_cns cns)) in            
-                                        let args    =   L.map(addTy_expr cns cname ctx)sd.args in                
-                                        let ref     =   EpSend  { cn     = cn                                        
-                                                                ; mthd   = sd.mthd                                
-                                                                ; args   = args                                      
-                                                                ; msg    = msg }, TyRef tyRet  in              
-                                        (match tyRet with                                                               
-                                            | TyUnit       -> ref                                                          
-                                            | ty           -> EpDeref ref, ty )                                            
-                                        | None ->   assert (sd.args=[]) ; 
-                                                    EpSend { cn      = cn
-                                                           ; mthd    = None
-                                                           ; args    = []
-                                                           ; msg     = msg }, TyUnit     end
+    | TmSend(cn,Some m,args,msg)    ->  let msg     =   addTy_expr cns cname ctx msg        in
+                                        let cn      =   addTy_expr cns cname ctx cn         in
+                                        let args    =   L.map(addTy_expr cns cname ctx)args in                
+                                        ( match find_tyMthd m (L.map get_ty (typeof_cns cns)) with 
+                                        | TyMthd(_,_,TyUnit) -> TmSend(cn,Some m,args,msg), TyRef TyUnit
+                                        | TyMthd(_,_,rety)   -> EpDeref(TmSend(cn,Some m,args,msg),rety), rety )
+    | TmSend(cn,None,args,msg)      ->  let msg     =   addTy_expr cns cname ctx msg        in
+                                        let cn      =   addTy_expr cns cname ctx cn         in
+                                        TmSend(cn,None,[],msg), TyUnit 
 
 and addTy_new cns cname ctx e =
     let msg'        =   addTy_expr cns cname ctx e.new_msg in

@@ -59,18 +59,9 @@ let split_evnt_args tyEv args   =   match tyEv with TyEv(id,tyEvArgs)  ->
 (***      STATEMENTS & EXPRESSIONS     ***)
 (*****************************************)
 
-(*
-type 'ty _array                 =   { aid               : 'ty exprTy
-                                    ; aidx              : 'ty exprTy        }
-*)
-type  'ty _new                   =   { new_id            : string
+type  'ty _new                  =   { new_id            : string
                                     ; new_args          : 'ty exprTy list
                                     ; new_msg           : 'ty exprTy        }
-                                
-and  'ty _send                  =   { cn                : 'ty exprTy
-                                    ; mthd              : string option
-                                    ; args              : 'ty exprTy list
-                                    ; msg               : 'ty exprTy        }
 
 and  'ty stmt                   =   SmExpr              of 'ty exprTy
                                 |   SmAssign            of 'ty expr * 'ty exprTy
@@ -100,15 +91,13 @@ and  'ty expr                   =
                                 |   TmZero 
                                 |   TmCall              of string * 'ty exprTy list   (* TmCall(cnname, args) *) 
                                 |   TmArray             of 'ty exprTy * 'ty exprTy    (* TmArray(id,idx) *) 
-                                (*|   EpArray             of 'ty _array*)
                                 |   EpTrue
                                 |   EpFalse
                                 |   TmU256              of big
                                 |   EpUint8             of big
                                 |   EpNow
                                 |   EpNew               of 'ty _new
-                                |   EpSend              of 'ty _send                    (* storage solidation *) 
-                                |   TmSend              of 'ty exprTy * string option * 'ty exprTy list * 'ty exprTy (* TmSend(cn, mname, args, msg) *) 
+                                |   TmSend              of 'ty exprTy * string option * 'ty exprTy list * 'ty exprTy (* TmSend(cn,Some mname, args, msg) *) 
                                 |   EpLAnd              of 'ty exprTy * 'ty exprTy
                                 |   EpLT                of 'ty exprTy * 'ty exprTy
                                 |   EpGT                of 'ty exprTy * 'ty exprTy
@@ -206,8 +195,8 @@ let rec string_of_expr          = function
     | TmMul   ((a,_),(b,_))     -> string_of_expr a ^ " * " ^ string_of_expr b
     | TmCall(id,args)           -> "call(" ^ id ^ ")" 
     | TmArray((id,_),(idx,_))   -> string_of_expr id ^ "[" ^ string_of_expr idx ^ "]" 
+    | TmSend        _           -> "send"
     | EpThis                    -> "this"
-    | EpSend        _           -> "send"
     | EpNew         _           -> "new"
     | EpNow                     -> "now"
     | EpSender                  -> "sender"
@@ -240,7 +229,7 @@ let rec string_of_tm  e         = match fst e with
     | TmMinus(a,b)              -> string_of_tm a ^ " - " ^ string_of_tm b 
     | TmUnit                    -> "()" 
     | TmZero                    -> "O" 
-    | EpSend _                  -> "TmSend()" 
+    | TmSend _                  -> "TmSend()" 
     | e                         -> string_of_expr e 
 
 

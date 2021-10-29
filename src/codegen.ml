@@ -373,7 +373,7 @@ and codegen_expr le ce ly aln  e        = pe (string_of_tm e); pe (string_of_ctx
     | EpNEq  (l,r)          ,TyBool     ->  assert(aln=R);  ISZERO >> (op EQ l r   le ce ly)             
     | EpNot    e            ,TyBool     ->  assert(aln=R);  ISZERO >> ( e >>>>(aln,ly,le,ce) )
     | EpLAnd (l,r)          ,TyBool     ->                  checked_codegen_LAnd l r le ce ly aln   
-    | EpSend s              ,_          ->  assert(aln=R);  codegen_send le ce ly s
+    | TmSend(cn,m,args,msg) ,_          ->  assert(aln=R);  codegen_send cn m args msg ly le ce 
     | EpNew  n              ,TyInstnc _ ->  assert(aln=R);  codegen_new  le ce ly n 
     | TmCall(id,args)       ,rety       ->                  codegen_predef_call aln ly le ce id args rety
     | EpSender              ,TyAddr     ->                  align_addr (CALLER  >>ce)  aln
@@ -404,9 +404,9 @@ and op operator l r le ce ly =
     let ce    = l                               >>>>(R,ly,le,ce)   in 
                 operator                        >>ce 
             
-and push_msg_and_gas s le ce ly = 
-    let ce      = s.msg                         >>>>(R,ly,le,ce)in  (*                                            value >> .. *) 
-    let ce      = s.cn                          >>>>(R,ly,le,ce)in  (*                                  cnAddr >> value >> .. *)
+and push_msg_and_gas msg cn le ce ly = 
+    let ce      = msg                           >>>>(R,ly,le,ce)in  (*                                            value >> .. *) 
+    let ce      = cn                            >>>>(R,ly,le,ce)in  (*                                  cnAddr >> value >> .. *)
     let ce      = PUSH4(Int 3000)               >>ce            in  (*                          3000 >> cnAddr >> value >> .. *)
     let ce      = GAS                           >>ce            in  (*                   gas >> 3000 >> cnAddr >> value >> .. *)
                   SUB                           >>ce                (*                      gas-3000 >> cnAddr >> value >> .. *)
@@ -423,32 +423,32 @@ and mload_ret_value ce =                                            (*          
     let ce      = throw_if_NEQ                    ce            in  (* IF 32!=retsize ERROR                       retbegin >> .. *)
                   MLOAD                         >>ce                (*                                         M[retbegin] >> .. *)
 
-and codegen_send le ce ly s  = match snd s.cn with
+and codegen_send cn m args msg ly le ce = match snd cn with
     | TyInstnc cnname  ->  (* msg-call to a contract *) 
     let cnidx   = lookup_cnidx_of_ce ce cnname                  in 
     let callee  = lookup_cn ce cnidx                            in
-    let Some mname = s.mthd                                     in 
+    let Some mname = m                                          in 
     let m       = lookup_mthd_head ce callee mname              in
-    let TyMthd(id,_,reTy) = m in 
-    let retSize = size_of_ty reTy                               in  (*                                                                                                              .. *)
+    let TyMthd(id,_,reTy) = m                                   in 
+    let retsize = size_of_ty reTy                               in  (*                                                                                                              .. *)
     let ce      = Comment("BEGINE send to "^id) >>ce            in  
     let ce      = reset_PC                        ce            in  (*                                                                                                     PCbkp >> .. *)
-    let ce      = PUSH1(Int retSize)            >>ce            in  (*                                                                                          retsize >> PCbkp >> .. *)
+    let ce      = PUSH1(Int retsize)            >>ce            in  (*                                                                                          retsize >> PCbkp >> .. *)
     let ce      = DUP1                          >>ce            in  (*                                                                               retsize >> retsize >> PCbkp >> .. *)
     let ce      = malloc                          ce            in  (*                                                                              retbegin >> retsize >> PCbkp >> .. *)
     let ce      = repeat DUP2 2                   ce            in  (*                                                       retbegin >> retsize >> retbegin >> retsize >> PCbkp >> .. *)
-    let ce      = mstore_mhash_and_args m s.args le ce ly       in  (*                               &mhash >> argssize+4 >> retbegin >> retsize >> retbegin >> retsize >> PCbkp >> .. *)
-    let ce      = push_msg_and_gas s           le ce ly         in  (*  gas-3000 >> cnAddr >> msg >> &mhash >> argssize+4 >> retbegin >> retsize >> retbegin >> retsize >> PCbkp >> .. *)
+    let ce      = mstore_mhash_and_args m args le ce ly         in  (*                               &mhash >> argssize+4 >> retbegin >> retsize >> retbegin >> retsize >> PCbkp >> .. *)
+    let ce      = push_msg_and_gas msg cn      le ce ly         in  (*  gas-3000 >> cnAddr >> msg >> &mhash >> argssize+4 >> retbegin >> retsize >> retbegin >> retsize >> PCbkp >> .. *)
     let ce      = call_and_restore_PC             ce            in  (*                                                                                       retsize >> retbegin >> .. *)
     let ce      = mload_ret_value                 ce            in  (*                                                                                                       ret >> .. *)
                   Comment("END send to "^id)    >>ce 
     | TyAddr            ->  (* send value to an EOA *) 
-    let retSize = 0                                             in  (*                                                                   .. *)
+    let retsize = 0                                             in 
+    let ce      = Comment "BEGINE send to Addr" >>ce            in  (*                                                                   .. *) 
     let ce      = reset_PC                        ce            in  (*                                                          PCbkp >> .. *) 
-    let ce      = PUSH1(Int retSize)            >>ce            in  (*                                                     0 >> PCbkp >> .. *) 
-    let ce      = DUP1                          >>ce            in  (*                                                0 >> 0 >> PCbkp >> .. *) 
-    let ce      = repeat DUP2 4                   ce            in  (*                            0 >> 0 >> 0 >> 0 >> 0 >> 0 >> PCbkp >> .. *) 
-    let ce      = push_msg_and_gas s           le ce ly         in  (* gas-3000 >> addr >> msg >> 0 >> 0 >> 0 >> 0 >> 0 >> 0 >> PCbkp >> .. *) 
+    let ce      = PUSH1(Int retsize)            >>ce            in  (*                                                     0 >> PCbkp >> .. *) 
+    let ce      = repeat DUP1 5                   ce            in  (*                            0 >> 0 >> 0 >> 0 >> 0 >> 0 >> PCbkp >> .. *) 
+    let ce      = push_msg_and_gas msg cn      le ce ly         in  (* gas-3000 >> addr >> msg >> 0 >> 0 >> 0 >> 0 >> 0 >> 0 >> PCbkp >> .. *) 
     let ce      = call_and_restore_PC             ce            in  (*                                                         0 >> 0 >> .. *)
     let ce      = POP                           >>ce            in  (*                                                              0 >> .. *)
                   Comment("END send to Addr")   >>ce 
