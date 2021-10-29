@@ -61,16 +61,16 @@ and stmts_become ss                 =   L.concat (L.map stmt_become ss)
 and stmt_become                     =   function 
     | SmExpr        e               ->  expr_become e
     | SmDecl(_,_,v)                 ->  expr_become v
-    | SmAssign(EpArray a,r)         ->  expr_become a.aidx @ expr_become r
+    | SmAssign(TmArray(id,idx),r)   ->  expr_become idx @ expr_become r
     | SmIf(c,b,b')                  ->  expr_become c @ stmts_become b @ stmts_become b'
 and exprs_become es                 =   L.concat (L.map expr_become es)
 and expr_become  e                  =   match fst e with
-    | TmAbort  | TmUnit  | EpTrue | EpFalse | EpNow | EpThis | EpValue | EpSender | TmId _  | EpUint8 _ | TmUint _ -> []
+    | TmAbort  | TmUnit  | EpTrue | EpFalse | EpNow | EpThis | EpValue | EpSender | TmId _  | EpUint8 _ | TmU256 _ -> []
     | EpAddr e | EpNot e | EpDeref e | EpBalance e | TmSlfDstrct e ->  expr_become e
     | EpLT   (l,r) | EpGT   (l,r) | EpNEq  (l,r) | TmEq   (l,r)           
     | TmMul (l,r) | EpPlus (l,r) | EpLAnd (l,r) | TmMinus(l,r)          
                                     ->  (expr_become l) @ (expr_become r)
-    | EpArray a                     ->  expr_become a.aidx
+    | TmArray(id,idx)               ->  expr_become idx
     | TmCall(id,args)               ->  exprs_become args 
     | EpNew n                       ->  exprs_become n.new_args @ expr_become n.new_msg
     | EpSend s                      ->  expr_become s.cn @ exprs_become s.args @ expr_become s.msg

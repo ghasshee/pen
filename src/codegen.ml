@@ -308,26 +308,24 @@ and mstore_new_instance le ce ly n     =
 and codegen_new le ce ly n             =    
     let ce      =   reset_PC ce                                         in  (*                                             PCbkp >> .. *)
     let ce      =   mstore_new_instance le ce ly n                      in  (*                      alloc(size) >> size >> PCbkp >> .. *)
-    let ce      =   match n.new_msg with                                    (* msg is the amount sent                                  *) 
-    | TmZero,_  -> PUSH1 (Int 0)                       >>ce                (*                                                         *)
-    | e          -> e                                   >>>>(R,ly,le,ce)in  (*             value >> alloc(size) >> size >> PCbkp >> .. *)
+    let ce      =   n.new_msg                           >>>>(R,ly,le,ce)in  (*             value >> alloc(size) >> size >> PCbkp >> .. *)
     let ce      =   CREATE                              >>ce            in  (*                             createResult >> PCbkp >> .. *)
     let ce      =   throw_if_0                            ce            in  (*                             createResult >> PCbkp >> .. *)
     let ce      =   SWAP1                               >>ce            in  (*                             PCbkp >> CreateResult >> .. *)
                     restore_PC                            ce                (*                                      CreateResult >> .. *)
 
-and codegen_array aa le ce ly         =                                     (*                                                      .. *)
-    let ce      =   keccak_of_aa aa                    le ce ly         in  (*                                      keccak(a[i]) >> .. *)
+and codegen_array aid aidx ly le ce    =                                    (*                                                      .. *)
+    let ce      =   keccak_of_array aid aidx        ly le ce            in  (*                                      keccak(a[i]) >> .. *)
                     SLOAD                               >>ce                (*                                   S[keccak(a[i])] >> .. *) 
 
-and keccak_of_aa aa le ce ly          =                                     (* S[keccak(a[i])] := the seed of array *) 
-    let ce      =   aa.aidx                             >>>>(R,ly,le,ce)in  (*                                             index >> .. *)    
-    let ce      =   aa.aid                              >>>>(R,ly,le,ce)in  (*                                array_loc >> index >> .. *)
-                    keccak_cat ce                                           (*                            sha3(array_loc++index) >> .. *) 
+and keccak_of_array aid aidx ly le ce  =                                    (* S[keccak(a[i])] := the seed of array *) 
+    let ce      =   aidx                                >>>>(R,ly,le,ce)in  (*                                             index >> .. *)    
+    let ce      =   aid                                 >>>>(R,ly,le,ce)in  (*                                array_loc >> index >> .. *)
+                    keccak_cat                            ce                (*                            sha3(array_loc++index) >> .. *) 
       
-and salloc_array aa le ce ly           =
-    let push ce =   keccak_of_aa aa le ce ly                            in  (*                                        S[storIdx] >> .. *)
-                    salloc_array_of_push push ce                            (* S[storIdx]:= newSeed                      newSeed >> .. *)     
+and salloc_array aid aidx ly le ce     =
+    let push ce =   keccak_of_array aid aidx        ly le ce            in  (*                                        S[storIdx] >> .. *)
+                    salloc_array_of_push push             ce                (* S[storIdx]:= newSeed                      newSeed >> .. *)     
                                                                           
 and salloc_array_of_loc le ce(Stor data) =       
     assert(data.size=Int 1) ;                                               (*                                        S[storIdx] >> .. *)     
@@ -360,10 +358,11 @@ and codegen_expr le ce ly aln  e        = pe (string_of_tm e); pe (string_of_ctx
     | EpAddr(c,TyInstnc i)  ,TyAddr     ->                  (c,TyInstnc i)          >>>>(aln,ly,le,ce) 
     | EpBalance e           ,TyU256     ->                  BALANCE >> ( e          >>>>(R,ly,le,ce) )
     | EpValue               ,TyU256     ->                  CALLVALUE               >>ce      (* Value (wei) Transferred to the account *) 
+    | TmZero                ,_          ->                  PUSH1(Int 0)            >>ce 
     | EpNow                 ,TyU256     ->                  TIMESTAMP               >>ce 
     | EpFalse               ,TyBool     ->  assert(aln=R);  PUSH1(Int 0)            >>ce  
     | EpTrue                ,TyBool     ->  assert(aln=R);  PUSH1(Int 1)            >>ce 
-    | TmUint  d             ,_          ->  assert(aln=R);  PUSH32(Big d)           >>ce  
+    | TmU256  d             ,_          ->  assert(aln=R);  PUSH32(Big d)           >>ce  
     | EpUint8 d             ,TyU8       ->  assert(aln=R);  PUSH1(Big d)            >>ce  
     | EpPlus (l,r)          ,_          ->                  op ADD l r             le ce ly             
     | TmMinus(l,r)          ,_          ->                  op SUB l r             le ce ly             
@@ -375,13 +374,13 @@ and codegen_expr le ce ly aln  e        = pe (string_of_tm e); pe (string_of_ctx
     | EpNot    e            ,TyBool     ->  assert(aln=R);  ISZERO >> ( e >>>>(aln,ly,le,ce) )
     | EpLAnd (l,r)          ,TyBool     ->                  checked_codegen_LAnd l r le ce ly aln   
     | EpSend s              ,_          ->  assert(aln=R);  codegen_send le ce ly s
-    | EpNew n               ,TyInstnc _ ->  assert(aln=R);  codegen_new  le ce ly n 
+    | EpNew  n              ,TyInstnc _ ->  assert(aln=R);  codegen_new  le ce ly n 
     | TmCall(id,args)       ,rety       ->                  codegen_predef_call aln ly le ce id args rety
     | EpSender              ,TyAddr     ->                  align_addr (CALLER  >>ce)  aln
     | EpThis                ,_          ->                  align_addr (ADDRESS >>ce) aln     
-    | EpArray a_i           ,TyMap _    ->  let ce      =   codegen_array a_i le ce ly              in  (*            S[keccak(a[i])] >> .. *)
-                                            assert(aln=R);  salloc_array  a_i le ce ly                  (*                     S[1]++ >> .. *)
-    | EpArray a             ,      _    ->  assert(aln=R);  codegen_array a   le ce ly                  (*               S[keccak(a)] >> .. *)
+    | TmArray(id,idx)       ,TyMap _    ->  let ce      =   codegen_array id idx ly le ce           in  (*            S[keccak(a[i])] >> .. *)
+                                            assert(aln=R);  salloc_array  id idx ly le ce               (*                     S[1]++ >> .. *)
+    | TmArray(id,idx)       ,      _    ->  assert(aln=R);  codegen_array id idx ly le ce               (*               S[keccak(a)] >> .. *)
     | TmId id               ,TyMap(a,b) ->  let loc     =   lookup_le id le                         in 
                                             let ce      =   push_loc ce aln(TyMap(a,b))loc          in 
                                                             salloc_array_of_loc le ce loc          
@@ -395,8 +394,8 @@ and codegen_expr le ce ly aln  e        = pe (string_of_tm e); pe (string_of_ctx
 
 and codegen_expr_eff le ce ly aln          = function 
     | TmAbort               ,TyVoid     ->  le, throw ce                               
-    | TmLog(id,args,Some ev),TyTuple[]  ->  codegen_log_stmt    le ce ly id args ev    
-    | TmSlfDstrct expr      ,TyTuple[]  ->  codegen_selfDstrct  le ce ly expr          
+    | TmLog(id,args,Some ev),TyUnit     ->  codegen_log_stmt    le ce ly id args ev    
+    | TmSlfDstrct expr      ,TyUnit     ->  codegen_selfDstrct  le ce ly expr          
     | TmReturn(ret,cont)    ,_          ->  codegen_return      le ce ly ret cont     
     | e                     ,_          ->  ps ("codegen_expr: " ^ string_of_expr e ^ " ") ; raise Not_found
     
@@ -406,9 +405,7 @@ and op operator l r le ce ly =
                 operator                        >>ce 
             
 and push_msg_and_gas s le ce ly = 
-    let ce = match s.msg with                                       (*                                                     .. *)
-    | TmZero,_  -> PUSH1(Int 0)                 >>ce            
-    | e         -> e                            >>>>(R,ly,le,ce)in  (*                                            value >> .. *) 
+    let ce      = s.msg                         >>>>(R,ly,le,ce)in  (*                                            value >> .. *) 
     let ce      = s.cn                          >>>>(R,ly,le,ce)in  (*                                  cnAddr >> value >> .. *)
     let ce      = PUSH4(Int 3000)               >>ce            in  (*                          3000 >> cnAddr >> value >> .. *)
     let ce      = GAS                           >>ce            in  (*                   gas >> 3000 >> cnAddr >> value >> .. *)
@@ -597,10 +594,8 @@ and codegen_selfDstrct le ce ly expr =
     let ce      = SELFDESTRUCT                  >>ce            in
     le, ce
 
-and sstore_to_lval le ce ly (EpArray a)     =                        (*                                    rval >> .. *)
-    let ce      = a.aidx                        >>>>(R,ly,le,ce)in   (*                            aidx >> rval >> .. *)
-    let ce      = a.aid                         >>>>(R,ly,le,ce)in   (*                   aseed >> aidx >> rval >> .. *)
-    let ce      = keccak_cat                      ce            in   (*                 KEC(aseed^aidx) >> rval >> .. *)
+and sstore_to_lval le ce ly (TmArray(id,idx)) =                      (*                                    rval >> .. *)
+    let ce      = keccak_of_array id idx    ly le ce            in   (*                 KEC(aseed^aidx) >> rval >> .. *)
                   SSTORE                        >>ce                 (* S[KEC(aseed^aidx)] := rval                 .. *)
 
 and codegen_assign le ce ly l r =

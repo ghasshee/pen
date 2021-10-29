@@ -5,9 +5,10 @@ module L    = List
 module BL   = BatList
 
 
-type ty           (* atomic *)  =   TyVoid              (* 256 bits *) 
-                  (* atomic *)  |   TyU256           (* 256 bits *) 
-                  (* atomic *)  |   TyU8             (*   8 bits *) 
+type ty           (* atomic *)  =   TyVoid                             
+                  (* stomic *)  |   TyUnit             
+                  (* atomic *)  |   TyU256              (* 256 bits *) 
+                  (* atomic *)  |   TyU8                (*   8 bits *) 
                   (* atomic *)  |   TyBytes32           (* 256 bits *) 
                   (* atomic *)  |   TyAddr              (* 160 bits *) 
                   (* atomic *)  |   TyBool 
@@ -36,12 +37,11 @@ let rec string_of_ty            =   function
     | TyAddr                    ->  "address" 
     | TyBool                    ->  "bool" 
     | TyRef              _      ->  "ref" 
-    | TyTuple []                ->  "()"
+    | TyUnit                    ->  "()"
     | TyTuple            _      ->  "tuple" 
     | TyMap(a,b)                ->  "mapping" 
     | TyCn(id,_,_)              ->  "contract arch "     ^ id
-    | TyInstnc     s            
-    ->  "contract instance " ^ s
+    | TyInstnc     s            ->  "contract instance " ^ s
     | TyMthd(id,_,_)            ->  "method " ^ id 
     | TyDefault                 ->  "default" 
     | _                         ->  "undefined" 
@@ -59,13 +59,11 @@ let split_evnt_args tyEv args   =   match tyEv with TyEv(id,tyEvArgs)  ->
 (***      STATEMENTS & EXPRESSIONS     ***)
 (*****************************************)
 
+(*
 type 'ty _array                 =   { aid               : 'ty exprTy
                                     ; aidx              : 'ty exprTy        }
-(*
-and  'ty _call                  =   { call_id           : string
-                                    ; call_args         : ('ty exprTy) list }
-  *)                              
-and  'ty _new                   =   { new_id            : string
+*)
+type  'ty _new                   =   { new_id            : string
                                     ; new_args          : 'ty exprTy list
                                     ; new_msg           : 'ty exprTy        }
                                 
@@ -100,17 +98,17 @@ and  'ty expr                   =
                                 |   TmFix               of string * string * ty * 'ty exprTy
                                 |   TmUnit 
                                 |   TmZero 
+                                |   TmCall              of string * 'ty exprTy list   (* TmCall(cnname, args) *) 
+                                |   TmArray             of 'ty exprTy * 'ty exprTy    (* TmArray(id,idx) *) 
+                                (*|   EpArray             of 'ty _array*)
                                 |   EpTrue
                                 |   EpFalse
-                                |   TmUint              of big
+                                |   TmU256              of big
                                 |   EpUint8             of big
                                 |   EpNow
-                                (*|   EpCall              of 'ty _call*)
-                                |   TmCall              of string * 'ty exprTy list   (* TmCall(cnname, args) *) 
                                 |   EpNew               of 'ty _new
                                 |   EpSend              of 'ty _send                    (* storage solidation *) 
                                 |   TmSend              of 'ty exprTy * string option * 'ty exprTy list * 'ty exprTy (* TmSend(cn, mname, args, msg) *) 
-                                |   EpArray             of 'ty _array
                                 |   EpLAnd              of 'ty exprTy * 'ty exprTy
                                 |   EpLT                of 'ty exprTy * 'ty exprTy
                                 |   EpGT                of 'ty exprTy * 'ty exprTy
@@ -124,7 +122,7 @@ and  'ty expr                   =
                                 |   EpDeref             of 'ty exprTy
                                 |   EpPlus              of 'ty exprTy * 'ty exprTy
                                 |   TmMinus             of 'ty exprTy * 'ty exprTy
-                                |   TmMul              of 'ty exprTy * 'ty exprTy
+                                |   TmMul               of 'ty exprTy * 'ty exprTy
                                 |   EpBalance           of 'ty exprTy
 
 let get_ty  (_,ty)              =   ty
@@ -197,18 +195,18 @@ let rec string_of_expr          = function
     | TmIdxStrct(i)             -> "{struct " ^ string_of_int i ^ "}"
     | TmIf((b,_),(t1,_),(t2,_)) -> "if " ^ string_of_expr b ^ " then " ^ string_of_expr t1 ^ " else " ^ string_of_expr t2  
     | TmAbort                   -> "abort" 
-    | TmReturn((r,_),_)         -> "return" ^ string_of_expr r 
+    | TmReturn((r,_),_)         -> "return " ^ string_of_expr r 
     | TmLog(_,_,_)              -> "log"
     | TmSlfDstrct _             -> "selfdestruct"
     | TmId        str           -> "id " ^ str
     | TmEq          _           -> "equality"
-    | TmUint   d                -> "uint " ^ string_of_big d
+    | TmU256   d                -> "uint " ^ string_of_big d
     | TmUnit                    -> "()"
     | TmMinus ((a,_),(b,_))     -> string_of_expr a ^ " - " ^ string_of_expr b
     | TmMul   ((a,_),(b,_))     -> string_of_expr a ^ " * " ^ string_of_expr b
     | TmCall(id,args)           -> "call(" ^ id ^ ")" 
+    | TmArray((id,_),(idx,_))   -> string_of_expr id ^ "[" ^ string_of_expr idx ^ "]" 
     | EpThis                    -> "this"
-    | EpArray       _           -> "a[idx]"
     | EpSend        _           -> "send"
     | EpNew         _           -> "new"
     | EpNow                     -> "now"
@@ -228,21 +226,21 @@ let rec string_of_expr          = function
     | EpBalance     _           -> "balance"
 
 let rec string_of_tm  e         = match fst e with 
-    | TmApp(t1,t2)              -> "App(" ^ string_of_tm t1 ^ "," ^ string_of_tm t2 ^ ")"
+    | TmApp(t1,t2)              -> "TmApp(" ^ string_of_tm t1 ^ "," ^ string_of_tm t2 ^ ")"
     | TmAbs(x,tyX,t)            -> "(λ" ^ x ^ ":" ^ string_of_ty tyX ^ "." ^ string_of_tm t ^ ")"
-    | TmIdx(i,n)                -> "Idx" ^ string_of_int i 
-    | TmIdxRec(i)               -> "Rec" ^ string_of_int i 
-    | TmIdxStrct(i)             -> "{struct " ^ string_of_int i ^ "}"
+    | TmIdx(i,n)                -> "TmIdx" ^ string_of_int i 
+    | TmIdxRec(i)               -> "TmRec" ^ string_of_int i 
+    | TmIdxStrct(i)             -> "{Struct " ^ string_of_int i ^ "}"
     | TmIf(b,t,t')              -> "(If " ^ string_of_tm b ^ " Then " ^ string_of_tm t ^ " Else " ^ string_of_tm t' ^ ")"
-    | TmFix(f,n,_,t)            -> "Fix(λ" ^ f ^ " " ^ n ^ "→" ^ string_of_tm t ^ ")" 
+    | TmFix(f,n,_,t)            -> "TmFix(λ" ^ f ^ " " ^ n ^ "→" ^ string_of_tm t ^ ")" 
     | TmEq(a,b)                 -> string_of_tm a ^ "==" ^ string_of_tm b
-    | TmUint(b)                 -> string_of_big b 
+    | TmU256(b)                 -> string_of_big b 
     | TmId(str)                 -> str
     | TmMul(a,b)                -> string_of_tm a ^ " * " ^ string_of_tm b
     | TmMinus(a,b)              -> string_of_tm a ^ " - " ^ string_of_tm b 
     | TmUnit                    -> "()" 
     | TmZero                    -> "O" 
-    | EpSend _                  -> "send" 
+    | EpSend _                  -> "TmSend()" 
     | e                         -> string_of_expr e 
 
 
@@ -258,7 +256,7 @@ let size_of_ty (* in bytes *)   = function
     | TyInstnc _                -> 20 (* address as word *)
     | TyBool                    -> 32
     | TyRef     _               -> 32
-    | TyTuple  []               -> err "size_of_ty TyUnit" 
+    | TyUnit                    -> err "size_of_ty TyUnit" 
     | TyTuple   _               -> err "size_of_ty TyTuple"
     | TyMap     _               -> err "size_of_ty TyMap" 
     | TyCn(id,_,_)              -> err("size_of_ty TyCn: " ^ id)

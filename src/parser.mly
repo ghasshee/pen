@@ -63,7 +63,7 @@ block:
 mthd_head:
     | DEFAULT                                       { TyDefault                                                 }
     | METHOD ty ID plist(arg)                       { TyMthd($3,$4,$2)                                          }
-    | METHOD LPAR RPAR ID plist(arg)                { TyMthd($4,$5,TyTuple[])                                   }
+    | METHOD LPAR RPAR ID plist(arg)                { TyMthd($4,$5,TyUnit   )                                   }
 
 arg:
     | ty ID                                         { reserved $2; TyVar($2,$1)                                 }
@@ -73,14 +73,14 @@ evnt_arg:
     | INDEXED ty ID                                 { TyEvVar($3,$2,true)                                       }
 
 ty:
-    | UINT256                                       { TyU256                                                 }
-    | UINT8                                         { TyU8                                                   }
+    | UINT256                                       { TyU256                                                    }
+    | UINT8                                         { TyU8                                                      }
     | BYTES32                                       { TyBytes32                                                 }
     | ADDRESS                                       { TyAddr                                                    }
     | BOOL                                          { TyBool                                                    }
     | ty DARROW ty                                  { TyMap($1,$3)                                              }
     | ty ARROW ty                                   { TyAbs($1,$3)                                              } 
-    | ID                                            { TyInstnc $1                                              }
+    | ID                                            { TyInstnc $1                                               }
 
 %inline body:
     | stmt                                          { [$1]                                                      }
@@ -122,7 +122,7 @@ tm:
     | SELFDESTRUCT tm                               { fun ctx -> TmSlfDstrct($2 ctx)                                    ,() }
     |  tm  DOT DEFAULT LPAR RPAR msg                { fun ctx -> EpSend{cn=$1 ctx; mthd=None   ;args=[]    ; msg=$6 ctx},() }
     |  tm  DOT ID    arg_list msg                   { fun ctx -> EpSend{cn=$1 ctx; mthd=Some $3;args=$4 ctx; msg=$5 ctx},() }
-    |  tm  LSQBR  tm  RSQBR                         { fun ctx -> EpArray{aid=$1 ctx;aidx=$3 ctx}                        ,() }
+    |  tm  LSQBR  tm  RSQBR                         { fun ctx -> TmArray($1 ctx,$3 ctx)                                 ,() }
     | tm op tm                                      { fun ctx -> $2 ($1 ctx)($3 ctx)                                    ,() }
 appTm:
     | pathTm                                        { $1                                                                    }
@@ -139,8 +139,8 @@ aTm:
     | ABORT                                         { fun ctx -> TmAbort                                                ,() } 
     | TRUE                                          { fun ctx -> EpTrue                                                 ,() }
     | FALSE                                         { fun ctx -> EpFalse                                                ,() }
-    | EUINT256                                      { fun ctx -> TmUint $1                                              ,() }
-    | EUINT8                                        { fun ctx -> TmUint $1                                              ,() }
+    | EUINT256                                      { fun ctx -> TmU256 $1                                              ,() }
+    | EUINT8                                        { fun ctx -> TmU256 $1                                              ,() }
     | VALUE   LPAR  MSG  RPAR                       { fun ctx -> EpValue                                                ,() }
     | SENDER  LPAR  MSG  RPAR                       { fun ctx -> EpSender                                               ,() }
     | BALANCE LPAR  tm   RPAR                       { fun ctx -> EpBalance ($3 ctx)                                     ,() }
@@ -173,5 +173,5 @@ value_info:
     | WITH tm                                       { $2                                                                    }
      
 lexpr:                                              (* expr '[' expr ']' *) 
-    | tm LSQBR tm RSQBR                             { fun ctx -> EpArray{aid=$1 ctx; aidx=$3 ctx}                           }
+    | tm LSQBR tm RSQBR                             { fun ctx -> TmArray($1 ctx,$3 ctx)                                     }
      
