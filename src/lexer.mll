@@ -3,6 +3,7 @@
  * which is under UNLICENSE
  *)
 {
+  open Misc
   open Lexing
   open Parser
   exception SyntaxError of string
@@ -81,10 +82,10 @@ rule read = parse
   | "event"             { EVENT                         }
   | "log"               { LOG                           }
   | "visible"           { INDEXED                       }
-  | digit+ as i         { EUINT256 (Big_int.big_int_of_string i) }
+  | digit+ as i         { EUINT256 (big_of_str i) }
   (* uint8 has at most three digits *)
   | digit digit? digit? "u8" as i {
       let last = String.length i - 2 in
-      EUINT8 (Big_int.big_int_of_string (String.sub i 0 last)) }
+      EUINT8 (big_of_str (String.sub i 0 last)) }
   | id                  { ID (lexeme lexbuf) }
   | eof                 { EOF           }

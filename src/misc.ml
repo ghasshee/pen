@@ -7,6 +7,10 @@ module S        = String
 module B        = BatBig_int
 module R        = Rope 
 
+type str = string 
+let str_of_int  = string_of_int
+let str_of_bool = string_of_bool
+
 
 
 (*****************************************)
@@ -25,7 +29,7 @@ let errc str                = err("codegen_expr: " ^ str ^ " of unexpected type"
 (**      LIST OPERATERS                 **)
 (*****************************************)
 
-let ps = print_string 
+let ps = print_string
 let pe = print_endline
 
 (*****************************************)
@@ -83,7 +87,8 @@ let sig_bits                = 32
 type big                    = Big_int.big_int
 let big                     = Big_int.big_int_of_int
 let int_of_big              = Big_int.int_of_big_int
-let string_of_big           = Big_int.string_of_big_int
+let str_of_big              = Big_int.string_of_big_int
+let big_of_str              = Big_int.big_int_of_string
 let big_0                   = Big_int.zero_big_int
 let big_1                   = Big_int.unit_big_int
 let (+!)                    = Big_int.add_big_int
@@ -92,7 +97,7 @@ let( *!)                    = Big_int.mult_big_int
 let (/!)                    = Big_int.div_big_int
 let (^!)                    = Big_int.power_big_int_positive_big_int
 let (%!)                    = Big_int.mod_big_int
-let print_big               = print_string $ string_of_big
+let print_big               = ps $ str_of_big
 
 
 
@@ -104,7 +109,7 @@ type hex                                =   R.t
 
 let empty_hex                           =   R.empty
 let concat_hex                          =   R.concat2
-let string_of_hex ?prefix:(prefix="")h  =   R.to_string(concat_hex(R.of_string prefix)h)
+let str_of_hex ?prefix:(prefix="")h     =   R.to_string(concat_hex(R.of_string prefix)h)
 
 let hex_of_big b len                    =   let s           =   B.to_string_in_hexa b         in
                                             let char_len    =   2 * len                       in (* 1 char = 1/2 byte *) 
@@ -112,8 +117,8 @@ let hex_of_big b len                    =   let s           =   B.to_string_in_h
                                             let prefix      =   S.make(char_len-S.length s)'0' in
                                             concat_hex(R.of_string prefix)(R.of_string s)
 
-let pr_hex ?prefix:(prefix="")h         =   printf"%s\n"(string_of_hex ~prefix h)
-let hex_of_string s                     =   R.of_string s  
+let pr_hex ?prefix:(prefix="")h         =   printf"%s\n"(str_of_hex ~prefix h)
+let hex_of_str s                        =   R.of_string s  
 
 
 

@@ -174,7 +174,7 @@ let abs_idx = ref 0
 let fresh_abs_name () =  
     let i = !abs_idx in 
     abs_idx := !abs_idx + 1 ; 
-    "abs" ^ string_of_int i 
+    "abs" ^ str_of_int i 
 
 let rec walk_expr result    = function 
     | TmAbs(x,tyX,(t,tyT))  -> [TmMthd(TyMthd(fresh_abs_name(), [TyVar(x,tyX)],tyT), [SmExpr(t,tyT)])]

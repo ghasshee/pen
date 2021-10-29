@@ -13,7 +13,7 @@ module BL = BatList
 module BS = BatString 
 module BB = BatBig_int
 
-let abi_string_of_ty       = function 
+let abi_str_of_ty       = function 
     | TyU256                ->  "uint256" 
     | TyU8                  ->  "uint8"   
     | TyBytes32               ->  "bytes32" 
@@ -25,17 +25,17 @@ let prABI_default_mthd   =
   "{\"type\":\"fallback\",\"inputs\": [],\"outputs\": [],\"payable\": true}"
 
 let prABI_input         = function 
-    TyVar(id,ty) ->  sprintf "{\"name\": \"%s\", \"type\": \"%s\"}" id (abi_string_of_ty ty)
+    TyVar(id,ty) ->  sprintf "{\"name\": \"%s\", \"type\": \"%s\"}" id (abi_str_of_ty ty)
 
-let prABI_inputs (args:ty list) : string =
-    let strings         = L.map prABI_input args in
-    BS.concat "," strings
+let prABI_inputs (args:ty list) : str =
+    let strs         = L.map prABI_input args in
+    BS.concat "," strs
 
-let prABI_output (ty:ty) : string =
+let prABI_output (ty:ty) : str =
     sprintf "{\"name\": \"\", \"type\": \"%s\"}"
-                 (abi_string_of_ty ty)
+                 (abi_str_of_ty ty)
 
-let prABI_outputs (tys:ty list) : string =
+let prABI_outputs (tys:ty list) : str =
     let strs = L.map prABI_output tys in
     BS.concat "," strs
 
@@ -53,7 +53,7 @@ let prABI_cnstrctr (TmCn(id,flds,_)) =
         (prABI_inputs (L.filter non_mapping_arg flds)) id
 
 let prABI_cntrct seen_cnstrctr (TmCn(id,flds,mthds)) = 
-    let strs : string list  =   L.map prABI_mthd mthds in
+    let strs : str list  =   L.map prABI_mthd mthds in
     let strs                =   if !seen_cnstrctr then strs else prABI_cnstrctr (TmCn(id,flds,mthds)) :: strs in
     seen_cnstrctr := true; 
     BS.concat "," strs
@@ -61,10 +61,10 @@ let prABI_cntrct seen_cnstrctr (TmCn(id,flds,mthds)) =
 
 let prABI_evnt_arg = function TyEvVar(id,ty,visible) ->  
     sprintf "{\"name\":\"%s\",\"type\":\"%s\",\"indexed\":%s}"
-                 id (abi_string_of_ty ty) (string_of_bool visible)
+                 id (abi_str_of_ty ty) (str_of_bool visible)
 
-let prABI_evnt_inputs (is:ty list) : string =
-    let strs : string list  = L.map prABI_evnt_arg is in
+let prABI_evnt_inputs (is:ty list) : str =
+    let strs : str list  = L.map prABI_evnt_arg is in
     BS.concat "," strs
 
 let prABI_evnt = function TyEv(id,tyEvArgs) -> 
@@ -78,6 +78,6 @@ let prABI_toplevel seen_cnstrctr = function
 let prABI (tops : ty toplevel idxlist) : unit =
     let seen_cnstrctr    = ref false in
     let ()                  = printf "[" in
-    let strs : string list  = L.map (prABI_toplevel seen_cnstrctr) (values tops) in
+    let strs : str list  = L.map (prABI_toplevel seen_cnstrctr) (values tops) in
     let ()                  = printf "%s" (BS.concat "," strs) in
     printf "]"

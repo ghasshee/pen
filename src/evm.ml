@@ -24,7 +24,7 @@ type 'imm opcode =
     | LOG0      | LOG1      | LOG2      | LOG3      | LOG4                          (*  A0s *)
     | CREATE    | CALL      | CALLCODE  | RETURN    | DELEGATECALL                  (*  F0s *) 
     | CREATE2   | STATICCALL| REVERT    | INVALID   | SELFDESTRUCT
-    | Comment of string 
+    | Comment of str 
 
 type 'imm program       = 'imm opcode list
 
@@ -135,7 +135,7 @@ let stack_pushed = function
   | SELFDESTRUCT                        -> 0
   | Comment _ -> 0
 
-let string_of_opcode string_of_push = function 
+let str_of_opcode str_of_push = function 
   | NOT             -> "NOT"
   | TIMESTAMP       -> "TIMESTAMP"
   | ISZERO          -> "ISZERO"
@@ -205,29 +205,29 @@ let string_of_opcode string_of_push = function
   | DELEGATECALL    -> "DELEGATECALL"
   | SELFDESTRUCT    -> "SELFDESTRUCT"
   | Comment s       -> "// " ^ s   
-  | opcode          -> string_of_push opcode
+  | opcode          -> str_of_push opcode
 
-let string_of_push_big = function
-  | PUSH1  v        -> "PUSH1 " ^ string_of_hex (hex_of_big v  1)
-  | PUSH4  v        -> "PUSH4 " ^ string_of_hex (hex_of_big v  4)
-  | PUSH32 v        -> "PUSH32 "^ string_of_hex (hex_of_big v 32)
+let str_of_push_big = function
+  | PUSH1  v        -> "PUSH1 " ^ str_of_hex (hex_of_big v  1)
+  | PUSH4  v        -> "PUSH4 " ^ str_of_hex (hex_of_big v  4)
+  | PUSH32 v        -> "PUSH32 "^ str_of_hex (hex_of_big v 32)
 
-let string_of_opcode_big = string_of_opcode string_of_push_big
+let str_of_opcode_big = str_of_opcode str_of_push_big
 
-let string_of_push_imm = function
-  | PUSH1  v        -> "PUSH1 " ^ Location.string_of_imm v
-  | PUSH4  v        -> "PUSH4 " ^ Location.string_of_imm v
-  | PUSH32 v        -> "PUSH32 "^ Location.string_of_imm v
+let str_of_push_imm = function
+  | PUSH1  v        -> "PUSH1 " ^ Location.str_of_imm v
+  | PUSH4  v        -> "PUSH4 " ^ Location.str_of_imm v
+  | PUSH32 v        -> "PUSH32 "^ Location.str_of_imm v
 
-let string_of_opcode_imm = string_of_opcode string_of_push_imm
+let str_of_opcode_imm = str_of_opcode str_of_push_imm
 
 
 
-let string_of_opcodes_big p = S.concat""  (L.map(fun op->string_of_opcode_big op^"\n")(to_list p))
-let pr_opcodes_big        p = Printf.printf"%s"(string_of_opcodes_big p) 
+let str_of_opcodes_big p = S.concat""  (L.map(fun op->str_of_opcode_big op^"\n")(to_list p))
+let pr_opcodes_big        p = Printf.printf"%s"(str_of_opcodes_big p) 
 
 let hex_of_opcode = 
-  let h = hex_of_string in function 
+  let h = hex_of_str in function 
   | PUSH1 i         -> concat_hex (h "60") (hex_of_big i  1)
   | PUSH4 i         -> concat_hex (h "63") (hex_of_big i  4)
   | PUSH32 i        -> concat_hex (h "7f") (hex_of_big i 32)
@@ -309,13 +309,13 @@ let log = function
   | 4               -> LOG4
   | _               -> failwith "too many indexed args for an evnt"
 
-let endline h = hex_of_string ( string_of_hex h ^ "\n")
+let endline h = hex_of_str ( str_of_hex h ^ "\n")
 let hex_of_program      (p) = foldl (fun h i->concat_hex(hex_of_opcode          i )h) empty_hex p
 let hex_of_program_ln   (p) = foldl (fun h i->concat_hex(endline (hex_of_opcode i))h) empty_hex p
-let string_of_program_ln(p) = foldl (fun h i-> hex_of_string ((^) (string_of_opcode_big i^"\n")(string_of_hex h))) empty_hex p 
+let str_of_program_ln(p) = foldl (fun h i-> hex_of_str ((^) (str_of_opcode_big i^"\n")(str_of_hex h))) empty_hex p 
 let pr_encoded          (p) = pr_hex        ~prefix:"0x" (hex_of_program p) 
-let prLn_encoded        (p) = pr_hex        ~prefix:"0x" (string_of_program_ln p) 
-let encode_program      (p) = string_of_hex ~prefix:"0x" (hex_of_program p) 
+let prLn_encoded        (p) = pr_hex        ~prefix:"0x" (str_of_program_ln p) 
+let encode_program      (p) = str_of_hex ~prefix:"0x" (hex_of_program p) 
 
 let size_of_opcode  = function 
   | Comment _       -> 0 

@@ -18,19 +18,19 @@ module  BL  = BatList
 (* var list list    := the whole variables in src code   *) 
 
 type context                    = bind list 
- and bind                       = BdName  of string       (* Parser Context *) 
-                                | BdTy    of string * ty 
+ and bind                       = BdName  of str       (* Parser Context *) 
+                                | BdTy    of str * ty 
                                 | BdRetTy of ty 
                                 | BdCtx   of context
-                                | BdEv    of string * ty list 
-                                | BdLoc   of string * location 
+                                | BdEv    of str * ty list 
+                                | BdLoc   of str * location 
                                 | BdIdx   of ty exprTy 
                                 | BdBrj   of context 
                                 | BdRec   of label   (* BdRec(start) *) 
-                                | BdRecName of string
-                                | BdStruct of string 
+                                | BdRecName of str
+                                | BdStruct of str 
                             
-let string_of_bind              = function 
+let str_of_bind              = function 
     | BdRec(l)                      -> sprintf "BdRec(label %d)" l 
     | BdBrj ctx                     -> sprintf "BdBrj %s" "local" 
     | BdLoc(s,l)                    -> sprintf "BdLoc(%s,location)" s 
@@ -40,9 +40,9 @@ let string_of_bind              = function
     | BdCtx ctx                     -> sprintf "BdCtx %s" "local" 
     | _                             -> "Bd" 
 
-let rec string_of_ctx           = function 
+let rec str_of_ctx           = function 
     | []                            -> ""
-    | x::xs                         -> string_of_bind x ^ "," ^ string_of_ctx xs 
+    | x::xs                         -> str_of_bind x ^ "," ^ str_of_ctx xs 
 
 
 type le                         =   context 

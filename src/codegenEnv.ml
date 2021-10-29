@@ -10,7 +10,7 @@ open Location
 
 type ce                             =   { stack_size    : int
                                         ; program       : imm program
-                                        ; lookup_cnidx  : string -> idx
+                                        ; lookup_cnidx  : str -> idx
                                         ; cntrcts       : ty toplevel idxlist }
 
 let empty_ce lookup cns             =   { stack_size    = 0
@@ -75,7 +75,7 @@ and expr_become  e                  =   match fst e with
     | TmNew(id,args,msg)            ->  exprs_become args @ expr_become msg
     | TmSend(cn,_,args,msg)         ->  expr_become cn @ exprs_become args @ expr_become msg
     | TmLog(_,l,_)                  ->  exprs_become l
-    | TmReturn(ret,cont)            ->  expr_become ret @ expr_become cont @ (match cntrct_name_of_ret_cont cont with
+    | TmReturn(ret,cont)            ->  expr_become ret @ expr_become cont @ (match cnname_of_ret_cont cont with
                                                                          | Some name     -> [name]
                                                                          | None          -> [] )
                                 

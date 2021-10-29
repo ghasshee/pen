@@ -349,7 +349,7 @@ and salloc_array_of_push push_array_seed ce =
 (* le is not updated here.  
  * le can only be updated in a variable initialization *)
 and (>>>>) e (aln,ly,le,ce)  = codegen_expr le ce ly aln e 
-and codegen_expr le ce ly aln  e        = pe (string_of_tm e); pe (string_of_ctx le); match e with 
+and codegen_expr le ce ly aln  e        = pe (str_of_tm e); pe (str_of_ctx le); match e with 
     | TmApp(t1,t2)          ,ty         ->                  codegen_app     ly le ce (TmApp(t1,t2))
     | TmAbs(x,tyX,t)        ,TyAbs _    ->                  codegen_abs     ly le ce (TmAbs(x,tyX,t))
     | TmFix(f,n,tyF,t)      ,ty         ->                  codegen_fix     ly le ce (TmFix(f,n,tyF,t))
@@ -398,7 +398,7 @@ and codegen_expr_eff le ce ly aln          = function
     | TmLog(id,args,Some ev),TyUnit     ->  codegen_log_stmt    le ce ly id args ev    
     | TmSlfDstrct expr      ,TyUnit     ->  codegen_selfDstrct  le ce ly expr          
     | TmReturn(ret,cont)    ,_          ->  codegen_return      le ce ly ret cont     
-    | e                     ,_          ->  ps ("codegen_expr: " ^ string_of_expr e ^ " ") ; raise Not_found
+    | e                     ,_          ->  ps ("codegen_expr: " ^ str_of_expr e ^ " ") ; raise Not_found
     
 and op operator l r le ce ly =
     let ce    = r                               >>>>(R,ly,le,ce)   in 
@@ -542,7 +542,7 @@ and codegen_app ly le ce (TmApp(t1,t2)) = match fst t1 with
     let ce      = codegen_fix ly le ce (TmFix(f,n,ty,tm))       in
                   JUMPDEST ret >>ce 
     | _ -> 
-    printf "! add_brjidx %s\n" (string_of_tm t2); 
+    printf "! add_brjidx %s\n" (str_of_tm t2); 
     let le      = add_brjidx le t2                                      in       
                   t1                                >>>>(R,ly,le,ce)       
 
@@ -552,7 +552,7 @@ and codegen_abs ly le ce (TmAbs(x,tyX,t)) =
 
 and codegen_idx ly le ce (TmIdx(i,n))           = 
     let tm      = lookup_brjidx i le                                    in 
-    pe ("codegen_idx: " ^ string_of_tm tm);
+    pe ("codegen_idx: " ^ str_of_tm tm);
     let ce      = tm                                >>>>(R,ly,le,ce)    in 
     ce 
 
@@ -573,17 +573,17 @@ and codegen_if ly le ce (TmIf(b,t1,t2)) =
     ce
 
 and codegen_mthd ly cnidx (le,ce) (TmMthd(head,body))  =
-    let ce      = Comment ("BEGIN " ^string_of_ty head) >>ce    in  
+    let ce      = Comment ("BEGIN " ^str_of_ty head) >>ce    in  
     let label   = fresh_label()                                 in register_entry (Mthd(cnidx,head)) label; 
     let le      = add_mthdCallerArgLocs(TmMthd(head,body))(add_empty_ctx (add_empty_brj le))    in
     let ce    = JUMPDEST label                          >>ce    in 
     let ce      = codegen_mthd_argLen_chk head            ce    in
     let le,ce   = codegen_stmts body ly                le ce    in
-    let ce      = Comment ("END "   ^string_of_ty head) >>ce    in  
+    let ce      = Comment ("END "   ^str_of_ty head) >>ce    in  
     le,ce
 
 and codegen_expr_stmt le ce ly expr =
-    pe(string_of_tm expr); 
+    pe(str_of_tm expr); 
     let ce      = Comment "BEGIN expr-stmt"     >>ce            in
     let ce      = expr                          >>>>(R,ly,le,ce)in
     let ce      = POP                           >>ce            in
@@ -746,7 +746,7 @@ let codegen_cntrct le ce ly (idx,TmCn(id,flds,mthds)) =
 (********************************************)
 
 let append_rntime ly rc (idx,cn)   =
-    let _ = print_string ("compiling contract" ^ string_of_int idx ^ " \n") in   
+    let _ = pe("compiling contract" ^ str_of_int idx) in   
     { rntime_ce             = codegen_cntrct(rntime_init_le cn)rc.rntime_ce ly(idx,cn)
     ; rntime_cn_offsets     = insert idx(code_len rc.rntime_ce)rc.rntime_cn_offsets    }
 

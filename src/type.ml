@@ -28,7 +28,7 @@ let tyeqv t0 t1                 =   ( t0 = t1 )  ||  ( match t0, t1 with
 
 let assert_tyeqv l r            =   let tyl = get_ty l in
                                     let tyr = get_ty r in 
-                                    printf "asserting %s(typeof %s)=%s(typeof %s)\n" (string_of_ty tyl) (string_of_tm l)  (string_of_ty tyr ) (string_of_tm r); 
+                                    printf "asserting %s(typeof %s)=%s(typeof %s)\n" (str_of_ty tyl) (str_of_tm l)  (str_of_ty tyr ) (str_of_tm r); 
                                     assert (tyl = tyr) 
                                 
 let typeof_mthd                 =   function 
@@ -65,7 +65,7 @@ let rec is_known_ty tycns       =   function
 let arg_has_known_ty tycns      =   function 
     | TyVar(id,ty)                  ->  if is_known_ty tycns ty 
                                             then true
-                                            else err("Unknown Arg Type "^string_of_ty ty)
+                                            else err("Unknown Arg Type "^str_of_ty ty)
 
 let addTy_mthd_head cns         =   function 
     | TyDefault                     ->  TyDefault
@@ -106,14 +106,14 @@ let rec addTy_call cns cname ctx (TmCall(id,args)) =
     TmCall(id, argTys) , reT 
 
 
-and addTy_expr cns cname ctx expr = pe("addTy_expr: " ^ string_of_tm expr );match fst expr with
+and addTy_expr cns cname ctx expr = pe("addTy_expr: " ^ str_of_tm expr );match fst expr with
     | TmApp(t1,t2)                  ->  let t1,tyT1 = addTy_expr cns cname ctx t1 in 
                                         let t2,tyT2 = addTy_expr cns cname ctx t2 in 
                                         begin match t1,tyT1 with 
                                         | _,TyAbs(tyT11,tyT12) when tyeqv tyT2 tyT11    -> TmApp((t1,tyT1),(t2,tyT2)), tyT12
                                         (* | TmFix    _ , tyT                              -> TmApp((t1,tyT1),(t2,tyT2)), tyT *) 
                                         | TmIdxRec _ , tyT                              -> TmApp((t1,tyT1),(t2,tyT2)), tyT
-                                        | t                                             -> pe(string_of_tm t); err"addTy_expr: T-APPABS failed" end 
+                                        | t                                             -> pe(str_of_tm t); err"addTy_expr: T-APPABS failed" end 
     | TmAbs(x,tyX,t)                ->  let t',tyT' = addTy_expr cns cname (add_var ctx x tyX) t in 
                                         TmAbs(x,tyX,(t',tyT')), TyAbs(tyX,tyT')
     | TmIdx(i,n)                    ->  begin match ctx with 
@@ -282,7 +282,7 @@ let addTy_mthd cns cn_name ctx (TmMthd(head,body)) =
 
 let unique_sig (TmCn(id,flds,mthds)) =
     let sigs        =   L.map (function | TmMthd(TyDefault,_)   -> None
-                                        | TmMthd(tyM,_)         -> Some (string_of_tyMthd tyM)) mthds in
+                                        | TmMthd(tyM,_)         -> Some (str_of_tyMthd tyM)) mthds in
     let uniq_sigs   =   BL.unique sigs in
     L.length sigs=L.length uniq_sigs
 

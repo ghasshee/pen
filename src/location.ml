@@ -28,9 +28,9 @@ type imm                        =
                                 | RntimeCodeSize
                                 | Minus                     of imm * imm
 
-let rec string_of_imm           =   function 
-  | Big b                           -> "(Big "^(string_of_big_int b)^")"
-  | Int i                           -> "(Int "^(string_of_int i)^")"
+let rec str_of_imm           =   function 
+  | Big b                           -> "(Big "^(str_of_big b)^")"
+  | Int i                           -> "(Int "^(str_of_int i)^")"
   | Label _                         -> "Label (print label here)"
   | StorPCIndex                     -> "StorPCIndex"
   | StorFieldsBegin _               -> "StorFieldBegin (print cntrct id)"
@@ -42,7 +42,7 @@ let rec string_of_imm           =   function
   | RntimeCnstrOffset idx           -> "RntimeCnstrOffset (print cntrct id)"
   | RntimeCodeOffset idx            -> "RntimeCodeOffset (print cntrct id)"
   | RntimeCodeSize                  -> "RntimeCodeSize"
-  | Minus (a, b)                    -> "(- "^(string_of_imm a)^" "^(string_of_imm b)^")"
+  | Minus (a, b)                    -> "(- "^(str_of_imm a)^" "^(str_of_imm b)^")"
 
 
 let is_const_big (b:big)        =   function 
@@ -66,7 +66,7 @@ type location                   =   Code          of imm data
 let calldata (o,s)              = Calldata {offst=o; size=s} 
 
 
-let string_of_location          =   function 
+let str_of_location          =   function 
     | Stor _                        -> sprintf "Stor[..] "
     | Mem  m                        -> sprintf "Mem[%d..%d] "      m.offst (m.offst+m.size-1) 
     | Code _                        -> sprintf "Code    ... "

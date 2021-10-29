@@ -74,7 +74,7 @@ let repeat opcode n ce = foldn n ((>>)opcode) ce
 (******************************************************)
 
 let push_storRange ce (data : imm data) =
-    let i = match data.size with | Big b -> string_of_big b | Int i -> string_of_int i in 
+    let i = match data.size with | Big b -> str_of_big b | Int i -> str_of_int i in 
     printf "stor_size is %s\n" i ; 
     assert (is_const_int 1 data.size) ; 
     let ce      =   PUSH32 data.offst               >>ce    in

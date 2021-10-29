@@ -20,7 +20,7 @@ module BB = BatBig_int
 module Hash = Cryptokit.Hash
 
 
-let string_keccak str       =
+let str_keccak str       =
   let sha3_256                  = Hash.keccak 256           in
   let ()                        = sha3_256#add_string str   in
   let ret                       = sha3_256#result           in
@@ -54,9 +54,9 @@ let hex_keccak h        =
     (* need to convert ret into hex *)
     ret
 
-let keccak_signature str =  String.sub (string_keccak str) 0 8
+let keccak_signature str =  String.sub (str_keccak str) 0 8
 
-let hash_ty_mthd  m     = keccak_signature (string_of_tyMthd m)
-let hash_of_evnt  e     = keccak_signature (string_of_evnt e)
-let big_of_hex    h     = BB.big_int_of_string ("0x"^h)
+let hash_ty_mthd  m     = keccak_signature (str_of_tyMthd m)
+let hash_of_evnt  e     = keccak_signature (str_of_evnt e)
+let big_of_hex    h     = big_of_str ("0x"^h)
 
