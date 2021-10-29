@@ -22,8 +22,8 @@ type cnstrInfo                  =   { cnstrCodeSize     : int
 
 let cnstrInfo_of_cn cn initCode =   { cnstrCodeSize     = size_of_program initCode                                
                                     ; fieldVarsSize     = size_of_vars_in_cn  cn                                  
-                                    ; fieldArrsSize     = len  (arrTys_of_cn cn)                             
-                                    ; fieldTypes        = tys_of_vars cn.fields     } 
+                                    ; fieldArrsSize     = len  (arrTys_of_cn  cn)                             
+                                    ; fieldTypes        = fldTys_of_cn      cn } 
                                                                             
 type storLayout                 =   { pc                : int               (* The Storage in Runtime                                        *) 
                                     ; ac                : int               (* Array elements are placed as in Solidity                      *)                  
@@ -188,19 +188,18 @@ let rec gen_field_locs offset used_plains used_seeds num_plains = function
                     else (offset + used_plains)             :: gen_field_locs offset (used_plains+1) used_seeds num_plains tys
 
 (* this needs to take stor_fieldVars_begin *)
-let fieldVar_locations offset (cn:ty cntrct) : int list =
-    let field_tys     = tys_of_vars cn.fields           in
-    let num_of_plains = count_plain_args field_tys      in
-    let ret           = gen_field_locs offset 0 0 num_of_plains field_tys in 
-    ret 
+let fieldVar_locations offset cn : int list =
+    let fldtys          = fldTys_of_cn cn               in
+    let num_vars        = count_plain_args fldtys       in
+    gen_field_locs offset 0 0 num_vars fldtys 
 
-let fieldArr_locations (cn:ty cntrct) : int list =
-    let field_tys     = tys_of_vars cn.fields           in
-    let num_of_plains = count_plain_args field_tys      in
+let fieldArr_locations cn : int list =
+    let field_tys     = fldTys_of_cn cn                 in
+    let num_vars = count_plain_args field_tys           in
     let total_num     = L.length field_tys              in
-    if total_num=num_of_plains 
+    if total_num=num_vars 
         then []
-        else BL.(range (2 + num_of_plains) `To (total_num + 1))
+        else BL.(range (2 + num_vars) `To (total_num + 1))
 
 (*                                                                          *)
 (*            Storage of a contract                                         *)

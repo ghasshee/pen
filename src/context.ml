@@ -164,7 +164,7 @@ let add_fieldArr(le,idx)(TyVar(id,TyMap(_,_))) =
     let le'                 = add_loc le (id,loc)                       in
     le' , idx + size  
 
-let rntime_init_le (cn:ty cntrct) =
+let rntime_init_le cn =
     let varTys              = varTys_of_cn cn                           in
     let arrTys              = arrTys_of_cn cn                           in  
     let init                = add_empty_ctx empty_ctx                   in

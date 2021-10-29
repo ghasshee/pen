@@ -60,8 +60,8 @@ let ()      =
     pe"------- typed -------------" ;
     let idx_ty_opt_ASTs                     = Eval.eval idx_typed_ASTs                                  in 
     pe"------  evaluated ---------" ; 
-    let cns                                 = filter_map (function Cntrct cn -> Some cn
-                                                                 | _         -> None ) idx_ty_opt_ASTs  in
+    let cns                                 = filter_map (function TmEv e   -> None 
+                                                                 | cn       -> Some cn ) idx_ty_opt_ASTs  in
     pe"------ extract cntrcts ----" ; 
     match cns with
     | []  ->  ()

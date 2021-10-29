@@ -142,15 +142,16 @@ let mstore_rntimeCode ce idx =                                  (*              
 (**   1.4.  CONTRACT CREATION   *****)
 type cnstrCode          =   { cnstr_ce           : ce
                             ; cnstr_ty           : ty
-                            ; cnstr_cn           : ty cntrct   }
+                            ; cnstr_cn           : ty toplevel } 
 
 let ce_of_cc cc         =   cc.cnstr_ce
 let program_of_cc       =   extract_program $ ce_of_cc  
 
 let codegen_cnstr_bytecode cns idx = (* return ce which contains the program *) 
     let cn      =   lookup idx cns                            in 
+    let TmCn(id,flds,mthds) = cn in 
     let ce      =   empty_ce (lookup_cnidx_of_cns cns) cns    in  (*                                                                                 *)
-    let ce      =   Comment ("Begin Constructor of Cntract " ^ cn.id) >> ce in 
+    let ce      =   Comment ("Begin Constructor of Cntract "^id) >>ce in 
     let ce      =   init_malloc                     ce        in  (* M[64] := 96                                                                     *)
     let ce      =   mstore_fieldVars                ce cn     in  (*                                            alloc(argssize) << argssize << ..    *)
     let ce      =   sstore_fieldVars                ce idx    in  (* S[i..i+sz-1]:= argCodes               i << alloc(argssize) << argssize << ..    *)
@@ -158,7 +159,7 @@ let codegen_cnstr_bytecode cns idx = (* return ce which contains the program *)
     let ce      =   set_PC                          ce idx    in  (* S[PC]       := rntime_cn_offst (returned body)                                  *)
     let ce      =   mstore_rntimeCode               ce idx    in  (*                                      alloc(codesize) << codesize << i <<  ..    *)
     let ce      =   RETURN                        >>ce        in  (* OUTPUT(M[code]) as The BODY code                                    i <<  ..    *)
-                    Comment ("End Constructor of Cntract " ^ cn.id) >> ce 
+                    Comment ("End Constructor of Cntract " ^ id) >>ce 
 
 let compile_cnstr cns idx  : cnstrCode =
     let cn      =   L.assoc idx cns in 
@@ -208,8 +209,8 @@ let push_inputdata32_from databegin ce =
     let ce      =   PUSH32 databegin                        >>ce    in
                     CALLDATALOAD                            >>ce
 
-let dispatcher le ce idx cn  =
-    let tyMthds =   L.map(function TmMthd(head,_) -> head) cn.mthds in
+let dispatcher le ce idx (TmCn(_,_,mthds)) = 
+    let tyMthds =   L.map(function TmMthd(head,_) -> head) mthds    in
     let uMthds  =   filter_method tyMthds                           in 
     let ce      =   Comment "BEGIN Method Dispatchers "     >>ce    in 
     let ce      =   push_inputdata32_from(Int 0)              ce    in  (*               ABCDxxxxxxxxxxxxxxxxxxxxxxxxxxxxx >> .. *)
@@ -731,13 +732,13 @@ and codegen_stmt ly  (le,ce)       = function
 
 let codegen_mthds ly    = ($$$) foldl codegen_mthd ly
 
-let codegen_cntrct le ce ly (idx,cntrct) =
+let codegen_cntrct le ce ly (idx,TmCn(id,flds,mthds)) =
     let label = fresh_label()                                   in 
     register_entry (Cntrct idx) label ;                    
     let ce    = JUMPDEST label                      >>ce        in     
     let ce      = init_malloc                         ce        in  (* M[0x40]:=0x60                                  *)                                  
-    let le,ce   = dispatcher le ce idx cntrct                   in  (*                                                *)
-    let le,ce   = codegen_mthds ly idx (le,ce) cntrct.mthds     in  
+    let le,ce   = dispatcher le ce idx (TmCn(id,flds,mthds))    in  (*                                                *)
+    let le,ce   = codegen_mthds ly idx (le,ce) mthds            in  
     ce
 
 (********************************************)

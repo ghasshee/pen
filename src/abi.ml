@@ -47,17 +47,15 @@ let prABI_mthd  = function
     | TmMthd(tyM,_)             ->  prABI_mthd_info tyM
     | TmMthd(TyDefault,_)       ->  prABI_default_mthd
 
-let prABI_cnstrctr (c:ty cntrct) : string =
+let prABI_cnstrctr (TmCn(id,flds,_)) =
     sprintf
         "{\"type\": \"constructor\", \"inputs\":[%s], \"name\": \"%s\", \"outputs\":[], \"payable\": true}"
-        (prABI_inputs (L.filter non_mapping_arg c.fields )) (c.id)
+        (prABI_inputs (L.filter non_mapping_arg flds)) id
 
-let prABI_cntrct seen_cnstrctr (c:ty cntrct) : string =
-    let cases               =   c.mthds in
-    let strs : string list  =   L.map prABI_mthd cases in
-    let strs                =   if !seen_cnstrctr then strs
-                                else prABI_cnstrctr c :: strs in
-    let ()                  =   (seen_cnstrctr := true) in
+let prABI_cntrct seen_cnstrctr (TmCn(id,flds,mthds)) = 
+    let strs : string list  =   L.map prABI_mthd mthds in
+    let strs                =   if !seen_cnstrctr then strs else prABI_cnstrctr (TmCn(id,flds,mthds)) :: strs in
+    seen_cnstrctr := true; 
     BS.concat "," strs
 
 
@@ -73,9 +71,9 @@ let prABI_evnt = function TyEv(id,tyEvArgs) ->
     sprintf "{\"type\":\"evnt\",\"inputs\":[%s],\"name\":\"%s\"}"
         (prABI_evnt_inputs tyEvArgs) id
 
-let prABI_toplevel seen_cnstrctr (t:ty toplevel) : string = match t with
-    | Cntrct c                  -> prABI_cntrct seen_cnstrctr c
-    | Event e                   -> prABI_evnt e
+let prABI_toplevel seen_cnstrctr = function 
+    | TmCn(id,fs,ms)           -> prABI_cntrct seen_cnstrctr (TmCn(id,fs,ms))
+    | TmEv e                   -> prABI_evnt e
 
 let prABI (tops : ty toplevel idxlist) : unit =
     let seen_cnstrctr    = ref false in

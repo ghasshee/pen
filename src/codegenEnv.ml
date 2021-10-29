@@ -11,7 +11,7 @@ open Location
 type ce                             =   { stack_size    : int
                                         ; program       : imm program
                                         ; lookup_cnidx  : string -> idx
-                                        ; cntrcts       : ty cntrct idxlist }
+                                        ; cntrcts       : ty toplevel idxlist }
 
 let empty_ce lookup cns             =   { stack_size    = 0
                                         ; program       = empty_program
@@ -19,8 +19,8 @@ let empty_ce lookup cns             =   { stack_size    = 0
                                         ; cntrcts       = cns               }
 
 let lookup_cnidx_of_ce  ce  name    =   ce.lookup_cnidx name 
-let lookup_cnidx_of_cns cns name    =   lookup_idx      (fun cn->cn.id=name) cns
-let lookup_icn_of_icns icns name    =   find_by_filter  (fun (i,cn)->if cn.id=name then(i,cn)else raise Not_found) icns
+let lookup_cnidx_of_cns cns name    =   lookup_idx      (function TmCn(id,_,_) -> id=name) cns
+let lookup_icn_of_icns icns name    =   find_by_filter  (function i,TmCn(id,f,m) -> if id=name then i,TmCn(id,f,m) else raise Not_found) icns
 let lookup_cn           ce  idx     =   lookup idx ce.cntrcts 
 let cntrct_of_name  ce              =   lookup_cn ce $ lookup_cnidx_of_ce ce 
 
@@ -54,7 +54,7 @@ let (>>) op ce                      = append_opcode ce op
 (*    BECOME := lookup continuation contracts    *) 
 (*************************************************)
 
-let rec  become cn                  =   mthds_become cn.mthds
+let rec  become (TmCn(_,_,mthds))   =   mthds_become mthds
 and mthds_become ms                 =   L.concat (L.map mthd_become ms)
 and mthd_become(TmMthd(_,body))     =   stmts_become body 
 and stmts_become ss                 =   L.concat (L.map stmt_become ss)
@@ -83,14 +83,14 @@ and expr_become  e                  =   match fst e with
 
 (* LOOKUP_USUALMETHOD *) 
 
-let lookup_mthd_head_in_cntrct cn mname =
+let lookup_mthd_head_in_cntrct (TmCn(_,_,mthds)) mname =
     match L.filter (function | TmMthd(TyDefault,_)       -> false
-                             | TmMthd(TyMthd(id,_,_),_)  -> id=mname) cn.mthds with 
+                             | TmMthd(TyMthd(id,_,_),_)  -> id=mname) mthds with 
     | []            ->  raise Not_found
     | [a]           ->  let TmMthd(head,_) = a in head 
     | _::_::_       ->  eprintf "method %s duplicated\n%!" mname;err "lookup_mthd_info_in_cntrct" 
 
-let rec lookup_mthd_head_inner ce (seen:ty cntrct list) cn mname : ty=
+let rec lookup_mthd_head_inner ce (seen:ty toplevel list) cn mname : ty=
     if L.mem cn seen then raise Not_found else
     try  lookup_mthd_head_in_cntrct cn mname
     with Not_found  ->  let seen        = cn :: seen in

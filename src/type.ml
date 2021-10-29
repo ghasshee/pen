@@ -35,7 +35,7 @@ let typeof_mthd                 =   function
     | TmMthd(TyMthd(id,args,ret),_) ->  TyMthd(id, tys_of_vars args, ret)
     | TmMthd(TyDefault,_)           ->  TyMthd("", [], TyUnit   ) 
 
-let typeof_cn  cn               =   TyCn(cn.id, tys_of_vars cn.fields, L.map typeof_mthd cn.mthds)
+let typeof_cn(TmCn(id,flds,ms)) =   TyCn(id, tys_of_vars flds, L.map typeof_mthd ms)
 let typeof_cns                  =   map typeof_cn 
 
 let id_lookup_ty ctx id         =   try TmId id, lookup_id id ctx 
@@ -285,33 +285,31 @@ let addTy_mthd cns cn_name ctx (TmMthd(head,body)) =
     let ctx''       =   add_local ctx' binds            in
     TmMthd(addTy_mthd_head cns head, addTy_stmts cns cn_name ctx'' body)
 
-let has_distinct_sigs (cn:unit cntrct) =
+let has_distinct_sigs (TmCn(id,flds,mthds)) =
     let sigs        =   L.map (function 
                               | TmMthd(TyDefault,_)   -> None
-                              | TmMthd(tyM,_)         -> Some (string_of_tyMthd tyM)) cn.mthds in
+                              | TmMthd(tyM,_)         -> Some (string_of_tyMthd tyM)) mthds in
     let uniq_sigs   =   BL.unique sigs in
     L.length sigs=L.length uniq_sigs
 
-let has_distinct_cntrct_names (cns : unit cntrct idxlist) : bool =
-    let cn_names    = (L.map(fun(_,cn)->cn.id)cns) in
-    L.length cns=L.length(BL.unique cn_names)
+let has_distinct_cntrct_names (cns : unit toplevel idxlist) : bool =
+    let cnnames     = L.map(function _,TmCn(id,_,_) -> id) cns in
+    L.length cns = L.length(BL.unique cnnames)
 
-let addTy_cntrct cns (evs:ty idxlist) cn =
-    assert (BL.for_all(arg_has_known_ty (typeof_cns cns))cn.fields  && has_distinct_sigs cn)  ; 
-    let ctx         =   add_local (add_evnts empty_ctx(values evs)) (binds_of_tys cn.fields) in
-    { id            =   cn.id
-    ; fields        =   cn.fields 
-    ; mthds         =   L.map(addTy_mthd cns cn.id ctx)cn.mthds }
+let addTy_cntrct cns (evs:ty idxlist) (TmCn(id,flds,mthds)) = 
+    assert (BL.for_all(arg_has_known_ty (typeof_cns cns)) flds  && has_distinct_sigs (TmCn(id,flds,mthds)))  ; 
+    let ctx         =   add_local (add_evnts empty_ctx(values evs)) (binds_of_tys flds) in
+    TmCn(id,flds,L.map(addTy_mthd cns id ctx) mthds) 
 
 let addTy_toplevel cns (evs:ty idxlist) = function 
-    | Cntrct c      -> Cntrct (addTy_cntrct cns evs c)
-    | Event  e      -> Event e
+    | TmEv e      -> TmEv e
+    | t           -> addTy_cntrct cns evs t
 
 let addTys (tops : unit toplevel idxlist) : ty toplevel idxlist =
-    let cntrcts                 = filter_map (function  | Cntrct c -> Some c
-                                                        | _        -> None   ) tops in
+    let cntrcts                 = filter_map (function  | TmEv e   -> None 
+                                                        | c        -> Some c ) tops in
     assert(has_distinct_cntrct_names(cntrcts));
     let tycns                   = map typeof_cn cntrcts in
-    let evs : ty idxlist   = filter_map (function  | Event e  -> Some e
+    let evs : ty idxlist        = filter_map (function  | TmEv e   -> Some e
                                                         | _        -> None   ) tops in
     map (addTy_toplevel cntrcts evs) tops

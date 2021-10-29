@@ -65,7 +65,12 @@ let split_evnt_args tyEv args   =   match tyEv with TyEv(id,tyEvArgs)  ->
 (***          Terms             ***)
 (**********************************)
 
-type 'ty stmt                   =   SmExpr              of 'ty exprTy
+type 'ty toplevel               =   TmCn        of string * ty list * 'ty mthd list  (* TmCn(id,fields,mthds *) 
+                                |   TmEv        of ty                                (* TmEv(tyEv)           *) 
+
+and  'ty mthd                   =   TmMthd      of ty * 'ty stmt list 
+
+and  'ty stmt                   =   SmExpr              of 'ty exprTy
                                 |   SmAssign            of 'ty expr * 'ty exprTy
                                 |   SmDecl              of ty * string * 'ty exprTy 
                                 |   SmIf                of 'ty exprTy * 'ty stmt list * 'ty stmt list
@@ -124,16 +129,11 @@ let get_tm  (x,_)               =   x
 (***    METHODs      &    CONTRACTS    ***)
 (*****************************************)
 
-type 'ty mthd                   =   TmMthd              of ty * 'ty stmt list 
-
-type 'ty cntrct                 =   { id                : string
-                                    ; fields            : ty list
-                                    ; mthds             : 'ty mthd list }
-
 let filter_vars                 =   L.filter (function TyVar(_,TyMap _) -> false | TyVar _ -> true )
 let filter_arrs                 =   L.filter (function TyVar(_,TyMap _) -> true  | TyVar _ -> false) 
-let varTys_of_cn cn             =   filter_vars cn.fields
-let arrTys_of_cn cn             =   filter_arrs cn.fields
+let varTys_of_cn(TmCn(_,flds,_))=   filter_vars flds
+let arrTys_of_cn(TmCn(_,flds,_))=   filter_arrs flds
+let fldTys_of_cn(TmCn(_,flds,_))=   tys_of_vars flds
 
 let string_of_tyMthd (TyMthd(id,args,ret))  =
     let argTys          = tys_of_vars (filter_vars args)        in
@@ -152,13 +152,10 @@ let string_of_evnt  = function TyEv(id,tyEvArgs) ->
 (***           TOPLEVEL                ***)
 (*****************************************)
 
-type 'ty toplevel               =   Cntrct        of 'ty cntrct
-                                |   Event         of ty    (* ty = TyEv *) 
-
-let filter_method               =   BL.filter_map (function   | TyDefault                   -> None 
-                                                              | TyMthd(i,a,r)             -> Some (TyMthd(i,a,r)) )  
-let default_exists              =   L.exists      (function   | TyDefault                   -> true
-                                                              | TyMthd(_,_,_)             -> false  )
+let filter_method               =   BL.filter_map (function   | TyDefault             -> None 
+                                                              | TyMthd(i,a,r)         -> Some (TyMthd(i,a,r)) )  
+let default_exists              =   L.exists      (function   | TyDefault             -> true
+                                                              | TyMthd(_,_,_)         -> false  )
 
 let cntrct_name_of_ret_cont     = function 
     | TmCall(id,args),_         -> Some id
@@ -191,7 +188,8 @@ let rec string_of_expr          = function
     | TmSlfDstrct _             -> "selfdestruct"
     | TmId        str           -> "id " ^ str
     | TmEq          _           -> "equality"
-    | TmU256   d                -> "uint " ^ string_of_big d
+    | TmU256        d           -> "uint " ^ string_of_big d
+    | TmU8          d           -> "uint " ^ string_of_big d
     | TmUnit                    -> "()"
     | TmMinus ((a,_),(b,_))     -> string_of_expr a ^ " - " ^ string_of_expr b
     | TmMul   ((a,_),(b,_))     -> string_of_expr a ^ " * " ^ string_of_expr b
@@ -204,7 +202,6 @@ let rec string_of_expr          = function
     | EpSender                  -> "sender"
     | EpTrue                    -> "true"
     | EpFalse                   -> "false"
-    | TmU8     d             -> "uint " ^ string_of_big d
     | EpNot         _           -> "not"
     | EpNEq         _           -> "neq"
     | EpLAnd        _           -> "_ && _"

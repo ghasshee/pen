@@ -189,13 +189,12 @@ let walk = walk_stmts
 
 let rec eval' = function 
     | [] -> []
-    | (i,Cntrct cn)::rest -> begin 
-        let {id=id;fields=fileds;mthds=mthds} = cn in  
+    | (i,TmCn(id,flds,mthds))::rest -> begin 
         let mthds' = begin match mthds with 
         | []                    ->  []
         | TmMthd(_,stmts)::ms   ->  let lambdas = walk stmts in 
                                     lambdas ++ mthds end in 
-        (i,Cntrct{ cn with mthds=mthds' }) :: rest 
+        (i,TmCn(id,flds,mthds')) :: rest 
         end
 let eval a = a 
 
