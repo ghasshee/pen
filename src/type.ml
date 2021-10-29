@@ -229,21 +229,19 @@ and addTy_new cns cname ctx id args msg =
     TmNew(id,args,msg) , TyInstnc id 
 
 and addTy_lexpr cns cname ctx (TmArray(id,idx)) = 
-    let id          = addTy_expr cns cname ctx id in 
-    let TyMap(k,v)  = get_ty id in 
-    let idx         = addTy_expr cns cname ctx idx in 
+    let id          =   addTy_expr cns cname ctx id   in 
+    let idx         =   addTy_expr cns cname ctx idx  in 
+    let TyMap(k,v)  =   get_ty id                     in 
     TmArray(id,idx) 
 
-
 and addTy_return cns cname ctx ret cont=
-    let retTy       =   addTy_expr cns cname ctx ret    in
-    let contTy      =   addTy_expr cns cname ctx cont   in 
-    let tyRet       =   lookup_retTy ctx in 
-    assert (tyeqv tyRet (get_ty retTy)); 
-    TmReturn(retTy, contTy), get_ty retTy
+    let ret         =   addTy_expr cns cname ctx ret    in
+    let cont        =   addTy_expr cns cname ctx cont   in 
+    let rety        =   lookup_retTy ctx in 
+    assert (tyeqv rety (get_ty ret)); 
+    TmReturn(ret,cont), rety
 
-
-and addTy_decl cns cname ctx (ty,id,v) =
+and addTy_decl cns cname ctx ty id v =
     let v           =   addTy_expr cns cname ctx v in
     assert (is_known_ty (typeof_cns cns) ty);
     SmDecl(ty,id,v), add_var ctx id ty  
@@ -256,9 +254,8 @@ and addTy_stmt cns cname ctx = function
     | SmAssign(l,r)     ->  let l       = addTy_lexpr       cns cname ctx  l        in
                             let r       = addTy_expr        cns cname ctx  r        in
                             SmAssign(l,r)   , ctx
-    | SmDecl(ty,id,v)   ->                addTy_decl        cns cname ctx (ty,id,v) 
+    | SmDecl(ty,id,v)   ->  addTy_decl        cns cname ctx ty id v
     | SmExpr e          ->  let e       = addTy_expr        cns cname ctx  e        in
-                            (* assert(get_ty e=TyUnit   ) ; *) 
                             SmExpr e        , ctx
 
 and addTy_stmts cns cname ctx = function 
@@ -273,31 +270,30 @@ and addTy_stmts cns cname ctx = function
 
 (* AssignTy Method / Contract / Toplevel  *) 
 (* Default Method Returns Unit(==EmptyTuple) is a specification *) 
-let retTy_of_mthd = function 
-    | TyMthd(_,_,retTy)     -> retTy
+let rettypeof_mthd = function 
+    | TyMthd(_,_,rety)      -> rety
     | TyDefault             -> TyUnit   
 
 let addTy_mthd cns cn_name ctx (TmMthd(head,body)) = 
-    let retTy       =   retTy_of_mthd  head             in
+    let rety        =   rettypeof_mthd head             in
     let argTys      =   argTys_of_mthd head             in
     let binds       =   binds_of_tys argTys             in
-    let ctx'        =   add_retTy ctx retTy             in
+    let ctx'        =   add_retTy ctx rety              in
     let ctx''       =   add_local ctx' binds            in
     TmMthd(addTy_mthd_head cns head, addTy_stmts cns cn_name ctx'' body)
 
-let has_distinct_sigs (TmCn(id,flds,mthds)) =
-    let sigs        =   L.map (function 
-                              | TmMthd(TyDefault,_)   -> None
-                              | TmMthd(tyM,_)         -> Some (string_of_tyMthd tyM)) mthds in
+let unique_sig (TmCn(id,flds,mthds)) =
+    let sigs        =   L.map (function | TmMthd(TyDefault,_)   -> None
+                                        | TmMthd(tyM,_)         -> Some (string_of_tyMthd tyM)) mthds in
     let uniq_sigs   =   BL.unique sigs in
     L.length sigs=L.length uniq_sigs
 
-let has_distinct_cntrct_names (cns : unit toplevel idxlist) : bool =
+let unique_name cns =
     let cnnames     = L.map(function _,TmCn(id,_,_) -> id) cns in
     L.length cns = L.length(BL.unique cnnames)
 
 let addTy_cntrct cns (evs:ty idxlist) (TmCn(id,flds,mthds)) = 
-    assert (BL.for_all(arg_has_known_ty (typeof_cns cns)) flds  && has_distinct_sigs (TmCn(id,flds,mthds)))  ; 
+    assert (BL.for_all(arg_has_known_ty (typeof_cns cns)) flds  && unique_sig (TmCn(id,flds,mthds)))  ; 
     let ctx         =   add_local (add_evnts empty_ctx(values evs)) (binds_of_tys flds) in
     TmCn(id,flds,L.map(addTy_mthd cns id ctx) mthds) 
 
@@ -305,11 +301,10 @@ let addTy_toplevel cns (evs:ty idxlist) = function
     | TmEv e      -> TmEv e
     | t           -> addTy_cntrct cns evs t
 
-let addTys (tops : unit toplevel idxlist) : ty toplevel idxlist =
-    let cntrcts                 = filter_map (function  | TmEv e   -> None 
-                                                        | c        -> Some c ) tops in
-    assert(has_distinct_cntrct_names(cntrcts));
-    let tycns                   = map typeof_cn cntrcts in
-    let evs : ty idxlist        = filter_map (function  | TmEv e   -> Some e
-                                                        | _        -> None   ) tops in
-    map (addTy_toplevel cntrcts evs) tops
+let addTys (tops : unit toplevel idxlist)  =
+    let cns         = filter_map (function  | TmEv e   -> None 
+                                            | c        -> Some c ) tops in
+    assert(unique_name cns);
+    let evs         = filter_map (function  | TmEv e   -> Some e
+                                            | _        -> None   ) tops in
+    map (addTy_toplevel cns evs) tops
