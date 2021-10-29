@@ -65,14 +65,14 @@ and stmt_become                     =   function
     | SmIf(c,b,b')                  ->  expr_become c @ stmts_become b @ stmts_become b'
 and exprs_become es                 =   L.concat (L.map expr_become es)
 and expr_become  e                  =   match fst e with
-    | TmAbort  | TmUnit  | EpTrue | EpFalse | EpNow | EpThis | EpValue | EpSender | TmId _  | EpUint8 _ | TmU256 _ -> []
+    | TmAbort  | TmUnit  | EpTrue | EpFalse | EpNow | EpThis | EpValue | EpSender | TmId _  | TmU8 _ | TmU256 _ -> []
     | EpAddr e | EpNot e | EpDeref e | EpBalance e | TmSlfDstrct e ->  expr_become e
     | EpLT   (l,r) | EpGT   (l,r) | EpNEq  (l,r) | TmEq   (l,r)           
     | TmMul (l,r) | EpPlus (l,r) | EpLAnd (l,r) | TmMinus(l,r)          
                                     ->  (expr_become l) @ (expr_become r)
     | TmArray(id,idx)               ->  expr_become idx
     | TmCall(id,args)               ->  exprs_become args 
-    | EpNew n                       ->  exprs_become n.new_args @ expr_become n.new_msg
+    | TmNew(id,args,msg)            ->  exprs_become args @ expr_become msg
     | TmSend(cn,_,args,msg)         ->  expr_become cn @ exprs_become args @ expr_become msg
     | TmLog(_,l,_)                  ->  exprs_become l
     | TmReturn(ret,cont)            ->  expr_become ret @ expr_become cont @ (match cntrct_name_of_ret_cont cont with

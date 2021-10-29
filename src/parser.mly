@@ -152,7 +152,7 @@ aTm:
                                                                  try TmIdxRec(lookup_rec_idx ($1^"'") ctx)  ,() with _ -> 
                                                                  try TmIdxStrct(lookup_struct_idx $1 ctx)   ,() with _ -> 
                                                                      TmId $1,() end }
-    | NEW ID  arg_list msg             { reserved $2; fun ctx -> EpNew {new_id=$2;new_args=$3 ctx; new_msg=$4 ctx}      ,() }
+    | NEW ID  arg_list msg             { reserved $2; fun ctx -> TmNew($2,$3 ctx,$4 ctx)                                ,() }
 call: 
     | ID arg_list                                   { fun ctx -> TmCall($1,$2 ctx)                                      ,() }
 arg_list : 

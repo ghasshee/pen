@@ -239,7 +239,7 @@ and codegen_iszero le ce ly aln args reT = match args with
        
 and codegen_keccak256 le ce ly args =
     let ce    = get_malloc ce                                       in  
-    let ce    = mstore_mthd_args Tight args le ce ly            in  
+    let ce    = mstore_mthd_args Tight args ly le ce                in  
     let ce    = SWAP1                           >>ce                in  
                 SHA3                            >>ce                  
 
@@ -250,7 +250,7 @@ and codegen_ECDSArecover le ce ly args = match args with
     let ce    = malloc                            ce                in  
     let ce    = repeat DUP2 2                     ce                in  
     let ce    = get_malloc                        ce                in
-    let ce    = mstore_mthd_args ABIpk args le  ce ly             in  
+    let ce    = mstore_mthd_args ABIpk args ly le ce                in  
     let ce    = SWAP1                           >>ce                in  
     let ce    = PUSH1 (Int 0)                   >>ce                in  
     let ce    = PUSH1 (Int 1)                   >>ce                in  
@@ -291,24 +291,24 @@ and push_loc ce aln ty      = function
     | Stack      n          ->  let ce = dup_nth_from_bottom n ce in 
                                 align_to_L ce ty aln 
 
-and mstore_new_instance le ce ly n     =
-    let cn_idx  =   lookup_cnidx_of_ce ce n.new_id                         in 
-    let ce      =   PUSH32(CnstrCodeSize cn_idx)        >>ce            in  (*                                                        size >> .. *) 
-    let ce      =   PUSH32(RntimeCnstrOffset cn_idx)    >>ce            in  (*                                             cn_idx  >> size >> .. *)
+and mstore_new_instance id args msg ly le ce  =
+    let cnidx   =   lookup_cnidx_of_ce ce id                            in 
+    let ce      =   PUSH32(CnstrCodeSize cnidx)         >>ce            in  (*                                                        size >> .. *) 
+    let ce      =   PUSH32(RntimeCnstrOffset cnidx)     >>ce            in  (*                                             cn_idx  >> size >> .. *)
     let ce      =   mstore_code                           ce            in  (*                                         alloc(size) >> size >> .. *)
     let ce      =   SWAP1                               >>ce            in  (*                                         size >> alloc(size) >> .. *)
     let ce      =   mstore_whole_code                     ce            in  (*                alloc(wsize) >> wsize >> size >> alloc(size) >> .. *)
-    let ce      =   mstore_mthd_args ABIpk n.new_args le ce ly        in  (*    argssize >> alloc(wsize) >> wsize >> size >> alloc(size) >> .. *)
+    let ce      =   mstore_mthd_args ABIpk args     ly le ce            in  (*    argssize >> alloc(wsize) >> wsize >> size >> alloc(size) >> .. *)
     let ce      =   SWAP1                               >>ce            in  (*    alloc(wsize) >> argssize >> wsize >> size >> alloc(size) >> .. *)
     let ce      =   POP                                 >>ce            in  (*                    argssize >> wsize >> size >> alloc(size) >> .. *)
     let ce      =   ADD                                 >>ce            in  (*                       argssize+wsize >> size >> alloc(size) >> .. *)
     let ce      =   ADD                                 >>ce            in  (*                          argssize+wsize+size >> alloc(size) >> .. *)
                     SWAP1                               >>ce                (*                                  alloc(size) >>   totalsize >> .. *)
 
-and codegen_new le ce ly n             =    
+and codegen_new id args msg ly le ce               =    
     let ce      =   reset_PC ce                                         in  (*                                             PCbkp >> .. *)
-    let ce      =   mstore_new_instance le ce ly n                      in  (*                      alloc(size) >> size >> PCbkp >> .. *)
-    let ce      =   n.new_msg                           >>>>(R,ly,le,ce)in  (*             value >> alloc(size) >> size >> PCbkp >> .. *)
+    let ce      =   mstore_new_instance id args msg ly le ce            in  (*                      alloc(size) >> size >> PCbkp >> .. *)
+    let ce      =   msg                           >>>>(R,ly,le,ce)      in  (*             value >> alloc(size) >> size >> PCbkp >> .. *)
     let ce      =   CREATE                              >>ce            in  (*                             createResult >> PCbkp >> .. *)
     let ce      =   throw_if_0                            ce            in  (*                             createResult >> PCbkp >> .. *)
     let ce      =   SWAP1                               >>ce            in  (*                             PCbkp >> CreateResult >> .. *)
@@ -363,7 +363,7 @@ and codegen_expr le ce ly aln  e        = pe (string_of_tm e); pe (string_of_ctx
     | EpFalse               ,TyBool     ->  assert(aln=R);  PUSH1(Int 0)            >>ce  
     | EpTrue                ,TyBool     ->  assert(aln=R);  PUSH1(Int 1)            >>ce 
     | TmU256  d             ,_          ->  assert(aln=R);  PUSH32(Big d)           >>ce  
-    | EpUint8 d             ,TyU8       ->  assert(aln=R);  PUSH1(Big d)            >>ce  
+    | TmU8 d             ,TyU8       ->  assert(aln=R);  PUSH1(Big d)            >>ce  
     | EpPlus (l,r)          ,_          ->                  op ADD l r             le ce ly             
     | TmMinus(l,r)          ,_          ->                  op SUB l r             le ce ly             
     | TmMul  (l,r)          ,_          ->                  op MUL l r             le ce ly             
@@ -374,7 +374,7 @@ and codegen_expr le ce ly aln  e        = pe (string_of_tm e); pe (string_of_ctx
     | EpNot    e            ,TyBool     ->  assert(aln=R);  ISZERO >> ( e >>>>(aln,ly,le,ce) )
     | EpLAnd (l,r)          ,TyBool     ->                  checked_codegen_LAnd l r le ce ly aln   
     | TmSend(cn,m,args,msg) ,_          ->  assert(aln=R);  codegen_send cn m args msg ly le ce 
-    | EpNew  n              ,TyInstnc _ ->  assert(aln=R);  codegen_new  le ce ly n 
+    | TmNew(id,args,msg)    ,TyInstnc _ ->  assert(aln=R);  codegen_new id args msg ly le ce 
     | TmCall(id,args)       ,rety       ->                  codegen_predef_call aln ly le ce id args rety
     | EpSender              ,TyAddr     ->                  align_addr (CALLER  >>ce)  aln
     | EpThis                ,_          ->                  align_addr (ADDRESS >>ce) aln     
@@ -466,7 +466,7 @@ and checked_codegen_LAnd l r le ce ly aln =
     let ce      = JUMPDEST la                   >>ce            in  (*                                                   r >> .. *)
                     repeat ISZERO 2               ce                (*                                                l&&r >> .. *)  
 
-and mstore_mthd_args pck args le ce ly =
+and mstore_mthd_args pck args ly le ce =
     let ce    = PUSH1(Int 0)                    >>ce            in  (*                                                   0 >> .. *)
                 foldl (mstore_mthd_arg pck le ly) ce args           (*                                             sumsize >> .. *) 
 
@@ -483,7 +483,7 @@ and mstore_mthd_arg pck le ly ce arg  =
 
 and mstore_mhash_and_args mthd args le ce ly =                      (*                                                        .. *)
     let ce      = mstore_mthd_hash mthd           ce            in  (*                                         &mhash >> 4 >> .. *)
-    let ce      = mstore_mthd_args ABIpk args le ce ly        in  (*                              argsize >> &mhash >> 4 >> .. *)
+    let ce      = mstore_mthd_args ABIpk args ly le ce          in  (*                              argsize >> &mhash >> 4 >> .. *)
     let ce      = SWAP1                         >>ce            in  (*                              &mhash >> argsize >> 4 >> .. *)
     let ce      = SWAP2                         >>ce            in  (*                              4 >> argsize >> &mhash >> .. *)
     let ce      = ADD                           >>ce            in  (*                                 argsize+4 >> &mhash >> .. *)

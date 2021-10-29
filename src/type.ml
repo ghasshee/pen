@@ -164,15 +164,14 @@ and addTy_expr cns cname ctx expr = pe("addTy_expr: " ^ string_of_tm expr );matc
     | EpSender                      ->  EpSender        , TyAddr
     | EpNow                         ->  EpNow           , TyU256
     | TmU256      d                 ->  TmU256      d   , TyU256
-    | EpUint8     d                 ->  EpUint8     d   , TyU8
+    | TmU8        d                 ->  TmU8     d   , TyU8
     | EpValue                       ->  EpValue         , TyU256
     | EpAddr      e                 ->  let e       =   addTy_expr cns cname ctx e          in
                                         EpAddr e        , TyAddr
     | EpBalance   e                 ->  let e       =   addTy_expr cns cname ctx e          in
                                         assert(tyeqv TyAddr (get_ty e));
                                         EpBalance e     , TyU256
-    | EpNew       n                 ->  let n,nm    =   addTy_new  cns cname ctx n          in
-                                        EpNew n         , TyInstnc nm
+    | TmNew(id,args,msg)            ->  addTy_new  cns cname ctx id args msg    
     | EpLAnd (l, r)                 ->  let l       =   addTy_expr cns cname ctx l          in
                                         typecheck (TyBool,l);
                                         let r       =   addTy_expr cns cname ctx r          in
@@ -224,12 +223,10 @@ and addTy_expr cns cname ctx expr = pe("addTy_expr: " ^ string_of_tm expr );matc
                                         let cn      =   addTy_expr cns cname ctx cn         in
                                         TmSend(cn,None,[],msg), TyUnit 
 
-and addTy_new cns cname ctx e =
-    let msg'        =   addTy_expr cns cname ctx e.new_msg in
-    let args'       =   L.map (addTy_expr cns cname ctx) e.new_args in
-    { new_id        =   e.new_id
-    ; new_args      =   args'
-    ; new_msg       =   msg'          }, e.new_id 
+and addTy_new cns cname ctx id args msg =
+    let msg         =   addTy_expr cns cname ctx msg in
+    let args        =   L.map (addTy_expr cns cname ctx) args in
+    TmNew(id,args,msg) , TyInstnc id 
 
 and addTy_lexpr cns cname ctx (TmArray(id,idx)) = 
     let id          = addTy_expr cns cname ctx id in 

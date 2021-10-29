@@ -5,6 +5,12 @@ module L    = List
 module BL   = BatList
 
 
+
+
+(**********************************)
+(***          Types             ***)
+(**********************************)
+
 type ty           (* atomic *)  =   TyVoid                             
                   (* stomic *)  |   TyUnit             
                   (* atomic *)  |   TyU256              (* 256 bits *) 
@@ -24,7 +30,6 @@ type ty           (* atomic *)  =   TyVoid
                                 |   TyEvVar             of string * ty * bool           (*  TyEvVar(id,ty,indexed)                  *)
                                 |   TyEv                of string * ty list 
                                 |   TyCn                of string * ty list * ty list   (*  TyCn(id,tyCnArgs,tyMethod list          *) 
-
 
 let id_of_var (TyVar(id,_))     =   id 
 let ty_of_var (TyVar(_,ty))     =   ty 
@@ -55,15 +60,12 @@ let split_evnt_args tyEv args   =   match tyEv with TyEv(id,tyEvArgs)  ->
     let is,ns                   =   BL.partition snd combined in
     L.map fst is, L.map fst ns
 
-(*****************************************)
-(***      STATEMENTS & EXPRESSIONS     ***)
-(*****************************************)
+    
+(**********************************)
+(***          Terms             ***)
+(**********************************)
 
-type  'ty _new                  =   { new_id            : string
-                                    ; new_args          : 'ty exprTy list
-                                    ; new_msg           : 'ty exprTy        }
-
-and  'ty stmt                   =   SmExpr              of 'ty exprTy
+type 'ty stmt                   =   SmExpr              of 'ty exprTy
                                 |   SmAssign            of 'ty expr * 'ty exprTy
                                 |   SmDecl              of ty * string * 'ty exprTy 
                                 |   SmIf                of 'ty exprTy * 'ty stmt list * 'ty stmt list
@@ -91,13 +93,13 @@ and  'ty expr                   =
                                 |   TmZero 
                                 |   TmCall              of string * 'ty exprTy list   (* TmCall(cnname, args) *) 
                                 |   TmArray             of 'ty exprTy * 'ty exprTy    (* TmArray(id,idx) *) 
+                                |   TmSend              of 'ty exprTy * string option * 'ty exprTy list * 'ty exprTy (* TmSend(cn,Some mname, args, msg) *) 
+                                |   TmNew               of string * 'ty exprTy list * 'ty exprTy    (* TmNew(id,args,msg) *)  
                                 |   EpTrue
                                 |   EpFalse
                                 |   TmU256              of big
-                                |   EpUint8             of big
+                                |   TmU8                of big
                                 |   EpNow
-                                |   EpNew               of 'ty _new
-                                |   TmSend              of 'ty exprTy * string option * 'ty exprTy list * 'ty exprTy (* TmSend(cn,Some mname, args, msg) *) 
                                 |   EpLAnd              of 'ty exprTy * 'ty exprTy
                                 |   EpLT                of 'ty exprTy * 'ty exprTy
                                 |   EpGT                of 'ty exprTy * 'ty exprTy
@@ -196,13 +198,13 @@ let rec string_of_expr          = function
     | TmCall(id,args)           -> "call(" ^ id ^ ")" 
     | TmArray((id,_),(idx,_))   -> string_of_expr id ^ "[" ^ string_of_expr idx ^ "]" 
     | TmSend        _           -> "send"
+    | TmNew         _           -> "new"
     | EpThis                    -> "this"
-    | EpNew         _           -> "new"
     | EpNow                     -> "now"
     | EpSender                  -> "sender"
     | EpTrue                    -> "true"
     | EpFalse                   -> "false"
-    | EpUint8     d             -> "uint " ^ string_of_big d
+    | TmU8     d             -> "uint " ^ string_of_big d
     | EpNot         _           -> "not"
     | EpNEq         _           -> "neq"
     | EpLAnd        _           -> "_ && _"
