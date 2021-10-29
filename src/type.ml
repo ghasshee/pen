@@ -26,7 +26,6 @@ let tyeqv t0 t1                 =   ( t0 = t1 )  ||  ( match t0, t1 with
                                 | TyAddr, TyInstnc _    -> true
                                 | _     , _             -> false ) 
 
-
 let assert_tyeqv l r            =   pe(sprintf "asserting %s(typeof %s)=%s(typeof %s)" (string_of_ty (get_ty l))(string_of_tm l)  (string_of_ty (get_ty r)) (string_of_tm r) ); 
                                     assert (get_ty l = get_ty r) 
                                 
