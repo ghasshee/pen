@@ -116,8 +116,8 @@ and  'ty expr                   =
                                 |   EpSender
                                 |   EpThis
                                 |   EpDeref             of 'ty exprTy
-                                |   EpPlus              of 'ty exprTy * 'ty exprTy
-                                |   TmMinus             of 'ty exprTy * 'ty exprTy
+                                |   TmAdd              of 'ty exprTy * 'ty exprTy
+                                |   TmSub             of 'ty exprTy * 'ty exprTy
                                 |   TmMul               of 'ty exprTy * 'ty exprTy
                                 |   Balanc           of 'ty exprTy
 
@@ -188,11 +188,12 @@ let rec string_of_expr          = function
     | TmSlfDstrct _             -> "selfdestruct"
     | TmId        str           -> "id " ^ str
     | TmEq          _           -> "equality"
-    | TmU256        d           -> "uint " ^ string_of_big d
-    | TmU8          d           -> "uint " ^ string_of_big d
+    | TmU256        d           -> "u256 " ^ string_of_big d
+    | TmU8          d           -> "u8 " ^ string_of_big d
     | TmUnit                    -> "()"
-    | TmMinus ((a,_),(b,_))     -> string_of_expr a ^ " - " ^ string_of_expr b
-    | TmMul   ((a,_),(b,_))     -> string_of_expr a ^ " * " ^ string_of_expr b
+    | TmSub ((a,_),(b,_))       -> string_of_expr a ^ " - " ^ string_of_expr b
+    | TmMul ((a,_),(b,_))       -> string_of_expr a ^ " * " ^ string_of_expr b
+    | TmAdd ((a,_),(b,_))       -> string_of_expr a ^ " + " ^ string_of_expr b
     | TmCall(id,args)           -> "call(" ^ id ^ ")" 
     | TmArray((id,_),(idx,_))   -> string_of_expr id ^ "[" ^ string_of_expr idx ^ "]" 
     | TmSend        _           -> "send"
@@ -210,8 +211,7 @@ let rec string_of_expr          = function
     | EpValue                   -> "value"
     | EpAddr        _           -> "address"
     | EpDeref       _           -> "dereference of ..."
-    | EpPlus  ((a,_),(b,_))     -> string_of_expr a ^ " + " ^ string_of_expr b
-    | Balanc     _           -> "balance"
+    | Balanc     _              -> "balance"
 
 let rec string_of_tm  e         = match fst e with 
     | TmApp(t1,t2)              -> "TmApp(" ^ string_of_tm t1 ^ "," ^ string_of_tm t2 ^ ")"
@@ -225,7 +225,7 @@ let rec string_of_tm  e         = match fst e with
     | TmU256(b)                 -> string_of_big b 
     | TmId(str)                 -> str
     | TmMul(a,b)                -> string_of_tm a ^ " * " ^ string_of_tm b
-    | TmMinus(a,b)              -> string_of_tm a ^ " - " ^ string_of_tm b 
+    | TmSub(a,b)              -> string_of_tm a ^ " - " ^ string_of_tm b 
     | TmUnit                    -> "()" 
     | TmZero                    -> "O" 
     | TmSend _                  -> "TmSend()" 

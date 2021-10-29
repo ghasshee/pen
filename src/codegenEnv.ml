@@ -68,7 +68,7 @@ and expr_become  e                  =   match fst e with
     | TmAbort  | TmUnit  | EpTrue | EpFalse | EpNow | EpThis | EpValue | EpSender | TmId _  | TmU8 _ | TmU256 _ -> []
     | EpAddr e | EpNot e | EpDeref e | Balanc e | TmSlfDstrct e ->  expr_become e
     | EpLT   (l,r) | EpGT   (l,r) | EpNEq  (l,r) | TmEq   (l,r)           
-    | TmMul (l,r) | EpPlus (l,r) | EpLAnd (l,r) | TmMinus(l,r)          
+    | TmMul (l,r) | TmAdd (l,r) | EpLAnd (l,r) | TmSub(l,r)          
                                     ->  (expr_become l) @ (expr_become r)
     | TmArray(id,idx)               ->  expr_become idx
     | TmCall(id,args)               ->  exprs_become args 

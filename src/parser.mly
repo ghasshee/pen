@@ -104,9 +104,9 @@ ret:
     | EQEQ                                          { fun l r -> TmEq(l,r)                                      }
     | NEQ                                           { fun l r -> EpNEq(l,r)                                     }
     | LAND                                          { fun l r -> EpLAnd(l,r)                                    } 
-    | PLUS                                          { fun l r -> EpPlus(l,r)                                    }
+    | PLUS                                          { fun l r -> TmAdd(l,r)                                    }
     | MULT                                          { fun l r -> TmMul(l,r)                                    }
-    | MINUS                                         { fun l r -> TmMinus(l,r)                                   }
+    | MINUS                                         { fun l r -> TmSub(l,r)                                   }
 
 tm: 
     | appTm                                         { $1                                                                    } 

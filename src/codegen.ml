@@ -365,8 +365,8 @@ and codegen_expr le ce ly aln  e        = pe (string_of_tm e); pe (string_of_ctx
     | EpTrue                ,TyBool     ->  assert(aln=R);  PUSH1(Int 1)            >>ce 
     | TmU256  d             ,_          ->  assert(aln=R);  PUSH32(Big d)           >>ce  
     | TmU8 d             ,TyU8       ->  assert(aln=R);  PUSH1(Big d)            >>ce  
-    | EpPlus (l,r)          ,_          ->                  op ADD l r             le ce ly             
-    | TmMinus(l,r)          ,_          ->                  op SUB l r             le ce ly             
+    | TmAdd (l,r)          ,_          ->                  op ADD l r             le ce ly             
+    | TmSub(l,r)          ,_          ->                  op SUB l r             le ce ly             
     | TmMul  (l,r)          ,_          ->                  op MUL l r             le ce ly             
     | EpLT   (l,r)          ,TyBool     ->  assert(aln=R);  op LT  l r             le ce ly           
     | EpGT   (l,r)          ,TyBool     ->  assert(aln=R);  op GT  l r             le ce ly           

@@ -192,14 +192,14 @@ and addTy_expr cns cname ctx expr = pe("addTy_expr: " ^ string_of_tm expr );matc
                                         let r       =   addTy_expr cns cname ctx r          in
                                         assert_tyeqv l r ; 
                                         TmEq (l, r)     , TyBool
-    | EpPlus (l, r)                 ->  let l       =   addTy_expr cns cname ctx l          in
+    | TmAdd (l, r)                 ->  let l       =   addTy_expr cns cname ctx l          in
                                         let r       =   addTy_expr cns cname ctx r          in
                                         assert_tyeqv l r ;
-                                        EpPlus (l, r)   , get_ty l
-    | TmMinus (l, r)                ->  let l       =   addTy_expr cns cname ctx l          in
+                                        TmAdd (l, r)   , get_ty l
+    | TmSub (l, r)                ->  let l       =   addTy_expr cns cname ctx l          in
                                         let r       =   addTy_expr cns cname ctx r          in
                                         assert_tyeqv l r; 
-                                        TmMinus (l, r)  , get_ty l
+                                        TmSub (l, r)  , get_ty l
     | TmMul (l, r)                 ->   let l       =   addTy_expr cns cname ctx l          in
                                         let r       =   addTy_expr cns cname ctx r          in
                                         assert_tyeqv l r; 
