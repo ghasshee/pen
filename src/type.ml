@@ -168,8 +168,9 @@ and addTy_expr cns cname ctx expr = pe("addTy_expr: " ^ str_of_tm expr );match f
     | EpValue                       ->  EpValue         , TyU256
     | EpAddr      e                 ->  let e       =   addTy_expr cns cname ctx e          in
                                         EpAddr e            , TyAddr
-    | Balanc   e                 ->  let e,TyAddr=   addTy_expr cns cname ctx e          in
-                                        Balanc(e,TyAddr), TyU256
+    | Balanc      e                 ->  let e',ty   =   addTy_expr cns cname ctx e          in
+                                        ( match ty with | TyAddr | TyInstnc _ -> 
+                                        Balanc(e',ty), TyU256 ) 
     | TmNew(id,args,msg)            ->  addTy_new  cns cname ctx id args msg    
     | EpLAnd (l, r)                 ->  let l       =   addTy_expr cns cname ctx l          in
                                         typecheck (TyBool,l);
