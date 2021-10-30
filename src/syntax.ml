@@ -49,6 +49,7 @@ let rec str_of_ty            =   function
     | TyInstnc     s            ->  "contract instance " ^ s
     | TyMthd(id,_,_)            ->  "method " ^ id 
     | TyDefault                 ->  "default" 
+    | TyAbs(a,b)                ->  str_of_ty a ^ "→" ^ str_of_ty b
     | _                         ->  "undefined" 
 
 let  arg_of_evnt_arg            =   function TyEvVar(id,ty,visible) -> TyVar(id,ty)

@@ -47,16 +47,20 @@ let id_lookup_ty ctx id         =   try TmId id, lookup_id id ctx
 
 let subtype                     = tyeqv 
 
-(* ======= Arg Type Check ======= *) 
+
+
+
+(************************************) 
+(**         Arg Type Check         **) 
+(************************************) 
 
 let tycn_has_name  name         =   function TyCn(id,_,_) -> id=name     
 let itycn_has_name name itycn   =   match get_ty itycn with TyCn(id,_,_) -> id=name 
 let is_known_cntrct tycns nm    =   BL.exists (itycn_has_name nm) tycns
 
 let rec is_known_ty tycns       =   function 
-    | TyBytes32 | TyAddr            ->  true
+    | TyBytes32 | TyAddr | TyUnit   ->  true
     | TyU256 | TyU8 | TyBool        ->  true
-    | TyUnit                        ->  true
     | TyTuple l                     ->  BL.for_all (is_known_ty tycns) l
     | TyRef l                       ->  is_known_ty tycns l
     | TyMap(a,b)                    ->  is_known_ty tycns a && is_known_ty tycns b
@@ -80,8 +84,6 @@ let call_arg_expectations tycns =   function
     | name                          ->  let cn_idx       = lookup_idx (tycn_has_name name) tycns in
                                         match lookup cn_idx tycns with TyCn(_,tyCnArgs,_) -> 
                                         (=) tyCnArgs
-
-
 
 let typecheck  (ty,(_,t))       =   assert (ty = t)
 let typechecks tys actual       =   L.for_all2 (fun ty (_,a)-> ty=a) tys actual
@@ -122,7 +124,7 @@ and addTy_expr cns cname ctx expr = pe("addTy_expr: " ^ str_of_tm expr );match f
                                         let ty          = tyShift (i+1) ty  in 
                                         TmIdx(i,n)      , ty 
                                         | a :: rest -> addTy_expr cns cname rest expr
-                                        | _ -> err "addTy_expr: TmIdx: Notfound" end 
+                                        | _         -> err "addTy_expr: TmIdx: Notfound" end 
     | TmFix(f,n,tyF,t)              ->  let TyAbs(tyN,tyR)  = tyF in 
                                         let ctx'            = add_var ctx f tyF in 
                                         let ctx''           = add_var ctx' n tyN in 
@@ -132,6 +134,7 @@ and addTy_expr cns cname ctx expr = pe("addTy_expr: " ^ str_of_tm expr );match f
     | TmIdxRec(i)                   ->  begin match ctx with 
                                         | BdCtx local :: _  -> let BdTy(id,ty) = L.nth local i in 
                                                                let ty = tyShift (i+1) ty in 
+                                                               printf " whose type is : %s\n" (str_of_ty ty); 
                                                                TmIdxRec(i) , ty 
                                         | a :: rest         -> addTy_expr cns cname rest expr
                                         | _                 -> err "addTy_expr: TmIdxRec: Not found" end 
