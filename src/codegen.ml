@@ -449,7 +449,7 @@ and codegen_send cn m args msg ly le ce = match snd cn with
     let ce      = reset_PC                        ce            in  (*                                                          PCbkp >> .. *) 
     let ce      = PUSH1(Int retsize)            >>ce            in  (*                                                     0 >> PCbkp >> .. *) 
     let ce      = repeat DUP1 5                   ce            in  (*                            0 >> 0 >> 0 >> 0 >> 0 >> 0 >> PCbkp >> .. *) 
-    let ce      = push_msg_and_gas msg cn      ly le ce         in  (* gas-3000 >> addr >> msg >> 0 >> 0 >> 0 >> 0 >> 0 >> 0 >> PCbkp >> .. *) 
+    let ce      = push_msg_and_gas msg cn   ly le ce            in  (* gas-3000 >> addr >> msg >> 0 >> 0 >> 0 >> 0 >> 0 >> 0 >> PCbkp >> .. *) 
     let ce      = call_and_restore_PC             ce            in  (*                                                         0 >> 0 >> .. *)
     let ce      = POP                           >>ce            in  (*                                                              0 >> .. *)
                   Comment("END send to Addr")   >>ce 
@@ -473,8 +473,8 @@ and mstore_mthd_args pck args ly le ce =
 
 and mstore_mthd_arg pck le ly ce arg  =
     let ty      = get_ty arg                                    in  
-    let i,a     = match pck with | ABIpk   -> 32           ,R
-                                 | Tight -> size_of_ty ty,L in  (*                                                 sum >> .. *)
+    let i,a     = match pck with | ABIpk -> 32           ,R
+                                 | Tight -> size_of_ty ty,L     in  (*                                                 sum >> .. *)
     let ce      = PUSH1 (Int i)                 >>ce            in  (*                                         size >> sum >> .. *)
     let ce      = arg                           >>>>(a,ly,le,ce)in  (*                                  arg >> size >> sum >> .. *)
     let ce      = DUP2                          >>ce            in  (*                          size >> arg >> size >> sum >> .. *)
@@ -498,11 +498,11 @@ and codegen_mthd_argLen_chk m ce = match m with
                   throw_if_NEQ                        ce    
 
 and escape_ARG arg retlabel ly le ce a = 
-    let ce      = Comment "ESCAPE START"        >>ce                    in 
-    let ce      = PUSH32(Label retlabel)        >>ce                    in     
-    let ce      = arg                           >>>>(a,ly,le,ce)        in 
-    let ce      = ePUSH                           ce                    in
-                  Comment "ESCAPE DONE"         >>ce 
+    let ce      = Comment "ESCAPE START"            >>ce                in 
+    let ce      = PUSH32(Label retlabel)            >>ce                in     
+    let ce      = arg                               >>>>(a,ly,le,ce)    in 
+    let ce      = ePUSH                               ce                in
+                  Comment "ESCAPE DONE"             >>ce 
 
 and codegen_app_idxrec aln ly le ce (TmApp((TmIdxRec(i),_),arg))       = 
     let ce      = Comment "BEGIN APP-REC"           >>ce                in
@@ -572,14 +572,15 @@ and codegen_if ly le ce (TmIf(b,t1,t2)) =
     let ce      = JUMPDEST fi                       >>ce                in 
     ce
 
-and codegen_mthd ly cnidx (le,ce) (TmMthd(head,body))  =
-    let ce      = Comment ("BEGIN " ^str_of_ty head) >>ce    in  
-    let label   = fresh_label()                                 in register_entry (Mthd(cnidx,head)) label; 
-    let le      = add_mthdCallerArgLocs(TmMthd(head,body))(add_empty_ctx (add_empty_brj le))    in
-    let ce    = JUMPDEST label                          >>ce    in 
-    let ce      = codegen_mthd_argLen_chk head            ce    in
-    let le,ce   = codegen_stmts body ly                le ce    in
-    let ce      = Comment ("END "   ^str_of_ty head) >>ce    in  
+and codegen_mthd ly cnidx (le,ce) (TmMthd(hd,bd))  =
+    let ce      = Comment ("BEGIN " ^str_of_ty hd)  >>ce                in  
+    let label   = fresh_label()                                         in 
+    register_entry (Mthd(cnidx,hd)) label; 
+    let le      = add_mthdCallerArgLocs(TmMthd(hd,bd))(add_empty_ctx (add_empty_brj le))    in
+    let ce    = JUMPDEST label                      >>ce                in 
+    let ce      = codegen_mthd_argLen_chk hd          ce                in
+    let le,ce   = codegen_stmts bd ly              le ce                in
+    let ce      = Comment ("END "   ^str_of_ty hd)  >>ce                in  
     le,ce
 
 and codegen_expr_stmt ly le ce expr =
