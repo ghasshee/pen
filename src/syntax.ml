@@ -101,8 +101,8 @@ and  'ty expr                   =
                                 |   TmArray     of 'ty exprTy * 'ty exprTy    (* TmArray(id,idx) *) 
                                 |   TmSend      of 'ty exprTy * str option * 'ty exprTy list * 'ty exprTy (* TmSend(cn,Some mname, args, msg) *) 
                                 |   TmNew       of str * 'ty exprTy list * 'ty exprTy    (* TmNew(id,args,msg) *)  
-                                |   EpTrue
-                                |   EpFalse
+                                |   TmTrue
+                                |   TmFalse
                                 |   TmU256      of big
                                 |   TmU8        of big
                                 |   EpNow
@@ -199,8 +199,8 @@ let rec str_of_expr          = function
     | EpThis                    -> "this"
     | EpNow                     -> "now"
     | EpSender                  -> "sender"
-    | EpTrue                    -> "true"
-    | EpFalse                   -> "false"
+    | TmTrue                    -> "true"
+    | TmFalse                   -> "false"
     | EpValue                   -> "value"
     | EpNot         _           -> "not"
     | EpNEq         _           -> "neq"

@@ -137,8 +137,8 @@ aTm:
     | LPAR tm RPAR                                  { $2 }
     | RETURN ret THEN BECOME call                   { fun ctx -> TmReturn($2 ctx,$5 ctx)                                ,() }
     | ABORT                                         { fun ctx -> TmAbort                                                ,() } 
-    | TRUE                                          { fun ctx -> EpTrue                                                 ,() }
-    | FALSE                                         { fun ctx -> EpFalse                                                ,() }
+    | TRUE                                          { fun ctx -> TmTrue                                                 ,() }
+    | FALSE                                         { fun ctx -> TmFalse                                                ,() }
     | EUINT256                                      { fun ctx -> TmU256 $1                                              ,() }
     | EUINT8                                        { fun ctx -> TmU256 $1                                              ,() }
     | VALUE   LPAR  MSG  RPAR                       { fun ctx -> EpValue                                                ,() }

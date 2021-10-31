@@ -361,8 +361,8 @@ and codegen_expr le ce ly aln  e        = pe (str_of_tm e); pe (str_of_ctx le); 
     | EpValue               ,TyU256     ->                  CALLVALUE               >>ce      (* Value (wei) Transferred to the account *) 
     | TmZero                ,_          ->                  PUSH1(Int 0)            >>ce 
     | EpNow                 ,TyU256     ->                  TIMESTAMP               >>ce 
-    | EpFalse               ,TyBool     ->  assert(aln=R);  PUSH1(Int 0)            >>ce  
-    | EpTrue                ,TyBool     ->  assert(aln=R);  PUSH1(Int 1)            >>ce 
+    | TmFalse               ,TyBool     ->  assert(aln=R);  PUSH1(Int 0)            >>ce  
+    | TmTrue                ,TyBool     ->  assert(aln=R);  PUSH1(Int 1)            >>ce 
     | TmU256  d             ,_          ->  assert(aln=R);  PUSH32(Big d)           >>ce  
     | TmU8 d             ,TyU8       ->  assert(aln=R);  PUSH1(Big d)            >>ce  
     | TmAdd (l,r)          ,_          ->                  op ADD l r             le ce ly             

@@ -158,12 +158,12 @@ and addTy_expr cns cname ctx expr = pe("addTy_expr: " ^ str_of_tm expr );match f
                                         let tys         = L.map ty_of_var ( args_of_evnt_args tyEvArgs)    in
                                         assert(typechecks tys tyArgs) ;
                                         TmLog(nm,tyArgs,Some(TyEv(id,tyEvArgs))), TyUnit   
-    | TmSlfDstrct e                 ->  let e       =   addTy_expr cns cname ctx e        in
+    | TmSlfDstrct e                 ->  let e       =   addTy_expr cns cname ctx e          in
                                         TmSlfDstrct e   , TyUnit   
     | TmUnit                        ->  TmUnit          , TyUnit    
     | EpThis                        ->  EpThis          , TyInstnc cname
-    | EpTrue                        ->  EpTrue          , TyBool
-    | EpFalse                       ->  EpFalse         , TyBool
+    | TmTrue                        ->  TmTrue          , TyBool
+    | TmFalse                       ->  TmFalse         , TyBool
     | EpSender                      ->  EpSender        , TyAddr
     | EpNow                         ->  EpNow           , TyU256
     | TmU256      d                 ->  TmU256      d   , TyU256
@@ -171,42 +171,26 @@ and addTy_expr cns cname ctx expr = pe("addTy_expr: " ^ str_of_tm expr );match f
     | EpValue                       ->  EpValue         , TyU256
     | EpAddr      e                 ->  let e       =   addTy_expr cns cname ctx e          in
                                         EpAddr e            , TyAddr
-    | Balanc      e                 ->  let e   =   addTy_expr cns cname ctx e          in
+    | Balanc      e                 ->  let e   =   addTy_expr cns cname ctx e              in
                                         assert (tyeqv TyAddr (get_ty e)) ; 
                                         Balanc e , TyU256
     | TmNew(id,args,msg)            ->  addTy_new  cns cname ctx id args msg    
-    | EpLAnd (l, r)                 ->  let l       =   addTy_expr cns cname ctx l          in
-                                        typecheck (TyBool,l);
-                                        let r       =   addTy_expr cns cname ctx r          in
+    | EpLAnd (l, r)                 ->  let l,r     =   addTy_binop_arg cns cname ctx l r   in
                                         typecheck (TyBool,r); 
                                         EpLAnd(l,r)     , TyBool
-    | EpLT (l, r)                   ->  let l       =   addTy_expr cns cname ctx l          in
-                                        let r       =   addTy_expr cns cname ctx r          in
-                                        assert_tyeqv l r ; 
+    | EpLT (l, r)                   ->  let l,r     =   addTy_binop_arg cns cname ctx l r   in
                                         EpLT(l,r)       , TyBool
-    | EpGT (l, r)                   ->  let l       =   addTy_expr cns cname ctx l          in
-                                        let r       =   addTy_expr cns cname ctx r          in
-                                        assert_tyeqv l r ; 
+    | EpGT (l, r)                   ->  let l,r     =   addTy_binop_arg cns cname ctx l r   in
                                         EpGT (l, r)     , TyBool
-    | EpNEq (l, r)                  ->  let l       =   addTy_expr cns cname ctx l          in
-                                        let r       =   addTy_expr cns cname ctx r          in
-                                        assert_tyeqv l r ;
+    | EpNEq (l, r)                  ->  let l,r     =   addTy_binop_arg cns cname ctx l r   in
                                         EpNEq (l, r)    , TyBool
-    | TmEq (l, r)                   ->  let l       =   addTy_expr cns cname ctx l          in
-                                        let r       =   addTy_expr cns cname ctx r          in
-                                        assert_tyeqv l r ; 
+    | TmEq (l, r)                   ->  let l,r     =   addTy_binop_arg cns cname ctx l r   in
                                         TmEq (l, r)     , TyBool
-    | TmAdd (l, r)                 ->  let l       =   addTy_expr cns cname ctx l          in
-                                        let r       =   addTy_expr cns cname ctx r          in
-                                        assert_tyeqv l r ;
+    | TmAdd (l, r)                  ->  let l,r     =   addTy_binop_arg cns cname ctx l r   in
                                         TmAdd (l, r)   , get_ty l
-    | TmSub (l, r)                ->  let l       =   addTy_expr cns cname ctx l          in
-                                        let r       =   addTy_expr cns cname ctx r          in
-                                        assert_tyeqv l r; 
+    | TmSub (l, r)                  ->  let l,r     =   addTy_binop_arg cns cname ctx l r   in
                                         TmSub (l, r)  , get_ty l
-    | TmMul (l, r)                 ->   let l       =   addTy_expr cns cname ctx l          in
-                                        let r       =   addTy_expr cns cname ctx r          in
-                                        assert_tyeqv l r; 
+    | TmMul (l, r)                  ->  let l,r     =   addTy_binop_arg cns cname ctx l r   in
                                         TmMul (l, r)   , snd l
     | EpNot  e                      ->  let e       =   addTy_expr cns cname ctx e          in
                                         assert (get_ty e=TyBool) ; 
@@ -225,6 +209,12 @@ and addTy_expr cns cname ctx expr = pe("addTy_expr: " ^ str_of_tm expr );match f
     | TmSend(cn,None,args,msg)      ->  let msg     =   addTy_expr cns cname ctx msg        in
                                         let cn      =   addTy_expr cns cname ctx cn         in
                                         TmSend(cn,None,[],msg), TyUnit 
+
+and addTy_binop_arg cns cname ctx l r = 
+    let l   = addTy_expr cns cname ctx l    in 
+    let r   = addTy_expr cns cname ctx r    in
+    assert_tyeqv l r; 
+    l,r 
 
 and addTy_new cns cname ctx id args msg =
     let msg         =   addTy_expr cns cname ctx msg in
@@ -264,9 +254,6 @@ and addTy_stmts cns cname ctx = function
     | []                ->  []
     | stmt::rest        ->  let stmt,ctx = addTy_stmt cns cname ctx stmt in
                             stmt :: addTy_stmts cns cname ctx rest
-
-
-
 
 
 
