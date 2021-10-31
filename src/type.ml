@@ -31,13 +31,6 @@ let assert_tyeqv l r            =   let tyl = get_ty l in
                                     printf "asserting %s(typeof %s)=%s(typeof %s)\n" (str_of_ty tyl) (str_of_tm l)  (str_of_ty tyr ) (str_of_tm r); 
                                     assert (tyl = tyr) 
                                 
-let typeof_mthd                 =   function 
-    | TmMthd(TyMthd(id,args,ret),_) ->  TyMthd(id, tys_of_vars args, ret)
-    | TmMthd(TyDefault,_)           ->  TyMthd("", [], TyUnit   ) 
-
-let typeof_cn(TmCn(id,flds,ms)) =   TyCn(id, tys_of_vars flds, L.map typeof_mthd ms)
-let typeof_cns                  =   map typeof_cn 
-
 let id_lookup_ty ctx id         =   try TmId id, lookup_id id ctx 
                                     with Not_found -> err("unknown id "^id)  
 
@@ -54,9 +47,16 @@ let subtype                     = tyeqv
 (**         METHOD TyCheck         **) 
 (************************************) 
 
+let typeof_mthd                 =   function 
+    | TmMthd(TyMthd(id,args,ret),_) ->  TyMthd(id, tys_of_vars args, ret)
+    | TmMthd(TyDefault,_)           ->  TyMthd("", [], TyUnit   ) 
+
+let typeof_cn(TmCn(id,flds,ms)) =   TyCn(id, tys_of_vars flds, L.map typeof_mthd ms)
+let typeof_cns                  =   map typeof_cn 
+
 let tycn_has_name  name         =   function TyCn(id,_,_) -> id=name     
-let itycn_has_name name itycn   =   match get_ty itycn with TyCn(id,_,_) -> id=name 
-let is_known_cntrct tycns nm    =   BL.exists (itycn_has_name nm) tycns
+let cn_has_name name            =   function _,TyCn(id,_,_) -> id=name 
+let is_known_cntrct tycns nm    =   BL.exists (cn_has_name nm) tycns
 
 let rec is_known_ty tycns       =   function 
     | TyBytes32 | TyAddr | TyUnit   ->  true
@@ -95,9 +95,9 @@ let check_args_match tycns args =   function
     | None                          ->  assert (isNil (L.map get_ty args))
 
 let rec addTy_call cns cname ctx (TmCall(id,args)) =
-    let args = L.map (addTy_expr cns cname ctx) args in
+    let args        = addTy_exprs cns cname ctx args in
     check_args_match (typeof_cns cns) args (Some id) ; 
-    let rety     = match id with
+    let rety        = match id with
         | "value" when true         ->  TyU256 (* check the arg is 'msg' *) 
         | "pre_ecdsarecover"        ->  TyAddr
         | "keccak256"               ->  TyBytes32
@@ -109,12 +109,12 @@ let rec addTy_call cns cname ctx (TmCall(id,args)) =
         | _                         ->  err "addTy_call: should not happen" in
     TmCall(id,args) , rety 
 
-let typechecks tys actual       =   L.for_all2 (fun ty (_,a)-> ty=a) tys actual
+and typechecks tys actual       =   L.for_all2 (fun ty (_,a)-> ty=a) tys actual
 
 (************************************) 
 (**          EXPR  TyCheck         **) 
 (************************************) 
-
+and addTy_exprs cns cnm ctx = L.map (addTy_expr cns cnm ctx)
 and addTy_expr cns cname ctx expr = pe("addTy_expr: " ^ str_of_tm expr );match fst expr with
     | TmApp(t1,t2)                  ->  let t1,ty1          = addTy_expr cns cname ctx t1 in 
                                         let t2,ty2          = addTy_expr cns cname ctx t2 in 
@@ -138,12 +138,12 @@ and addTy_expr cns cname ctx expr = pe("addTy_expr: " ^ str_of_tm expr );match f
                                         | _                 ->  err "addTy_expr: TmIdx: Notfound"       end 
     | TmIdxRec(i)                   ->  begin match ctx with 
                                         | BdCtx lctx :: _   ->  let BdTy(id,ty) = L.nth lctx i          in 
-                                                                TmIdxRec(i) , tyShift(i+1)ty  
+                                                                TmIdxRec(i)     , tyShift(i+1)ty  
                                         | b :: bs           ->  addTy_expr cns cname bs expr
                                         | _                 ->  err "addTy_expr: TmIdxRec: Not found"   end 
     | TmIdxStrct(i)                 ->  begin match ctx with 
                                         | BdCtx lctx :: _   ->  let BdTy(id,ty) = L.nth lctx i          in 
-                                                                TmIdxStrct(i) , tyShift(i+1)ty  
+                                                                TmIdxStrct(i)   , tyShift(i+1)ty  
                                         | b :: bs           ->  addTy_expr cns cname bs expr
                                         | _                 ->  err "addTy_expr: TmIdxStrct: Not found" end 
     | TmIf(b,t1,t2)                 ->  let b,tyB           =   addTy_expr cns cname ctx b              in 
@@ -152,16 +152,16 @@ and addTy_expr cns cname ctx expr = pe("addTy_expr: " ^ str_of_tm expr );match f
                                         TmIf((b,tyB),t1,t2) ,   get_ty t1 
     | TmSend(cn,Some m,args,msg)    ->  let msg             =   addTy_expr cns cname ctx msg            in
                                         let cn              =   addTy_expr cns cname ctx cn             in
-                                        let args            =   L.map(addTy_expr cns cname ctx)args     in                
+                                        let args            =   addTy_exprs cns cname ctx args          in                
                                         ( match find_tyMthd m (L.map get_ty (typeof_cns cns)) with 
                                         | TyMthd(_,_,TyUnit)->  TmSend(cn,Some m,args,msg), TyRef TyUnit
                                         | TyMthd(_,_,rety)  ->  EpDeref(TmSend(cn,Some m,args,msg),rety),rety )
     | TmSend(cn,None,args,msg)      ->  let msg             =   addTy_expr cns cname ctx msg            in
                                         let cn              =   addTy_expr cns cname ctx cn             in
                                         TmSend(cn,None,[],msg), TyUnit 
-    | TmLog(nm,args,_)              ->  let tyArgs          =   L.map(addTy_expr cns cname ctx)args     in
+    | TmLog(nm,args,_)              ->  let tyArgs          =   addTy_exprs cns cname ctx args          in
                                         let TyEv(id,tyev)   =   lookup_evnt nm ctx                      in
-                                        let tys             =   L.map ty_of_var(args_of_ev_args tyev)   in
+                                        let tys             =   tys_of_vars(args_of_ev_args tyev)       in
                                         assert(typechecks tys tyArgs) ;
                                         TmLog(nm,tyArgs,Some(TyEv(id,tyev))), TyUnit   
     | TmArray(aid,aidx)             ->  let a,TyMap(k,v)    =   addTy_expr cns cname ctx aid            in
@@ -217,8 +217,8 @@ and addTy_binop_arg cns cname ctx l r =
     l,r 
 
 and addTy_new cns cname ctx id args msg =
-    let msg             =   addTy_expr cns cname ctx msg in
-    let args            =   L.map (addTy_expr cns cname ctx) args in
+    let msg             =   addTy_expr  cns cname ctx msg in
+    let args            =   addTy_exprs cns cname ctx args in
     TmNew(id,args,msg)  ,   TyInstnc id 
 
 and addTy_lexpr cns cname ctx (TmArray(id,idx)) = 
@@ -262,6 +262,10 @@ and addTy_decl cns cname ctx ty id v =
     SmDecl(ty,id,v)     ,   add_var ctx id ty  
 
 
+
+(************************************) 
+(**         METHOD TyCheck         **) 
+(************************************) 
 
 (* AssignTy Method / Contract / Toplevel  *) 
 (* Default Method Returns Unit(==EmptyTuple) is a specification *) 
