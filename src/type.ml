@@ -108,8 +108,8 @@ and typechecks tys actual       =   L.for_all2 (fun ty (_,a)-> ty=a) tys actual
 (************************************) 
 and addTy_exprs cns cnm ctx = L.map (addTy_expr cns cnm ctx)
 and addTy_expr cns cname ctx expr = pe("addTy_expr: " ^ str_of_tm expr );match fst expr with
-    | TmApp(t1,t2)                  ->  let t1,ty1          = addTy_expr cns cname ctx t1 in 
-                                        let t2,ty2          = addTy_expr cns cname ctx t2 in 
+    | TmApp(t1,t2)                  ->  let t1,ty1          =   addTy_expr cns cname ctx t1 in 
+                                        let t2,ty2          =   addTy_expr cns cname ctx t2 in 
                                         begin match t1,ty1 with 
                                         | _,TyAbs(a,b) when tyeqv ty2 a -> TmApp((t1,ty1),(t2,ty2)), b
                                      (* | TmFix    _ , ty               -> TmApp((t1,tyT1),(t2,tyT2)), tyT *) 
@@ -147,7 +147,7 @@ and addTy_expr cns cname ctx expr = pe("addTy_expr: " ^ str_of_tm expr );match f
                                         let args            =   addTy_exprs cns cname ctx args          in                
                                         ( match find_tyMthd m (L.map get_ty (typeof_cns cns)) with 
                                         | TyMthd(_,_,TyUnit)->  TmSend(cn,Some m,args,msg), TyRef TyUnit
-                                        | TyMthd(_,_,r)     ->  EpDeref(TmSend(cn,Some m,args,msg),r),r )         (* #TODO *) 
+                                        | TyMthd(_,_,r)     ->  EpDeref(TmSend(cn,Some m,args,msg),r),r )         (* #TODO this line should migrate to eval.ml *) 
     | TmSend(cn,None,args,msg)      ->  let msg             =   addTy_expr cns cname ctx msg            in
                                         let cn              =   addTy_expr cns cname ctx cn             in
                                         TmSend(cn,None,[],msg), TyUnit 
@@ -203,14 +203,14 @@ and addTy_expr cns cname ctx expr = pe("addTy_expr: " ^ str_of_tm expr );match f
     | EpValue                       ->  EpValue             ,   TyU256
 
 and addTy_binop_arg cns cname ctx l r = 
-    let l               =   addTy_expr cns cname ctx l    in 
-    let r               =   addTy_expr cns cname ctx r    in
+    let l               =   addTy_expr cns cname ctx l      in 
+    let r               =   addTy_expr cns cname ctx r      in
     assert_tyeqv l r; 
     l,r 
 
 and addTy_new cns cname ctx id args msg =
-    let msg             =   addTy_expr  cns cname ctx msg in
-    let args            =   addTy_exprs cns cname ctx args in
+    let msg             =   addTy_expr  cns cname ctx msg   in
+    let args            =   addTy_exprs cns cname ctx args  in
     TmNew(id,args,msg)  ,   TyInstnc id 
 
 and addTy_lexpr cns cname ctx (TmArray(id,idx)) = 
@@ -280,18 +280,18 @@ let addTy_mthd cns cn_name ctx (TmMthd(head,body)) =
     let ctx''       =   add_local ctx' binds            in
     TmMthd(addTy_mthd_head cns head, addTy_stmts cns cn_name ctx'' body)
 
-let unique_sig (TmCn(id,flds,mthds)) =
+let unique_sig (TmCn(_,_,mthds)) =
     let sigs        =   L.map (function | TmMthd(TyDefault,_)   -> None
                                         | TmMthd(tyM,_)         -> Some (str_of_tyMthd tyM)) mthds in
-    let uniq_sigs   =   BL.unique sigs in
-    L.length sigs=L.length uniq_sigs
+    L.length sigs = L.length(BL.unique sigs) 
 
-let unique_name cns =
-    let cnnames     = L.map(function _,TmCn(id,_,_) -> id) cns in
-    L.length cns = L.length(BL.unique cnnames)
+let unique_cn cns =
+    let cnames      =   L.map(function _,TmCn(id,_,_) -> id) cns in
+    L.length cns  = L.length(BL.unique cnames)
 
 let addTy_cntrct cns (evs:ty idxlist) (TmCn(id,flds,mthds)) = 
-    assert (BL.for_all(arg_has_known_ty (typeof_cns cns)) flds  && unique_sig (TmCn(id,flds,mthds)))  ; 
+    assert (BL.for_all(arg_has_known_ty (typeof_cns cns)) flds) ; 
+    assert (unique_sig (TmCn(id,flds,mthds)))  ; 
     let ctx         =   add_local (add_evnts empty_ctx(values evs)) (binds_of_tys flds) in
     TmCn(id,flds,L.map(addTy_mthd cns id ctx) mthds) 
 
@@ -302,7 +302,7 @@ let addTy_toplevel cns (evs:ty idxlist) = function
 let addTys (tops : unit toplevel idxlist)  =
     let cns         = filter_map (function  | TmEv e   -> None 
                                             | c        -> Some c ) tops in
-    assert(unique_name cns);
+    assert(unique_cn cns);
     let evs         = filter_map (function  | TmEv e   -> Some e
                                             | _        -> None   ) tops in
     map (addTy_toplevel cns evs) tops
