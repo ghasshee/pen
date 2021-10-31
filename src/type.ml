@@ -109,33 +109,31 @@ let rec addTy_call cns cname ctx (TmCall(id,args)) =
 
 
 and addTy_expr cns cname ctx expr = pe("addTy_expr: " ^ str_of_tm expr );match fst expr with
-    | TmApp(t1,t2)                  ->  let t1,tyT1 = addTy_expr cns cname ctx t1 in 
-                                        let t2,tyT2 = addTy_expr cns cname ctx t2 in 
+    | TmApp(t1,t2)                  ->  let t1,tyT1         = addTy_expr cns cname ctx t1 in 
+                                        let t2,tyT2         = addTy_expr cns cname ctx t2 in 
                                         begin match t1,tyT1 with 
                                         | _,TyAbs(a,b) when tyeqv tyT2 a    -> TmApp((t1,tyT1),(t2,tyT2)), b
                                         (* | TmFix    _ , tyT                   -> TmApp((t1,tyT1),(t2,tyT2)), tyT *) 
                                         | TmIdxRec _ , tyT                  -> TmApp((t1,tyT1),(t2,tyT2)), tyT
                                         | t                                 -> pe(str_of_tm t); err"addTy_expr: T-APPABS failed" end 
-    | TmAbs(x,tyX,t)                ->  let ctx'    = add_var ctx x tyX in 
-                                        let t',tyT' = addTy_expr cns cname ctx' t in 
+    | TmAbs(x,tyX,t)                ->  let ctx'            = add_var ctx x tyX in 
+                                        let t',tyT'         = addTy_expr cns cname ctx' t in 
                                         TmAbs(x,tyX,(t',tyT')), TyAbs(tyX,tyT')
-    | TmIdx(i,n)                    ->  begin match ctx with 
-                                        | BdCtx local :: _  ->  let BdTy(id,ty) = L.nth local i     in
-                                                                let ty          = tyShift (i+1) ty  in 
-                                                                TmIdx(i,n)      , ty 
-                                        | a :: rest         ->  addTy_expr cns cname rest expr
-                                        | _                 ->  err "addTy_expr: TmIdx: Notfound" end 
     | TmFix(f,n,tyF,t)              ->  let TyAbs(tyN,tyR)  =   tyF in 
                                         let ctx'            =   add_var ctx f tyF in 
                                         let ctx''           =   add_var ctx' n tyN in 
                                         let t,tyT           =   addTy_expr cns cname ctx'' t in 
                                         assert(subtype tyR tyT); 
                                         TmFix(f,n,tyF,(t,tyT)), tyF 
+    | TmIdx(i,n)                    ->  begin match ctx with 
+                                        | BdCtx local :: _  ->  let BdTy(id,ty) = L.nth local i     in
+                                                                TmIdx(i,n)      , tyShift(i+1)ty  
+                                        | a :: rest         ->  addTy_expr cns cname rest expr
+                                        | _                 ->  err "addTy_expr: TmIdx: Notfound" end 
     | TmIdxRec(i)                   ->  begin match ctx with 
                                         | BdCtx local :: _  ->  let BdTy(id,ty) = L.nth local i in 
-                                                                let ty = tyShift (i+1) ty in 
-                                                                printf " whose type is : %s\n" (str_of_ty ty); 
-                                                                TmIdxRec(i) , ty 
+                                                                printf " whose type is : %s\n" (str_of_ty (tyShift(i+1)ty)); 
+                                                                TmIdxRec(i) , tyShift(i+1)ty  
                                         | a :: rest         ->  addTy_expr cns cname rest expr
                                         | _                 ->  err "addTy_expr: TmIdxRec: Not found" end 
     | TmIdxStrct(i)                 ->  begin match ctx with 
@@ -147,55 +145,55 @@ and addTy_expr cns cname ctx expr = pe("addTy_expr: " ^ str_of_tm expr );match f
     | TmIf(b,t1,t2)                 ->  let b,tyB           =   addTy_expr cns cname ctx b  in 
                                         let t1,t2           =   addTy_binop_arg cns cname ctx t1 t2 in 
                                         assert(tyB = TyBool); 
-                                        TmIf((b,tyB),t1,t2)   , get_ty t1 
+                                        TmIf((b,tyB),t1,t2) , get_ty t1 
     | TmReturn(r,c)                 ->  addTy_return  cns cname ctx  r c 
     | TmCall(id,args)               ->  addTy_call    cns cname ctx (TmCall(id,args))          
     | TmId     s                    ->  id_lookup_ty ctx s
-    | TmAbort                       ->  TmAbort         , TyVoid
+    | TmAbort                       ->  TmAbort             , TyVoid
     | TmSend(cn,Some m,args,msg)    ->  let msg             =   addTy_expr cns cname ctx msg        in
                                         let cn              =   addTy_expr cns cname ctx cn         in
                                         let args            =   L.map(addTy_expr cns cname ctx)args in                
                                         ( match find_tyMthd m (L.map get_ty (typeof_cns cns)) with 
                                         | TyMthd(_,_,TyUnit) -> TmSend(cn,Some m,args,msg), TyRef TyUnit
                                         | TyMthd(_,_,rety)   -> EpDeref(TmSend(cn,Some m,args,msg),rety), rety )
-    | TmSend(cn,None,args,msg)      ->  let msg     =   addTy_expr cns cname ctx msg        in
-                                        let cn      =   addTy_expr cns cname ctx cn         in
+    | TmSend(cn,None,args,msg)      ->  let msg             =   addTy_expr cns cname ctx msg        in
+                                        let cn              =   addTy_expr cns cname ctx cn         in
                                         TmSend(cn,None,[],msg), TyUnit 
-    | TmLog(nm,args,_)              ->  let tyArgs      = L.map (addTy_expr cns cname ctx) args in
-                                        let TyEv(id,tyEvArgs) = lookup_evnt nm ctx            in
-                                        let tys         = L.map ty_of_var ( args_of_evnt_args tyEvArgs)    in
+    | TmLog(nm,args,_)              ->  let tyArgs          = L.map (addTy_expr cns cname ctx) args in
+                                        let TyEv(id,tyEvs)  = lookup_evnt nm ctx                    in
+                                        let tys             = L.map ty_of_var(args_of_ev_args tyEvs)    in
                                         assert(typechecks tys tyArgs) ;
-                                        TmLog(nm,tyArgs,Some(TyEv(id,tyEvArgs))), TyUnit   
-    | TmArray(aid,aidx)             ->  let a,TyMap(k,v) =   addTy_expr cns cname ctx aid         in
-                                        let i,ty         =   addTy_expr cns cname ctx aidx        in 
+                                        TmLog(nm,tyArgs,Some(TyEv(id,tyEvs))), TyUnit   
+    | TmArray(aid,aidx)             ->  let a,TyMap(k,v)    =   addTy_expr cns cname ctx aid         in
+                                        let i,ty            =   addTy_expr cns cname ctx aidx        in 
                                         assert (tyeqv k ty) ; 
                                         TmArray((a,TyMap(k,v)),(i,ty)) , v   
-    | TmSlfDstrct e                 ->  let e       =   addTy_expr cns cname ctx e          in
-                                        TmSlfDstrct e   , TyUnit   
-    | EpAddr      e                 ->  let e       =   addTy_expr cns cname ctx e          in
+    | TmSlfDstrct e                 ->  let e               =   addTy_expr cns cname ctx e          in
+                                        TmSlfDstrct e       , TyUnit   
+    | EpAddr      e                 ->  let e               =   addTy_expr cns cname ctx e          in
                                         EpAddr e            , TyAddr
-    | Balanc      e                 ->  let e   =   addTy_expr cns cname ctx e              in
+    | Balanc      e                 ->  let e               =   addTy_expr cns cname ctx e              in
                                         assert (tyeqv TyAddr (get_ty e)) ; 
                                         Balanc e , TyU256
     | TmNew(id,args,msg)            ->  addTy_new  cns cname ctx id args msg    
-    | EpLAnd (l, r)                 ->  let l,r     =   addTy_binop_arg cns cname ctx l r   in
+    | EpLAnd (l, r)                 ->  let l,r             =   addTy_binop_arg cns cname ctx l r   in
                                         typecheck (TyBool,r); 
                                         EpLAnd(l,r)     , TyBool
-    | EpLT (l, r)                   ->  let l,r     =   addTy_binop_arg cns cname ctx l r   in
+    | EpLT (l, r)                   ->  let l,r             =   addTy_binop_arg cns cname ctx l r   in
                                         EpLT(l,r)       , TyBool
-    | EpGT (l, r)                   ->  let l,r     =   addTy_binop_arg cns cname ctx l r   in
+    | EpGT (l, r)                   ->  let l,r             =   addTy_binop_arg cns cname ctx l r   in
                                         EpGT (l, r)     , TyBool
-    | EpNEq (l, r)                  ->  let l,r     =   addTy_binop_arg cns cname ctx l r   in
+    | EpNEq (l, r)                  ->  let l,r             =   addTy_binop_arg cns cname ctx l r   in
                                         EpNEq (l, r)    , TyBool
-    | TmEq (l, r)                   ->  let l,r     =   addTy_binop_arg cns cname ctx l r   in
+    | TmEq (l, r)                   ->  let l,r             =   addTy_binop_arg cns cname ctx l r   in
                                         TmEq (l, r)     , TyBool
-    | TmAdd (l, r)                  ->  let l,r     =   addTy_binop_arg cns cname ctx l r   in
+    | TmAdd (l, r)                  ->  let l,r             =   addTy_binop_arg cns cname ctx l r   in
                                         TmAdd (l, r)   , get_ty l
-    | TmSub (l, r)                  ->  let l,r     =   addTy_binop_arg cns cname ctx l r   in
+    | TmSub (l, r)                  ->  let l,r             =   addTy_binop_arg cns cname ctx l r   in
                                         TmSub (l, r)  , get_ty l
-    | TmMul (l, r)                  ->  let l,r     =   addTy_binop_arg cns cname ctx l r   in
+    | TmMul (l, r)                  ->  let l,r             =   addTy_binop_arg cns cname ctx l r   in
                                         TmMul (l, r)   , snd l
-    | EpNot  e                      ->  let e       =   addTy_expr cns cname ctx e          in
+    | EpNot  e                      ->  let e               =   addTy_expr cns cname ctx e          in
                                         assert (get_ty e=TyBool) ; 
                                         EpNot e         , TyBool
     | TmUnit                        ->  TmUnit          , TyUnit    

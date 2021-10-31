@@ -53,9 +53,9 @@ let rec str_of_ty            =   function
     | _                         ->  "undefined" 
 
 let  arg_of_evnt_arg            =   function TyEvVar(id,ty,visible) -> TyVar(id,ty)
-let args_of_evnt_args           =   L.map arg_of_evnt_arg
+let args_of_ev_args           =   L.map arg_of_evnt_arg
 
-let split_evnt_args tyEv args   =   match tyEv with TyEv(id,tyEvArgs)  -> 
+let split_ev_args tyEv args   =   match tyEv with TyEv(id,tyEvArgs)  -> 
     let visibles : bool list    =   L.map (function TyEvVar(_,_,visible)->visible) tyEvArgs in
     let combined                =   L.combine args visibles in
     let is,ns                   =   BL.partition snd combined in
@@ -143,7 +143,7 @@ let str_of_tyMthd (TyMthd(id,args,ret))  =
     id    ^ "(" ^ tys ^ ")"
 
 let str_of_evnt   (TyEv(id,tyEvArgs))    = 
-    let args            = args_of_evnt_args tyEvArgs            in 
+    let args            = args_of_ev_args tyEvArgs            in 
     let argTys          = tys_of_vars (filter_vars args)        in
     let strTys          = L.map str_of_ty argTys             in
     let tys             = S.concat "," strTys                   in

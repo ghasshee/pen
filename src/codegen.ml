@@ -643,7 +643,7 @@ and mstore_exprs le ce ly pack = function
                              (* SWAP1                                                           alloc(size) >> size+size'  >> .. *)
                     
 and codegen_log_stmt le ce (ly:storLayout) name args evnt =
-    let visible, args= split_evnt_args evnt args                in
+    let visible, args= split_ev_args evnt args                in
     let ce      = push_args le ly visible         ce            in
     let ce      = push_evnt_hash  evnt            ce            in
     let le,ce   = mstore_exprs le ce ly ABIpk args              in  (* stack : [..., size, offset] *)
