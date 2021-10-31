@@ -14,8 +14,8 @@ module L    = List
 (*     Type of Method Name         *)
 (***********************************)
 
-let find_tyMthd_in_cn mname = find_by_filter (function TyMthd(i,r,m)when i=mname -> TyMthd(i,r,m)               | _ -> raise Not_found) 
-let find_tyMthd       mname = find_by_filter (function TyCn(_,_,tyCnMthds) -> find_tyMthd_in_cn mname tyCnMthds | _ -> raise Not_found)
+let find_tyMthd_in_cn mname = find_by_filter (function TyMthd(i,r,m)when i=mname    -> TyMthd(i,r,m)                    | _ -> raise Not_found) 
+let find_tyMthd       mname = find_by_filter (function TyCn(_,_,mthds)              -> find_tyMthd_in_cn mname mthds    | _ -> raise Not_found)
 
 
 (***********************************)
@@ -48,15 +48,15 @@ let subtype                     = tyeqv
 (************************************) 
 
 let typeof_mthd                 =   function 
-    | TmMthd(TyMthd(id,args,ret),_) ->  TyMthd(id, tys_of_vars args, ret)
+    | TmMthd(TyMthd(id,ags,r),_)    ->  TyMthd(id, tys_of_vars ags, r)
     | TmMthd(TyDefault,_)           ->  TyMthd("", [], TyUnit   ) 
 
 let typeof_cn(TmCn(id,flds,ms)) =   TyCn(id, tys_of_vars flds, L.map typeof_mthd ms)
 let typeof_cns                  =   map typeof_cn 
 
-let tycn_has_name  name         =   function TyCn(id,_,_) -> id=name     
-let cn_has_name name            =   function _,TyCn(id,_,_) -> id=name 
-let is_known_cntrct tycns nm    =   BL.exists (cn_has_name nm) tycns
+let tycn_has_name     nm        =   function   TyCn(id,_,_) -> id=nm    | _ -> err"tycn_has_name"    
+let cn_has_name       nm        =   function _,TyCn(id,_,_) -> id=nm    | _ -> err"cn_has_name" 
+let is_known_cn tycns nm        =   BL.exists (cn_has_name nm) tycns
 
 let rec is_known_ty tycns       =   function 
     | TyBytes32 | TyAddr | TyUnit   ->  true
@@ -64,18 +64,10 @@ let rec is_known_ty tycns       =   function
     | TyTuple l                     ->  BL.for_all (is_known_ty tycns) l
     | TyRef l                       ->  is_known_ty tycns l
     | TyMap(a,b)                    ->  is_known_ty tycns a && is_known_ty tycns b
-    | TyInstnc cn                   ->  is_known_cntrct tycns cn
+    | TyInstnc cn                   ->  is_known_cn tycns cn
 
 let arg_has_known_ty tycns      =   function 
-    | TyVar(id,ty)                  ->  if is_known_ty tycns ty 
-                                            then true
-                                            else err("Unknown Arg Type "^str_of_ty ty)
-
-let addTy_mthd_head cns         =   function 
-    | TyDefault                     ->  TyDefault
-    | TyMthd(id,argTys,retTy)       ->  assert (BL.for_all (arg_has_known_ty (typeof_cns cns)) argTys) ; 
-                                        assert (is_known_ty (typeof_cns cns) retTy) ;
-                                        TyMthd(id,argTys,retTy)
+    | TyVar(_,ty)                  ->  is_known_ty tycns ty 
 
 
 (************************************) 
@@ -150,12 +142,12 @@ and addTy_expr cns cname ctx expr = pe("addTy_expr: " ^ str_of_tm expr );match f
                                         let t1,t2           =   addTy_binop_arg cns cname ctx t1 t2     in 
                                         assert(tyB = TyBool); 
                                         TmIf((b,tyB),t1,t2) ,   get_ty t1 
-    | TmSend(cn,Some m,args,msg)    ->  let msg             =   addTy_expr cns cname ctx msg            in
-                                        let cn              =   addTy_expr cns cname ctx cn             in
+    | TmSend(cn,Some m,args,msg)    ->  let msg             =   addTy_expr  cns cname ctx msg           in
+                                        let cn              =   addTy_expr  cns cname ctx cn            in
                                         let args            =   addTy_exprs cns cname ctx args          in                
                                         ( match find_tyMthd m (L.map get_ty (typeof_cns cns)) with 
                                         | TyMthd(_,_,TyUnit)->  TmSend(cn,Some m,args,msg), TyRef TyUnit
-                                        | TyMthd(_,_,rety)  ->  EpDeref(TmSend(cn,Some m,args,msg),rety),rety )
+                                        | TyMthd(_,_,r)     ->  EpDeref(TmSend(cn,Some m,args,msg),r),r )         (* #TODO *) 
     | TmSend(cn,None,args,msg)      ->  let msg             =   addTy_expr cns cname ctx msg            in
                                         let cn              =   addTy_expr cns cname ctx cn             in
                                         TmSend(cn,None,[],msg), TyUnit 
@@ -269,6 +261,13 @@ and addTy_decl cns cname ctx ty id v =
 
 (* AssignTy Method / Contract / Toplevel  *) 
 (* Default Method Returns Unit(==EmptyTuple) is a specification *) 
+
+let addTy_mthd_head cns         =   function 
+    | TyDefault                     ->  TyDefault
+    | TyMthd(id,argTys,retTy)       ->  assert (BL.for_all (arg_has_known_ty (typeof_cns cns)) argTys) ; 
+                                        assert (is_known_ty (typeof_cns cns) retTy) ;
+                                        TyMthd(id,argTys,retTy)
+
 let rettypeof_mthd = function 
     | TyMthd(_,_,rety)      -> rety
     | TyDefault             -> TyUnit   
