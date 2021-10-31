@@ -56,4 +56,3 @@ doc/spec.pdf: doc/spec.tex
 
 clean:
 	rm -rf ../*/*.cmo ../*/*.cmi rm -rf pen _build ../*/lexer.ml ../*/parser.ml ../*/parser.mli 
-	# unlink allinone.native
