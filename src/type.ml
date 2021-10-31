@@ -145,10 +145,9 @@ and addTy_expr cns cname ctx expr = pe("addTy_expr: " ^ str_of_tm expr );match f
                                         | a :: rest         ->  addTy_expr cns cname rest expr
                                         | _                 ->  err "addTy_expr: TmIdxStrct: Not found" end 
     | TmIf(b,t1,t2)                 ->  let b,tyB           =   addTy_expr cns cname ctx b  in 
-                                        let t1,tyT1         =   addTy_expr cns cname ctx t1 in 
-                                        let t2,tyT2         =   addTy_expr cns cname ctx t2 in 
-                                        assert(tyeqv tyT1 tyT2 && tyB = TyBool); 
-                                        TmIf((b,tyB),(t1,tyT1),(t2,tyT2))   , tyT1
+                                        let t1,t2           =   addTy_binop_arg cns cname ctx t1 t2 in 
+                                        assert(tyB = TyBool); 
+                                        TmIf((b,tyB),t1,t2)   , get_ty t1 
     | TmReturn(r,c)                 ->  addTy_return  cns cname ctx  r c 
     | TmCall(id,args)               ->  addTy_call    cns cname ctx (TmCall(id,args))          
     | TmId     s                    ->  id_lookup_ty ctx s
