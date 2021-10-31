@@ -59,8 +59,9 @@ let cn_has_name       nm        =   function _,TyCn(id,_,_) -> id=nm    | _ -> e
 let is_known_cn tycns nm        =   BL.exists (cn_has_name nm) tycns
 
 let rec is_known_ty tycns       =   function 
-    | TyBytes32 | TyAddr | TyUnit   ->  true
+    | TyBytes32 | TyAddr            ->  true
     | TyU256 | TyU8 | TyBool        ->  true
+    | TyUnit | TyVoid               ->  true
     | TyTuple l                     ->  BL.for_all (is_known_ty tycns) l
     | TyRef l                       ->  is_known_ty tycns l
     | TyMap(a,b)                    ->  is_known_ty tycns a && is_known_ty tycns b
@@ -265,6 +266,7 @@ and addTy_decl cns cname ctx ty id v =
 let addTy_mthd_head cns         =   function 
     | TyDefault                     ->  TyDefault
     | TyMthd(id,argTys,retTy)       ->  assert (BL.for_all (arg_has_known_ty (typeof_cns cns)) argTys) ; 
+                                        pe("is_known_ty: " ^ str_of_ty retTy);  
                                         assert (is_known_ty (typeof_cns cns) retTy) ;
                                         TyMthd(id,argTys,retTy)
 
