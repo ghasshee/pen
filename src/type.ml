@@ -51,7 +51,7 @@ let subtype                     = tyeqv
 
 
 (************************************) 
-(**         Arg Type Check         **) 
+(**         METHOD TyCheck         **) 
 (************************************) 
 
 let tycn_has_name  name         =   function TyCn(id,_,_) -> id=name     
@@ -77,19 +77,21 @@ let addTy_mthd_head cns         =   function
                                         assert (is_known_ty (typeof_cns cns) retTy) ;
                                         TyMthd(id,argTys,retTy)
 
-let call_arg_expectations tycns =   function 
+
+(************************************) 
+(**          CALL  TyCheck         **) 
+(************************************) 
+
+let check_call_arg_types tycns  =   function 
     | "pre_ecdsarecover"            ->  (=) [TyBytes32;TyU8;TyBytes32;TyBytes32]
     | "keccak256"                   ->  konst true
-    | "iszero"                      ->  fun x -> x=[TyBytes32]||x=[TyU8]||x=[TyU256]||x=[TyBool]||x=[TyAddr]
-    | name                          ->  let cn_idx       = lookup_idx (tycn_has_name name) tycns in
-                                        match lookup cn_idx tycns with TyCn(_,tyCnArgs,_) -> 
-                                        (=) tyCnArgs
-
-let typecheck  (ty,(_,t))       =   assert (ty = t)
-let typechecks tys actual       =   L.for_all2 (fun ty (_,a)-> ty=a) tys actual
+    | "iszero"                      ->  fun x ->  x=[TyBytes32]||x=[TyU8]||x=[TyU256]||x=[TyBool]||x=[TyAddr]
+    | name                          ->  let cnidx               = lookup_idx (tycn_has_name name) tycns in
+                                        let TyCn(_,tyargs,_)    = lookup cnidx tycns                    in 
+                                        (=) tyargs 
 
 let check_args_match tycns args =   function 
-    | Some m                        ->  assert (call_arg_expectations tycns m (L.map get_ty args))
+    | Some m                        ->  assert (check_call_arg_types tycns m (L.map get_ty args))
     | None                          ->  assert (isNil (L.map get_ty args))
 
 let rec addTy_call cns cname ctx (TmCall(id,args)) =
@@ -107,6 +109,11 @@ let rec addTy_call cns cname ctx (TmCall(id,args)) =
         | _                         ->  err "addTy_call: should not happen" in
     TmCall(id,args) , rety 
 
+let typechecks tys actual       =   L.for_all2 (fun ty (_,a)-> ty=a) tys actual
+
+(************************************) 
+(**          EXPR  TyCheck         **) 
+(************************************) 
 
 and addTy_expr cns cname ctx expr = pe("addTy_expr: " ^ str_of_tm expr );match fst expr with
     | TmApp(t1,t2)                  ->  let t1,ty1          = addTy_expr cns cname ctx t1 in 
@@ -173,8 +180,11 @@ and addTy_expr cns cname ctx expr = pe("addTy_expr: " ^ str_of_tm expr );match f
     | TmCall(id,args)               ->  addTy_call    cns cname ctx (TmCall(id,args))          
     | TmNew(id,args,msg)            ->  addTy_new     cns cname ctx id args msg    
     | EpLAnd (l, r)                 ->  let l,r             =   addTy_binop_arg cns cname ctx l r       in
-                                        typecheck (TyBool,r); 
+                                        assert (tyeqv TyBool (get_ty r)); 
                                         EpLAnd(l,r)         ,   TyBool
+    | EpNot  e                      ->  let e               =   addTy_expr cns cname ctx e              in
+                                        assert (tyeqv TyBool (get_ty e)) ; 
+                                        EpNot e             ,   TyBool
     | EpLT (l, r)                   ->  let l,r             =   addTy_binop_arg cns cname ctx l r       in
                                         EpLT  (l, r)        ,   TyBool
     | EpGT (l, r)                   ->  let l,r             =   addTy_binop_arg cns cname ctx l r       in
@@ -189,9 +199,6 @@ and addTy_expr cns cname ctx expr = pe("addTy_expr: " ^ str_of_tm expr );match f
                                         TmSub (l, r)        ,   get_ty l
     | TmMul (l, r)                  ->  let l,r             =   addTy_binop_arg cns cname ctx l r       in
                                         TmMul (l, r)        ,   get_ty l
-    | EpNot  e                      ->  let e               =   addTy_expr cns cname ctx e              in
-                                        assert (get_ty e=TyBool) ; 
-                                        EpNot e             ,   TyBool
     | TmAbort                       ->  TmAbort             ,   TyVoid
     | TmUnit                        ->  TmUnit              ,   TyUnit    
     | EpThis                        ->  EpThis              ,   TyInstnc cname
@@ -228,7 +235,9 @@ and addTy_return cns cname ctx ret cont=
 
 
 
-(*======= STMT ========*)
+(************************************) 
+(**          STMT  TyCheck         **) 
+(************************************) 
 
 and addTy_stmt cns cname ctx = function 
     | SmIf(b,t,f)       ->  let b       = addTy_expr        cns cname ctx  b        in
