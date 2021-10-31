@@ -44,8 +44,8 @@ let prABI_mthd_info (TyMthd(id,args,ret)) =
         id (prABI_inputs args) (prABI_output ret)
 
 let prABI_mthd  = function 
-    | TmMthd(tyM,_)             ->  prABI_mthd_info tyM
     | TmMthd(TyDefault,_)       ->  prABI_default_mthd
+    | TmMthd(tyM,_)             ->  prABI_mthd_info tyM
 
 let prABI_cnstrctr (TmCn(id,flds,_)) =
     sprintf

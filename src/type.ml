@@ -158,11 +158,10 @@ and addTy_expr cns cname ctx expr = pe("addTy_expr: " ^ str_of_tm expr );match f
                                         let tys         = L.map ty_of_var ( args_of_evnt_args tyEvArgs)    in
                                         assert(typechecks tys tyArgs) ;
                                         TmLog(nm,tyArgs,Some(TyEv(id,tyEvArgs))), TyUnit   
-    | TmArray(id,idx)               ->  let id      =   addTy_expr cns cname ctx id         in
-                                        begin match get_ty id with | TyMap(kT,vT)  ->  
-                                        let idx,ty  =   addTy_expr cns cname ctx idx        in 
-                                        assert (tyeqv kT ty) ; 
-                                        TmArray(id,(idx,ty)) , vT end  
+    | TmArray(aid,aidx)             ->  let a,TyMap(k,v) =   addTy_expr cns cname ctx aid         in
+                                        let i,ty         =   addTy_expr cns cname ctx aidx        in 
+                                        assert (tyeqv k ty) ; 
+                                        TmArray((a,TyMap(k,v)),(i,ty)) , v   
     | TmSlfDstrct e                 ->  let e       =   addTy_expr cns cname ctx e          in
                                         TmSlfDstrct e   , TyUnit   
     | EpAddr      e                 ->  let e       =   addTy_expr cns cname ctx e          in
