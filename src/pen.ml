@@ -154,4 +154,6 @@ let ()      =
 (*                                                                                                                                 *)                  
 (*                                                                                                                                 *)
 
+(* semiring test  
 let _ = pe (str_of_rig (mul (rig_of_int (168)) (N (S (S (S O))))))  
+ *)
