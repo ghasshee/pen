@@ -115,7 +115,12 @@ ret:
 tm: 
     | appTm                                         { $1                                                                                        } 
     | LET ty ID EQ tm IN tm                         { fun ctx ->    TmApp((TmAbs($3,$2,$7(add_bruijn_idx ctx $3)),()),$5 ctx)               ,() } 
+    | LET ty ID EQ tm SEMI tm                       { fun ctx ->    TmApp((TmAbs($3,$2,$7(add_bruijn_idx ctx $3)),()),$5 ctx)               ,() } 
     | LET REC ID ID COLON ty EQ tm IN tm            { fun ctx ->    let ctx' = add_rec_idx ctx ($3^"'")                         in 
+                                                                    let ctx''= add_struct_idx ctx' $4                           in 
+                                                                    let ctx  = add_bruijn_idx ctx  $3                           in 
+                                                                    TmApp((TmAbs($3,$6,$10 ctx),()),(TmFix(($3^"'"),$4,$6,$8 ctx''),()))    ,() }  
+    | LET REC ID ID COLON ty EQ tm SEMI tm          { fun ctx ->    let ctx' = add_rec_idx ctx ($3^"'")                         in 
                                                                     let ctx''= add_struct_idx ctx' $4                           in 
                                                                     let ctx  = add_bruijn_idx ctx  $3                           in 
                                                                     TmApp((TmAbs($3,$6,$10 ctx),()),(TmFix(($3^"'"),$4,$6,$8 ctx''),()))    ,() }  
