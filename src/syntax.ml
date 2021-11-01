@@ -19,18 +19,19 @@ type ty           (* atomic *)  =   TyVoid
                   (* atomic *)  |   TyBytes32           (* 256 bits *) 
                   (* atomic *)  |   TyAddr              (* 160 bits *) 
                   (* atomic *)  |   TyBool 
-                  (* atomic *)  |   TyRef               of ty 
                   (* atomic *)  |   TyTuple             of ty list
                   (* atomic *)  |   TyMap               of ty * ty 
-                  (* atomic *)  |   TyInstnc            of str                       (* type of [b] declared as [bid b]          *) 
-                                |   TyMthd              of str * ty list * ty        (*  TyMthd(id, tyArgs, tyRet)               *)
+                  (* atomic *)  |   TyInstnc            of str                       
+ (* TyMthd(id,args,ret)     *)  |   TyMthd              of str * ty list * ty        
                                 |   TyDefault
-                                |   TyAbs               of  ty * ty                     (*  TyAbs(tyArgs, tyRet)                    *)
-                                |   TyIdx               of int * int                    
-                                |   TyVar               of str * ty                  (*  TyVar(id, ty)                           *) 
-                                |   TyEvVar             of str * ty * bool           (*  TyEvVar(id,ty,indexed)                  *)
-                                |   TyEv                of str * ty list 
-                                |   TyCn                of str * ty list * ty list   (*  TyCn(id,tyCnArgs,tyMethod list          *) 
+                                |   TyRef               of ty 
+ (* TyAbs(arg, ret)         *)  |   TyAbs               of  ty * ty                  
+                                |   TyIdx               of int * int                 
+ (* TyVar(id, ty)           *)  |   TyVar               of str * ty                  
+ (* TyEvVar(id,ty,indexed)  *)  |   TyEvVar             of str * ty * bool           
+ (* TyEv(  ,   )            *)  |   TyEv                of str * ty list 
+ (* TyCn(id,fields,mthds)   *)  |   TyCn                of str * ty list * ty list   
+
 
 let id_of_var                   =   function TyVar(id,_) -> id          | _ -> err "id_of_var" 
 let ty_of_var                   =   function TyVar(_,ty) -> ty          | _ -> err "id_of_var" 
@@ -53,14 +54,15 @@ let rec str_of_ty            =   function
     | TyAbs(a,b)                ->  str_of_ty a ^ "→" ^ str_of_ty b
     | _                         ->  "undefined" 
 
-let  arg_of_ev_arg            =   function TyEvVar(id,ty,_) -> TyVar(id,ty)
-let args_of_ev_args           =   L.map arg_of_ev_arg
+let  arg_of_ev_arg              =   function TyEvVar(id,ty,_) -> TyVar(id,ty)
+let args_of_ev_args             =   L.map arg_of_ev_arg
 
-let split_ev_args tyEv args   =   match tyEv with TyEv(id,tyEvArgs)  -> 
-    let visibles : bool list    =   L.map (function TyEvVar(_,_,visible)->visible) tyEvArgs in
-    let combined                =   L.combine args visibles         in
-    let is,ns                   =   BL.partition snd combined       in
+let split_ev_args tyEv args     =   match tyEv with TyEv(id,evargs)  -> 
+    let visibles : bool list        =   L.map (function TyEvVar(_,_,visible)->visible) evargs in
+    let combined                    =   zip args visibles                   in
+    let is,ns                       =   BL.partition snd combined           in
     L.map fst is, L.map fst ns
+
 
     
 (**********************************)
@@ -80,6 +82,11 @@ and  'ty stmt                   =   SmExpr      of 'ty exprTy
 and  'ty exprTy                 =   'ty expr * 'ty
 
 and  'ty expr                   =   
+                                |   TmRef       of 'ty exprTy
+                                |   TmDeref     of 'ty exprTy
+                                |   TmAssign    of 'ty expr * 'ty exprTy 
+                                |   TmLoc       of int 
+                                |   EpDeref     of 'ty exprTy
                                 |   TmApp       of 'ty exprTy * 'ty exprTy  
                                 |   TmAbs       of str * ty * 'ty exprTy
                                 |   TmFix       of str * str * ty * 'ty exprTy
@@ -95,10 +102,6 @@ and  'ty expr                   =
 (* TmNew(id,args,msg)        *) |   TmNew       of str * 'ty exprTy list * 'ty exprTy    
                                 |   TmSlfDstrct of 'ty exprTy
                                 |   TmLog       of str * 'ty exprTy list * ty option (* ty := TyEv *)
-                                |   TmRef       of 'ty exprTy
-                                |   TmDeref     of 'ty exprTy
-                                |   TmAssign    of 'ty expr * 'ty exprTy 
-                                |   TmLoc       of int 
                                 |   TmAbort 
                                 |   TmUnit 
                                 |   TmZero 
@@ -106,6 +109,9 @@ and  'ty expr                   =
                                 |   TmFalse
                                 |   TmU256      of big
                                 |   TmU8        of big
+                                |   TmAdd       of 'ty exprTy * 'ty exprTy
+                                |   TmSub       of 'ty exprTy * 'ty exprTy
+                                |   TmMul       of 'ty exprTy * 'ty exprTy
                                 |   EpNow
                                 |   EpLAnd      of 'ty exprTy * 'ty exprTy
                                 |   EpLT        of 'ty exprTy * 'ty exprTy
@@ -117,10 +123,6 @@ and  'ty expr                   =
                                 |   EpValue
                                 |   EpSender
                                 |   EpThis
-                                |   EpDeref     of 'ty exprTy
-                                |   TmAdd       of 'ty exprTy * 'ty exprTy
-                                |   TmSub       of 'ty exprTy * 'ty exprTy
-                                |   TmMul       of 'ty exprTy * 'ty exprTy
                                 |   Balanc      of 'ty exprTy
 
 let get_ty  (_,ty)              =   ty
@@ -172,12 +174,11 @@ let argTys_of_mthd              = function
 (***           PRINTING                ***)
 (*****************************************)
 
+
 let rec str_of_expr          = function 
     | EpThis                    -> "this"
     | EpNow                     -> "now"
     | EpSender                  -> "sender"
-    | TmTrue                    -> "true"
-    | TmFalse                   -> "false"
     | EpValue                   -> "value"
     | EpNot         _           -> "not"
     | EpNEq         _           -> "neq"
@@ -186,17 +187,18 @@ let rec str_of_expr          = function
     | EpGT          _           -> "gt"
     | EpAddr        _           -> "address"
     | EpDeref       _           -> "dereference of ..."
-    | Balanc        _           -> "balance"
+    | Balanc        _           -> "balance" 
+
 
 let rec str_of_tm  e         = match fst e with 
     | TmApp(t1,t2)              -> "TmApp(" ^ str_of_tm t1 ^ "," ^ str_of_tm t2 ^ ")"
     | TmAbs(x,tyX,t)            -> "(λ" ^ x ^ ":" ^ str_of_ty tyX ^ "." ^ str_of_tm t ^ ")"
-    | TmId(s)                   -> "TmId(" ^ s ^ ")"
-    | TmIdx(i,n)                -> "TmIdx" ^ str_of_int i 
-    | TmIdxRec(i)               -> "TmRec" ^ str_of_int i 
-    | TmIdxStrct(i)             -> "{Struct " ^ str_of_int i ^ "}"
-    | TmIf(b,t,t')              -> "(If " ^ str_of_tm b ^ " Then " ^ str_of_tm t ^ " Else " ^ str_of_tm t' ^ ")"
     | TmFix(f,n,_,t)            -> "TmFix(λ" ^ f ^ " " ^ n ^ "→" ^ str_of_tm t ^ ")" 
+    | TmId(s)                   -> "TmId(" ^ s ^ ")"
+    | TmIdx(i,n)                -> "TmIdx"      ^ str_of_int i 
+    | TmIdxRec(i)               -> "TmRec"      ^ str_of_int i 
+    | TmIdxStrct(i)             -> "{Struct "   ^ str_of_int i ^ "}"
+    | TmIf(b,t,t')              -> "(If " ^ str_of_tm b ^ " Then " ^ str_of_tm t ^ " Else " ^ str_of_tm t' ^ ")"
     | TmEq(a,b)                 -> str_of_tm a ^ "==" ^ str_of_tm b
     | TmU256(b)                 -> "u256" ^ str_of_big b 
     | TmU8(b)                   -> "u8"   ^ str_of_big b 
@@ -206,6 +208,8 @@ let rec str_of_tm  e         = match fst e with
     | TmAdd(a,b)                -> str_of_tm a ^ " + " ^ str_of_tm b
     | TmUnit                    -> "()" 
     | TmZero                    -> "O" 
+    | TmTrue                    -> "true"
+    | TmFalse                   -> "false"
     | TmSend _                  -> "TmSend()" 
     | TmArray(id,idx)           -> str_of_tm id ^ "[" ^ str_of_tm idx ^ "]" 
     | TmCall(id,args)           -> "TmCall(" ^ id ^ ")" 
@@ -214,7 +218,7 @@ let rec str_of_tm  e         = match fst e with
     | TmLog(_,_,_)              -> "log"
     | TmNew         _           -> "new"
     | TmSlfDstrct   _           -> "selfdestruct"
-    | e                         -> str_of_expr e 
+    | e                         ->  str_of_expr e 
 
 
 (*****************************************)

@@ -537,9 +537,9 @@ and codegen_app ly le ce (TmApp(t1,t2)) = match fst t1 with
     | TmIdxRec(i)       -> 
                   codegen_app_idxrec R ly le ce (TmApp(t1,t2))
     | TmFix(f,n,ty,tm)  -> 
-    let ret     = fresh_label ()                                in 
-    let ce      = escape_ARG t2 ret ly le ce R                  in 
-    let ce      = codegen_fix ly le ce (TmFix(f,n,ty,tm))       in
+    let ret     = fresh_label ()                                        in 
+    let ce      = escape_ARG t2 ret ly le ce R                          in 
+    let ce      = codegen_fix ly le ce (TmFix(f,n,ty,tm))               in
                   JUMPDEST ret >>ce 
     | _ -> 
     printf "! add_brjidx %s\n" (str_of_tm t2); 

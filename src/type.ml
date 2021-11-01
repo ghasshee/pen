@@ -119,8 +119,8 @@ and addTy_expr cns cname ctx expr = pe("addTy_expr: " ^ str_of_tm expr );match f
     | TmAbs(x,tyX,t)                ->  let ctx             =   add_var ctx x tyX                       in 
                                         let t,tyT           =   addTy_expr cns cname ctx t              in 
                                         TmAbs(x,tyX,(t,tyT)), TyAbs(tyX,tyT)
-    | TmFix(f,n,tyF,t)              ->  let TyAbs(tyN,tyR)  =   tyF                                     in 
-                                        let ctx'            =   add_var (add_var ctx f tyF) n tyN       in 
+    | TmFix(f,(*,rig #TODO*)n,tyF,t)              ->  let TyAbs(tyN,tyR)  =   tyF                                     in 
+                                        let ctx'            =   add_var (add_var ctx f (*rig #TODO*) tyF) n tyN       in 
                                         let t,tyT           =   addTy_expr cns cname ctx' t             in 
                                         assert(subtype tyR tyT); 
                                         TmFix(f,n,tyF,(t,tyT)), tyF 
@@ -129,7 +129,7 @@ and addTy_expr cns cname ctx expr = pe("addTy_expr: " ^ str_of_tm expr );match f
                                                                 TmIdx(i,n)      , tyShift(i+1)ty  
                                         | b :: bs           ->  addTy_expr cns cname bs expr
                                         | _                 ->  err "addTy_expr: TmIdx: Notfound"       end 
-    | TmIdxRec(i)                   ->  begin match ctx with 
+    | TmIdxRec(i(*, rig #TODO*) )                   ->  begin match ctx with 
                                         | BdCtx lctx :: _   ->  let BdTy(id,ty) = L.nth lctx i          in 
                                                                 TmIdxRec(i)     , tyShift(i+1)ty  
                                         | b :: bs           ->  addTy_expr cns cname bs expr

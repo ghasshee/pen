@@ -58,6 +58,8 @@ let rec last                    = function
 let (++)                        = L.append
 let len                         = L.length
 let tl                          = L.tl
+let zip                         = L.combine
+let unzip                       = L.split 
 
 (*****************************************)
 (**        POLYMORPHIC FUNCTIONS        **)
