@@ -1,5 +1,6 @@
 open Printf
 open Misc
+open Semiring 
 
 module L    = List 
 module BL   = BatList

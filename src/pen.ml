@@ -1,4 +1,5 @@
 open Misc
+open Semiring
 open Lexer
 open Lexing
 open Printf
@@ -153,3 +154,4 @@ let ()      =
 (*                                                                                                                                 *)                  
 (*                                                                                                                                 *)
 
+let _ = pe (str_of_rig (mul (rig_of_int (168)) (N (S (S (S O))))))  

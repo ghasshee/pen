@@ -1,5 +1,6 @@
 DEPEND += lexer.ml parser.ml
 OBJS = 	misc.cmo \
+		semiring.cmo \
 		syntax.cmo \
 		label.cmo \
 		location.cmo \
