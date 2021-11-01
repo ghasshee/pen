@@ -31,8 +31,8 @@ type ty           (* atomic *)  =   TyVoid
                                 |   TyEv                of str * ty list 
                                 |   TyCn                of str * ty list * ty list   (*  TyCn(id,tyCnArgs,tyMethod list          *) 
 
-let id_of_var (TyVar(id,_))     =   id 
-let ty_of_var (TyVar(_,ty))     =   ty 
+let id_of_var                   =   function TyVar(id,_) -> id          | _ -> err "id_of_var" 
+let ty_of_var                   =   function TyVar(_,ty) -> ty          | _ -> err "id_of_var" 
 let tys_of_vars                 =   L.map ty_of_var 
 
 let rec str_of_ty            =   function 
@@ -52,13 +52,13 @@ let rec str_of_ty            =   function
     | TyAbs(a,b)                ->  str_of_ty a ^ "→" ^ str_of_ty b
     | _                         ->  "undefined" 
 
-let  arg_of_evnt_arg            =   function TyEvVar(id,ty,visible) -> TyVar(id,ty)
-let args_of_ev_args           =   L.map arg_of_evnt_arg
+let  arg_of_ev_arg            =   function TyEvVar(id,ty,_) -> TyVar(id,ty)
+let args_of_ev_args           =   L.map arg_of_ev_arg
 
 let split_ev_args tyEv args   =   match tyEv with TyEv(id,tyEvArgs)  -> 
     let visibles : bool list    =   L.map (function TyEvVar(_,_,visible)->visible) tyEvArgs in
-    let combined                =   L.combine args visibles in
-    let is,ns                   =   BL.partition snd combined in
+    let combined                =   L.combine args visibles         in
+    let is,ns                   =   BL.partition snd combined       in
     L.map fst is, L.map fst ns
 
     
@@ -79,28 +79,28 @@ and  'ty stmt                   =   SmExpr      of 'ty exprTy
 and  'ty exprTy                 =   'ty expr * 'ty
 
 and  'ty expr                   =   
-                                |   TmReturn    of 'ty exprTy * 'ty exprTy   (* TmReturn(ret,cont) *)  
+                                |   TmApp       of 'ty exprTy * 'ty exprTy  
+                                |   TmAbs       of str * ty * 'ty exprTy
+                                |   TmFix       of str * str * ty * 'ty exprTy
+                                |   TmIdx       of int * int 
+                                |   TmIdxRec    of int 
+                                |   TmIdxStrct  of int 
                                 |   TmId        of str
-                                |   TmAbort 
+                                |   TmIf        of 'ty exprTy * 'ty exprTy * 'ty exprTy 
+(* TmReturn(ret,cont)        *) |   TmReturn    of 'ty exprTy * 'ty exprTy  
+(* TmCall(cnname, args)      *) |   TmCall      of str * 'ty exprTy list       
+(* TmArray(id,idx)           *) |   TmArray     of 'ty exprTy * 'ty exprTy      
+(* TmSend(cn,mname,args,msg) *) |   TmSend      of 'ty exprTy * str option * 'ty exprTy list * 'ty exprTy
+(* TmNew(id,args,msg)        *) |   TmNew       of str * 'ty exprTy list * 'ty exprTy    
                                 |   TmSlfDstrct of 'ty exprTy
                                 |   TmLog       of str * 'ty exprTy list * ty option (* ty := TyEv *)
                                 |   TmRef       of 'ty exprTy
                                 |   TmDeref     of 'ty exprTy
                                 |   TmAssign    of 'ty expr * 'ty exprTy 
                                 |   TmLoc       of int 
-                                |   TmIdx       of int * int 
-                                |   TmIdxRec    of int 
-                                |   TmIdxStrct  of int 
-                                |   TmAbs       of str * ty * 'ty exprTy
-                                |   TmApp       of 'ty exprTy * 'ty exprTy  
-                                |   TmIf        of 'ty exprTy * 'ty exprTy * 'ty exprTy 
-                                |   TmFix       of str * str * ty * 'ty exprTy
+                                |   TmAbort 
                                 |   TmUnit 
                                 |   TmZero 
-                                |   TmCall      of str * 'ty exprTy list   (* TmCall(cnname, args) *) 
-                                |   TmArray     of 'ty exprTy * 'ty exprTy    (* TmArray(id,idx) *) 
-                                |   TmSend      of 'ty exprTy * str option * 'ty exprTy list * 'ty exprTy (* TmSend(cn,Some mname, args, msg) *) 
-                                |   TmNew       of str * 'ty exprTy list * 'ty exprTy    (* TmNew(id,args,msg) *)  
                                 |   TmTrue
                                 |   TmFalse
                                 |   TmU256      of big
@@ -138,14 +138,14 @@ let fldTys_of_cn(TmCn(_,flds,_))=   tys_of_vars flds
 
 let str_of_tyMthd (TyMthd(id,args,ret))  =
     let argTys          = tys_of_vars (filter_vars args)        in
-    let strTys          = L.map str_of_ty argTys             in
+    let strTys          = L.map str_of_ty argTys                in
     let tys             = S.concat "," strTys                   in
     id    ^ "(" ^ tys ^ ")"
 
 let str_of_evnt   (TyEv(id,tyEvArgs))    = 
-    let args            = args_of_ev_args tyEvArgs            in 
+    let args            = args_of_ev_args tyEvArgs              in 
     let argTys          = tys_of_vars (filter_vars args)        in
-    let strTys          = L.map str_of_ty argTys             in
+    let strTys          = L.map str_of_ty argTys                in
     let tys             = S.concat "," strTys                   in
     id ^ "(" ^ tys ^ ")"
 
@@ -172,30 +172,6 @@ let argTys_of_mthd              = function
 (*****************************************)
 
 let rec str_of_expr          = function 
-    | TmZero                    -> "O" 
-    | TmFix(f,n,_,_)            -> "fix(" ^ f ^ ")"
-    | TmApp((t1,_),(t2,_))      -> "(" ^ str_of_expr t1 ^ ")(" ^ str_of_expr t2 ^ ")" 
-    | TmAbs(x,tyX,(t,_))        -> "λ" ^ x ^ ":" ^ str_of_ty tyX ^ "." ^ str_of_expr t 
-    | TmIdx(i,n)                -> "x"   ^ str_of_int i 
-    | TmIdxRec(i)               -> "rec" ^ str_of_int i 
-    | TmIdxStrct(i)             -> "{struct " ^ str_of_int i ^ "}"
-    | TmIf((b,_),(t1,_),(t2,_)) -> "if " ^ str_of_expr b ^ " then " ^ str_of_expr t1 ^ " else " ^ str_of_expr t2  
-    | TmAbort                   -> "abort" 
-    | TmReturn((r,_),_)         -> "return " ^ str_of_expr r 
-    | TmLog(_,_,_)              -> "log"
-    | TmSlfDstrct   _           -> "selfdestruct"
-    | TmId          s           -> "id " ^ s
-    | TmEq          _           -> "equality"
-    | TmU256        d           -> "u256 " ^ str_of_big d
-    | TmU8          d           -> "u8 "   ^ str_of_big d
-    | TmUnit                    -> "()"
-    | TmSub ((a,_),(b,_))       -> str_of_expr a ^ " - " ^ str_of_expr b
-    | TmMul ((a,_),(b,_))       -> str_of_expr a ^ " * " ^ str_of_expr b
-    | TmAdd ((a,_),(b,_))       -> str_of_expr a ^ " + " ^ str_of_expr b
-    | TmCall(id,args)           -> "call(" ^ id ^ ")" 
-    | TmArray((id,_),(idx,_))   -> str_of_expr id ^ "[" ^ str_of_expr idx ^ "]" 
-    | TmSend        _           -> "send"
-    | TmNew         _           -> "new"
     | EpThis                    -> "this"
     | EpNow                     -> "now"
     | EpSender                  -> "sender"
@@ -214,19 +190,29 @@ let rec str_of_expr          = function
 let rec str_of_tm  e         = match fst e with 
     | TmApp(t1,t2)              -> "TmApp(" ^ str_of_tm t1 ^ "," ^ str_of_tm t2 ^ ")"
     | TmAbs(x,tyX,t)            -> "(λ" ^ x ^ ":" ^ str_of_ty tyX ^ "." ^ str_of_tm t ^ ")"
+    | TmId(s)                   -> "TmId(" ^ s ^ ")"
     | TmIdx(i,n)                -> "TmIdx" ^ str_of_int i 
     | TmIdxRec(i)               -> "TmRec" ^ str_of_int i 
     | TmIdxStrct(i)             -> "{Struct " ^ str_of_int i ^ "}"
     | TmIf(b,t,t')              -> "(If " ^ str_of_tm b ^ " Then " ^ str_of_tm t ^ " Else " ^ str_of_tm t' ^ ")"
     | TmFix(f,n,_,t)            -> "TmFix(λ" ^ f ^ " " ^ n ^ "→" ^ str_of_tm t ^ ")" 
     | TmEq(a,b)                 -> str_of_tm a ^ "==" ^ str_of_tm b
-    | TmU256(b)                 -> str_of_big b 
+    | TmU256(b)                 -> "u256" ^ str_of_big b 
+    | TmU8(b)                   -> "u8"   ^ str_of_big b 
     | TmId(str)                 -> str
     | TmMul(a,b)                -> str_of_tm a ^ " * " ^ str_of_tm b
     | TmSub(a,b)                -> str_of_tm a ^ " - " ^ str_of_tm b 
+    | TmAdd(a,b)                -> str_of_tm a ^ " + " ^ str_of_tm b
     | TmUnit                    -> "()" 
     | TmZero                    -> "O" 
     | TmSend _                  -> "TmSend()" 
+    | TmArray(id,idx)           -> str_of_tm id ^ "[" ^ str_of_tm idx ^ "]" 
+    | TmCall(id,args)           -> "TmCall(" ^ id ^ ")" 
+    | TmAbort                   -> "abort" 
+    | TmReturn(r,_)             -> "return " ^ str_of_tm r 
+    | TmLog(_,_,_)              -> "log"
+    | TmNew         _           -> "new"
+    | TmSlfDstrct   _           -> "selfdestruct"
     | e                         -> str_of_expr e 
 
 

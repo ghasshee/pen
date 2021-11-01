@@ -398,7 +398,7 @@ and codegen_expr_eff ly le ce aln          = function
     | TmLog(id,args,Some ev),TyUnit     ->  codegen_log_stmt    ly le ce id args ev    
     | TmSlfDstrct expr      ,TyUnit     ->  codegen_selfDstrct  ly le ce expr          
     | TmReturn(ret,cont)    ,_          ->  codegen_return      ly le ce ret cont     
-    | e                     ,_          ->  ps ("codegen_expr: " ^ str_of_expr e ^ " ") ; raise Not_found
+    | e                                 ->  pf "codegen_expr: %s " (str_of_tm e); raise Not_found
     
 and op operator l r ly le ce =
     let ce    = r                               >>>>(R,ly,le,ce)   in 

@@ -31,6 +31,7 @@ let errc str                = err("codegen_expr: " ^ str ^ " of unexpected type"
 
 let ps = print_string
 let pe = print_endline
+let pf = printf
 
 (*****************************************)
 (**      LIST OPERATERS                 **)
