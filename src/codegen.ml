@@ -71,25 +71,25 @@ let sstore_fieldVars ce cnidx     =
     let label   = fresh_label()                             in
     let exit    = fresh_label()                             in  (*                                                mem_start >> size >> .. *)  
     let ce      = check_codesize cnidx                ce    in 
-    let ce      = PUSH32(StorFieldsBegin cnidx)     >>ce    in  (*                                         idx >> mem_start    >>   size  >> .. *)
-    let ce   = JUMPDEST label                       >>ce    in  (*                                         idx >> mem_start    >>   size  >> .. *)
-    let ce      = DUP3                              >>ce    in  (*                                 size >> idx >> mem_start    >>   size  >> .. *)
-    let ce      = if_0_GOTO exit                      ce    in  (* IF size==0 THEN GOTO exit               idx >> mem_start    >>   size  >> .. *)   
-    let ce      = DUP2                              >>ce    in  (*                            mem_start >> idx >> mem_start    >>   size  >> .. *) 
-    let ce      = MLOAD                             >>ce    in  (*                         M[mem_start] >> idx >> mem_start    >>   size  >> .. *)
-    let ce      = DUP2                              >>ce    in  (*                  idx >> M[mem_start] >> idx >> mem_start    >>   size  >> .. *)
-    let ce      = SSTORE                            >>ce    in  (* S[idx]=M[mem_start]                     idx >> mem_start    >>   size  >> .. *)  
-    let ce      = PUSH32(Int 32)                    >>ce    in  (*                                   32 >> idx >> mem_start    >>   size  >> .. *)
-    let ce      = SWAP1                             >>ce    in  (*                                  idx >>  32 >> mem_start    >>   size  >> .. *)
-    let ce      = SWAP3                             >>ce    in  (*                                 size >>  32 >> mem_start    >>   idx   >> .. *)
-    let ce      = SUB                               >>ce    in  (*                                     size-32 >> mem_start    >>   idx   >> .. *)
-    let ce      = SWAP2                             >>ce    in  (*                                         idx >> mem_start    >> size-32 >> .. *) 
-    let ce      = incr_top 1(*word*)                  ce    in  (*                                       idx+1 >> mem_start    >> size-32 >> .. *)
-    let ce      = SWAP1                             >>ce    in  (*                                   mem_start >>     idx+1    >> size-32 >> .. *)
-    let ce      = incr_top 32                         ce    in  (*                                mem_start+32 >>     idx+1    >> size-32 >> .. *)
-    let ce      = SWAP1                             >>ce    in  (*                                       idx+1 >> mem_start+32 >> size-32 >> .. *)
-    let ce      = goto label                          ce    in  (*                                       idx+1 >> mem_start+32 >> size-32 >> .. *)
-    let ce   = JUMPDEST exit                        >>ce    in  (*                                         idx >> mem_start    >>   size  >> .. *)
+    let ce      = PUSH32(StorFieldsBegin cnidx)     >>ce    in  (*                                          idx >>   mem_start    >>   size    >> .. *)
+    let ce   = JUMPDEST label                       >>ce    in  (*                                          idx >>   mem_start    >>   size    >> .. *)
+    let ce      = DUP3                              >>ce    in  (*                                 size >>  idx >>   mem_start    >>   size    >> .. *)
+    let ce      = if_0_GOTO exit                      ce    in  (* IF size==0 THEN GOTO exit                idx >>   mem_start    >>   size    >> .. *)   
+    let ce      = DUP2                              >>ce    in  (*                            mem_start >>  idx >>   mem_start    >>   size    >> .. *) 
+    let ce      = MLOAD                             >>ce    in  (*                         M[mem_start] >>  idx >>   mem_start    >>   size    >> .. *)
+    let ce      = DUP2                              >>ce    in  (*                  idx >> M[mem_start] >>  idx >>   mem_start    >>   size    >> .. *)
+    let ce      = SSTORE                            >>ce    in  (* S[idx]=M[mem_start]                      idx >>   mem_start    >>   size    >> .. *)  
+    let ce      = PUSH1(Int 0x20)                   >>ce    in  (*                                 0x20 >>  idx >>   mem_start    >>   size    >> .. *)
+    let ce      = SWAP1                             >>ce    in  (*                                  idx >> 0x20 >>   mem_start    >>   size    >> .. *)
+    let ce      = SWAP3                             >>ce    in  (*                                 size >> 0x20 >>   mem_start    >>   idx     >> .. *)
+    let ce      = SUB                               >>ce    in  (*                                   size- 0x20 >>   mem_start    >>   idx     >> .. *)
+    let ce      = SWAP2                             >>ce    in  (*                                          idx >>   mem_start    >> size-0x20 >> .. *) 
+    let ce      = incr_top 1(*word*)                  ce    in  (*                                        idx+1 >>   mem_start    >> size-0x20 >> .. *)
+    let ce      = SWAP1                             >>ce    in  (*                                    mem_start >>       idx+1    >> size-0x20 >> .. *)
+    let ce      = incr_top 0x20                       ce    in  (*                               mem_start+0x20 >>       idx+1    >> size-0x20 >> .. *)
+    let ce      = SWAP1                             >>ce    in  (*                                        idx+1 >> mem_start+0x20 >> size-0x20 >> .. *)
+    let ce      = goto label                          ce    in  (*                                        idx+1 >> mem_start+0x20 >> size-0x20 >> .. *)
+    let ce   = JUMPDEST exit                        >>ce    in  (*                                          idx >>   mem_start    >>   size    >> .. *)
                   repeat POP 3                        ce        (*                                                                     .. *)
 (*  S[1]   := m   <- array seed                                               *)  
 (*  S[2]   := the value of arg1 is stored in message call                     *)  
@@ -387,7 +387,7 @@ and codegen_expr ly le ce aln  e        = pe (str_of_tm e); pe (str_of_ctx le); 
                                                             salloc_array_of_loc le ce loc          
     | TmId id               ,ty         ->  let loc     =   lookup_le id le                         in  
                                                             push_loc ce aln ty loc                      (*                        loc >> .. *)
-    | EpDeref(ref,tyR)      ,ty         ->  assert(size_of_ty ty<=32 && tyR=TyRef ty && aln=R) ;                    (* assuming word-size *)
+    | TmDeref(ref,tyR)      ,ty         ->  assert(size_of_ty ty<=32 && tyR=TyRef ty && aln=R) ;                    (* assuming word-size *)
                                             let ce      =   (ref,tyR)               >>>>(R,ly,le,ce)   in  (* pushes the pointer *)
                                                             MLOAD                   >>ce 
     | e, ty                             ->  let _,ce    =   codegen_expr_eff ly le ce aln (e,ty) in 
@@ -457,7 +457,7 @@ and codegen_send cn m args msg ly le ce = match snd cn with
     | _             -> err "send expr with Wrong type"
 
 
-and sstore_to_lval ly le ce (TmArray(id,idx),_) =                      (*                                    rval >> .. *)
+and sstore_to_lval ly le ce (TmArray(id,idx),_) =                    (*                                    rval >> .. *)
     let ce      = keccak_of_array id idx    ly le ce            in   (*                 KEC(aseed^aidx) >> rval >> .. *)
                   SSTORE                        >>ce                 (* S[KEC(aseed^aidx)] := rval                 .. *)
 

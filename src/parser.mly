@@ -158,17 +158,11 @@ arg_list :
 args: 
     | tm                                            { fun ctx ->    [$1 ctx]                                                                    }
     | tm COMMA args                                 { fun ctx ->    $1 ctx :: $3 ctx                                                            } 
-(*
-%inline expr_list:
-    | plist(expr)                                   { $1                                                                                        }
-*)
+
 msg:
     | value_info                                    { $1                                                                                        }
      
 value_info:
     | (* empty *)                                   { fun ctx ->    TmZero, ()                                                                  }
     | WITH tm                                       { $2                                                                                        }
-     
-lexpr:                                              (* expr '[' expr ']' *) 
-    | tm LSQBR tm RSQBR                             { fun ctx ->    TmArray($1 ctx,$3 ctx)                                                      }
      

@@ -81,7 +81,6 @@ and  'ty expr                   =
                                 |   TmDeref     of 'ty exprTy
                                 |   TmAssign    of 'ty exprTy * 'ty exprTy 
                                 |   TmLoc       of int 
-                                |   EpDeref     of 'ty exprTy
                                 |   TmApp       of 'ty exprTy * 'ty exprTy  
                                 |   TmAbs       of str * ty * 'ty exprTy
                                 |   TmFix       of str * str * ty * 'ty exprTy
@@ -179,7 +178,7 @@ let rec str_of_expr          = function
     | EpLT          _           -> "lt"
     | EpGT          _           -> "gt"
     | EpAddr        _           -> "address"
-    | EpDeref       _           -> "dereference of ..."
+    | TmDeref       _           -> "dereference of ..."
     | Balanc        _           -> "balance" 
 
 

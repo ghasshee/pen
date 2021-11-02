@@ -60,7 +60,7 @@ and mthd_become(TmMthd(_,body))     =   expr_become body
 and exprs_become es                 =   L.concat (L.map expr_become es)
 and expr_become  e                  =   match fst e with
     | TmAbort  | TmUnit  | TmTrue | TmFalse | EpNow | EpThis | EpValue | EpSender | TmId _  | TmU8 _ | TmU256 _ -> []
-    | EpAddr e | EpNot e | EpDeref e | Balanc e | TmSlfDstrct e ->  expr_become e
+    | EpAddr e | EpNot e | TmDeref e | Balanc e | TmSlfDstrct e ->  expr_become e
     | EpLT   (l,r) | EpGT   (l,r) | EpNEq  (l,r) | TmEq   (l,r)           
     | TmMul (l,r) | TmAdd (l,r) | EpLAnd (l,r) | TmSub(l,r)          
                                         ->  (expr_become l) @ (expr_become r)
