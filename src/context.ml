@@ -24,7 +24,7 @@ type context                    = bind list
                                 | BdCtx   of context
                                 | BdEv    of str * ty list 
                                 | BdLoc   of str * location 
-                                | BdI   of ty exprTy 
+                                | BdI   of ty exprty 
                                 | BdBrj   of context 
                                 | BdRec   of label   (* BdRec(start) *) 
                                 | BdRecName of str

@@ -144,7 +144,7 @@ and  addTy_expr  cns cname ctx expr = pe("addTy_expr: " ^ str_of_tm expr );match
     | TmMul(l, r)                   ->  let l,r = (l,r)  -|| (ctx,cns,cname) in TmMul(l,r)  , get_ty l 
     | TmSub(l, r)                   ->  let l,r = (l,r)  -|| (ctx,cns,cname) in TmSub(l,r)  , get_ty l
     | TmAdd(l, r)                   ->  let l,r = (l,r)  -|| (ctx,cns,cname) in TmAdd(l,r)  , get_ty l 
-    | TmSlfDstrct e                 ->  TmSlfDstrct(e    -|  (ctx,cns,cname))               , TyUnit           
+    | TmSfDstr e                 ->  TmSfDstr(e    -|  (ctx,cns,cname))               , TyUnit           
     | EpAddr      e                 ->  EpAddr     (e    -|  (ctx,cns,cname))               , TyAddr  
     | TmU256      d                 ->  TmU256      d                                       , TyU256
     | TmU8        d                 ->  TmU8        d                                       , TyU8

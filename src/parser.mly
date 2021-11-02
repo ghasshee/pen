@@ -115,7 +115,7 @@ tm:
     | IF tm THEN tm SEMI tm                         { fun ctx ->    TmIf($2 ctx, $4 ctx, $6 ctx)                                            ,() }
     | tm COLONEQ tm                                 { fun ctx ->    TmAssign($1 ctx, $3 ctx)                                                ,() }
     | LOG ID  arg_list                              { fun ctx ->    TmLog($2,$3 ctx,None)                                                   ,() }
-    | SELFDESTRUCT tm                               { fun ctx ->    TmSlfDstrct($2 ctx)                                                     ,() }
+    | SELFDESTRUCT tm                               { fun ctx ->    TmSfDstr($2 ctx)                                                     ,() }
     | tm DOT DEFAULT LPAR RPAR msg                  { fun ctx ->    TmSend($1 ctx,None,[],$6 ctx)                                           ,() }
     | tm DOT ID       arg_list msg                  { fun ctx ->    TmSend($1 ctx,Some $3,$4 ctx,$5 ctx)                                    ,() }
     | tm LSQBR tm RSQBR                             { fun ctx ->    TmArray($1 ctx,$3 ctx)                                                  ,() }

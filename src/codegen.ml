@@ -396,7 +396,7 @@ and codegen_expr ly le ce aln  e        = pe (str_of_tm e); pe (str_of_ctx le); 
 and codegen_expr_eff ly le ce aln          = function 
     | TmAbort               ,TyErr     ->  le, throw ce                               
     | TmLog(id,args,Some ev),TyUnit     ->  codegen_log         ly le ce id args ev    
-    | TmSlfDstrct expr      ,TyUnit     ->  codegen_selfDstrct  ly le ce expr          
+    | TmSfDstr expr      ,TyUnit     ->  codegen_selfDstrct  ly le ce expr          
     | TmAssign(l,r)         ,TyUnit     ->  codegen_assign      ly le ce l r        
     | TmReturn(ret,cont)    ,_          ->  codegen_return      ly le ce ret cont     
     | e                                 ->  pf "codegen_expr: %s " (str_of_tm e); raise Not_found
