@@ -79,15 +79,6 @@ ty:
     | ty ARROW ty                                   { TyAbs($1,$3)                                                                              } 
     | ID                                            { TyInstnc $1                                                                               }
 
-block:
-    | LBRACE stmts RBRACE                           { $2                                                                         }
-
-stmts: 
-    |                                               { fun ctx -> []                                                                             }
-    | stmt stmts                                    { fun ctx -> let stmt,ctx' = $1 ctx in stmt :: $2 ctx'                                      }  
-
-stmt:
-    |  tm  SEMI                                     { fun ctx -> SmExpr ($1 ctx)              ,ctx                                              }
 
 ret: 
     |                                               { fun ctx ->    TmUnit                                                                  ,() }

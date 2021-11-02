@@ -74,7 +74,6 @@ type 'ty toplevel               =   TmCn        of str * ty list * 'ty mthd list
 
 and  'ty mthd                   =   TmMthd      of ty * 'ty exprTy
 
-and  'ty stmt                   =   SmExpr      of 'ty exprTy
 
 and  'ty exprTy                 =   'ty expr * 'ty
 

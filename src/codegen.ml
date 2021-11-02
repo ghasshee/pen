@@ -395,7 +395,7 @@ and codegen_expr ly le ce aln  e        = pe (str_of_tm e); pe (str_of_ctx le); 
 
 and codegen_expr_eff ly le ce aln          = function 
     | TmAbort               ,TyErr     ->  le, throw ce                               
-    | TmLog(id,args,Some ev),TyUnit     ->  codegen_log_stmt    ly le ce id args ev    
+    | TmLog(id,args,Some ev),TyUnit     ->  codegen_log         ly le ce id args ev    
     | TmSlfDstrct expr      ,TyUnit     ->  codegen_selfDstrct  ly le ce expr          
     | SmAssign(l,r)         ,TyUnit     ->  codegen_assign      ly le ce l r        
     | TmReturn(ret,cont)    ,_          ->  codegen_return      ly le ce ret cont     
@@ -595,13 +595,6 @@ and codegen_mthd ly cnidx (le,ce) (TmMthd(hd,bd))  =
     let ce      = Comment ("END "   ^str_of_ty hd)  >>ce                in  
     le,ce
 
-and codegen_expr_stmt ly le ce expr =
-    pe(str_of_tm expr); 
-    let ce      = Comment "BEGIN expr-stmt"     >>ce            in
-    let ce      = expr                          >>>>(R,ly,le,ce)in
-    let ce      = POP                           >>ce            in
-    let ce      = Comment "END   expr-stmt"     >>ce            in
-    le, ce
 
 and codegen_selfDstrct ly le ce expr =    
     let ce      = expr                          >>>>(R,ly,le,ce)in
@@ -620,7 +613,7 @@ and mstore_exprs ly le ce pack = function
                              (* ADD                                                             size+size'  >> alloc(size) >> .. *) 
                              (* SWAP1                                                           alloc(size) >> size+size'  >> .. *)
                     
-and codegen_log_stmt (ly:storLayout) le ce name args evnt =
+and codegen_log      (ly:storLayout) le ce name args evnt =
     let visible, args= split_ev_args evnt args                in
     let ce      = push_args le ly visible         ce            in
     let ce      = push_evnt_hash  evnt            ce            in
@@ -691,15 +684,7 @@ and codegen_return ly le ce ret cont =
     let ce          =   Comment "END RETURN"    >>ce        in 
     le,ce
 
-(*************************************)
-(**      6. CODEGEN STMT           **)
-(*************************************)
 
-(*
-and codegen_stmts stmts ly le ce   = foldl (codegen_stmt ly) (le,ce) stmts
-and codegen_stmt ly  (le,ce)       = function 
-    | SmExpr expr                   ->  codegen_expr_stmt   ly le ce expr
-*)
 (********************************************)
 (***     7. CODEGEN CONTRACT             ***)
 (********************************************)

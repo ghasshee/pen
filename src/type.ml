@@ -232,18 +232,6 @@ and addTy_return cns cname ctx ret cont=
 
 
 
-(************************************) 
-(**          STMT  TyCheck         **) 
-(************************************) 
-
-and addTy_stmt cns cname ctx = function 
-    | SmExpr e          ->  let e       = addTy_expr        cns cname ctx  e        in
-                            SmExpr e        , ctx
-
-and addTy_stmts cns cname ctx = function 
-    | []                ->  []
-    | stmt::rest        ->  let stmt,ctx = addTy_stmt cns cname ctx stmt in
-                            stmt :: addTy_stmts cns cname ctx rest
 
 
 (************************************) 
