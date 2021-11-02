@@ -21,7 +21,7 @@ exception StackUnderFlow
 exception StackOverFlow
 
 let err                     = failwith
-let errc str                = err("codegen_expr: " ^ str ^ " of unexpected type")
+let errc str                = err("codegen_tm: " ^ str ^ " of unexpected type")
 
 
 

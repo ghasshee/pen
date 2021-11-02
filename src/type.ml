@@ -69,11 +69,11 @@ let arg_has_known_ty tycns      =   function
 (**          EXPR  TyCheck         **) 
 (************************************) 
 
-let rec (--|)  exprs (ctx,cns,cnm)  = addTy_exprs     cns cnm ctx exprs  
-and     (-|)    expr (ctx,cns,cnm)  = addTy_expr      cns cnm ctx expr  
+let rec (--|)  tms (ctx,cns,cnm)  = addTy_tms     cns cnm ctx tms  
+and     (-|)    tm (ctx,cns,cnm)  = addTy_tm      cns cnm ctx tm  
 and     (-||)  (l,r) (ctx,cns,cnm)  = addTy_binop_arg cns cnm ctx l r 
-and  addTy_exprs cns cname ctx es   = L.map (addTy_expr cns cname ctx) es
-and  addTy_expr  cns cname ctx expr = pe("addTy_expr: " ^ str_of_tm expr );match fst expr with
+and  addTy_tms cns cname ctx es   = L.map (addTy_tm cns cname ctx) es
+and  addTy_tm  cns cname ctx tm = pe("addTy_tm: " ^ str_of_tm tm );match fst tm with
     | TmApp(t1,t2)                  ->  let t1,ty1          =   t1      -|  (ctx,cns,cname) in 
                                         let t2,ty2          =   t2      -|  (ctx,cns,cname) in 
                                         begin match t1,ty1 with 
@@ -92,17 +92,17 @@ and  addTy_expr  cns cname ctx expr = pe("addTy_expr: " ^ str_of_tm expr );match
     | TmI(i,n)                      ->  begin match ctx with 
                                         | BdCtx lctx :: _   ->  let BdTy(id,ty) = L.nth lctx i          in
                                                                 TmI(i,n)      , tyShift(i+1)ty  
-                                        | _ :: ctx          ->  expr    -|  (ctx,cns,cname)         
+                                        | _ :: ctx          ->  tm    -|  (ctx,cns,cname)         
                                         | _                 ->  err "|- TmI : ??"                     end 
     | TmIRec(i(*, rig #TODO*) )     ->  begin match ctx with 
                                         | BdCtx lctx :: _   ->  let BdTy(id,ty) = L.nth lctx i          in 
                                                                 TmIRec(i)     , tyShift(i+1)ty  
-                                        | _ :: ctx          ->  expr    -|  (ctx,cns,cname)         
+                                        | _ :: ctx          ->  tm    -|  (ctx,cns,cname)         
                                         | _                 ->  err "|- TmIRec : ??"                  end 
     | TmIStrct(i)                   ->  begin match ctx with 
                                         | BdCtx lctx :: _   ->  let BdTy(id,ty) = L.nth lctx i          in 
                                                                 TmIStrct(i)   , tyShift(i+1)ty  
-                                        | _ :: ctx          ->  expr    -|  (ctx,cns,cname)         
+                                        | _ :: ctx          ->  tm    -|  (ctx,cns,cname)         
                                         | _                 ->  err "|- TmIStrct : ??"                end 
     | TmIf(b,t1,t2)                 ->  let b,tyB           =   b       -|  (ctx,cns,cname)             in 
                                         let t1,t2           =   (t1,t2) -|| (ctx,cns,cname)             in 
@@ -192,7 +192,7 @@ and check_args_match tycns args =   function
     | None                          ->  assert (isNil (L.map get_ty args))
 
 and addTy_call cns cname ctx (TmCall(id,args)) =
-    let args        = addTy_exprs cns cname ctx args in
+    let args        = addTy_tms cns cname ctx args in
     check_args_match (typeof_cns cns) args (Some id) ; 
     let rety        = match id with
         | "value" when true         ->  TyU256 (* check the arg is 'msg' *) 
@@ -230,7 +230,7 @@ let addTy_mthd cns cn_name ctx (TmMthd(head,body)) =
     let binds       =   binds_of_tys argTys             in
     let ctx'        =   add_retTy ctx rety              in
     let ctx''       =   add_local ctx' binds            in
-    TmMthd(addTy_mthd_head cns head, addTy_expr cns cn_name ctx'' body)
+    TmMthd(addTy_mthd_head cns head, addTy_tm cns cn_name ctx'' body)
 
 let unique_sig (TmCn(_,_,mthds)) =
     let sigs        =   L.map (function | TmMthd(TyDefault,_)   -> None

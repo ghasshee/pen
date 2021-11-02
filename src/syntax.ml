@@ -72,30 +72,30 @@ let split_ev_args tyEv args     =   match tyEv with TyEv(id,evargs)  ->
 type 'ty toplevel               =   TmCn        of str * ty list * 'ty mthd list    (* TmCn(id,fields,mthds *) 
                                 |   TmEv        of ty                               (* TmEv(tyEv)           *) 
 
-and  'ty mthd                   =   TmMthd      of ty * 'ty exprty
+and  'ty mthd                   =   TmMthd      of ty * 'ty tmty
 
-and  'ty exprty                 =   'ty expr * 'ty
+and  'ty tmty                 =   'ty tm * 'ty
 
-and  'ty expr                   =   
-                                |   TmRef       of 'ty exprty
-                                |   TmDeref     of 'ty exprty
-                                |   TmAssign    of 'ty exprty * 'ty exprty 
+and  'ty tm                   =   
+                                |   TmRef       of 'ty tmty
+                                |   TmDeref     of 'ty tmty
+                                |   TmAssign    of 'ty tmty * 'ty tmty 
                                 |   TmLoc       of int 
-                                |   TmApp       of 'ty exprty * 'ty exprty  
-                                |   TmAbs       of str * ty * 'ty exprty
-                                |   TmFix       of str * str * ty * 'ty exprty
+                                |   TmApp       of 'ty tmty * 'ty tmty  
+                                |   TmAbs       of str * ty * 'ty tmty
+                                |   TmFix       of str * str * ty * 'ty tmty
                                 |   TmI         of int * int 
                                 |   TmIRec      of int 
                                 |   TmIStrct    of int 
                                 |   TmId        of str
-                                |   TmIf        of 'ty exprty * 'ty exprty * 'ty exprty 
-(* TmReturn(ret,cont)        *) |   TmReturn    of 'ty exprty * 'ty exprty  
-(* TmCall(cnname, args)      *) |   TmCall      of str * 'ty exprty list       
-(* TmArray(id,idx)           *) |   TmArray     of 'ty exprty * 'ty exprty      
-(* TmSend(cn,mname,args,msg) *) |   TmSend      of 'ty exprty * str option * 'ty exprty list * 'ty exprty
-(* TmNew(id,args,msg)        *) |   TmNew       of str * 'ty exprty list * 'ty exprty    
-                                |   TmSfDstr    of 'ty exprty
-                                |   TmLog       of str * 'ty exprty list * ty option (* ty := TyEv *)
+                                |   TmIf        of 'ty tmty * 'ty tmty * 'ty tmty 
+(* TmReturn(ret,cont)        *) |   TmReturn    of 'ty tmty * 'ty tmty  
+(* TmCall(cnname, args)      *) |   TmCall      of str * 'ty tmty list       
+(* TmArray(id,idx)           *) |   TmArray     of 'ty tmty * 'ty tmty      
+(* TmSend(cn,mname,args,msg) *) |   TmSend      of 'ty tmty * str option * 'ty tmty list * 'ty tmty
+(* TmNew(id,args,msg)        *) |   TmNew       of str * 'ty tmty list * 'ty tmty    
+                                |   TmSfDstr    of 'ty tmty
+                                |   TmLog       of str * 'ty tmty list * ty option (* ty := TyEv *)
                                 |   TmAbort 
                                 |   TmUnit 
                                 |   TmZero 
@@ -103,21 +103,21 @@ and  'ty expr                   =
                                 |   TmFalse
                                 |   TmU256      of big
                                 |   TmU8        of big
-                                |   TmAdd       of 'ty exprty * 'ty exprty
-                                |   TmSub       of 'ty exprty * 'ty exprty
-                                |   TmMul       of 'ty exprty * 'ty exprty
+                                |   TmAdd       of 'ty tmty * 'ty tmty
+                                |   TmSub       of 'ty tmty * 'ty tmty
+                                |   TmMul       of 'ty tmty * 'ty tmty
                                 |   EpNow
-                                |   TmLAND      of 'ty exprty * 'ty exprty
-                                |   TmLT        of 'ty exprty * 'ty exprty
-                                |   TmGT        of 'ty exprty * 'ty exprty
-                                |   TmEQ        of 'ty exprty * 'ty exprty
-                                |   TmNEQ       of 'ty exprty * 'ty exprty
-                                |   EpAddr      of 'ty exprty
-                                |   TmNOT       of 'ty exprty
+                                |   TmLAND      of 'ty tmty * 'ty tmty
+                                |   TmLT        of 'ty tmty * 'ty tmty
+                                |   TmGT        of 'ty tmty * 'ty tmty
+                                |   TmEQ        of 'ty tmty * 'ty tmty
+                                |   TmNEQ       of 'ty tmty * 'ty tmty
+                                |   EpAddr      of 'ty tmty
+                                |   TmNOT       of 'ty tmty
                                 |   EpValue
                                 |   EpSender
                                 |   EpThis
-                                |   Balanc      of 'ty exprty
+                                |   Balanc      of 'ty tmty
 
 let get_ty  (_,ty)              =   ty
 let get_tm  (x,_)               =   x
@@ -167,21 +167,6 @@ let argTys_of_mthd              = function
 (***           PRINTING                ***)
 (*****************************************)
 
-let rec str_of_expr          = function 
-    | EpThis                    -> "this"
-    | EpNow                     -> "now"
-    | EpSender                  -> "sender"
-    | EpValue                   -> "value"
-    | TmNOT         _           -> "not"
-    | TmNEQ         _           -> "neq"
-    | TmLAND        _           -> "_ && _"
-    | TmLT          _           -> "lt"
-    | TmGT          _           -> "gt"
-    | EpAddr        _           -> "address"
-    | TmDeref       _           -> "dereference of ..."
-    | Balanc        _           -> "balance" 
-
-
 let rec str_of_tm  e         = match fst e with 
     | TmApp(t1,t2)              -> "TmApp(" ^ str_of_tm t1 ^ "," ^ str_of_tm t2 ^ ")"
     | TmAbs(x,tyX,t)            -> "(λ" ^ x ^ ":" ^ str_of_ty tyX ^ "." ^ str_of_tm t ^ ")"
@@ -194,7 +179,6 @@ let rec str_of_tm  e         = match fst e with
     | TmEQ(a,b)                 -> str_of_tm a ^ "==" ^ str_of_tm b
     | TmU256(b)                 -> "u256" ^ str_of_big b 
     | TmU8(b)                   -> "u8"   ^ str_of_big b 
-    | TmId(str)                 -> str
     | TmMul(a,b)                -> str_of_tm a ^ " * " ^ str_of_tm b
     | TmSub(a,b)                -> str_of_tm a ^ " - " ^ str_of_tm b 
     | TmAdd(a,b)                -> str_of_tm a ^ " + " ^ str_of_tm b
@@ -209,9 +193,20 @@ let rec str_of_tm  e         = match fst e with
     | TmReturn(r,_)             -> "return " ^ str_of_tm r 
     | TmLog(_,_,_)              -> "log"
     | TmNew         _           -> "new"
-    | TmSfDstr   _           -> "selfdestruct"
+    | TmSfDstr   _              -> "selfdestruct"
     | TmAssign(l,r)             -> "assignment" 
-    | e                         ->  str_of_expr e 
+    | EpThis                    -> "this"
+    | EpNow                     -> "now"
+    | EpSender                  -> "sender"
+    | EpValue                   -> "value"
+    | TmNOT         _           -> "not"
+    | TmNEQ         _           -> "neq"
+    | TmLAND        _           -> "_ && _"
+    | TmLT          _           -> "lt"
+    | TmGT          _           -> "gt"
+    | EpAddr        _           -> "address"
+    | TmDeref       _           -> "dereference of ..."
+    | Balanc        _           -> "balance" 
 
 ;;
 

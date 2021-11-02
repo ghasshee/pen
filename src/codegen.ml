@@ -348,8 +348,8 @@ and salloc_array_of_push push_array_seed ce =
 
 (* le is not updated here.  
  * le can only be updated in a variable initialization *)
-and (>>>>) e (aln,ly,le,ce)  = codegen_expr ly le ce aln e 
-and codegen_expr ly le ce aln  e        = pe (str_of_tm e); pe (str_of_ctx le); match e with 
+and (>>>>) e (aln,ly,le,ce)  = codegen_tm ly le ce aln e 
+and codegen_tm ly le ce aln  e        = pe (str_of_tm e); pe (str_of_ctx le); match e with 
     | TmApp(t1,t2)          ,ty         ->                  codegen_app     ly le ce (TmApp(t1,t2))
     | TmAbs(x,tyX,t)        ,TyAbs _    ->                  codegen_abs     ly le ce (TmAbs(x,tyX,t))
     | TmFix(f,n,tyF,t)      ,ty         ->                  codegen_fix     ly le ce (TmFix(f,n,tyF,t))
@@ -390,16 +390,16 @@ and codegen_expr ly le ce aln  e        = pe (str_of_tm e); pe (str_of_ctx le); 
     | TmDeref(ref,tyR)      ,ty         ->  assert(size_of_ty ty<=32 && tyR=TyRef ty && aln=R) ;                    (* assuming word-size *)
                                             let ce      =   (ref,tyR)               >>>>(R,ly,le,ce)   in  (* pushes the pointer *)
                                                             MLOAD                   >>ce 
-    | e, ty                             ->  let _,ce    =   codegen_expr_eff ly le ce aln (e,ty) in 
+    | e, ty                             ->  let _,ce    =   codegen_tm_eff ly le ce aln (e,ty) in 
                                                             PUSH1(Int 0) >> ce 
 
-and codegen_expr_eff ly le ce aln          = function 
+and codegen_tm_eff ly le ce aln          = function 
     | TmAbort               ,TyErr     ->  le, throw ce                               
     | TmLog(id,args,Some ev),TyUnit     ->  codegen_log         ly le ce id args ev    
-    | TmSfDstr expr      ,TyUnit     ->  codegen_selfDstrct  ly le ce expr          
+    | TmSfDstr tm      ,TyUnit     ->  codegen_selfDstrct  ly le ce tm          
     | TmAssign(l,r)         ,TyUnit     ->  codegen_assign      ly le ce l r        
     | TmReturn(ret,cont)    ,_          ->  codegen_return      ly le ce ret cont     
-    | e                                 ->  pf "codegen_expr: %s " (str_of_tm e); raise Not_found
+    | e                                 ->  pf "codegen_tm: %s " (str_of_tm e); raise Not_found
     
 and op operator l r ly le ce =
     let ce    = r                               >>>>(R,ly,le,ce)   in 
@@ -454,7 +454,7 @@ and codegen_send cn m args msg ly le ce = match snd cn with
     let ce      = call_and_restore_PC             ce            in  (*                                                         0 >> 0 >> .. *)
     let ce      = POP                           >>ce            in  (*                                                              0 >> .. *)
                   Comment("END send to Addr")   >>ce 
-    | _             -> err "send expr with Wrong type"
+    | _             -> err "send tm with Wrong type"
 
 
 and sstore_to_lval ly le ce (TmArray(id,idx),_) =                    (*                                    rval >> .. *)
@@ -596,16 +596,16 @@ and codegen_mthd ly cnidx (le,ce) (TmMthd(hd,bd))  =
     le,ce
 
 
-and codegen_selfDstrct ly le ce expr =    
-    let ce      = expr                          >>>>(R,ly,le,ce)in
+and codegen_selfDstrct ly le ce tm =    
+    let ce      = tm                          >>>>(R,ly,le,ce)in
     let ce      = SELFDESTRUCT                  >>ce            in
     le, ce
 
-and mstore_exprs ly le ce pack = function 
+and mstore_tms ly le ce pack = function 
     | []        ->  le,         repeat (PUSH1(Int 0)) 2   ce    
-    | e::es     ->  let le,ce = mstore_expr ly le ce pack e     in (*                                      alloc(size) >> size >> .. *)
+    | e::es     ->  let le,ce = mstore_tm ly le ce pack e     in (*                                      alloc(size) >> size >> .. *)
                     let ce    = SWAP1                   >>ce    in (*                                      size >> alloc(size) >> .. *)
-                    let le,ce = mstore_exprs ly le ce pack es   in (*   0 >> 0 >> size' >> alloc(size') >> size >> alloc(size) >> .. *)
+                    let le,ce = mstore_tms ly le ce pack es   in (*   0 >> 0 >> size' >> alloc(size') >> size >> alloc(size) >> .. *)
                     let ce    = POP                     >>ce    in (*        0 >> size' >> alloc(size') >> size >> alloc(size) >> .. *)       
                     let ce    = ADD                     >>ce    in (*             size' >> alloc(size') >> size >> alloc(size) >> .. *)    
                     let ce    = SWAP1                   >>ce    in (*             alloc(size') >> size' >> size >> alloc(size) >> .. *)     
@@ -617,7 +617,7 @@ and codegen_log      (ly:storLayout) le ce name args evnt =
     let visible, args= split_ev_args evnt args                in
     let ce      = push_args le ly visible         ce            in
     let ce      = push_evnt_hash  evnt            ce            in
-    let le,ce   = mstore_exprs ly le ce ABIpk args              in  (* stack : [..., size, offset] *)
+    let le,ce   = mstore_tms ly le ce ABIpk args              in  (* stack : [..., size, offset] *)
     let n       = L.length visible + 1                          in
     let ce      = log n                         >>ce            in  (* deindexee N in logN *)
     le, ce
@@ -666,7 +666,7 @@ and mstore_word ty ce = assert (size_of_ty ty <= 32)  ;         (*              
     let ce      = MSTORE                    >>ce            in  (* M[alloc(32)]:=val     32 >> alloc(32) >> .. *)
                   SWAP1                     >>ce                (*                       alloc(32) >> 32 >> .. *)
 
-and mstore_expr ly le ce pack (e,ty) =
+and mstore_tm ly le ce pack (e,ty) =
     let a       = match pack with | ABIpk   -> R
                                   | Tight   -> L            in
     let ce      = (e,ty)                    >>>>(a,ly,le,ce)in  (*                                    e >> .. *)
@@ -679,7 +679,7 @@ and codegen_return ly le ce ret cont =
     let ce          =   match ret with
     | (TmUnit,_)    ->  Comment "END RETURN" >>(STOP>>ce)       
     | e             ->  
-    let le,ce       =   mstore_expr ly le ce ABIpk e        in
+    let le,ce       =   mstore_tm ly le ce ABIpk e        in
                         RETURN                  >>ce        in 
     let ce          =   Comment "END RETURN"    >>ce        in 
     le,ce

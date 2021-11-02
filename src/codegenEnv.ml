@@ -56,21 +56,21 @@ let (>>) op ce                      = append_opcode ce op
 
 let rec  become (TmCn(_,_,mthds))   =   mthds_become mthds
 and mthds_become ms                 =   L.concat (L.map mthd_become ms)
-and mthd_become(TmMthd(_,body))     =   expr_become body 
-and exprs_become es                 =   L.concat (L.map expr_become es)
-and expr_become  e                  =   match fst e with
+and mthd_become(TmMthd(_,body))     =   tm_become body 
+and tms_become es                 =   L.concat (L.map tm_become es)
+and tm_become  e                  =   match fst e with
     | TmAbort  | TmUnit  | TmTrue | TmFalse | EpNow | EpThis | EpValue | EpSender | TmId _  | TmU8 _ | TmU256 _ -> []
-    | EpAddr e | TmNOT e | TmDeref e | Balanc e | TmSfDstr e ->  expr_become e
+    | EpAddr e | TmNOT e | TmDeref e | Balanc e | TmSfDstr e ->  tm_become e
     | TmLT   (l,r) | TmGT   (l,r) | TmNEQ  (l,r) | TmEQ   (l,r)           
     | TmMul (l,r) | TmAdd (l,r) | TmLAND (l,r) | TmSub(l,r)          
-                                        ->  (expr_become l) @ (expr_become r)
-    | TmArray(id,idx)                   ->  expr_become idx
-    | TmCall(id,args)                   ->  exprs_become args 
-    | TmNew(id,args,msg)                ->  exprs_become args @ expr_become msg
-    | TmSend(cn,_,args,msg)             ->  expr_become cn @ exprs_become args @ expr_become msg
-    | TmLog(_,l,_)                      ->  exprs_become l
-    | TmAssign((TmArray(id,idx),_),r)   ->  expr_become idx @ expr_become r
-    | TmReturn(ret,cont)                ->  expr_become ret @ expr_become cont @ (match cnname_of_ret_cont cont with
+                                        ->  (tm_become l) @ (tm_become r)
+    | TmArray(id,idx)                   ->  tm_become idx
+    | TmCall(id,args)                   ->  tms_become args 
+    | TmNew(id,args,msg)                ->  tms_become args @ tm_become msg
+    | TmSend(cn,_,args,msg)             ->  tm_become cn @ tms_become args @ tm_become msg
+    | TmLog(_,l,_)                      ->  tms_become l
+    | TmAssign((TmArray(id,idx),_),r)   ->  tm_become idx @ tm_become r
+    | TmReturn(ret,cont)                ->  tm_become ret @ tm_become cont @ (match cnname_of_ret_cont cont with
                                                                          | Some name     -> [name]
                                                                          | None          -> [] )
                                 
