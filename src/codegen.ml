@@ -591,7 +591,7 @@ and codegen_mthd ly cnidx (le,ce) (TmMthd(hd,bd))  =
     let le      = add_mthdCallerArgLocs(TmMthd(hd,bd))(add_empty_ctx (add_empty_brj le))    in
     let ce    = JUMPDEST label                      >>ce                in 
     let ce      = codegen_mthd_argLen_chk hd          ce                in
-    let le,ce   = codegen_stmts bd ly              le ce                in
+    let ce      = bd                                >>>>(R,ly,le,ce)    in
     let ce      = Comment ("END "   ^str_of_ty hd)  >>ce                in  
     le,ce
 
@@ -695,10 +695,11 @@ and codegen_return ly le ce ret cont =
 (**      6. CODEGEN STMT           **)
 (*************************************)
 
+(*
 and codegen_stmts stmts ly le ce   = foldl (codegen_stmt ly) (le,ce) stmts
 and codegen_stmt ly  (le,ce)       = function 
     | SmExpr expr                   ->  codegen_expr_stmt   ly le ce expr
-
+*)
 (********************************************)
 (***     7. CODEGEN CONTRACT             ***)
 (********************************************)

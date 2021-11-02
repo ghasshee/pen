@@ -69,10 +69,10 @@ let split_ev_args tyEv args     =   match tyEv with TyEv(id,evargs)  ->
 (***          Terms             ***)
 (**********************************)
 
-type 'ty toplevel               =   TmCn        of str * ty list * 'ty mthd list  (* TmCn(id,fields,mthds *) 
-                                |   TmEv        of ty                                (* TmEv(tyEv)           *) 
+type 'ty toplevel               =   TmCn        of str * ty list * 'ty mthd list    (* TmCn(id,fields,mthds *) 
+                                |   TmEv        of ty                               (* TmEv(tyEv)           *) 
 
-and  'ty mthd                   =   TmMthd      of ty * 'ty stmt list 
+and  'ty mthd                   =   TmMthd      of ty * 'ty exprTy
 
 and  'ty stmt                   =   SmExpr      of 'ty exprTy
 

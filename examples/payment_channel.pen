@@ -19,11 +19,11 @@ contract Channel
         else    if (signatures[proof] != signer) 
                     then    let _ = channelRecipient.default() with val ;  // failure throws.
                             selfdestruct(channelSender)
-                    else    abort;
+                    else    abort
   }
 
   method () ChannelTimeOut() {
     if (endDate > now(block)) then abort else 
-    selfdestruct(channelSender);
+    selfdestruct(channelSender)
   }
 }

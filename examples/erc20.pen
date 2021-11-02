@@ -5,7 +5,7 @@ contract PreToken   (u256                       totalSupply
     default {
         let _ = balances[this] := totalSupply;
         return 
-            then become Token(totalSupply, balances, allowances) ; 
+            then become Token(totalSupply, balances, allowances)
     }
 }
 
@@ -20,12 +20,12 @@ contract Token  (u256                       totalSupply
 {
     method u256 totalSupply() {
         return totalSupply 
-            then become Token(totalSupply, balances, allowances);
+            then become Token(totalSupply, balances, allowances)
     }
 
     method u256 balanceOf(address a) {
         return balances[a] 
-            then become Token(totalSupply, balances, allowances);
+            then become Token(totalSupply, balances, allowances)
     }
 
     method bool transfer(address _to, u256 _amount) {
@@ -36,10 +36,10 @@ contract Token  (u256                       totalSupply
         
         let _ = balances[sender(msg)]   := balances[sender(msg)] - _amount;
         if (balances[_to] + _amount < balances[_to]) then abort;
-        balances[_to]           := balances[_to] + _amount;
-        log Transfer(sender(msg), _to, _amount);
+        let _ = balances[_to]           := balances[_to] + _amount;
+        let _ = log Transfer(sender(msg), _to, _amount);
         return true 
-            then become Token(totalSupply, balances, allowances);
+            then become Token(totalSupply, balances, allowances)
     }
 
     method bool approve(address _spender, u256 _amount) {
@@ -48,12 +48,12 @@ contract Token  (u256                       totalSupply
         let _ = allowances[sender(msg)][_spender] := _amount;
         let _ = log Approval(sender(msg), _spender, _amount);
         return true 
-            then become Token(totalSupply, balances, allowances);
+            then become Token(totalSupply, balances, allowances)
     }
 
     method u256 allowance(address _owner, address _spender) {
         return allowances[_owner][_spender] 
-            then become Token(totalSupply, balances, allowances);
+            then become Token(totalSupply, balances, allowances)
     }
     
     method bool transferFrom(address _from, address _to, u256 _amount) {
@@ -62,13 +62,13 @@ contract Token  (u256                       totalSupply
         if (_from == _to) then 
             let _ = log Transfer(_from, _to, _amount);
             return true 
-                then become Token(totalSupply, balances, allowances);
+                then become Token(totalSupply, balances, allowances); 
 
         let _ = balances[_from]                 := balances[_from] - _amount;
         let _ = allowances[_from][sender(msg)]  := allowances[_from][sender(msg)] - _amount;
         let _ = balances[_to]                   := balances[_to] + _amount;
         let _ = log Transfer(_from, _to, _amount);
-        return true then become Token(totalSupply, balances, allowances);
+        return true then become Token(totalSupply, balances, allowances)
     }
 
     method bool buy(u256 _amount) {
@@ -83,7 +83,7 @@ contract Token  (u256                       totalSupply
 
         let _ = log Buy(sender(msg), _amount, value(msg));
         return true 
-            then become Token(totalSupply, balances, allowances);
+            then become Token(totalSupply, balances, allowances)
     }
 
     method bool sell(u256 _amount, u256 _value) {
@@ -102,6 +102,6 @@ contract Token  (u256                       totalSupply
         let _ = log Sell(sender(msg), _amount, _value);
         let _ = sender(msg).default() with _value;
         return true 
-            then become Token(totalSupply, balances, allowances);
+            then become Token(totalSupply, balances, allowances)
     }
 }

@@ -1,5 +1,6 @@
 contract Factorial() {
 	method u256 a(u256 k) {
-        let rec fac n : u256 -> u256 = if n == 0 then 1 else (fac (n-1)) * n in  return (fac k) then become Factorial(); 
+        let rec fac n : u256 -> u256 = if n == 0 then 1 else (fac (n-1)) * n ; 
+        return (fac k) then become Factorial() 
 	}
 }

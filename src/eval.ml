@@ -176,25 +176,5 @@ let fresh_abs_name () =
     abs_idx := !abs_idx + 1 ; 
     "abs" ^ str_of_int i 
 
-let rec walk_expr result    = function 
-    | TmAbs(x,tyX,(t,tyT))  -> [TmMthd(TyMthd(fresh_abs_name(), [TyVar(x,tyX)],tyT), [SmExpr(t,tyT)])]
-    | _                     -> []
-
-let rec walk_stmts          = function 
-    | []                    -> [] 
-    | SmExpr (e,ty) :: rest -> walk_expr [] e ++ walk_stmts rest   
-    | _             :: rest ->                   walk_stmts rest 
-
-let walk = walk_stmts 
-
-let rec eval' = function 
-    | [] -> []
-    | (i,TmCn(id,flds,mthds))::rest -> begin 
-        let mthds' = begin match mthds with 
-        | []                    ->  []
-        | TmMthd(_,stmts)::ms   ->  let lambdas = walk stmts in 
-                                    lambdas ++ mthds end in 
-        (i,TmCn(id,flds,mthds')) :: rest 
-        end
 let eval a = a 
 

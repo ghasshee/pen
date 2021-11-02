@@ -55,7 +55,7 @@ cntrct:
     | EVENT    ID plist(evnt_arg) SEMI              { TmEv(TyEv($2,$3))                                                                         }
 
 mthd:
-    | mthd_head block                               { TmMthd($1,$2 [])                                                                             }
+    | mthd_head LBRACE tm RBRACE                    { TmMthd($1,$3 [])                                                                          }
 
 mthd_head:
     | DEFAULT                                       { TyDefault                                                                                 }
@@ -78,10 +78,6 @@ ty:
     | ty DARROW ty                                  { TyMap($1,$3)                                                                              }
     | ty ARROW ty                                   { TyAbs($1,$3)                                                                              } 
     | ID                                            { TyInstnc $1                                                                               }
-
-%inline body:
-    | stmt                                          { fun ctx -> let stmt,ctx = $1 ctx in [stmt]                                                }
-    | block                                         { $1                                                                                        }
 
 block:
     | LBRACE stmts RBRACE                           { $2                                                                         }

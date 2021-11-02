@@ -4,18 +4,18 @@ contract Counter(
 
     method () init() {
         let u256 counter = 0;
-        return then become Counter(counter); 
+        return then become Counter(counter)
 
     }
 
     method () inc() {
         let u256 counter = _counter + 1;
-        return then become Counter(counter);
+        return then become Counter(counter)
     }
 
     method () reset()  {
         let u256 counter = 1; 
-        return then become Counter(counter); 
+        return then become Counter(counter)
     }
 }
 

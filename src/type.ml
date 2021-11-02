@@ -244,12 +244,6 @@ and addTy_stmts cns cname ctx = function
     | []                ->  []
     | stmt::rest        ->  let stmt,ctx = addTy_stmt cns cname ctx stmt in
                             stmt :: addTy_stmts cns cname ctx rest
-(*
-and addTy_decl cns cname ctx ty id v =
-    let v               =   addTy_expr cns cname ctx v in
-    assert (is_known_ty (typeof_cns cns) ty);
-    SmDecl(ty,id,v)     ,   add_var ctx id ty  
-*)
 
 
 (************************************) 
@@ -276,7 +270,7 @@ let addTy_mthd cns cn_name ctx (TmMthd(head,body)) =
     let binds       =   binds_of_tys argTys             in
     let ctx'        =   add_retTy ctx rety              in
     let ctx''       =   add_local ctx' binds            in
-    TmMthd(addTy_mthd_head cns head, addTy_stmts cns cn_name ctx'' body)
+    TmMthd(addTy_mthd_head cns head, addTy_expr cns cn_name ctx'' body)
 
 let unique_sig (TmCn(_,_,mthds)) =
     let sigs        =   L.map (function | TmMthd(TyDefault,_)   -> None

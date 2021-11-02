@@ -6,25 +6,24 @@ contract auction
 {
 	method bool bid() {
 		if (now(block) > _bidding_time) 
-            then return false 
-                    then become auction_done(_beneficiary, _bids, _highest_bid) ; 
+            then return false then become auction_done(_beneficiary, _bids, _highest_bid) ;
 		if (value(msg) < _highest_bid) then abort;
 		let bid new_bid             = new bid(sender(msg), value(msg), this) 
                                         with value(msg) ; 
         let _ = _bids[address(new_bid)] := true;
 		return true 
-            then become auction(_beneficiary, _bidding_time, _bids, value(msg));
+            then become auction(_beneficiary, _bidding_time, _bids, value(msg))
 	}
 	method u256 highest_bid() {
 		return (_highest_bid) 
-            then become auction(_beneficiary, _bidding_time, _bids, _highest_bid);
+            then become auction(_beneficiary, _bidding_time, _bids, _highest_bid)
 	}
 	method u256 bidding_time() {
 		return (_bidding_time) 
-            then become auction(_beneficiary, _bidding_time, _bids, _highest_bid);
+            then become auction(_beneficiary, _bidding_time, _bids, _highest_bid)
 	}
 	default {
-		abort; // cancels the call.
+		abort // cancels the call.
 	}
 
 // When the control reaches the end of a contract block,
