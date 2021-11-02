@@ -75,13 +75,13 @@ type 'ty toplevel               =   TmCn        of str * ty list * 'ty mthd list
 and  'ty mthd                   =   TmMthd      of ty * 'ty stmt list 
 
 and  'ty stmt                   =   SmExpr      of 'ty exprTy
-                                |   SmAssign    of 'ty expr * 'ty exprTy
                                 |   SmDecl      of ty * str * 'ty exprTy 
                                 |   SmIf        of 'ty exprTy * 'ty stmt list * 'ty stmt list
 
 and  'ty exprTy                 =   'ty expr * 'ty
 
 and  'ty expr                   =   
+                                |   SmAssign    of 'ty expr * 'ty exprTy
                                 |   TmRef       of 'ty exprTy
                                 |   TmDeref     of 'ty exprTy
                                 |   TmAssign    of 'ty expr * 'ty exprTy 
@@ -218,6 +218,7 @@ let rec str_of_tm  e         = match fst e with
     | TmLog(_,_,_)              -> "log"
     | TmNew         _           -> "new"
     | TmSlfDstrct   _           -> "selfdestruct"
+    | SmAssign(l,r)             -> "assignment" 
     | e                         ->  str_of_expr e 
 
 

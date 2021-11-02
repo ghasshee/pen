@@ -170,6 +170,9 @@ and addTy_expr cns cname ctx expr = pe("addTy_expr: " ^ str_of_tm expr );match f
                                         Balanc e            ,   TyU256
     | TmId     s                    ->  id_lookup_ty ctx s
     | TmReturn(r,c)                 ->  addTy_return  cns cname ctx  r c 
+    | SmAssign(l,r)                 ->  let l       = addTy_lexpr       cns cname ctx  l        in
+                                        let r       = addTy_expr        cns cname ctx  r        in
+                                        SmAssign(l,r)       ,   TyUnit
     | TmCall(id,args)               ->  addTy_call    cns cname ctx (TmCall(id,args))          
     | TmNew(id,args,msg)            ->  addTy_new     cns cname ctx id args msg    
     | EpLAnd (l, r)                 ->  let l,r             =   addTy_binop_arg cns cname ctx l r       in
@@ -237,9 +240,6 @@ and addTy_stmt cns cname ctx = function
                             let t       = addTy_stmts       cns cname ctx  t        in
                             let f       = addTy_stmts       cns cname ctx  f        in
                             SmIf(b,t,f)     , ctx 
-    | SmAssign(l,r)     ->  let l       = addTy_lexpr       cns cname ctx  l        in
-                            let r       = addTy_expr        cns cname ctx  r        in
-                            SmAssign(l,r)   , ctx
     | SmDecl(ty,id,v)   ->  addTy_decl        cns cname ctx ty id v
     | SmExpr e          ->  let e       = addTy_expr        cns cname ctx  e        in
                             SmExpr e        , ctx

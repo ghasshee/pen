@@ -61,7 +61,6 @@ and stmts_become ss                 =   L.concat (L.map stmt_become ss)
 and stmt_become                     =   function 
     | SmExpr        e               ->  expr_become e
     | SmDecl(_,_,v)                 ->  expr_become v
-    | SmAssign(TmArray(id,idx),r)   ->  expr_become idx @ expr_become r
     | SmIf(c,b,b')                  ->  expr_become c @ stmts_become b @ stmts_become b'
 and exprs_become es                 =   L.concat (L.map expr_become es)
 and expr_become  e                  =   match fst e with
@@ -75,6 +74,7 @@ and expr_become  e                  =   match fst e with
     | TmNew(id,args,msg)            ->  exprs_become args @ expr_become msg
     | TmSend(cn,_,args,msg)         ->  expr_become cn @ exprs_become args @ expr_become msg
     | TmLog(_,l,_)                  ->  exprs_become l
+    | SmAssign(TmArray(id,idx),r)   ->  expr_become idx @ expr_become r
     | TmReturn(ret,cont)            ->  expr_become ret @ expr_become cont @ (match cnname_of_ret_cont cont with
                                                                          | Some name     -> [name]
                                                                          | None          -> [] )

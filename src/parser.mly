@@ -91,10 +91,9 @@ stmts:
     | stmt stmts                                    { fun ctx -> let stmt,ctx' = $1 ctx in stmt :: $2 ctx'                                      }  
 
 stmt:
-    | lexpr COLONEQ tm SEMI                         { fun ctx -> SmAssign($1 ctx,$3 ctx)      ,ctx                                                                    }
     | ty ID EQ tm SEMI             { reserved $2; fun ctx -> SmDecl($1,$2,$4 ctx)         ,ctx                                                                   }
     | IF tm THEN body ELSE body                     { fun ctx -> SmIf($2 ctx,$4 ctx,$6 ctx)   ,ctx                                                                   }
-    | IF tm THEN body                               { fun ctx -> SmIf($2 ctx,$4 ctx, [])       ,ctx                                                                  }
+    | IF tm THEN body                               { fun ctx -> SmIf($2 ctx,$4 ctx, [])      ,ctx                                                                  }
     |  tm  SEMI                                     { fun ctx -> SmExpr ($1 ctx)              ,ctx                                                                   }
 
 ret: 
@@ -116,6 +115,8 @@ tm:
     | appTm                                         { $1                                                                                        } 
     | LET ty ID EQ tm IN tm                         { fun ctx ->    TmApp((TmAbs($3,$2,$7(add_bruijn_idx ctx $3)),()),$5 ctx)               ,() } 
     | LET ty ID EQ tm SEMI tm                       { fun ctx ->    TmApp((TmAbs($3,$2,$7(add_bruijn_idx ctx $3)),()),$5 ctx)               ,() } 
+    | LET UNIT EQ tm IN tm                          { fun ctx ->    TmApp((TmAbs("_",TyUnit,$6(add_bruijn_idx ctx "_")),()),$4 ctx)         ,() } 
+    | LET UNIT EQ tm SEMI tm                        { fun ctx ->    TmApp((TmAbs("_",TyUnit,$6(add_bruijn_idx ctx "_")),()),$4 ctx)         ,() } 
     | LET REC ID ID COLON ty EQ tm IN tm            { fun ctx ->    let ctx' = add_rec_idx ctx ($3^"'")                         in 
                                                                     let ctx''= add_struct_idx ctx' $4                           in 
                                                                     let ctx  = add_bruijn_idx ctx  $3                           in 
@@ -129,6 +130,7 @@ tm:
     | lexpr EQ tm                                   { fun ctx ->    TmAssign($1 ctx, $3 ctx)                                                ,() }
     | LOG ID  arg_list                              { fun ctx ->    TmLog($2,$3 ctx,None)                                                   ,() }
     | SELFDESTRUCT tm                               { fun ctx ->    TmSlfDstrct($2 ctx)                                                     ,() }
+    | lexpr COLONEQ tm                              { fun ctx ->    SmAssign($1 ctx,$3 ctx)                                                 ,() }
     |  tm  DOT DEFAULT LPAR RPAR msg                { fun ctx ->    TmSend($1 ctx,None,[],$6 ctx)                                           ,() }
     |  tm  DOT ID    arg_list msg                   { fun ctx ->    TmSend($1 ctx,Some $3,$4 ctx,$5 ctx)                                    ,() }
     |  tm  LSQBR  tm  RSQBR                         { fun ctx ->    TmArray($1 ctx,$3 ctx)                                                  ,() }
@@ -150,6 +152,7 @@ aTm:
     | FALSE                                         { fun ctx ->    TmFalse                                                                 ,() }
     | NUM                                           { fun ctx ->    TmU256 $1                                                               ,() }
     | U8                                            { fun ctx ->    TmU256 $1                                                               ,() }
+    | UNIT                                          { fun ctx ->    TmUnit                                                                  ,() }
     | VALUE   LPAR  MSG  RPAR                       { fun ctx ->    EpValue                                                                 ,() }
     | SENDER  LPAR  MSG  RPAR                       { fun ctx ->    EpSender                                                                ,() }
     | BALANCE LPAR  tm   RPAR                       { fun ctx ->    Balanc ($3 ctx)                                                         ,() }

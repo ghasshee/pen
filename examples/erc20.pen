@@ -3,9 +3,9 @@ contract PreToken   (u256                       totalSupply
                     ,address => u256            balances
                     ,address => address => u256 allowances ) {
     default {
-        balances[this] := totalSupply;
+        let _ = balances[this] := totalSupply;
         return 
-            then become Token(totalSupply, balances, allowances);
+            then become Token(totalSupply, balances, allowances) ; 
     }
 }
 

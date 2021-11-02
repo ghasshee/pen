@@ -397,6 +397,7 @@ and codegen_expr_eff ly le ce aln          = function
     | TmAbort               ,TyVoid     ->  le, throw ce                               
     | TmLog(id,args,Some ev),TyUnit     ->  codegen_log_stmt    ly le ce id args ev    
     | TmSlfDstrct expr      ,TyUnit     ->  codegen_selfDstrct  ly le ce expr          
+    | SmAssign(l,r)         ,TyUnit     ->  codegen_assign      ly le ce l r        
     | TmReturn(ret,cont)    ,_          ->  codegen_return      ly le ce ret cont     
     | e                                 ->  pf "codegen_expr: %s " (str_of_tm e); raise Not_found
     
@@ -455,6 +456,17 @@ and codegen_send cn m args msg ly le ce = match snd cn with
                   Comment("END send to Addr")   >>ce 
     | _             -> err "send expr with Wrong type"
 
+
+and sstore_to_lval ly le ce (TmArray(id,idx)) =                      (*                                    rval >> .. *)
+    let ce      = keccak_of_array id idx    ly le ce            in   (*                 KEC(aseed^aidx) >> rval >> .. *)
+                  SSTORE                        >>ce                 (* S[KEC(aseed^aidx)] := rval                 .. *)
+
+and codegen_assign ly le ce l r =
+    let ce      = Comment "BEGIN Assignment"    >>ce            in 
+    let ce      = r                             >>>>(R,ly,le,ce)in   (*                                    r >> .. *)
+    let ce      = sstore_to_lval ly le ce l                     in   (* S[KEC(l)] := r                          .. *)  
+    let ce      = Comment "END Assignment"      >>ce            in 
+    le,ce 
 
 and checked_codegen_LAnd l r ly le ce aln = 
     assert(aln=R);         
@@ -596,17 +608,6 @@ and codegen_selfDstrct ly le ce expr =
     let ce      = SELFDESTRUCT                  >>ce            in
     le, ce
 
-and sstore_to_lval ly le ce (TmArray(id,idx)) =                      (*                                    rval >> .. *)
-    let ce      = keccak_of_array id idx    ly le ce            in   (*                 KEC(aseed^aidx) >> rval >> .. *)
-                  SSTORE                        >>ce                 (* S[KEC(aseed^aidx)] := rval                 .. *)
-
-and codegen_assign ly le ce l r =
-    let ce      = Comment "BEGIN Assignment"    >>ce            in 
-    let ce      = r                             >>>>(R,ly,le,ce)in   (*                                    r >> .. *)
-    let ce      = sstore_to_lval ly le ce l                     in   (* S[KEC(l)] := r                          .. *)  
-    let ce      = Comment "END Assignment"      >>ce            in 
-    le, ce
-
 and codegen_decl ly le ce (ty,id,v)  = 
     let ce      = Comment "BEGIN declaration"   >>ce            in 
     let pos     = get_stack_size ce                             in
@@ -720,10 +721,9 @@ and codegen_return ly le ce ret cont =
 
 and codegen_stmts stmts ly le ce   = foldl (codegen_stmt ly) (le,ce) stmts
 and codegen_stmt ly  (le,ce)       = function 
-    | SmAssign(l,r)                 ->  codegen_assign      ly le ce l r        
     | SmDecl(ty,id,v)               ->  codegen_decl        ly le ce (ty,id,v)
     | SmExpr expr                   ->  codegen_expr_stmt   ly le ce expr
-    | SmIf(cond,e1,e2)              ->  codegen_ifstmt          ly le ce cond e1 e2 
+    | SmIf(cond,e1,e2)              ->  codegen_ifstmt      ly le ce cond e1 e2 
 
 (********************************************)
 (***     7. CODEGEN CONTRACT             ***)
