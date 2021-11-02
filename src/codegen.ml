@@ -348,32 +348,32 @@ and salloc_array_of_push push_array_seed ce =
 
 (* le is not updated here.  
  * le can only be updated in a variable initialization *)
-and (>>>>) e (aln,ly,le,ce)  = codegen_tm ly le ce aln e 
-and codegen_tm ly le ce aln  e        = pe (str_of_tm e); pe (str_of_ctx le); match e with 
-    | TmApp(t1,t2)          ,ty         ->                  codegen_app     ly le ce (TmApp(t1,t2))
-    | TmAbs(x,tyX,t)        ,TyAbs _    ->                  codegen_abs     ly le ce (TmAbs(x,tyX,t))
-    | TmFix(f,n,tyF,t)      ,ty         ->                  codegen_fix     ly le ce (TmFix(f,n,tyF,t))
-    | TmI(i,n)              ,ty         ->                  codegen_idx     ly le ce (TmI(i,n))          
-    | TmIStrct(i)           ,ty         ->                  codegen_idstrct ly le ce (TmIStrct(i))
-    | TmIf(b,t1,t2)         ,ty         ->                  codegen_if      ly le ce (TmIf(b,t1,t2)) 
+and (>>>>) e (aln,ly,le,ce)         = codegen_tm ly le ce aln e 
+and codegen_tm ly le ce aln  e      = pe_tm e; pe(str_of_ctx le); match e with 
+    | TmApp(t1,t2)          ,_          ->                  codegen_app     ly le ce (TmApp(t1,t2))
+    | TmAbs(x,tyX,t)        ,_          ->                  codegen_abs     ly le ce (TmAbs(x,tyX,t))
+    | TmFix(f,n,tyF,t)      ,_          ->                  codegen_fix     ly le ce (TmFix(f,n,tyF,t))
+    | TmI(i,n)              ,_          ->                  codegen_idx     ly le ce (TmI(i,n))          
+    | TmIStrct(i)           ,_          ->                  codegen_idstrct ly le ce (TmIStrct(i))
+    | TmIf(b,t1,t2)         ,_          ->                  codegen_if      ly le ce (TmIf(b,t1,t2)) 
     | EpAddr(c,TyInstnc i)  ,TyAddr     ->                  (c,TyInstnc i)          >>>>(aln,ly,le,ce) 
-    | Balanc e              ,TyU256     ->                  BALANCE >> ( e          >>>>(R,ly,le,ce) )
-    | EpValue               ,TyU256     ->                  CALLVALUE               >>ce      (* Value (wei) Transferred to the account *) 
+    | Balanc e              ,_          ->                  BALANCE >> ( e          >>>>(R,ly,le,ce) )
+    | EpValue               ,_          ->                  CALLVALUE               >>ce      (* Value (wei) Transferred to the account *) 
     | TmZero                ,_          ->                  PUSH1(Int 0)            >>ce 
-    | EpNow                 ,TyU256     ->                  TIMESTAMP               >>ce 
-    | TmFalse               ,TyBool     ->  assert(aln=R);  PUSH1(Int 0)            >>ce  
-    | TmTrue                ,TyBool     ->  assert(aln=R);  PUSH1(Int 1)            >>ce 
+    | EpNow                 ,_          ->                  TIMESTAMP               >>ce 
+    | TmFalse               ,_          ->  assert(aln=R);  PUSH1(Int 0)            >>ce  
+    | TmTrue                ,_          ->  assert(aln=R);  PUSH1(Int 1)            >>ce 
     | TmU256  d             ,_          ->  assert(aln=R);  PUSH32(Big d)           >>ce  
-    | TmU8 d                ,TyU8       ->  assert(aln=R);  PUSH1(Big d)            >>ce  
+    | TmU8 d                ,_          ->  assert(aln=R);  PUSH1(Big d)            >>ce  
     | TmAdd (l,r)           ,_          ->                  op ADD l r             ly le ce             
     | TmSub(l,r)            ,_          ->                  op SUB l r             ly le ce             
     | TmMul  (l,r)          ,_          ->                  op MUL l r             ly le ce             
-    | TmLT   (l,r)          ,TyBool     ->  assert(aln=R);  op LT  l r             ly le ce           
-    | TmGT   (l,r)          ,TyBool     ->  assert(aln=R);  op GT  l r             ly le ce           
-    | TmEQ   (l,r)          ,TyBool     ->  assert(aln=R);  op EQ  l r             ly le ce           
-    | TmNEQ  (l,r)          ,TyBool     ->  assert(aln=R);  ISZERO >> (op EQ l r   ly le ce)             
-    | TmNOT    e            ,TyBool     ->  assert(aln=R);  ISZERO >> ( e >>>>(aln,ly,le,ce) )
-    | TmLAND (l,r)          ,TyBool     ->                  checked_codegen_LAnd l r ly le ce aln   
+    | TmLT   (l,r)          ,_          ->  assert(aln=R);  op LT  l r             ly le ce           
+    | TmGT   (l,r)          ,_          ->  assert(aln=R);  op GT  l r             ly le ce           
+    | TmEQ   (l,r)          ,_          ->  assert(aln=R);  op EQ  l r             ly le ce           
+    | TmNEQ  (l,r)          ,_          ->  assert(aln=R);  ISZERO >> (op EQ l r   ly le ce)             
+    | TmNOT    e            ,_          ->  assert(aln=R);  ISZERO >> ( e >>>>(aln,ly,le,ce) )
+    | TmLAND (l,r)          ,_          ->                  checked_codegen_LAnd l r ly le ce aln   
     | TmSend(cn,m,args,msg) ,_          ->  assert(aln=R);  codegen_send cn m args msg ly le ce 
     | TmNew(id,args,msg)    ,TyInstnc _ ->  assert(aln=R);  codegen_new id args msg ly le ce 
     | TmCall(id,args)       ,rety       ->                  codegen_predef_call aln ly le ce id args rety
@@ -390,13 +390,13 @@ and codegen_tm ly le ce aln  e        = pe (str_of_tm e); pe (str_of_ctx le); ma
     | TmDeref(ref,tyR)      ,ty         ->  assert(size_of_ty ty<=32 && tyR=TyRef ty && aln=R) ;                    (* assuming word-size *)
                                             let ce      =   (ref,tyR)               >>>>(R,ly,le,ce)   in  (* pushes the pointer *)
                                                             MLOAD                   >>ce 
-    | e, ty                             ->  let _,ce    =   codegen_tm_eff ly le ce aln (e,ty) in 
+    | e                                 ->  let _,ce    =   codegen_tm_eff ly le ce aln e      in 
                                                             PUSH1(Int 0) >> ce 
 
 and codegen_tm_eff ly le ce aln          = function 
-    | TmAbort               ,TyErr     ->  le, throw ce                               
+    | TmAbort               ,TyErr      ->  le, throw ce                               
     | TmLog(id,args,Some ev),TyUnit     ->  codegen_log         ly le ce id args ev    
-    | TmSfDstr tm      ,TyUnit     ->  codegen_selfDstrct  ly le ce tm          
+    | TmSfDstr tm           ,TyUnit     ->  codegen_selfDstrct  ly le ce tm          
     | TmAssign(l,r)         ,TyUnit     ->  codegen_assign      ly le ce l r        
     | TmReturn(ret,cont)    ,_          ->  codegen_return      ly le ce ret cont     
     | e                                 ->  pf "codegen_tm: %s " (str_of_tm e); raise Not_found
@@ -538,8 +538,8 @@ and codegen_fix ly le ce (TmFix(phi,n,ty,tm)) =
     ce 
 
 and codegen_idstrct ly le ce (TmIStrct(i)) = 
-    let ce      = Comment "BEGIN Struct Parameter"  >>ce in
-    let ce      = get_escaped_arg                     ce in 
+    let ce      = Comment "BEGIN Struct Parameter"  >>ce                in
+    let ce      = get_escaped_arg                     ce                in 
                   Comment "END Struct Parameter"    >>ce
 
 and codegen_app ly le ce (TmApp(t1,t2)) = match fst t1 with 
@@ -548,7 +548,7 @@ and codegen_app ly le ce (TmApp(t1,t2)) = match fst t1 with
                   codegen_app ly le ce (TmApp(tm,t2))
     | TmIRec(i)       -> 
                   codegen_app_idxrec R ly le ce (TmApp(t1,t2))
-    | TmFix(f,n,ty,tm)  -> 
+    | TmFix(f,n,ty,tm)-> 
     let ret     = fresh_label ()                                        in 
     let ce      = escape_ARG t2 ret ly le ce R                          in 
     let ce      = codegen_fix ly le ce (TmFix(f,n,ty,tm))               in
@@ -602,9 +602,9 @@ and codegen_selfDstrct ly le ce tm =
 
 and mstore_tms ly le ce pack = function 
     | []        ->  le,         repeat (PUSH1(Int 0)) 2   ce    
-    | e::es     ->  let le,ce = mstore_tm ly le ce pack e     in (*                                      alloc(size) >> size >> .. *)
+    | e::es     ->  let le,ce = mstore_tm ly le ce pack e       in (*                                      alloc(size) >> size >> .. *)
                     let ce    = SWAP1                   >>ce    in (*                                      size >> alloc(size) >> .. *)
-                    let le,ce = mstore_tms ly le ce pack es   in (*   0 >> 0 >> size' >> alloc(size') >> size >> alloc(size) >> .. *)
+                    let le,ce = mstore_tms ly le ce pack es     in (*   0 >> 0 >> size' >> alloc(size') >> size >> alloc(size) >> .. *)
                     let ce    = POP                     >>ce    in (*        0 >> size' >> alloc(size') >> size >> alloc(size) >> .. *)       
                     let ce    = ADD                     >>ce    in (*             size' >> alloc(size') >> size >> alloc(size) >> .. *)    
                     let ce    = SWAP1                   >>ce    in (*             alloc(size') >> size' >> size >> alloc(size) >> .. *)     
@@ -613,10 +613,10 @@ and mstore_tms ly le ce pack = function
                              (* SWAP1                                                           alloc(size) >> size+size'  >> .. *)
                     
 and codegen_log      (ly:storLayout) le ce name args evnt =
-    let visible, args= split_ev_args evnt args                in
+    let visible, args= split_ev_args evnt args                  in
     let ce      = push_args le ly visible         ce            in
     let ce      = push_evnt_hash  evnt            ce            in
-    let le,ce   = mstore_tms ly le ce ABIpk args              in  (* stack : [..., size, offset] *)
+    let le,ce   = mstore_tms ly le ce ABIpk args                in  (* stack : [..., size, offset] *)
     let n       = L.length visible + 1                          in
     let ce      = log n                         >>ce            in  (* deindexee N in logN *)
     le, ce
@@ -643,8 +643,8 @@ and cont_call ly le ce (TmCall(cn,args),_) =
     let idx     =   lookup_cnidx_of_ce ce cn            in 
     let offset  =   (ly.fieldVars idx).offst            in  
     let ce      =   Comment "Setting Cont"  >>ce        in 
-    let ce      =   set_PC ce idx                       in      (* S[PC] := rntime_offset_of_cn                                 .. *) 
-                    sstore_vars ly le ce offset idx args        (* S[l_k]:= argk; .. ; S[l_1]:= arg1                            .. *)
+    let ce      =   set_PC ce idx                       in  (*  S[PC] := rntime_offset_of_cn                                 .. *) 
+                    sstore_vars ly le ce offset idx args    (*  S[l_k]:= argk; .. ; S[l_1]:= arg1                            .. *)
 
 (*       mstore_word ty 
  *
