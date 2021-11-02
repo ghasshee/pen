@@ -86,11 +86,11 @@ ret:
     | tm                                            { $1                                                                                        }
 
 %inline op:
-    | LT                                            { fun l r ->    EpLT(l,r)                                                                   }
-    | GT                                            { fun l r ->    EpGT(l,r)                                                                   }
-    | EQEQ                                          { fun l r ->    TmEq(l,r)                                                                   }
-    | NEQ                                           { fun l r ->    EpNEq(l,r)                                                                  }
-    | LAND                                          { fun l r ->    EpLAnd(l,r)                                                                 } 
+    | LT                                            { fun l r ->    TmLT(l,r)                                                                   }
+    | GT                                            { fun l r ->    TmGT(l,r)                                                                   }
+    | EQEQ                                          { fun l r ->    TmEQ(l,r)                                                                   }
+    | NEQ                                           { fun l r ->    TmNEQ(l,r)                                                                  }
+    | LAND                                          { fun l r ->    TmLAND(l,r)                                                                 } 
     | PLUS                                          { fun l r ->    TmAdd(l,r)                                                                  }
     | MULT                                          { fun l r ->    TmMul(l,r)                                                                  }
     | MINUS                                         { fun l r ->    TmSub(l,r)                                                                  }
@@ -122,7 +122,7 @@ tm:
     | tm op tm                                      { fun ctx ->    $2 ($1 ctx)($3 ctx)                                                     ,() }
 appTm:
     | pathTm                                        { $1                                                                                        }
-    | NOT   pathTm                                  { fun ctx ->    EpNot ($2 ctx)                                                          ,() }
+    | NOT   pathTm                                  { fun ctx ->    TmNOT ($2 ctx)                                                          ,() }
     | ISZERO arg_list                               { fun ctx ->    TmCall("iszero"          ,$2 ctx)                                       ,() }
     | ECDSARECOVER arg_list                         { fun ctx ->    TmCall("pre_ecdsarecover",$2 ctx)                                       ,() }
     | KECCAK arg_list                               { fun ctx ->    TmCall("keccak256"       ,$2 ctx)                                       ,() }
@@ -145,9 +145,9 @@ aTm:
     | THIS                                          { fun ctx ->    EpThis                                                                  ,() }
     | ADDRESS LPAR  tm   RPAR                       { fun ctx ->    EpAddr ($3 ctx)                                                         ,() }
     | ID                               { reserved $1; fun ctx ->    prBds ctx;pe $1;
-                                                (           try     TmIdx(lookup_bruijn_idx $1 ctx,len ctx)                                 ,()  
-                                                with _ ->   try     TmIdxRec(lookup_rec_idx ($1^"'") ctx)                                   ,() 
-                                                with _ ->   try     TmIdxStrct(lookup_struct_idx $1 ctx)                                    ,() 
+                                                (           try     TmI(lookup_bruijn_idx $1 ctx,len ctx)                                 ,()  
+                                                with _ ->   try     TmIRec(lookup_rec_idx ($1^"'") ctx)                                   ,() 
+                                                with _ ->   try     TmIStrct(lookup_struct_idx $1 ctx)                                    ,() 
                                                 with _ ->           TmId $1                                                                 ,())}
     | NEW ID  arg_list msg             { reserved $2; fun ctx ->    TmNew($2,$3 ctx,$4 ctx)                                                 ,() }
 call: 

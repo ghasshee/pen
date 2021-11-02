@@ -26,7 +26,7 @@ type ty           (* atomic *)  =   TyErr
                                 |   TyDefault
                                 |   TyRef               of ty 
  (* TyAbs(arg, ret)         *)  |   TyAbs               of  ty * ty                  
-                                |   TyIdx               of int * int                 
+                                |   TyI               of int * int                 
  (* TyVar(id, ty)           *)  |   TyVar               of str * ty                  
  (* TyEvVar(id,ty,indexed)  *)  |   TyEvVar             of str * ty * bool           
  (* TyEv(  ,   )            *)  |   TyEv                of str * ty list 
@@ -84,9 +84,9 @@ and  'ty expr                   =
                                 |   TmApp       of 'ty exprTy * 'ty exprTy  
                                 |   TmAbs       of str * ty * 'ty exprTy
                                 |   TmFix       of str * str * ty * 'ty exprTy
-                                |   TmIdx       of int * int 
-                                |   TmIdxRec    of int 
-                                |   TmIdxStrct  of int 
+                                |   TmI       of int * int 
+                                |   TmIRec    of int 
+                                |   TmIStrct  of int 
                                 |   TmId        of str
                                 |   TmIf        of 'ty exprTy * 'ty exprTy * 'ty exprTy 
 (* TmReturn(ret,cont)        *) |   TmReturn    of 'ty exprTy * 'ty exprTy  
@@ -107,13 +107,13 @@ and  'ty expr                   =
                                 |   TmSub       of 'ty exprTy * 'ty exprTy
                                 |   TmMul       of 'ty exprTy * 'ty exprTy
                                 |   EpNow
-                                |   EpLAnd      of 'ty exprTy * 'ty exprTy
-                                |   EpLT        of 'ty exprTy * 'ty exprTy
-                                |   EpGT        of 'ty exprTy * 'ty exprTy
-                                |   TmEq        of 'ty exprTy * 'ty exprTy
-                                |   EpNEq       of 'ty exprTy * 'ty exprTy
+                                |   TmLAND      of 'ty exprTy * 'ty exprTy
+                                |   TmLT        of 'ty exprTy * 'ty exprTy
+                                |   TmGT        of 'ty exprTy * 'ty exprTy
+                                |   TmEQ        of 'ty exprTy * 'ty exprTy
+                                |   TmNEQ       of 'ty exprTy * 'ty exprTy
                                 |   EpAddr      of 'ty exprTy
-                                |   EpNot       of 'ty exprTy
+                                |   TmNOT       of 'ty exprTy
                                 |   EpValue
                                 |   EpSender
                                 |   EpThis
@@ -172,11 +172,11 @@ let rec str_of_expr          = function
     | EpNow                     -> "now"
     | EpSender                  -> "sender"
     | EpValue                   -> "value"
-    | EpNot         _           -> "not"
-    | EpNEq         _           -> "neq"
-    | EpLAnd        _           -> "_ && _"
-    | EpLT          _           -> "lt"
-    | EpGT          _           -> "gt"
+    | TmNOT         _           -> "not"
+    | TmNEQ         _           -> "neq"
+    | TmLAND        _           -> "_ && _"
+    | TmLT          _           -> "lt"
+    | TmGT          _           -> "gt"
     | EpAddr        _           -> "address"
     | TmDeref       _           -> "dereference of ..."
     | Balanc        _           -> "balance" 
@@ -187,11 +187,11 @@ let rec str_of_tm  e         = match fst e with
     | TmAbs(x,tyX,t)            -> "(λ" ^ x ^ ":" ^ str_of_ty tyX ^ "." ^ str_of_tm t ^ ")"
     | TmFix(f,n,_,t)            -> "TmFix(λ" ^ f ^ " " ^ n ^ "→" ^ str_of_tm t ^ ")" 
     | TmId(s)                   -> "TmId(" ^ s ^ ")"
-    | TmIdx(i,n)                -> "TmIdx"      ^ str_of_int i 
-    | TmIdxRec(i)               -> "TmRec"      ^ str_of_int i 
-    | TmIdxStrct(i)             -> "{Struct "   ^ str_of_int i ^ "}"
+    | TmI(i,n)                -> "TmI"      ^ str_of_int i 
+    | TmIRec(i)               -> "TmRec"      ^ str_of_int i 
+    | TmIStrct(i)             -> "{Struct "   ^ str_of_int i ^ "}"
     | TmIf(b,t,t')              -> "(If " ^ str_of_tm b ^ " Then " ^ str_of_tm t ^ " Else " ^ str_of_tm t' ^ ")"
-    | TmEq(a,b)                 -> str_of_tm a ^ "==" ^ str_of_tm b
+    | TmEQ(a,b)                 -> str_of_tm a ^ "==" ^ str_of_tm b
     | TmU256(b)                 -> "u256" ^ str_of_big b 
     | TmU8(b)                   -> "u8"   ^ str_of_big b 
     | TmId(str)                 -> str
@@ -213,6 +213,10 @@ let rec str_of_tm  e         = match fst e with
     | TmAssign(l,r)             -> "assignment" 
     | e                         ->  str_of_expr e 
 
+;;
+
+let pr_tm t = ps (str_of_tm t)
+let pe_tm t = pe (str_of_tm t) 
 
 (*****************************************)
 (***              SIZE                 ***)
@@ -268,28 +272,28 @@ let count_plain_args            = L.length $ (L.filter (not $ is_mapping))
 
 let rec tyWalk onVar c          = let f = onVar in function 
     | TyAbs(tyT1,tyT2)          -> TyAbs(tyWalk f c tyT1,tyWalk f c tyT2) 
-    | TyIdx(x,n)                -> onVar c x n
+    | TyI(x,n)                -> onVar c x n
     | tyT                       -> tyT
 
 let rec tmWalk onVar onType c   = let (f,g) = (onVar,onType) in function 
    (* | TmLet(x,t1,t2)            -> TmLet(x,tmWalk f g c t1, tmWalk f g(c+1)t2) *)
     | TmAbs(x,tyT,(t2,b))       -> TmAbs(x,g c tyT,(tmWalk f g(c+1)t2,b))
     | TmApp((t1,a),(t2,b))      -> TmApp((tmWalk f g c t1,a),(tmWalk f g c t2,b)) 
-    | TmIdx(x,n)                -> onVar c x n
+    | TmI(x,n)                -> onVar c x n
     | x                         -> x
 
-let tyShiftOnVar d          = fun c x n  ->  if x>=c then TyIdx(x+d,n+d) else TyIdx(x,n+d)
+let tyShiftOnVar d          = fun c x n  ->  if x>=c then TyI(x+d,n+d) else TyI(x,n+d)
 let tyShiftAbove d          = tyWalk (tyShiftOnVar d) 
 let tyShift d               = tyShiftAbove d 0    
 
-let tmShiftOnVar d          = fun c x n  ->  if x>=c then TmIdx(x+d,n+d) else TmIdx(x,n+d)
+let tmShiftOnVar d          = fun c x n  ->  if x>=c then TmI(x+d,n+d) else TmI(x,n+d)
 let tmShiftAbove d          = tmWalk (tmShiftOnVar d) (tyShiftAbove d) 
 let tmShift d               = tmShiftAbove d 0 
 
 (*
 let bindshift d             = function 
     | BindTyAbb(tyT)            ->  BindTyAbb(tyShift d tyT) 
-    | BindTmIdx(tyT)            ->  BindTmIdx(tyShift d tyT) 
+    | BindTmI(tyT)            ->  BindTmI(tyShift d tyT) 
     | BindTmAbb(t,tyT_opt)      ->  (let tyT_opt' = match tyT_opt with 
                                         | None      -> None
                                         | Some(tyT) -> Some(tyShift d tyT) in 
@@ -298,10 +302,10 @@ let bindshift d             = function
 *)                                      
 (* -------------------------------------------------- *) 
 (* Substitution *) 
-let tySubstOnVar j tyS tyT  = fun c x n -> if x=j+c then tyShift c tyS else TyIdx(x,n)
+let tySubstOnVar j tyS tyT  = fun c x n -> if x=j+c then tyShift c tyS else TyI(x,n)
 let tySubst      j tyS tyT  = tyWalk(tySubstOnVar j tyS tyT)0 tyT
 
-let tmSubstOnVar j s t      = fun c x n -> if x=j+c then tmShift c s   else TmIdx( x, n) 
+let tmSubstOnVar j s t      = fun c x n -> if x=j+c then tmShift c s   else TmI( x, n) 
 let tmSubst      j s t      = tmWalk (tmSubstOnVar j s t) (fun k x -> x) 0 t
 let tmSubstTop     s t      = tmShift (-1) (tmSubst 0 (tmShift 1 s) t) 
 

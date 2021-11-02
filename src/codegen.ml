@@ -325,25 +325,25 @@ and keccak_of_array aid aidx ly le ce  =                                    (* S
                     keccak_cat                            ce                (*                            sha3(array_loc++index) >> .. *) 
       
 and salloc_array aid aidx ly le ce     =
-    let push ce =   keccak_of_array aid aidx        ly le ce            in  (*                                        S[storIdx] >> .. *)
-                    salloc_array_of_push push             ce                (* S[storIdx]:= newSeed                      newSeed >> .. *)     
+    let push ce =   keccak_of_array aid aidx        ly le ce            in  (*                                        S[KEC(a_i)] >> .. *)
+                    salloc_array_of_push push             ce                (* S[KEC(a_i)]:= newSeed                      newSeed >> .. *)     
                                                                           
 and salloc_array_of_loc le ce(Stor data) =       
-    assert(data.size=Int 1) ;                                               (*                                        S[storIdx] >> .. *)     
+    assert(data.size=Int 1) ;                                               (*                                        S[KEC(a_i)] >> .. *)     
     let push ce =   PUSH32 data.offst                   >>ce            in  
-                    salloc_array_of_push push             ce                (* S[storIdx]:= newSeed                      newSeed >> .. *)     
+                    salloc_array_of_push push             ce                (* S[KEC(a_i)]:= newSeed                      newSeed >> .. *)     
 
 and salloc_array_of_push push_array_seed ce =   
-    let label   =   fresh_label ()                                      in  (*                                        S[storIdx] >> .. *) 
-    let ce      =   DUP1                                >>ce            in  (*                          S[storIdx] >> S[storIdx] >> .. *) 
-    let ce      =   PUSH4(Label label)                  >>ce            in  (*                 label >> S[storIdx] >> S[storIdx] >> .. *) 
-    let ce      =   JUMPI                               >>ce            in  (* {IF S[storIdx]!=0 GOTO label}          S[storIdx] >> .. *) 
+    let label   =   fresh_label ()                                      in  (*                                        S[KEC(a_i)] >> .. *) 
+    let ce      =   DUP1                                >>ce            in  (*                          S[KEC(a_i)] >> S[KEC(a_i)] >> .. *) 
+    let ce      =   PUSH4(Label label)                  >>ce            in  (*                 label >> S[KEC(a_i)] >> S[KEC(a_i)] >> .. *) 
+    let ce      =   JUMPI                               >>ce            in  (* {IF S[KEC(a_i)]!=0 GOTO label}          S[KEC(a_i)] >> .. *) 
     let ce      =   POP                                 >>ce            in  (*                                                      .. *) 
     let ce      =   push_array_seed                       ce            in  
-    let ce      =   sincr 1                               ce            in  (*                                 S[1]++ >> storIdx >> .. *) 
-    let ce      =   DUP1                                >>ce            in  (*                     newseed >> newseed >> storIdx >> .. *) 
-    let ce      =   SWAP2                               >>ce            in  (*                     storIdx >> newseed >> newseed >> .. *) 
-    let ce      =   SSTORE                              >>ce            in  (* S[storIdx]:= newseed                      newseed >> .. *)
+    let ce      =   sincr 1                               ce            in  (*                                 S[1]++ >> KEC(a_i) >> .. *) 
+    let ce      =   DUP1                                >>ce            in  (*                     newseed >> newseed >> KEC(a_i) >> .. *) 
+    let ce      =   SWAP2                               >>ce            in  (*                     KEC(a_i) >> newseed >> newseed >> .. *) 
+    let ce      =   SSTORE                              >>ce            in  (* S[KEC(a_i)]:= newseed                      newseed >> .. *)
                     JUMPDEST label                      >>ce                (*                                                         *)
 
 (* le is not updated here.  
@@ -353,8 +353,8 @@ and codegen_expr ly le ce aln  e        = pe (str_of_tm e); pe (str_of_ctx le); 
     | TmApp(t1,t2)          ,ty         ->                  codegen_app     ly le ce (TmApp(t1,t2))
     | TmAbs(x,tyX,t)        ,TyAbs _    ->                  codegen_abs     ly le ce (TmAbs(x,tyX,t))
     | TmFix(f,n,tyF,t)      ,ty         ->                  codegen_fix     ly le ce (TmFix(f,n,tyF,t))
-    | TmIdx(i,n)            ,ty         ->                  codegen_idx     ly le ce (TmIdx(i,n))          
-    | TmIdxStrct(i)         ,ty         ->                  codegen_idstrct ly le ce (TmIdxStrct(i))
+    | TmI(i,n)            ,ty         ->                  codegen_idx     ly le ce (TmI(i,n))          
+    | TmIStrct(i)         ,ty         ->                  codegen_idstrct ly le ce (TmIStrct(i))
     | TmIf(b,t1,t2)         ,ty         ->                  codegen_if      ly le ce (TmIf(b,t1,t2)) 
     | EpAddr(c,TyInstnc i)  ,TyAddr     ->                  (c,TyInstnc i)          >>>>(aln,ly,le,ce) 
     | Balanc e              ,TyU256     ->                  BALANCE >> ( e          >>>>(R,ly,le,ce) )
@@ -368,12 +368,12 @@ and codegen_expr ly le ce aln  e        = pe (str_of_tm e); pe (str_of_ctx le); 
     | TmAdd (l,r)           ,_          ->                  op ADD l r             ly le ce             
     | TmSub(l,r)            ,_          ->                  op SUB l r             ly le ce             
     | TmMul  (l,r)          ,_          ->                  op MUL l r             ly le ce             
-    | EpLT   (l,r)          ,TyBool     ->  assert(aln=R);  op LT  l r             ly le ce           
-    | EpGT   (l,r)          ,TyBool     ->  assert(aln=R);  op GT  l r             ly le ce           
-    | TmEq   (l,r)          ,TyBool     ->  assert(aln=R);  op EQ  l r             ly le ce           
-    | EpNEq  (l,r)          ,TyBool     ->  assert(aln=R);  ISZERO >> (op EQ l r   ly le ce)             
-    | EpNot    e            ,TyBool     ->  assert(aln=R);  ISZERO >> ( e >>>>(aln,ly,le,ce) )
-    | EpLAnd (l,r)          ,TyBool     ->                  checked_codegen_LAnd l r ly le ce aln   
+    | TmLT   (l,r)          ,TyBool     ->  assert(aln=R);  op LT  l r             ly le ce           
+    | TmGT   (l,r)          ,TyBool     ->  assert(aln=R);  op GT  l r             ly le ce           
+    | TmEQ   (l,r)          ,TyBool     ->  assert(aln=R);  op EQ  l r             ly le ce           
+    | TmNEQ  (l,r)          ,TyBool     ->  assert(aln=R);  ISZERO >> (op EQ l r   ly le ce)             
+    | TmNOT    e            ,TyBool     ->  assert(aln=R);  ISZERO >> ( e >>>>(aln,ly,le,ce) )
+    | TmLAND (l,r)          ,TyBool     ->                  checked_codegen_LAnd l r ly le ce aln   
     | TmSend(cn,m,args,msg) ,_          ->  assert(aln=R);  codegen_send cn m args msg ly le ce 
     | TmNew(id,args,msg)    ,TyInstnc _ ->  assert(aln=R);  codegen_new id args msg ly le ce 
     | TmCall(id,args)       ,rety       ->                  codegen_predef_call aln ly le ce id args rety
@@ -516,7 +516,7 @@ and escape_ARG arg retlabel ly le ce a =
     let ce      = ePUSH                               ce                in
                   Comment "ESCAPE DONE"             >>ce 
 
-and codegen_app_idxrec aln ly le ce (TmApp((TmIdxRec(i),_),arg))       = 
+and codegen_app_idxrec aln ly le ce (TmApp((TmIRec(i),_),arg))       = 
     let ce      = Comment "BEGIN APP-REC"           >>ce                in
     let retaddr = fresh_label ()                                        in 
     let start   = lookup_recursion_param le                             in 
@@ -537,16 +537,16 @@ and codegen_fix ly le ce (TmFix(phi,n,ty,tm)) =
     let ce      = Comment "END FIX"                 >>ce                in 
     ce 
 
-and codegen_idstrct ly le ce (TmIdxStrct(i)) = 
+and codegen_idstrct ly le ce (TmIStrct(i)) = 
     let ce      = Comment "BEGIN Struct Parameter"  >>ce in
     let ce      = get_escaped_arg                     ce in 
                   Comment "END Struct Parameter"    >>ce
 
 and codegen_app ly le ce (TmApp(t1,t2)) = match fst t1 with 
-    | TmIdx(i,n)        -> 
+    | TmI(i,n)        -> 
     let tm      = lookup_brjidx i le in 
                   codegen_app ly le ce (TmApp(tm,t2))
-    | TmIdxRec(i)       -> 
+    | TmIRec(i)       -> 
                   codegen_app_idxrec R ly le ce (TmApp(t1,t2))
     | TmFix(f,n,ty,tm)  -> 
     let ret     = fresh_label ()                                        in 
@@ -562,7 +562,7 @@ and codegen_abs ly le ce (TmAbs(x,tyX,t)) =
     let ce      = t                                 >>>>(R,ly,le,ce)    in
     ce 
 
-and codegen_idx ly le ce (TmIdx(i,n))           = 
+and codegen_idx ly le ce (TmI(i,n))           = 
     let tm      = lookup_brjidx i le                                    in 
     pe ("codegen_idx: " ^ str_of_tm tm);
     let ce      = tm                                >>>>(R,ly,le,ce)    in 

@@ -24,7 +24,7 @@ type context                    = bind list
                                 | BdCtx   of context
                                 | BdEv    of str * ty list 
                                 | BdLoc   of str * location 
-                                | BdIdx   of ty exprTy 
+                                | BdI   of ty exprTy 
                                 | BdBrj   of context 
                                 | BdRec   of label   (* BdRec(start) *) 
                                 | BdRecName of str
@@ -96,7 +96,7 @@ let lookup_le key               = find_by_filter (function BdCtx ctx -> lookup_l
 
 let rec lookup_brjidx_local idx = function 
     | []                            -> raise Not_found
-    | BdIdx(tm)::rest when idx=0    -> tm 
+    | BdI(tm)::rest when idx=0    -> tm 
     | _::rest                       -> lookup_brjidx_local (idx-1) rest
 let lookup_brjidx       idx     = find_by_filter (function BdBrj ctx -> lookup_brjidx_local idx ctx| _ -> raise Not_found)
 
@@ -110,14 +110,14 @@ let add_local ctx local         =   BdCtx   local :: ctx
 let add_retTy ctx retTy         =   BdRetTy retTy :: ctx 
 let add_evnts ctx evs           =   foldl (fun xs x -> (L.cons $ bind_of_ty) x xs) ctx evs  
 
-let rec add_var  ctx id ty      =   match ctx with 
+let rec (@@) (id,ty)            =   function   
     | []                            -> err "add_var: no current scope" 
     | BdCtx local:: rest            -> BdCtx (BdTy(id,ty)::local) :: rest 
-    | x :: rest                     -> x :: add_var rest id ty
+    | x :: rest                     -> x ::  ((id,ty) @@ rest)
 
 let rec add_brjidx ctx tm          =   match ctx with 
     | []                            -> err "add_brjidx: no current scope" 
-    | BdBrj local:: rest            -> BdBrj (BdIdx(tm)::local) :: rest
+    | BdBrj local:: rest            -> BdBrj (BdI(tm)::local) :: rest
     | x :: rest                     -> x :: add_brjidx rest tm 
 
 (****************************************************)
