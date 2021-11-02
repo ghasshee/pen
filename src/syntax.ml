@@ -26,12 +26,11 @@ type ty           (* atomic *)  =   TyErr
                                 |   TyDefault
                                 |   TyRef               of ty 
  (* TyAbs(arg, ret)         *)  |   TyAbs               of  ty * ty                  
-                                |   TyI               of int * int                 
+                                |   TyI                 of int * int                 
  (* TyVar(id, ty)           *)  |   TyVar               of str * ty                  
  (* TyEvVar(id,ty,indexed)  *)  |   TyEvVar             of str * ty * bool           
  (* TyEv(id,evargs)         *)  |   TyEv                of str * ty list 
  (* TyCn(id,fields,mthds)   *)  |   TyCn                of str * ty list * ty list   
-
 
     
 (**********************************)
@@ -60,15 +59,13 @@ and  'ty tm                     =
                                 |   TmId        of str
                                 |   TmIf        of 'ty tmty * 'ty tmty * 'ty tmty 
 (* TmReturn(ret,cont)        *) |   TmReturn    of 'ty tmty * 'ty tmty  
-(* TmCall(cnname, args)      *) |   TmCall      of str * 'ty tmty list       
 (* TmArray(id,idx)           *) |   TmArray     of 'ty tmty * 'ty tmty      
 (* TmSend(cn,mname,args,msg) *) |   TmSend      of 'ty tmty * str option * 'ty tmty list * 'ty tmty
+(* TmCall(cnname, args)      *) |   TmCall      of str * 'ty tmty list       
 (* TmNew(id,args,msg)        *) |   TmNew       of str * 'ty tmty list * 'ty tmty    
                                 |   TmLog       of str * 'ty tmty list * ty option (* ty := TyEv *)
                                 |   TmSfDstr    of 'ty tmty
                                 |   Balanc      of 'ty tmty
-                                |   TmU256      of big
-                                |   TmU8        of big
                                 |   TmAdd       of 'ty tmty * 'ty tmty
                                 |   TmSub       of 'ty tmty * 'ty tmty
                                 |   TmMul       of 'ty tmty * 'ty tmty
@@ -79,6 +76,8 @@ and  'ty tm                     =
                                 |   TmNEQ       of 'ty tmty * 'ty tmty
                                 |   EpAddr      of 'ty tmty
                                 |   TmNOT       of 'ty tmty
+                                |   TmU256      of big
+                                |   TmU8        of big
                                 |   TmAbort 
                                 |   TmUnit 
                                 |   TmZero 
@@ -89,8 +88,8 @@ and  'ty tm                     =
                                 |   EpThis
                                 |   EpNow
 
+let get_tm  (tm,_)              =   tm
 let get_ty  (_,ty)              =   ty
-let get_tm  (x,_)               =   x
 
 
 (*****************************************)
@@ -255,7 +254,6 @@ let non_mapping_arg             = function
     | _                         -> err "not an arg"
 
 let count_plain_args            = L.length $ (L.filter (not $ is_mapping)) 
-
 
 
 
