@@ -33,50 +33,20 @@ type ty           (* atomic *)  =   TyErr
  (* TyCn(id,fields,mthds)   *)  |   TyCn                of str * ty list * ty list   
 
 
-let id_of_var                   =   function TyVar(id,_) -> id          | _ -> err "id_of_var" 
-let ty_of_var                   =   function TyVar(_,ty) -> ty          | _ -> err "id_of_var" 
-let tys_of_vars                 =   L.map ty_of_var 
-
-let rec str_of_ty            =   function 
-    | TyU256                    ->  "uint256"
-    | TyU8                      ->  "uint8" 
-    | TyBytes32                 ->  "bytes32" 
-    | TyAddr                    ->  "address" 
-    | TyBool                    ->  "bool" 
-    | TyRef              _      ->  "ref" 
-    | TyUnit                    ->  "()"
-    | TyTuple            _      ->  "tuple" 
-    | TyMap(a,b)                ->  "mapping" 
-    | TyCn(id,_,_)              ->  "contract arch "     ^ id
-    | TyInstnc     s            ->  "contract instance " ^ s
-    | TyMthd(id,_,_)            ->  "method " ^ id 
-    | TyDefault                 ->  "default" 
-    | TyAbs(a,b)                ->  str_of_ty a ^ "→" ^ str_of_ty b
-    | _                         ->  "undefined" 
-
-let  arg_of_ev_arg              =   function TyEvVar(id,ty,_) -> TyVar(id,ty)
-let args_of_ev_args             =   L.map arg_of_ev_arg
-
-let split_ev_args tyEv args     =   match tyEv with TyEv(id,evargs)  -> 
-    let visibles : bool list        =   L.map (function TyEvVar(_,_,visible)->visible) evargs in
-    let combined                    =   zip args visibles                   in
-    let is,ns                       =   BL.partition snd combined           in
-    L.map fst is, L.map fst ns
-
-
     
 (**********************************)
 (***          Terms             ***)
 (**********************************)
 
-type 'ty toplevel               =   TmCn        of str * ty list * 'ty mthd list    (* TmCn(id,fields,mthds *) 
-                                |   TmEv        of ty                               (* TmEv(tyEv)           *) 
+type 'ty toplevel               =   
+(* TmCn(id,fields,mthds      *) |   TmCn        of str * ty list * 'ty mthd list     
+(* TmEv(tyEv)                *) |   TmEv        of ty                                
 
 and  'ty mthd                   =   TmMthd      of ty * 'ty tmty
 
-and  'ty tmty                 =   'ty tm * 'ty
+and  'ty tmty                   =   'ty tm * 'ty
 
-and  'ty tm                   =   
+and  'ty tm                     =   
                                 |   TmRef       of 'ty tmty
                                 |   TmDeref     of 'ty tmty
                                 |   TmAssign    of 'ty tmty * 'ty tmty 
@@ -94,19 +64,14 @@ and  'ty tm                   =
 (* TmArray(id,idx)           *) |   TmArray     of 'ty tmty * 'ty tmty      
 (* TmSend(cn,mname,args,msg) *) |   TmSend      of 'ty tmty * str option * 'ty tmty list * 'ty tmty
 (* TmNew(id,args,msg)        *) |   TmNew       of str * 'ty tmty list * 'ty tmty    
-                                |   TmSfDstr    of 'ty tmty
                                 |   TmLog       of str * 'ty tmty list * ty option (* ty := TyEv *)
-                                |   TmAbort 
-                                |   TmUnit 
-                                |   TmZero 
-                                |   TmTrue
-                                |   TmFalse
+                                |   TmSfDstr    of 'ty tmty
+                                |   Balanc      of 'ty tmty
                                 |   TmU256      of big
                                 |   TmU8        of big
                                 |   TmAdd       of 'ty tmty * 'ty tmty
                                 |   TmSub       of 'ty tmty * 'ty tmty
                                 |   TmMul       of 'ty tmty * 'ty tmty
-                                |   EpNow
                                 |   TmLAND      of 'ty tmty * 'ty tmty
                                 |   TmLT        of 'ty tmty * 'ty tmty
                                 |   TmGT        of 'ty tmty * 'ty tmty
@@ -114,10 +79,15 @@ and  'ty tm                   =
                                 |   TmNEQ       of 'ty tmty * 'ty tmty
                                 |   EpAddr      of 'ty tmty
                                 |   TmNOT       of 'ty tmty
+                                |   TmAbort 
+                                |   TmUnit 
+                                |   TmZero 
+                                |   TmTrue
+                                |   TmFalse
                                 |   EpValue
                                 |   EpSender
                                 |   EpThis
-                                |   Balanc      of 'ty tmty
+                                |   EpNow
 
 let get_ty  (_,ty)              =   ty
 let get_tm  (x,_)               =   x
@@ -127,24 +97,25 @@ let get_tm  (x,_)               =   x
 (***    METHODs      &    CONTRACTS    ***)
 (*****************************************)
 
+let id_of_var                   =   function TyVar(id,_) -> id          | _ -> err "id_of_var" 
+let ty_of_var                   =   function TyVar(_,ty) -> ty          | _ -> err "id_of_var" 
+let tys_of_vars                 =   L.map ty_of_var 
+
+let  arg_of_ev_arg              =   function TyEvVar(id,ty,_) -> TyVar(id,ty)
+let args_of_ev_args             =   L.map arg_of_ev_arg
+
+let split_ev_args tyEv args     =   match tyEv with TyEv(id,evargs)  -> 
+    let visibles : bool list        =   L.map (function TyEvVar(_,_,visible)->visible) evargs in
+    let combined                    =   zip args visibles                   in
+    let is,ns                       =   BL.partition snd combined           in
+    L.map fst is, L.map fst ns
+
 let filter_vars                 =   L.filter (function TyVar(_,TyMap _) -> false | TyVar _ -> true )
 let filter_arrs                 =   L.filter (function TyVar(_,TyMap _) -> true  | TyVar _ -> false) 
-let varTys_of_cn(TmCn(_,flds,_))=   filter_vars flds
-let arrTys_of_cn(TmCn(_,flds,_))=   filter_arrs flds
-let fldTys_of_cn(TmCn(_,flds,_))=   tys_of_vars flds
+let varTys_of_cn(TmCn(_,fls,_)) =   filter_vars fls
+let arrTys_of_cn(TmCn(_,fls,_)) =   filter_arrs fls
+let fldTys_of_cn(TmCn(_,fls,_)) =   tys_of_vars fls
 
-let str_of_tyMthd (TyMthd(id,args,ret))  =
-    let argTys          = tys_of_vars (filter_vars args)        in
-    let strTys          = L.map str_of_ty argTys                in
-    let tys             = S.concat "," strTys                   in
-    id    ^ "(" ^ tys ^ ")"
-
-let str_of_evnt   (TyEv(id,tyEvArgs))    = 
-    let args            = args_of_ev_args tyEvArgs              in 
-    let argTys          = tys_of_vars (filter_vars args)        in
-    let strTys          = L.map str_of_ty argTys                in
-    let tys             = S.concat "," strTys                   in
-    id ^ "(" ^ tys ^ ")"
 
 (*****************************************)
 (***           TOPLEVEL                ***)
@@ -167,7 +138,24 @@ let argTys_of_mthd              = function
 (***           PRINTING                ***)
 (*****************************************)
 
-let rec str_of_tm  e         = match fst e with 
+let rec str_of_ty               =  function 
+    | TyU256                    ->  "uint256"
+    | TyU8                      ->  "uint8" 
+    | TyBytes32                 ->  "bytes32" 
+    | TyAddr                    ->  "address" 
+    | TyBool                    ->  "bool" 
+    | TyRef              _      ->  "ref" 
+    | TyUnit                    ->  "()"
+    | TyTuple            _      ->  "tuple" 
+    | TyMap(a,b)                ->  "mapping" 
+    | TyCn(id,_,_)              ->  "contract arch "     ^ id
+    | TyInstnc     s            ->  "contract instance " ^ s
+    | TyMthd(id,_,_)            ->  "method " ^ id 
+    | TyDefault                 ->  "default" 
+    | TyAbs(a,b)                ->  str_of_ty a ^ "→" ^ str_of_ty b
+    | _                         ->  "undefined" 
+
+let rec str_of_tm  e            =  match fst e with 
     | TmApp(t1,t2)              -> "TmApp(" ^ str_of_tm t1 ^ "," ^ str_of_tm t2 ^ ")"
     | TmAbs(x,tyX,t)            -> "(λ" ^ x ^ ":" ^ str_of_ty tyX ^ "." ^ str_of_tm t ^ ")"
     | TmFix(f,n,_,t)            -> "TmFix(λ" ^ f ^ " " ^ n ^ "→" ^ str_of_tm t ^ ")" 
@@ -208,6 +196,18 @@ let rec str_of_tm  e         = match fst e with
     | TmDeref       _           -> "dereference of ..."
     | Balanc        _           -> "balance" 
 
+let str_of_tyMthd (TyMthd(id,args,ret))  =
+    let argTys          = tys_of_vars (filter_vars args)        in
+    let strTys          = L.map str_of_ty argTys                in
+    let tys             = S.concat "," strTys                   in
+    id    ^ "(" ^ tys ^ ")"
+
+let str_of_evnt   (TyEv(id,tyEvArgs))    = 
+    let args            = args_of_ev_args tyEvArgs              in 
+    let argTys          = tys_of_vars (filter_vars args)        in
+    let strTys          = L.map str_of_ty argTys                in
+    let tys             = S.concat "," strTys                   in
+    id ^ "(" ^ tys ^ ")"
 ;;
 
 let pr_tm t = ps (str_of_tm t)
