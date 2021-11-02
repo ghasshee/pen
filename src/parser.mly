@@ -91,8 +91,6 @@ stmts:
     | stmt stmts                                    { fun ctx -> let stmt,ctx' = $1 ctx in stmt :: $2 ctx'                                      }  
 
 stmt:
-    | IF tm THEN body ELSE body                     { fun ctx -> SmIf($2 ctx,$4 ctx,$6 ctx)   ,ctx                                              }
-    | IF tm THEN body                               { fun ctx -> SmIf($2 ctx,$4 ctx, [])      ,ctx                                              }
     |  tm  SEMI                                     { fun ctx -> SmExpr ($1 ctx)              ,ctx                                              }
 
 ret: 

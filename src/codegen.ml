@@ -608,30 +608,6 @@ and codegen_selfDstrct ly le ce expr =
     let ce      = SELFDESTRUCT                  >>ce            in
     le, ce
 
-and codegen_decl ly le ce (ty,id,v)  = 
-    let ce      = Comment "BEGIN declaration"   >>ce            in 
-    let pos     = get_stack_size ce                             in
-    let ce      = v                             >>>>(R,ly,le,ce)in
-    let le      = add_loc le(id, Stack(pos+1))                  in
-    let ce      = Comment "END   declaration"   >>ce            in 
-    le, ce
-
-and codegen_ifstmt ly le ce cond ss1 ss2 =
-    let next    = fresh_label()                                 in
-    let endif   = fresh_label()                                 in
-    let ce      = Comment "IF"                  >>ce            in 
-    let ce      = cond                          >>>>(R,ly,le,ce)in
-    let ce      = if_0_GOTO next                  ce            in 
-    let ce      = Comment "THEN"                >>ce            in
-    let _,ce    = codegen_stmts ss1 ly         le ce            in (* location env needs to be discarded *)
-    let ce      = goto endif                      ce            in
-    let ce      = Comment "ELSE"                >>ce            in
-    let ce      = JUMPDEST next                 >>ce            in
-    let _,ce    = codegen_stmts ss2 ly         le ce            in (* location env needs to be discarded *)
-    let ce      = Comment "FI"                  >>ce            in 
-    let ce      = JUMPDEST endif                >>ce            in
-    le,ce
-
 and mstore_exprs ly le ce pack = function 
     | []        ->  le,         repeat (PUSH1(Int 0)) 2   ce    
     | e::es     ->  let le,ce = mstore_expr ly le ce pack e     in (*                                      alloc(size) >> size >> .. *)
@@ -721,9 +697,7 @@ and codegen_return ly le ce ret cont =
 
 and codegen_stmts stmts ly le ce   = foldl (codegen_stmt ly) (le,ce) stmts
 and codegen_stmt ly  (le,ce)       = function 
-    (* | SmDecl(ty,id,v)               ->  codegen_decl        ly le ce (ty,id,v) *)
     | SmExpr expr                   ->  codegen_expr_stmt   ly le ce expr
-    | SmIf(cond,e1,e2)              ->  codegen_ifstmt      ly le ce cond e1 e2 
 
 (********************************************)
 (***     7. CODEGEN CONTRACT             ***)

@@ -237,11 +237,6 @@ and addTy_return cns cname ctx ret cont=
 (************************************) 
 
 and addTy_stmt cns cname ctx = function 
-    | SmIf(b,t,f)       ->  let b       = addTy_expr        cns cname ctx  b        in
-                            let t       = addTy_stmts       cns cname ctx  t        in
-                            let f       = addTy_stmts       cns cname ctx  f        in
-                            SmIf(b,t,f)     , ctx 
-  (*  | SmDecl(ty,id,v)   ->  addTy_decl        cns cname ctx ty id v *)
     | SmExpr e          ->  let e       = addTy_expr        cns cname ctx  e        in
                             SmExpr e        , ctx
 

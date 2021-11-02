@@ -75,8 +75,6 @@ type 'ty toplevel               =   TmCn        of str * ty list * 'ty mthd list
 and  'ty mthd                   =   TmMthd      of ty * 'ty stmt list 
 
 and  'ty stmt                   =   SmExpr      of 'ty exprTy
-                               (*  |   SmDecl      of ty * str * 'ty exprTy *) 
-                                |   SmIf        of 'ty exprTy * 'ty stmt list * 'ty stmt list
 
 and  'ty exprTy                 =   'ty expr * 'ty
 

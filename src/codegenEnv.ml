@@ -60,7 +60,6 @@ and mthd_become(TmMthd(_,body))     =   stmts_become body
 and stmts_become ss                 =   L.concat (L.map stmt_become ss)
 and stmt_become                     =   function 
     | SmExpr        e               ->  expr_become e
-    | SmIf(c,b,b')                  ->  expr_become c @ stmts_become b @ stmts_become b'
 and exprs_become es                 =   L.concat (L.map expr_become es)
 and expr_become  e                  =   match fst e with
     | TmAbort  | TmUnit  | TmTrue | TmFalse | EpNow | EpThis | EpValue | EpSender | TmId _  | TmU8 _ | TmU256 _ -> []
