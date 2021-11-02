@@ -244,8 +244,8 @@ and codegen_keccak256 ly le ce args =
     let ce    = SWAP1                           >>ce                in  
                 SHA3                            >>ce                  
 
-and codegen_ECDSArecover ly le ce args = match args with  
-    | [h; v; r; s] ->
+and codegen_ECDSArecover ly le ce = function 
+    | [h;v;r;s] as args ->
     let ce    = PUSH1 (Int 32)                  >>ce                in  
     let ce    = DUP1                            >>ce                in  
     let ce    = malloc                            ce                in  
@@ -265,7 +265,7 @@ and codegen_ECDSArecover ly le ce args = match args with
     | _         -> err "pre_ecdsarecover has a wrong number of args"
 
 (*********************************************)
-(***    5.    CODEGEN  EXPR               ***)
+(***    5.    CODEGEN  TERM               ***)
 (*********************************************)
 (*
  *              ADDRESS              MEMORY 
@@ -353,8 +353,8 @@ and codegen_tm ly le ce aln  e        = pe (str_of_tm e); pe (str_of_ctx le); ma
     | TmApp(t1,t2)          ,ty         ->                  codegen_app     ly le ce (TmApp(t1,t2))
     | TmAbs(x,tyX,t)        ,TyAbs _    ->                  codegen_abs     ly le ce (TmAbs(x,tyX,t))
     | TmFix(f,n,tyF,t)      ,ty         ->                  codegen_fix     ly le ce (TmFix(f,n,tyF,t))
-    | TmI(i,n)            ,ty         ->                  codegen_idx     ly le ce (TmI(i,n))          
-    | TmIStrct(i)         ,ty         ->                  codegen_idstrct ly le ce (TmIStrct(i))
+    | TmI(i,n)              ,ty         ->                  codegen_idx     ly le ce (TmI(i,n))          
+    | TmIStrct(i)           ,ty         ->                  codegen_idstrct ly le ce (TmIStrct(i))
     | TmIf(b,t1,t2)         ,ty         ->                  codegen_if      ly le ce (TmIf(b,t1,t2)) 
     | EpAddr(c,TyInstnc i)  ,TyAddr     ->                  (c,TyInstnc i)          >>>>(aln,ly,le,ce) 
     | Balanc e              ,TyU256     ->                  BALANCE >> ( e          >>>>(R,ly,le,ce) )
@@ -595,7 +595,6 @@ and codegen_mthd ly cnidx (le,ce) (TmMthd(hd,bd))  =
     let ce      = Comment ("END "   ^str_of_ty hd)  >>ce                in  
     le,ce
 
-
 and codegen_selfDstrct ly le ce tm =    
     let ce      = tm                          >>>>(R,ly,le,ce)in
     let ce      = SELFDESTRUCT                  >>ce            in
@@ -686,10 +685,8 @@ and codegen_return ly le ce ret cont =
 
 
 (********************************************)
-(***     7. CODEGEN CONTRACT             ***)
+(***     6. CODEGEN CONTRACT             ***)
 (********************************************)
-
-
 
 let codegen_mthds ly    = ($$$) foldl codegen_mthd ly
 
@@ -703,7 +700,7 @@ let codegen_cntrct ly le ce (idx,TmCn(id,flds,mthds)) =
     ce
 
 (********************************************)
-(***     8. MAKE BYTECODE                ***)
+(***     7. MAKE BYTECODE                ***)
 (********************************************)
 
 let append_rntime ly rc (idx,cn)   =
