@@ -397,7 +397,7 @@ and codegen_expr_eff ly le ce aln          = function
     | TmAbort               ,TyErr     ->  le, throw ce                               
     | TmLog(id,args,Some ev),TyUnit     ->  codegen_log         ly le ce id args ev    
     | TmSlfDstrct expr      ,TyUnit     ->  codegen_selfDstrct  ly le ce expr          
-    | SmAssign(l,r)         ,TyUnit     ->  codegen_assign      ly le ce l r        
+    | TmAssign(l,r)         ,TyUnit     ->  codegen_assign      ly le ce l r        
     | TmReturn(ret,cont)    ,_          ->  codegen_return      ly le ce ret cont     
     | e                                 ->  pf "codegen_expr: %s " (str_of_tm e); raise Not_found
     
@@ -457,7 +457,7 @@ and codegen_send cn m args msg ly le ce = match snd cn with
     | _             -> err "send expr with Wrong type"
 
 
-and sstore_to_lval ly le ce (TmArray(id,idx)) =                      (*                                    rval >> .. *)
+and sstore_to_lval ly le ce (TmArray(id,idx),_) =                      (*                                    rval >> .. *)
     let ce      = keccak_of_array id idx    ly le ce            in   (*                 KEC(aseed^aidx) >> rval >> .. *)
                   SSTORE                        >>ce                 (* S[KEC(aseed^aidx)] := rval                 .. *)
 

@@ -9,15 +9,6 @@ module BS   = BatString
 module BO   = BatOption
 module L    = List
 
-
-(***********************************)
-(*     Type of Method Name         *)
-(***********************************)
-
-let find_tyMthd_in_cn mname = find_by_filter (function TyMthd(i,r,m)when i=mname    -> TyMthd(i,r,m)                    | _ -> raise Not_found) 
-let find_tyMthd       mname = find_by_filter (function TyCn(_,_,mthds)              -> find_tyMthd_in_cn mname mthds    | _ -> raise Not_found)
-
-
 (***********************************)
 (***      Type Equivalence       ***)
 (***********************************)
@@ -43,10 +34,12 @@ let subtype                     = tyeqv
 
 
 
-
 (************************************) 
 (**         METHOD TyCheck         **) 
 (************************************) 
+
+let find_tyMthd_in_cn mname = find_by_filter (function TyMthd(i,r,m)when i=mname    -> TyMthd(i,r,m)                    | _ -> raise Not_found) 
+let find_tyMthd       mname = find_by_filter (function TyCn(_,_,mthds)              -> find_tyMthd_in_cn mname mthds    | _ -> raise Not_found)
 
 let typeof_mthd                 =   function 
     | TmMthd(TyMthd(id,ags,r),_)    ->  TyMthd(id, tys_of_vars ags, r)
@@ -73,43 +66,11 @@ let arg_has_known_ty tycns      =   function
 
 
 (************************************) 
-(**          CALL  TyCheck         **) 
-(************************************) 
-
-let check_call_arg_types tycns  =   function 
-    | "pre_ecdsarecover"            ->  (=) [TyBytes32;TyU8;TyBytes32;TyBytes32]
-    | "keccak256"                   ->  konst true
-    | "iszero"                      ->  fun x ->  x=[TyBytes32]||x=[TyU8]||x=[TyU256]||x=[TyBool]||x=[TyAddr]
-    | name                          ->  let cnidx               = lookup_idx (tycn_has_name name) tycns in
-                                        let TyCn(_,tyargs,_)    = lookup cnidx tycns                    in 
-                                        (=) tyargs 
-
-let check_args_match tycns args =   function 
-    | Some m                        ->  assert (check_call_arg_types tycns m (L.map get_ty args))
-    | None                          ->  assert (isNil (L.map get_ty args))
-
-let rec addTy_call cns cname ctx (TmCall(id,args)) =
-    let args        = addTy_exprs cns cname ctx args in
-    check_args_match (typeof_cns cns) args (Some id) ; 
-    let rety        = match id with
-        | "value" when true         ->  TyU256 (* check the arg is 'msg' *) 
-        | "pre_ecdsarecover"        ->  TyAddr
-        | "keccak256"               ->  TyBytes32
-        | "iszero"                  ->  begin match args with
-            | [arg]                     ->  TyBool
-            | _                         ->  err "should not happen" end 
-        | cnname when true          ->  let i,cn = lookup_icn_of_icns cns cnname in 
-                                        typeof_cn cn 
-        | _                         ->  err "addTy_call: should not happen" in
-    TmCall(id,args) , rety 
-
-and typechecks tys actual       =   L.for_all2 (fun ty (_,a)-> ty=a) tys actual
-
-(************************************) 
 (**          EXPR  TyCheck         **) 
 (************************************) 
-and addTy_exprs cns cnm ctx = L.map (addTy_expr cns cnm ctx)
-and addTy_expr cns cname ctx expr = pe("addTy_expr: " ^ str_of_tm expr );match fst expr with
+
+let rec addTy_exprs cns cname ctx es   = L.map (addTy_expr cns cname ctx) es
+and     addTy_expr  cns cname ctx expr = pe("addTy_expr: " ^ str_of_tm expr );match fst expr with
     | TmApp(t1,t2)                  ->  let t1,ty1          =   addTy_expr cns cname ctx t1 in 
                                         let t2,ty2          =   addTy_expr cns cname ctx t2 in 
                                         begin match t1,ty1 with 
@@ -171,9 +132,9 @@ and addTy_expr cns cname ctx expr = pe("addTy_expr: " ^ str_of_tm expr );match f
                                         Balanc e            ,   TyU256
     | TmId     s                    ->  id_lookup_ty ctx s
     | TmReturn(r,c)                 ->  addTy_return  cns cname ctx  r c 
-    | SmAssign(l,r)                 ->  let l       = addTy_lexpr       cns cname ctx  l        in
+    | TmAssign(l,r)                 ->  let l       = addTy_lexpr       cns cname ctx  l        in
                                         let r       = addTy_expr        cns cname ctx  r        in
-                                        SmAssign(l,r)       ,   TyUnit
+                                        TmAssign(l,r)       ,   TyUnit
     | TmCall(id,args)               ->  addTy_call    cns cname ctx (TmCall(id,args))          
     | TmNew(id,args,msg)            ->  addTy_new     cns cname ctx id args msg    
     | EpLAnd (l, r)                 ->  let l,r             =   addTy_binop_arg cns cname ctx l r       in
@@ -213,15 +174,15 @@ and addTy_binop_arg cns cname ctx l r =
     assert_tyeqv l r; 
     l,r 
 
+and addTy_lexpr cns cname ctx (TmArray(id,idx),_) = 
+    let s,TyMap(k,v)    =   addTy_expr cns cname ctx id     in 
+    let idx             =   addTy_expr cns cname ctx idx    in 
+    TmArray((s,TyMap(k,v)),idx), TyRef v  
+
 and addTy_new cns cname ctx id args msg =
     let msg             =   addTy_expr  cns cname ctx msg   in
     let args            =   addTy_exprs cns cname ctx args  in
     TmNew(id,args,msg)  ,   TyInstnc id 
-
-and addTy_lexpr cns cname ctx (TmArray(id,idx)) = 
-    let s,TyMap(k,v)    =   addTy_expr cns cname ctx id     in 
-    let idx             =   addTy_expr cns cname ctx idx    in 
-    TmArray((s,TyMap(k,v)),idx) 
 
 and addTy_return cns cname ctx ret cont=
     let ret             =   addTy_expr cns cname ctx ret    in
@@ -230,16 +191,39 @@ and addTy_return cns cname ctx ret cont=
     assert (tyeqv rety (get_ty ret)); 
     TmReturn(ret,cont)  ,   rety
 
+and check_call_arg_types tycns  =   function 
+    | "pre_ecdsarecover"            ->  (=) [TyBytes32;TyU8;TyBytes32;TyBytes32]
+    | "keccak256"                   ->  konst true
+    | "iszero"                      ->  fun x ->  x=[TyBytes32]||x=[TyU8]||x=[TyU256]||x=[TyBool]||x=[TyAddr]
+    | name                          ->  let cnidx               = lookup_idx (tycn_has_name name) tycns in
+                                        let TyCn(_,tyargs,_)    = lookup cnidx tycns                    in 
+                                        (=) tyargs 
 
+and check_args_match tycns args =   function 
+    | Some m                        ->  assert (check_call_arg_types tycns m (L.map get_ty args))
+    | None                          ->  assert (isNil (L.map get_ty args))
 
+and addTy_call cns cname ctx (TmCall(id,args)) =
+    let args        = addTy_exprs cns cname ctx args in
+    check_args_match (typeof_cns cns) args (Some id) ; 
+    let rety        = match id with
+        | "value" when true         ->  TyU256 (* check the arg is 'msg' *) 
+        | "pre_ecdsarecover"        ->  TyAddr
+        | "keccak256"               ->  TyBytes32
+        | "iszero"                  ->  begin match args with
+            | [arg]                     ->  TyBool
+            | _                         ->  err "should not happen" end 
+        | cnname when true          ->  let i,cn = lookup_icn_of_icns cns cnname in 
+                                        typeof_cn cn 
+        | _                         ->  err "addTy_call: should not happen" in
+    TmCall(id,args) , rety 
+
+and typechecks tys actual       =   L.for_all2 (fun ty (_,a)-> ty=a) tys actual
 
 
 (************************************) 
 (**         METHOD TyCheck         **) 
 (************************************) 
-
-(* AssignTy Method / Contract / Toplevel  *) 
-(* Default Method Returns Unit(==EmptyTuple) is a specification *) 
 
 let addTy_mthd_head cns         =   function 
     | TyDefault                     ->  TyDefault

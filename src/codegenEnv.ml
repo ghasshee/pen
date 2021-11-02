@@ -63,14 +63,14 @@ and expr_become  e                  =   match fst e with
     | EpAddr e | EpNot e | EpDeref e | Balanc e | TmSlfDstrct e ->  expr_become e
     | EpLT   (l,r) | EpGT   (l,r) | EpNEq  (l,r) | TmEq   (l,r)           
     | TmMul (l,r) | TmAdd (l,r) | EpLAnd (l,r) | TmSub(l,r)          
-                                    ->  (expr_become l) @ (expr_become r)
-    | TmArray(id,idx)               ->  expr_become idx
-    | TmCall(id,args)               ->  exprs_become args 
-    | TmNew(id,args,msg)            ->  exprs_become args @ expr_become msg
-    | TmSend(cn,_,args,msg)         ->  expr_become cn @ exprs_become args @ expr_become msg
-    | TmLog(_,l,_)                  ->  exprs_become l
-    | SmAssign(TmArray(id,idx),r)   ->  expr_become idx @ expr_become r
-    | TmReturn(ret,cont)            ->  expr_become ret @ expr_become cont @ (match cnname_of_ret_cont cont with
+                                        ->  (expr_become l) @ (expr_become r)
+    | TmArray(id,idx)                   ->  expr_become idx
+    | TmCall(id,args)                   ->  exprs_become args 
+    | TmNew(id,args,msg)                ->  exprs_become args @ expr_become msg
+    | TmSend(cn,_,args,msg)             ->  expr_become cn @ exprs_become args @ expr_become msg
+    | TmLog(_,l,_)                      ->  exprs_become l
+    | TmAssign((TmArray(id,idx),_),r)   ->  expr_become idx @ expr_become r
+    | TmReturn(ret,cont)                ->  expr_become ret @ expr_become cont @ (match cnname_of_ret_cont cont with
                                                                          | Some name     -> [name]
                                                                          | None          -> [] )
                                 

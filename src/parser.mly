@@ -113,13 +113,12 @@ tm:
     | LAM ID COLON ty ARROW tm                      { fun ctx ->    TmAbs($2, $4, $6(add_bruijn_idx ctx $2))                                ,() } 
     | IF tm THEN tm ELSE tm                         { fun ctx ->    TmIf($2 ctx, $4 ctx, $6 ctx)                                            ,() }
     | IF tm THEN tm SEMI tm                         { fun ctx ->    TmIf($2 ctx, $4 ctx, $6 ctx)                                            ,() }
-    | lexpr EQ tm                                   { fun ctx ->    TmAssign($1 ctx, $3 ctx)                                                ,() }
+    | tm COLONEQ tm                                 { fun ctx ->    TmAssign($1 ctx, $3 ctx)                                                ,() }
     | LOG ID  arg_list                              { fun ctx ->    TmLog($2,$3 ctx,None)                                                   ,() }
     | SELFDESTRUCT tm                               { fun ctx ->    TmSlfDstrct($2 ctx)                                                     ,() }
-    | lexpr COLONEQ tm                              { fun ctx ->    SmAssign($1 ctx,$3 ctx)                                                 ,() }
-    |  tm  DOT DEFAULT LPAR RPAR msg                { fun ctx ->    TmSend($1 ctx,None,[],$6 ctx)                                           ,() }
-    |  tm  DOT ID    arg_list msg                   { fun ctx ->    TmSend($1 ctx,Some $3,$4 ctx,$5 ctx)                                    ,() }
-    |  tm  LSQBR  tm  RSQBR                         { fun ctx ->    TmArray($1 ctx,$3 ctx)                                                  ,() }
+    | tm DOT DEFAULT LPAR RPAR msg                  { fun ctx ->    TmSend($1 ctx,None,[],$6 ctx)                                           ,() }
+    | tm DOT ID       arg_list msg                  { fun ctx ->    TmSend($1 ctx,Some $3,$4 ctx,$5 ctx)                                    ,() }
+    | tm LSQBR tm RSQBR                             { fun ctx ->    TmArray($1 ctx,$3 ctx)                                                  ,() }
     | tm op tm                                      { fun ctx ->    $2 ($1 ctx)($3 ctx)                                                     ,() }
 appTm:
     | pathTm                                        { $1                                                                                        }

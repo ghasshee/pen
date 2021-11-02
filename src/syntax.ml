@@ -74,14 +74,12 @@ type 'ty toplevel               =   TmCn        of str * ty list * 'ty mthd list
 
 and  'ty mthd                   =   TmMthd      of ty * 'ty exprTy
 
-
 and  'ty exprTy                 =   'ty expr * 'ty
 
 and  'ty expr                   =   
-                                |   SmAssign    of 'ty expr * 'ty exprTy
                                 |   TmRef       of 'ty exprTy
                                 |   TmDeref     of 'ty exprTy
-                                |   TmAssign    of 'ty expr * 'ty exprTy 
+                                |   TmAssign    of 'ty exprTy * 'ty exprTy 
                                 |   TmLoc       of int 
                                 |   EpDeref     of 'ty exprTy
                                 |   TmApp       of 'ty exprTy * 'ty exprTy  
@@ -166,11 +164,9 @@ let argTys_of_mthd              = function
     | TyMthd(_,argTys,_)        -> argTys
     | TyDefault                 -> []
 
-
 (*****************************************)
 (***           PRINTING                ***)
 (*****************************************)
-
 
 let rec str_of_expr          = function 
     | EpThis                    -> "this"
@@ -215,7 +211,7 @@ let rec str_of_tm  e         = match fst e with
     | TmLog(_,_,_)              -> "log"
     | TmNew         _           -> "new"
     | TmSlfDstrct   _           -> "selfdestruct"
-    | SmAssign(l,r)             -> "assignment" 
+    | TmAssign(l,r)             -> "assignment" 
     | e                         ->  str_of_expr e 
 
 
