@@ -12,7 +12,7 @@ module BL   = BatList
 (***          Types             ***)
 (**********************************)
 
-type ty           (* atomic *)  =   TyVoid                             
+type ty           (* atomic *)  =   TyErr                             
                   (* stomic *)  |   TyUnit             
                   (* atomic *)  |   TyU256              (* 256 bits *) 
                   (* atomic *)  |   TyU8                (*   8 bits *) 
@@ -75,7 +75,7 @@ type 'ty toplevel               =   TmCn        of str * ty list * 'ty mthd list
 and  'ty mthd                   =   TmMthd      of ty * 'ty stmt list 
 
 and  'ty stmt                   =   SmExpr      of 'ty exprTy
-                                |   SmDecl      of ty * str * 'ty exprTy 
+                               (*  |   SmDecl      of ty * str * 'ty exprTy *) 
                                 |   SmIf        of 'ty exprTy * 'ty stmt list * 'ty stmt list
 
 and  'ty exprTy                 =   'ty expr * 'ty

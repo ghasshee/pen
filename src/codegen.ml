@@ -394,7 +394,7 @@ and codegen_expr ly le ce aln  e        = pe (str_of_tm e); pe (str_of_ctx le); 
                                                             PUSH1(Int 0) >> ce 
 
 and codegen_expr_eff ly le ce aln          = function 
-    | TmAbort               ,TyVoid     ->  le, throw ce                               
+    | TmAbort               ,TyErr     ->  le, throw ce                               
     | TmLog(id,args,Some ev),TyUnit     ->  codegen_log_stmt    ly le ce id args ev    
     | TmSlfDstrct expr      ,TyUnit     ->  codegen_selfDstrct  ly le ce expr          
     | SmAssign(l,r)         ,TyUnit     ->  codegen_assign      ly le ce l r        
@@ -721,7 +721,7 @@ and codegen_return ly le ce ret cont =
 
 and codegen_stmts stmts ly le ce   = foldl (codegen_stmt ly) (le,ce) stmts
 and codegen_stmt ly  (le,ce)       = function 
-    | SmDecl(ty,id,v)               ->  codegen_decl        ly le ce (ty,id,v)
+    (* | SmDecl(ty,id,v)               ->  codegen_decl        ly le ce (ty,id,v) *)
     | SmExpr expr                   ->  codegen_expr_stmt   ly le ce expr
     | SmIf(cond,e1,e2)              ->  codegen_ifstmt      ly le ce cond e1 e2 
 

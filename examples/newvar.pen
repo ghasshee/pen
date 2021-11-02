@@ -8,7 +8,7 @@ contract auction'
 {
    default
    {
-       bool x = true;
+       let bool x = true;
        abort;
    }
 }

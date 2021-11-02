@@ -9,23 +9,21 @@ contract Channel
 )
 {
   method () CloseChannel(bytes32 h, u8 v, bytes32 r, bytes32 s, u256 val) {
-    address signer  = pre_ecdsarecover(h, v, r, s);
-    if ((signer != channelSender) && (signer != channelRecipient)) then abort;
-    bytes32 proof   = keccak256(this, val);
-    if (proof != h) then abort;
-    if (iszero(signatures[proof])) then {
-      signatures[proof]     := signer;
-      return then become Channel(channelSender, channelRecipient, startDate, endDate, signatures);
-    }
-    else if (signatures[proof] != signer) then {
-      channelRecipient.default() with val ;  // failure throws.
-      selfdestruct(channelSender);
-    }
-    else abort;
+    let address signer  = pre_ecdsarecover(h, v, r, s);
+    if ((signer != channelSender) && (signer != channelRecipient)) then abort else  
+    let bytes32 proof   = keccak256(this, val);
+    if (proof != h) then abort else 
+    if (iszero(signatures[proof])) 
+        then    let _ = signatures[proof]     := signer;
+                return then become Channel(channelSender, channelRecipient, startDate, endDate, signatures)
+        else    if (signatures[proof] != signer) 
+                    then    let _ = channelRecipient.default() with val ;  // failure throws.
+                            selfdestruct(channelSender)
+                    else    abort;
   }
 
   method () ChannelTimeOut() {
-    if (endDate > now(block)) then abort;
+    if (endDate > now(block)) then abort else 
     selfdestruct(channelSender);
   }
 }

@@ -23,13 +23,14 @@ let find_tyMthd       mname = find_by_filter (function TyCn(_,_,mthds)          
 (***********************************)
 
 let tyeqv t0 t1                 =   ( t0 = t1 )  ||  ( match t0, t1 with
+                                | TyErr, _ | _, TyErr -> true
                                 | TyAddr, TyInstnc _    -> true
                                 | _     , _             -> false ) 
 
 let assert_tyeqv l r            =   let tyl = get_ty l in
                                     let tyr = get_ty r in 
                                     printf "asserting %s(typeof %s)=%s(typeof %s)\n" (str_of_ty tyl) (str_of_tm l)  (str_of_ty tyr ) (str_of_tm r); 
-                                    assert (tyl = tyr) 
+                                    assert (tyeqv tyl tyr) 
                                 
 let id_lookup_ty ctx id         =   try TmId id, lookup_id id ctx 
                                     with Not_found -> err("unknown id "^id)  
@@ -61,7 +62,7 @@ let is_known_cn tycns nm        =   BL.exists (cn_has_name nm) tycns
 let rec is_known_ty tycns       =   function 
     | TyBytes32 | TyAddr            ->  true
     | TyU256 | TyU8 | TyBool        ->  true
-    | TyUnit | TyVoid               ->  true
+    | TyUnit | TyErr               ->  true
     | TyTuple l                     ->  BL.for_all (is_known_ty tycns) l
     | TyRef l                       ->  is_known_ty tycns l
     | TyMap(a,b)                    ->  is_known_ty tycns a && is_known_ty tycns b
@@ -195,7 +196,7 @@ and addTy_expr cns cname ctx expr = pe("addTy_expr: " ^ str_of_tm expr );match f
                                         TmSub (l, r)        ,   get_ty l
     | TmMul (l, r)                  ->  let l,r             =   addTy_binop_arg cns cname ctx l r       in
                                         TmMul (l, r)        ,   get_ty l
-    | TmAbort                       ->  TmAbort             ,   TyVoid
+    | TmAbort                       ->  TmAbort             ,   TyErr
     | TmUnit                        ->  TmUnit              ,   TyUnit    
     | EpThis                        ->  EpThis              ,   TyInstnc cname
     | TmTrue                        ->  TmTrue              ,   TyBool
@@ -240,7 +241,7 @@ and addTy_stmt cns cname ctx = function
                             let t       = addTy_stmts       cns cname ctx  t        in
                             let f       = addTy_stmts       cns cname ctx  f        in
                             SmIf(b,t,f)     , ctx 
-    | SmDecl(ty,id,v)   ->  addTy_decl        cns cname ctx ty id v
+  (*  | SmDecl(ty,id,v)   ->  addTy_decl        cns cname ctx ty id v *)
     | SmExpr e          ->  let e       = addTy_expr        cns cname ctx  e        in
                             SmExpr e        , ctx
 
@@ -248,12 +249,12 @@ and addTy_stmts cns cname ctx = function
     | []                ->  []
     | stmt::rest        ->  let stmt,ctx = addTy_stmt cns cname ctx stmt in
                             stmt :: addTy_stmts cns cname ctx rest
-
+(*
 and addTy_decl cns cname ctx ty id v =
     let v               =   addTy_expr cns cname ctx v in
     assert (is_known_ty (typeof_cns cns) ty);
     SmDecl(ty,id,v)     ,   add_var ctx id ty  
-
+*)
 
 
 (************************************) 
