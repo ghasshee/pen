@@ -29,7 +29,7 @@ type ty           (* atomic *)  =   TyErr
                                 |   TyI               of int * int                 
  (* TyVar(id, ty)           *)  |   TyVar               of str * ty                  
  (* TyEvVar(id,ty,indexed)  *)  |   TyEvVar             of str * ty * bool           
- (* TyEv(  ,   )            *)  |   TyEv                of str * ty list 
+ (* TyEv(id,evargs)         *)  |   TyEv                of str * ty list 
  (* TyCn(id,fields,mthds)   *)  |   TyCn                of str * ty list * ty list   
 
 
@@ -94,7 +94,7 @@ let get_tm  (x,_)               =   x
 
 
 (*****************************************)
-(***    METHODs      &    CONTRACTS    ***)
+(***    ARGUMENTS   &   VARIABLES      ***)
 (*****************************************)
 
 let id_of_var                   =   function TyVar(id,_) -> id          | _ -> err "id_of_var" 
@@ -115,11 +115,6 @@ let filter_arrs                 =   L.filter (function TyVar(_,TyMap _) -> true 
 let varTys_of_cn(TmCn(_,fls,_)) =   filter_vars fls
 let arrTys_of_cn(TmCn(_,fls,_)) =   filter_arrs fls
 let fldTys_of_cn(TmCn(_,fls,_)) =   tys_of_vars fls
-
-
-(*****************************************)
-(***           TOPLEVEL                ***)
-(*****************************************)
 
 let filter_method               =   BL.filter_map (function   | TyDefault             -> None 
                                                               | TyMthd(i,a,r)         -> Some (TyMthd(i,a,r)) )  
@@ -212,6 +207,8 @@ let str_of_evnt   (TyEv(id,tyEvArgs))    =
 
 let pr_tm t = ps (str_of_tm t)
 let pe_tm t = pe (str_of_tm t) 
+let pr_ty t = ps (str_of_ty t)
+let pe_ty t = pe (str_of_ty t) 
 
 (*****************************************)
 (***              SIZE                 ***)
@@ -274,7 +271,7 @@ let rec tmWalk onVar onType c   = let (f,g) = (onVar,onType) in function
    (* | TmLet(x,t1,t2)            -> TmLet(x,tmWalk f g c t1, tmWalk f g(c+1)t2) *)
     | TmAbs(x,tyT,(t2,b))       -> TmAbs(x,g c tyT,(tmWalk f g(c+1)t2,b))
     | TmApp((t1,a),(t2,b))      -> TmApp((tmWalk f g c t1,a),(tmWalk f g c t2,b)) 
-    | TmI(x,n)                -> onVar c x n
+    | TmI(x,n)                  -> onVar c x n
     | x                         -> x
 
 let tyShiftOnVar d          = fun c x n  ->  if x>=c then TyI(x+d,n+d) else TyI(x,n+d)
