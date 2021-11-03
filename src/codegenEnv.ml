@@ -18,11 +18,11 @@ let empty_ce lookup cns             =   { stack_size    = 0
                                         ; lookup_cnidx  = lookup
                                         ; cntrcts       = cns               }
 
-let lookup_cnidx_of_ce  ce  name    =   ce.lookup_cnidx name 
-let lookup_cnidx_of_cns cns name    =   lookup_idx      (function TmCn(id,_,_) -> id=name) cns
+let lookup_cnidx_at_ce cname ce     =   ce.lookup_cnidx cname 
+let lookup_cnidx   cns cname        =   lookup_idx      (function   TmCn(id,_,_) ->    id=cname) cns
 let lookup_icn_of_icns icns name    =   find_by_filter  (function i,TmCn(id,f,m) -> if id=name then i,TmCn(id,f,m) else raise Not_found) icns
-let lookup_cn           ce  idx     =   lookup idx ce.cntrcts 
-let cntrct_of_name  ce              =   lookup_cn ce $ lookup_cnidx_of_ce ce 
+let lookup_cn           idx  ce     =   lookup idx ce.cntrcts 
+let cntrct_of_name  cname ce        =   lookup_cn (lookup_cnidx_at_ce cname ce) ce 
 
 let extract_program  ce             =   ce.program
 let get_stack_size   ce             =   ce.stack_size
@@ -47,7 +47,7 @@ let append_opcode ce opcode         =
     ; lookup_cnidx      = ce.lookup_cnidx
     ; cntrcts           = ce.cntrcts        }
 
-let (>>>>) op ce                    =   append_opcode ce op  
+let (=>>) op ce                    =   append_opcode ce op  
 
 
 (*************************************************)
@@ -89,7 +89,7 @@ let rec lookup_mthd_head_inner ce (seen:ty toplevel list) cn mname : ty=
     if L.mem cn seen then raise Not_found else
     try  lookup_mthd_head_in_cntrct cn mname
     with Not_found  ->  let seen        = cn :: seen in
-                        let becomes     = L.map (cntrct_of_name ce)(become cn) in
+                        let becomes     = L.map (fun nm -> cntrct_of_name nm ce)(become cn) in
                         let rec lookup_becomes seen = function 
                            | []         ->  raise Not_found
                            | b::bs      ->  try lookup_mthd_head_inner ce seen b mname 
