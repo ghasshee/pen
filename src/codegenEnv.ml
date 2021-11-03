@@ -47,7 +47,7 @@ let append_opcode ce opcode         =
     ; lookup_cnidx      = ce.lookup_cnidx
     ; cntrcts           = ce.cntrcts        }
 
-let (>>) op ce                      = append_opcode ce op  
+let (>>>>) op ce                    =   append_opcode ce op  
 
 
 (*************************************************)
