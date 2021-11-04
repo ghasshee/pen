@@ -347,55 +347,56 @@ and salloc_array_of_push push_array_seed ce =
  * le can only be updated in a variable initialization *)
 and (>>) e (aln,ly,le,ce)           = codegen_tm ly le ce aln e 
 and codegen_tm ly le ce aln e       = pe_tm e; pe(str_of_ctx le); match e with 
-    | TmApp(t1,t2)          ,_          ->                  codegen_app     (TmApp(t1,t2))    ly le ce 
-    | TmAbs(x,tyX,t)        ,_          ->                  codegen_abs     (TmAbs(x,tyX,t))  ly le ce 
-    | TmFix(f,n,ty,t)       ,_          ->                  codegen_fix     (TmFix(f,n,ty,t)) ly le ce 
-    | TmI(i,n)              ,_          ->                  codegen_idx     (TmI(i,n))        ly le ce 
-    | TmIStrct(i)           ,_          ->                  codegen_idstrct (TmIStrct(i))     ly le ce 
-    | TmIf(b,t1,t2)         ,_          ->                  codegen_if      (TmIf(b,t1,t2))   ly le ce 
-    | Balanc   e            ,_          ->                  BALANCE     =>>     ( e             >>(R,ly,le,ce) )
-    | EpValue               ,_          ->                  CALLVALUE                           =>> ce      (* Value (wei) Transferred to the account *) 
-    | TmZero                ,_          ->                  PUSH1(Int 0)                        =>> ce 
-    | EpNow                 ,_          ->                  TIMESTAMP                           =>> ce 
-    | TmFalse               ,_          ->  assert(aln=R);  PUSH1(Int 0)                        =>> ce  
-    | TmTrue                ,_          ->  assert(aln=R);  PUSH1(Int 1)                        =>> ce 
-    | TmU256   d            ,_          ->  assert(aln=R);  PUSH32(Big d)                       =>> ce  
-    | TmU8     d            ,_          ->  assert(aln=R);  PUSH1(Big d)                        =>> ce  
-    | TmAdd  (l,r)          ,_          ->                  codegen_op ADD l r                ly le ce             
-    | TmSub  (l,r)          ,_          ->                  codegen_op SUB l r                ly le ce             
-    | TmMul  (l,r)          ,_          ->                  codegen_op MUL l r                ly le ce             
-    | TmLT   (l,r)          ,_          ->  assert(aln=R);  codegen_op LT  l r                ly le ce           
-    | TmGT   (l,r)          ,_          ->  assert(aln=R);  codegen_op GT  l r                ly le ce           
-    | TmEQ   (l,r)          ,_          ->  assert(aln=R);  codegen_op EQ  l r                ly le ce           
-    | TmNEQ  (l,r)          ,_          ->  assert(aln=R);  ISZERO  =>>     codegen_op EQ l r ly le ce
-    | TmNOT    e            ,_          ->  assert(aln=R);  ISZERO  =>>     (e >> (aln,ly,le,ce)) 
-    | TmLAND (l,r)          ,_          ->                  checked_codegen_LAnd l r ly le ce aln   
-    | EpAddr(c,TyInstnc i)  ,TyAddr     ->                  (c,TyInstnc i)                      >>(aln,ly,le,ce) 
-    | TmSend(cn,m,args,msg) ,_          ->  assert(aln=R);  codegen_send cn m args msg        ly le ce 
-    | TmNew(id,args,msg)    ,TyInstnc _ ->  assert(aln=R);  codegen_new    id args msg        ly le ce 
-    | TmCall(id,args)       ,rety       ->                  codegen_pre_call id args rety aln ly le ce
-    | EpSender              ,TyAddr     ->                  align_addr aln             (CALLER  =>> ce) 
-    | EpThis                ,_          ->                  align_addr aln             (ADDRESS =>> ce) 
-    | TmArray(id,idx)       ,TyMap _    ->  let ce      =   codegen_array id idx ly le ce           in  (*            S[keccak(a[i])] >> .. *)
-                                            assert(aln=R);  salloc_array  id idx ly le ce               (*                     S[1]++ >> .. *)
-    | TmArray(id,idx)       ,      _    ->  assert(aln=R);  codegen_array id idx ly le ce               (*               S[keccak(a)] >> .. *)
-    | TmId id               ,TyMap(a,b) ->  let loc     =   lookup_le id le                         in 
-                                            let ce      =   push_loc ce aln(TyMap(a,b))loc          in 
-                                                            salloc_array_of_loc le ce loc          
-    | TmId id               ,ty         ->  let loc     =   lookup_le id le                         in  
-                                                            push_loc ce aln ty loc                      (*                        loc >> .. *)
-    | TmDeref(ref,tyR)      ,ty         ->  assert(size_of_ty ty<=32 && tyR=TyRef ty && aln=R) ;                    (* assuming word-size *)
-                                            let ce      =   (ref,tyR)               >>(R,ly,le,ce)   in  (* pushes the pointer *)
-                                                            MLOAD                   =>> ce 
-    | e                                 ->  let _,ce    =   codegen_tm_eff aln ly le ce e      in 
-                                                            PUSH1(Int 0)            =>> ce 
+    | TmApp(t1,t2)          ,_              ->                  codegen_app     (TmApp(t1,t2))            ly le ce 
+    | TmAbs(x,tyX,t)        ,_              ->                  codegen_abs     (TmAbs(x,tyX,t))          ly le ce 
+    | TmFix(f,n,ty,t)       ,_              ->                  codegen_fix     (TmFix(f,n,ty,t))         ly le ce 
+    | TmI(i,n)              ,_              ->                  codegen_idx     (TmI(i,n))                ly le ce 
+    | TmIStrct(i)           ,_              ->                  codegen_istrct  (TmIStrct(i))             ly le ce 
+    | TmIf(b,t1,t2)         ,_              ->                  codegen_if      (TmIf(b,t1,t2))           ly le ce 
+    | Balanc   e            ,_              ->                  BALANCE     =>>     (    e                  >>(R,ly,le,ce))
+    | EpValue               ,_              ->                  CALLVALUE                                   =>> ce      (* Value (wei) Transferred to the account *) 
+    | TmZero                ,_              ->                  PUSH1(Int 0)                                =>> ce 
+    | EpNow                 ,_              ->                  TIMESTAMP                                   =>> ce 
+    | TmFalse               ,_              ->  assert(aln=R);  PUSH1(Int 0)                                =>> ce  
+    | TmTrue                ,_              ->  assert(aln=R);  PUSH1(Int 1)                                =>> ce 
+    | TmU256   d            ,_              ->  assert(aln=R);  PUSH32(Big d)                               =>> ce  
+    | TmU8     d            ,_              ->  assert(aln=R);  PUSH1(Big d)                                =>> ce  
+    | TmAdd  (l,r)          ,_              ->                  codegen_op ADD l r                        ly le ce             
+    | TmSub  (l,r)          ,_              ->                  codegen_op SUB l r                        ly le ce             
+    | TmMul  (l,r)          ,_              ->                  codegen_op MUL l r                        ly le ce             
+    | TmLT   (l,r)          ,_              ->  assert(aln=R);  codegen_op LT  l r                        ly le ce           
+    | TmGT   (l,r)          ,_              ->  assert(aln=R);  codegen_op GT  l r                        ly le ce           
+    | TmEQ   (l,r)          ,_              ->  assert(aln=R);  codegen_op EQ  l r                        ly le ce           
+    | TmNEQ  (l,r)          ,_              ->  assert(aln=R);  ISZERO  =>>     codegen_op EQ l r         ly le ce
+    | TmNOT    e            ,_              ->  assert(aln=R);  ISZERO  =>>          (    e                 >>(aln,ly,le,ce)) 
+    | TmLAND (l,r)          ,_              ->                  checked_codegen_LAnd l r aln              ly le ce 
+    | TmCall(id,args)       ,rety           ->                  codegen_pre_call id args rety aln         ly le ce
+    | TmSend((e,TyAddr),m,args,msg)     ,_  ->  assert(aln=R);  codegen_send_eoa (e,TyAddr)         msg   ly le ce 
+    | TmSend((c,TyInstnc n),m,args,msg) ,_  ->  assert(aln=R);  codegen_send_cn(c,TyInstnc n)m args msg   ly le ce 
+    | TmNew(id,args,msg)    ,TyInstnc _     ->  assert(aln=R);  codegen_new    id args msg                ly le ce 
+    | EpAddr(c,TyInstnc i)  ,TyAddr         ->                  (c,TyInstnc i)                              >>(aln,ly,le,ce) 
+    | EpSender              ,TyAddr         ->                  align_addr aln             (CALLER          =>> ce) 
+    | EpThis                ,_              ->                  align_addr aln             (ADDRESS         =>> ce) 
+    | TmArray(id,idx)       ,TyMap _        ->  let ce      =   codegen_array id idx                      ly le ce          in  (*            S[keccak(a[i])] >> .. *)
+                                                assert(aln=R);  salloc_array  id idx                      ly le ce              (*                     S[1]++ >> .. *)
+    | TmArray(id,idx)       ,      _        ->  assert(aln=R);  codegen_array id idx                      ly le ce              (*               S[keccak(a)] >> .. *)
+    | TmId id               ,TyMap(a,b)     ->  let loc     =   lookup_le id le                                             in 
+                                                let ce      =   push_loc ce aln(TyMap(a,b))loc                              in 
+                                                                salloc_array_of_loc le ce loc                  
+    | TmId id               ,ty             ->  let loc     =   lookup_le id le                                             in  
+                                                                push_loc ce aln ty loc                                          (*                        loc >> .. *)
+    | TmDeref(ref,tyR)      ,ty             ->  assert(size_of_ty ty<=32 && tyR=TyRef ty && aln=R) ;                            (* assuming word-size *)
+                                                let ce      =   (ref,tyR)                                   >>(R,ly,le,ce)  in  (* pushes the pointer *)
+                                                                MLOAD                                       =>> ce 
+    | e                                     ->  let _,ce    =   codegen_tm_eff e              aln         ly le ce          in 
+                                                                PUSH1(Int 0)                                =>> ce 
 
-and codegen_tm_eff aln ly le ce           = function 
+and codegen_tm_eff tm aln ly le ce      =   match tm with 
     | TmAbort               ,TyErr      ->  le, throw ce                               
-    | TmLog(id,args,Some ev),TyUnit     ->  codegen_log             ly le ce id args ev    
+    | TmLog(id,args,Some ev),TyUnit     ->  codegen_log id args ev  ly le ce     
     | TmSfDstr tm           ,TyUnit     ->  codegen_selfdstr  tm    ly le ce 
-    | TmAssign(l,r)         ,TyUnit     ->  codegen_assign          ly le ce l r        
-    | TmReturn(ret,cont)    ,_          ->  codegen_return          ly le ce ret cont     
+    | TmAssign(l,r)         ,TyUnit     ->  codegen_assign l r      ly le ce  
+    | TmReturn(ret,cont)    ,_          ->  codegen_return ret cont ly le ce    
     | e                                 ->  pf "codegen_tm: %s " (str_of_tm e); raise Not_found
     
 and codegen_op operator l r ly le ce =
@@ -422,9 +423,9 @@ and mload_ret_value ce =                                                    (*  
     let ce      = throw_if_NEQ                              ce          in  (* IF 32!=retsize ERROR                       retbegin >> .. *)
                   MLOAD                                 =>> ce              (*                                         M[retbegin] >> .. *)
 
-and codegen_send cn m args msg ly le ce = match snd cn with
-    | TyInstnc cnname  ->  (* msg-call to a cont        ract *) 
-    let cnidx   = lookup_cnidx_at_ce cnname                 ce          in 
+and codegen_send_cn cn m args msg ly le ce =  (* msg-call to a contract *) 
+    let TyInstnc cname = snd cn                                         in  
+    let cnidx   = lookup_cnidx_at_ce cname                  ce          in 
     let callee  = lookup_cn cnidx                           ce          in
     let Some mname = m                                                  in 
     let m       = lookup_mthd_head ce callee mname                      in
@@ -441,31 +442,30 @@ and codegen_send cn m args msg ly le ce = match snd cn with
     let ce      = call_and_restore_PC                       ce          in  (*                                                                                       retsize >> retbegin >> .. *)
     let ce      = mload_ret_value                           ce          in  (*                                                                                                       ret >> .. *)
                   Comment("END send to "^id)            =>> ce 
-    | TyAddr            ->  (* send value to an EOA *) 
-    let retsize = 0                                                     in 
+
+and codegen_send_eoa eoa msg ly le ce =   (* send value to an EOA *) 
     let ce      = Comment "BEGINE send to Addr"         =>> ce          in  (*                                                                   .. *) 
     let ce      = reset_PC                                  ce          in  (*                                                          PCbkp >> .. *) 
-    let ce      = PUSH1(Int retsize)                    =>> ce          in  (*                                                     0 >> PCbkp >> .. *) 
+    let ce      = PUSH1(Int 0)                          =>> ce          in  (*                                                     0 >> PCbkp >> .. *) 
     let ce      = repeat DUP1 5                             ce          in  (*                            0 >> 0 >> 0 >> 0 >> 0 >> 0 >> PCbkp >> .. *) 
-    let ce      = push_msg_and_gas msg cn             ly le ce          in  (* gas-3000 >> addr >> msg >> 0 >> 0 >> 0 >> 0 >> 0 >> 0 >> PCbkp >> .. *) 
+    let ce      = push_msg_and_gas msg eoa            ly le ce          in  (* gas-3000 >> addr >> msg >> 0 >> 0 >> 0 >> 0 >> 0 >> 0 >> PCbkp >> .. *) 
     let ce      = call_and_restore_PC                       ce          in  (*                                                         0 >> 0 >> .. *)
     let ce      = POP                                   =>> ce          in  (*                                                              0 >> .. *)
                   Comment("END send to Addr")           =>> ce 
-    | _             -> err "send tm with Wrong type"
 
 
-and sstore_to_lval (TmArray(id,idx),_) ly le ce     =                       (*                                    rval >> .. *)
-    let ce      = keccak_of_array id idx              ly le ce          in  (*                 KEC(aseed^aidx) >> rval >> .. *)
-                  SSTORE                                =>> ce              (* S[KEC(aseed^aidx)] := rval                 .. *)
+and sstore_to_lval(TmArray(a,i),_) ly le ce     =                           (*                                  rval >> .. *)
+    let ce      = keccak_of_array a i                 ly le ce          in  (*                      KEC(a^i) >> rval >> .. *)
+                  SSTORE                                =>> ce              (* S[KEC(a^i)] := rval                      .. *)
 
-and codegen_assign ly le ce l r     =
+and codegen_assign l r ly le ce = 
     let ce      = Comment "BEGIN Assignment"            =>> ce          in 
     let ce      = r                                     >>(R,ly,le,ce)  in  (*                                    r >> .. *)
     let ce      = sstore_to_lval l                    ly le ce          in  (* S[KEC(l)] := r                          .. *)  
     let ce      = Comment "END Assignment"              =>> ce          in 
     le,ce 
 
-and checked_codegen_LAnd l r ly le ce aln = 
+and checked_codegen_LAnd l r aln    ly le ce = 
     assert(aln=R);         
     let la      =   fresh_label ()                                      in  (*                                                        .. *)
     let ce      =   l                                   >>(R,ly,le,ce)  in  (*                                                   l >> .. *)
@@ -476,7 +476,7 @@ and checked_codegen_LAnd l r ly le ce aln =
     let ce      = JUMPDEST la                           =>> ce          in  (*                                                   r >> .. *)
                     repeat ISZERO 2                       ce                (*                                                l&&r >> .. *)  
 
-and mstore_mthd_args pck args ly le ce =
+and mstore_mthd_args pck args       ly le ce =
     let ce    = PUSH1(Int 0)                            =>> ce          in  (*                                                   0 >> .. *)
                 foldl (mstore_mthd_arg pck le ly) ce args                   (*                                             sumsize >> .. *) 
 
@@ -506,23 +506,23 @@ and codegen_mthd_argLen_chk m ce = match m with
     let ce      = CALLDATASIZE                          =>> ce          in
                   throw_if_NEQ                              ce    
 
-and escape_ARG arg retlabel ly le ce a = 
+and escape_ARG arg retlabel a       ly le ce = 
     let ce      = Comment "ESCAPE START"                =>> ce          in 
     let ce      = PUSH32(Label retlabel)                =>> ce          in     
     let ce      = arg                                   >>(a,ly,le,ce)  in 
     let ce      = ePUSH                                     ce          in
                   Comment "ESCAPE DONE"                 =>> ce 
 
-and codegen_app_idxrec aln ly le ce (TmApp((TmIRec(i),_),arg)) = 
+and codegen_app_rec(TmApp((TmIRec(i),_),arg)) a ly le ce = 
     let ce      = Comment "BEGIN APP-REC"               =>> ce          in
     let retaddr = fresh_label ()                                        in 
     let start   = lookup_recursion_param le                             in 
-    let ce      = escape_ARG arg retaddr ly le ce aln                   in 
+    let ce      = escape_ARG arg retaddr            a ly le ce          in 
     let ce      = goto start                                ce          in 
     let ce      = JUMPDEST retaddr                      =>> ce          in       
                   Comment "END APP-REC"                 =>> ce 
 
-and codegen_fix (TmFix(phi,n,ty,tm)) ly le ce = 
+and codegen_fix(TmFix(phi,n,ty,tm)) ly le ce = 
     let ce      = Comment "BEGIN FIX"                   =>> ce          in 
     let start   = fresh_label ()                                        in 
     printf "! add_recursion_param(label%d)\n" start;     
@@ -534,18 +534,19 @@ and codegen_fix (TmFix(phi,n,ty,tm)) ly le ce =
     let ce      = Comment "END FIX"                     =>> ce          in 
     ce 
 
-and codegen_idstrct (TmIStrct(i)) ly le ce = 
+and codegen_istrct (TmIStrct(i))    ly le ce = 
     let ce      = Comment "BEGIN Struct Parameter"      =>> ce          in
     let ce      = get_escaped_arg                           ce          in 
                   Comment "END Struct Parameter"        =>> ce
 
 and codegen_app (TmApp(t1,t2)) ly le ce = match fst t1 with 
-    | TmI(i,n) -> codegen_app (TmApp(lookup_brjidx i le,t2)) ly le ce 
-    | TmIRec(i)-> codegen_app_idxrec R ly le ce (TmApp(t1,t2))
+    | TmI(i,n) -> let t1 = lookup_brjidx i le                           in 
+                  codegen_app       (TmApp(t1,t2))    ly le ce 
+    | TmIRec(i)-> codegen_app_rec   (TmApp(t1,t2))  R ly le ce 
     | TmFix(f,n,ty,tm)-> 
     let ret     = fresh_label ()                                        in 
-    let ce      = escape_ARG t2 ret ly le ce R                          in 
-    let ce      = codegen_fix (TmFix(f,n,ty,tm)) ly le ce               in
+    let ce      = escape_ARG t2 ret                 R ly le ce          in 
+    let ce      = codegen_fix (TmFix(f,n,ty,tm))      ly le ce          in
                   JUMPDEST ret                          =>> ce 
     | _ -> 
     printf "! add_brjidx %s\n" (str_of_tm t2); 
@@ -558,9 +559,8 @@ and codegen_abs (TmAbs(x,tyX,t))    ly le ce =
 
 and codegen_idx (TmI(i,n))          ly le ce = 
     let tm      = lookup_brjidx i le                                    in 
-    ps"codegen_idx: ";pr_tm tm;
-    let ce      = tm                                    >>(R,ly,le,ce)  in 
-    ce 
+                  tm                                    >>(R,ly,le,ce)   
+       
 
 and codegen_if (TmIf(b,t1,t2))      ly le ce = 
     let elif    = fresh_label()                                         in 
@@ -606,10 +606,10 @@ and mstore_tms l pck ly le ce = match l with
                              (* ADD                                                             size+size'  >> alloc(size) >> .. *) 
                              (* SWAP1                                                           alloc(size) >> size+size'  >> .. *)
                     
-and codegen_log ly le ce name args evnt =
-    let visible, args= split_ev_args evnt args                          in
+and codegen_log _ args ev ly le ce =
+    let visible, args= split_ev_args ev args                            in
     let ce      = push_args le ly visible                   ce          in
-    let ce      = push_evnt_hash  evnt                      ce          in
+    let ce      = push_evnt_hash  ev                        ce          in
     let le,ce   = mstore_tms args ABIpk               ly le ce          in  (* stack : [..., size, offset] *)
     let n       = L.length visible + 1                                  in
     let ce      = log n                                 =>> ce          in  (* deindexee N in logN *)
@@ -665,7 +665,7 @@ and mstore_tm (tm,ty) pck ly le ce =
     let ce      = mstore_word ty ce                                     in  (* M[alloc(32)]:=tm      alloc(32) >> 32 >> .. *)
     le,ce
 
-and codegen_return ly le ce ret cont =
+and codegen_return ret cont ly le ce =
     let ce          =   Comment "BEGIN RETURN"          =>> ce          in 
     let le,ce       =   cont_call cont                ly le ce          in
     let ce          =   match ret with
