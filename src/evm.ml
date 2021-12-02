@@ -12,7 +12,7 @@ type 'imm opcode =
     | AND       | OR        | XOR       | NOT       | BYTE
     | SHA3                                                                          (*  20s *)
     | ADDRESS   | BALANCE   | ORIGIN    | CALLER                                    (*  30s *) 
-    | CALLVALUE | CALLDATALOAD          | CALLDATASIZE    | CALLDATACOPY
+    | CALLVALUE | CALLDATALOAD          | CALLDATASIZE          | CALLDATACOPY
     | CODESIZE  | CODECOPY  | GASPRICE  | EXTCODESIZE           | EXTCODECOPY           
     | RETURNDATASIZE        | RETUENDATACOPY
     | BLOCKHASH | COINBASE  | TIMESTAMP | NUMBER    | DIFFICULTY| GASLIMIT          (*  40s *)

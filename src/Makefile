@@ -13,6 +13,7 @@ OBJS = 	misc.cmo \
 		codeSnipets.cmo \
 		type.cmo \
 		eval.cmo \
+		asm.cmo \
 		codegen.cmo \
 		lexer.cmo \
 		parser.cmo 

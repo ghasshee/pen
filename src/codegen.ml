@@ -4,7 +4,6 @@
 (* MLOAD    :=   x=pop() ; push M[x]          *) 
 (* CODECOPY  to from len :=  M[to .. to+len-1]=I_b[from .. from+len-1]  *)
 
-open Printf 
 open Big_int
 
 open Misc
@@ -392,12 +391,12 @@ and codegen_tm ly le ce aln e       = pe_tm e; pe(str_of_ctx le); match e with
                                                                 PUSH1(Int 0)                                =>> ce 
 
 and codegen_tm_eff tm aln ly le ce      =   match tm with 
-    | TmAbort               ,TyErr      ->  le, throw ce                               
-    | TmLog(id,args,Some ev),TyUnit     ->  codegen_log id args ev  ly le ce     
-    | TmSfDstr tm           ,TyUnit     ->  codegen_selfdstr  tm    ly le ce 
-    | TmAssign(l,r)         ,TyUnit     ->  codegen_assign l r      ly le ce  
-    | TmReturn(ret,cont)    ,_          ->  codegen_return ret cont ly le ce    
-    | e                                 ->  pf "codegen_tm: %s " (str_of_tm e); raise Not_found
+    | TmAbort               ,TyErr          ->  le, throw ce                               
+    | TmLog(id,args,Some ev),TyUnit         ->  codegen_log id args ev  ly le ce     
+    | TmSfDstr tm           ,TyUnit         ->  codegen_selfdstr  tm    ly le ce 
+    | TmAssign(l,r)         ,TyUnit         ->  codegen_assign l r      ly le ce  
+    | TmReturn(ret,cont)    ,_              ->  codegen_return ret cont ly le ce    
+    | e                                     ->  pf "codegen_tm: %s " (str_of_tm e); raise Not_found
     
 and codegen_op operator l r ly le ce =
     let ce    = r                                       >>(R,ly,le,ce)  in 
@@ -525,7 +524,7 @@ and codegen_app_rec(TmApp((TmIRec(i),_),arg)) a ly le ce =
 and codegen_fix(TmFix(phi,n,ty,tm)) ly le ce = 
     let ce      = Comment "BEGIN FIX"                   =>> ce          in 
     let start   = fresh_label ()                                        in 
-    printf "! add_recursion_param(label%d)\n" start;     
+    pf "! add_recursion_param(label%d)\n" start;     
     let le      = add_recursion_param le start                          in
     let ce      = JUMPDEST start                        =>> ce          in 
     let ce      = tm                                    >>(R,ly,le,ce)  in  (*                               tm >> .. *)
@@ -549,7 +548,7 @@ and codegen_app (TmApp(t1,t2)) ly le ce = match fst t1 with
     let ce      = codegen_fix (TmFix(f,n,ty,tm))      ly le ce          in
                   JUMPDEST ret                          =>> ce 
     | _ -> 
-    printf "! add_brjidx %s\n" (str_of_tm t2); 
+    pf "! add_brjidx %s\n" (str_of_tm t2); 
     let le      = add_brjidx le t2                                      in       
                   t1                                    >>(R,ly,le,ce)  
 
