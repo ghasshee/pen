@@ -31,13 +31,13 @@ let fresh_var() = let v = !var in var := v + 1; v
 let arr         = ref 0 
 let fresh_arr() = let v = !arr in arr := v + 1; v
 
+type var        = int ref 
 
 type decl       = 
                 | Decl      of addr  
                 | DSeq      of decl * decl
                 | Proc      of int list * cmd
 
-i
 
 and  cmd        = Skip
                 | Bool      of bexp 
@@ -93,6 +93,10 @@ and  bexp       =
             
 ;;
 
+let check b     = Comment "if b then next go ahead else another choose another branch (Unimplemented Now) " 
+let assign x a  = match x with 
+    | Var(x)        -> Comment "x := a" 
+    | Arr(id,i)     -> Comment "id[i] := a"
 
 let asm_cmd     = function 
     | Skip          -> Comment "Skip Command"
@@ -100,10 +104,7 @@ let asm_cmd     = function
     | Assign(x,a)   -> assign x a 
 
 ;;
-let assign x a  = match x with 
-    | Var(x)        -> Comment " x := a" 
 
-let check b     = Comment "if b then next go ahead else another choose another branch (Unimplemented Now) " 
 
 
 
