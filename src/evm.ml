@@ -309,13 +309,13 @@ let log = function
   | 4               -> LOG4
   | _               -> failwith "too many indexed args for an evnt"
 
-let endline h = hex_of_str ( str_of_hex h ^ "\n")
-let hex_of_program      (p) = foldl (fun h i->concat_hex(hex_of_opcode          i )h) empty_hex p
-let hex_of_program_ln   (p) = foldl (fun h i->concat_hex(endline (hex_of_opcode i))h) empty_hex p
-let str_of_program_ln(p) = foldl (fun h i-> hex_of_str ((^) (str_of_opcode_big i^"\n")(str_of_hex h))) empty_hex p 
-let pr_encoded          (p) = pr_hex        ~prefix:"0x" (hex_of_program p) 
-let prLn_encoded        (p) = pr_hex        ~prefix:"0x" (str_of_program_ln p) 
-let encode_program      (p) = str_of_hex ~prefix:"0x" (hex_of_program p) 
+let endline h               = hex_of_str ( str_of_hex h ^ "\n")
+let hex_of_program       p  = foldl (fun h i->concat_hex(hex_of_opcode          i )h) empty_hex p
+let hex_of_program_ln    p  = foldl (fun h i->concat_hex(endline (hex_of_opcode i))h) empty_hex p
+let str_of_program_ln    p  = foldl (fun h i->hex_of_str(str_of_opcode_big i^"\n"^str_of_hex h)) empty_hex p 
+let pr_encoded           p  = pr_hex        ~prefix:"0x" (hex_of_program p) 
+let prLn_encoded         p  = pr_hex        ~prefix:"0x" (str_of_program_ln p) 
+let encode_program       p  = str_of_hex ~prefix:"0x" (hex_of_program p) 
 
 let size_of_opcode  = function 
   | Comment _       -> 0 

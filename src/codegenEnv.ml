@@ -57,12 +57,12 @@ let (=>>) op ce                    =   append_opcode ce op
 let rec  become (TmCn(_,_,mthds))   =   mthds_become mthds
 and mthds_become ms                 =   L.concat (L.map mthd_become ms)
 and mthd_become(TmMthd(_,body))     =   tm_become body 
-and tms_become es                 =   L.concat (L.map tm_become es)
-and tm_become  e                  =   match fst e with
+and tms_become es                   =   L.concat (L.map tm_become es)
+and tm_become  e                    =   match fst e with
     | TmAbort  | TmUnit  | TmTrue | TmFalse | EpNow | EpThis | EpValue | EpSender | TmId _  | TmU8 _ | TmU256 _ -> []
     | EpAddr e | TmNOT e | TmDeref e | Balanc e | TmSfDstr e ->  tm_become e
     | TmLT   (l,r) | TmGT   (l,r) | TmNEQ  (l,r) | TmEQ   (l,r)           
-    | TmMul (l,r) | TmAdd (l,r) | TmLAND (l,r) | TmSub(l,r)          
+    | TmMul (l,r)  | TmAdd (l,r)  | TmLAND (l,r) | TmSub(l,r)          
                                         ->  (tm_become l) @ (tm_become r)
     | TmArray(id,idx)                   ->  tm_become idx
     | TmCall(id,args)                   ->  tms_become args 
@@ -85,18 +85,18 @@ let lookup_mthd_head_in_cntrct (TmCn(_,_,mthds)) mname =
     | [a]           ->  let TmMthd(head,_) = a in head 
     | _::_::_       ->  eprintf "method %s duplicated\n%!" mname;err "lookup_mthd_info_in_cntrct" 
 
-let rec lookup_mthd_head_inner ce (seen:ty toplevel list) cn mname : ty=
+let rec lookup_mthd_head_top ce (seen:ty toplevel list) cn mname : ty=
     if L.mem cn seen then raise Not_found else
     try  lookup_mthd_head_in_cntrct cn mname
     with Not_found  ->  let seen        = cn :: seen in
                         let becomes     = L.map (fun nm -> cntrct_of_name nm ce)(become cn) in
                         let rec lookup_becomes seen = function 
                            | []         ->  raise Not_found
-                           | b::bs      ->  try lookup_mthd_head_inner ce seen b mname 
+                           | b::bs      ->  try lookup_mthd_head_top ce seen b mname 
                                             with Not_found -> lookup_becomes (b :: seen) bs  in
                         lookup_becomes seen becomes
 
-let lookup_mthd_head ce cn mname = lookup_mthd_head_inner ce [] cn mname 
+let lookup_mthd_head ce cn mname = lookup_mthd_head_top ce [] cn mname 
 
 
 

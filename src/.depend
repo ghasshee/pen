@@ -1,26 +1,26 @@
 assoc.cmo : assoc.cmi
 assoc.cmx : assoc.cmi
 assoc.cmi :
-bamboo.cmo : type.cmi syntax.cmi support.cmo lexer.cmo storLayout.cmi \
+bamboo.cmo : type.cmi syntax.cmi support.cmo lexer.cmo storage.cmi \
     evm.cmi crypto.cmi codegen.cmi assoc.cmi
-bamboo.cmx : type.cmx syntax.cmx support.cmx lexer.cmx storLayout.cmx \
+bamboo.cmx : type.cmx syntax.cmx support.cmx lexer.cmx storage.cmx \
     evm.cmx crypto.cmx codegen.cmx assoc.cmx
 codegen.cmo : syntax.cmi storage.cmi pseudoImm.cmi locationEnv.cmi \
-    location.cmi storLayout.cmi label.cmi evm.cmi crypto.cmi \
+    location.cmi storage.cmi label.cmi evm.cmi crypto.cmi \
     entryDatabase.cmi cntrct.cmi codegenEnv.cmi assoc.cmi codegen.cmi
 codegen.cmx : syntax.cmx storage.cmx pseudoImm.cmx locationEnv.cmx \
-    location.cmx storLayout.cmx label.cmx evm.cmx crypto.cmx \
+    location.cmx storage.cmx label.cmx evm.cmx crypto.cmx \
     entryDatabase.cmx cntrct.cmx codegenEnv.cmx assoc.cmx codegen.cmi
-codegen.cmi : syntax.cmi pseudoImm.cmi locationEnv.cmi storLayout.cmi \
+codegen.cmi : syntax.cmi pseudoImm.cmi locationEnv.cmi storage.cmi \
     evm.cmi cntrct.cmi codegenEnv.cmi assoc.cmi
 codegenEnv.cmo : syntax.cmi pseudoImm.cmi label.cmi evm.cmi assoc.cmi \
     codegenEnv.cmi
 codegenEnv.cmx : syntax.cmx pseudoImm.cmx label.cmx evm.cmx assoc.cmx \
     codegenEnv.cmi
 codegenEnv.cmi : syntax.cmi pseudoImm.cmi evm.cmi assoc.cmi
-compileFile.cmo : type.cmi syntax.cmi parse.cmi storLayout.cmi evm.cmi \
+compileFile.cmo : type.cmi syntax.cmi parse.cmi storage.cmi evm.cmi \
     codegen.cmi assoc.cmi compileFile.cmi
-compileFile.cmx : type.cmx syntax.cmx parse.cmx storLayout.cmx evm.cmx \
+compileFile.cmx : type.cmx syntax.cmx parse.cmx storage.cmx evm.cmx \
     codegen.cmx assoc.cmx compileFile.cmi
 compileFile.cmi :
 cntrct.cmo : syntax.cmi misc.cmi crypto.cmi cntrct.cmi
@@ -47,11 +47,11 @@ hexa.cmi :
 label.cmo : label.cmi
 label.cmx : label.cmi
 label.cmi :
-storLayout.cmo : syntax.cmi storage.cmi pseudoImm.cmi label.cmi evm.cmi \
-    crypto.cmi entryDatabase.cmi assoc.cmi storLayout.cmi
-storLayout.cmx : syntax.cmx storage.cmx pseudoImm.cmx label.cmx evm.cmx \
-    crypto.cmx entryDatabase.cmx assoc.cmx storLayout.cmi
-storLayout.cmi : syntax.cmi storage.cmi pseudoImm.cmi evm.cmi assoc.cmi
+storage.cmo : syntax.cmi storage.cmi pseudoImm.cmi label.cmi evm.cmi \
+    crypto.cmi entryDatabase.cmi assoc.cmi storage.cmi
+storage.cmx : syntax.cmx storage.cmx pseudoImm.cmx label.cmx evm.cmx \
+    crypto.cmx entryDatabase.cmx assoc.cmx storage.cmi
+storage.cmi : syntax.cmi storage.cmi pseudoImm.cmi evm.cmi assoc.cmi
 lexer.cmo : parser.cmi
 lexer.cmx : parser.cmx
 location.cmo : pseudoImm.cmi location.cmi

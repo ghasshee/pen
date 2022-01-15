@@ -67,17 +67,17 @@ let ()      =
     match cns with
     | []  ->  ()
     | _   ->   
-    let ccs        : cnstrCode idxlist         = compile_cnstrs cns                        in          
+    let crs        : creation idxlist         = compile_creations cns                        in          
     pe"------ initial codes of cns built ------"; 
-    let cnstrInfos : LI.cnstrInfo idxlist      = map cnstrInfo_of_cnstrCode ccs            in          
+    let cnstrInfos : LI.creation_info idxlist      = map info_of_cr crs            in          
     pe"------ cnstrctor info built ------------";
-    let layt                                    = LI.cnstrct_storLayout cnstrInfos          in          
+    let layt                                    = LI.cnstrct_storage cnstrInfos          in          
     pe"------ storage layout built ------------";
     let rc         : rntimeCode                 = compile_rntime layt cns                   in          
     pe"------ contrct layout built ------------";
     let tycn                                    = L.hd cns in 
     let cn                                      = fst tycn in 
-    let bytecode   : big_int Evm.program        = compose_bytecode ccs rc cn in 
+    let bytecode   : big_int Evm.program        = compose_bytecode crs rc cn in 
     pe"------ bytecode composed ---------------" ; 
     if  abi                                                                                               
         then Abi.prABI idx_ty_opt_ASTs                                                                          
@@ -138,18 +138,18 @@ let ()      =
 (*       |   constructor_codes  +-------+     +--------------------->+   rntimeCode  |                                             *)
 (*       +----------+-----------+       |     |                      +-------+-------+                                             *)
 (*                  |                   |     |                              |                                                     *)
-(*      storLayout_of_cnstrctrCode      |     |                              |                                                     *)
+(*      storage_of_cnstrctrCode      |     |                              |                                                     *)
 (*                  |                   |     |                              |                                                     *)                  
 (*                  v                   +------------------------------+-----+                                                     *)
 (*       +----------+-----------+             |                        |                                                           *)
-(*       | cntrct_storLayout    |             |                        |                                                           *)
+(*       | cntrct_storage    |             |                        |                                                           *)
 (*       +----------+-----------+             |                 compose_bytecode                                                   *)
 (*                  |                         |                        |                                                           *)                  
-(*         cnstrct_storLayout                 |                        v                                                           *)
+(*         cnstrct_storage                 |                        v                                                           *)
 (*                  |                         |              +---------+---------+                                                 *)
 (*                  v                         |              |      bytecode     |                                                 *)
 (*       +----------+-----------+             |              +-------------------+                                                 *)
-(*       |    storLayout        +-------------+                                                                                    *)                  
+(*       |    storage        +-------------+                                                                                    *)                  
 (*       +----------------------+                                                                                                  *)
 (*                                                                                                                                 *)                  
 (*                                                                                                                                 *)

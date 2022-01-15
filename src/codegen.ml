@@ -136,14 +136,16 @@ let mstore_rntimeCode idx ce =                                          (*      
                   CODECOPY                          =>> ce              (*                                    alloc(size) >> size >> .. *)
                                                                         (*                                     codebegin                *)
 (**   1.4.  CONTRACT CREATION   *****)
-type cnstrCode          =   { cnstr_ce           : ce
-                            ; cnstr_ty           : ty
-                            ; cnstr_cn           : ty toplevel } 
+type creation           =   { cr_ce           : ce
+                            ; cr_ty           : ty
+                            ; cr_cn           : ty toplevel } 
 
-let ce_of_cc cc         =   cc.cnstr_ce
-let program_of_cc       =   extract_program $ ce_of_cc  
+let ce_of_cr cr         =   cr.cr_ce
+let program_of_cr       =   extract_program $ ce_of_cr  
+let program_of_crs      =   L.concat $ L.rev $ L.map snd $ idx_sort $ map program_of_cr 
 
-let codegen_cnstr_bytecode cns idx = (* return ce which contains the program *) 
+
+let codegen_creation cns idx = (* return ce which contains the program *) 
     let TmCn(id,_,_) as cn = lookup idx cns in 
     let ce      =   empty_ce (lookup_cnidx cns) cns            in  (*                                                                                 *)
     let ce      =   Comment("Begin Cnstrctr of Cntract "^id)=>> ce          in 
@@ -156,14 +158,14 @@ let codegen_cnstr_bytecode cns idx = (* return ce which contains the program *)
     let ce      =   RETURN                                  =>> ce          in  (* OUTPUT(M[code]) as The BODY code                                    i <<  ..    *)
                     Comment("End Cnstrctr of Cntract "^id)  =>> ce 
 
-let compile_cnstr cns idx  : cnstrCode =
+let compile_creation cns idx  : creation =
     let cn      =   L.assoc idx cns in 
-    { cnstr_ce           = codegen_cnstr_bytecode cns idx
-    ; cnstr_ty           = typeof_cn cn 
-    ; cnstr_cn           = cn                                }
+    { cr_ce           = codegen_creation cns idx
+    ; cr_ty           = typeof_cn cn 
+    ; cr_cn           = cn                                }
 
-let compile_cnstrs cns : cnstrCode idxlist =
-    idxmap (compile_cnstr cns) cns
+let compile_creations cns : creation idxlist =
+    idxmap (compile_creation cns) cns
 
 
 (***************************************)
@@ -258,7 +260,7 @@ and codegen_ECDSArecover args ly le ce = match args with [h;v;r;s] ->
     | _         -> err "pre_ecdsarecover has a wrong number of args"
 
 (*********************************************)
-(***    5.    CODEGEN  TERM               ***)
+(***    5.    CODEGEN  TERM                ***)
 (*********************************************)
 (*
  *              ADDRESS              MEMORY 
@@ -615,7 +617,7 @@ and codegen_log _ args ev ly le ce =
 (***     5. CODEGEN RETURN          ***)
 (***************************************)
 
-and push_args le (ly:storLayout)    = foldr (fun arg ce -> arg >> (R,ly,le,ce))  
+and push_args le (ly:storage)    = foldr (fun arg ce -> arg >> (R,ly,le,ce))  
 and sstore_words_to stor_locs ce    = foldl sstore_word_to ce stor_locs
 and sstore_word_to ce stor_loc      =
     let ce      =   PUSH32 (Int stor_loc)               =>> ce          in
@@ -631,7 +633,7 @@ and sstore_vars offst idx vars ly le ce =
 
 and cont_call (TmCall(cn,args),_) ly le ce = 
     let idx     =   lookup_cnidx_at_ce cn                   ce          in 
-    let offst   =   (ly.fieldVars idx).offst                            in  
+    let offst   =   (ly.vars idx).offst                            in  
     let ce      =   Comment "Setting Cont"              =>> ce          in 
     let ce      =   set_PC idx                              ce          in  (*  S[PC] := rntime_offset_of_cn                                 .. *) 
                     sstore_vars offst idx args        ly le ce              (*  S[l_k]:= argk; .. ; S[l_1]:= arg1                            .. *)
@@ -700,12 +702,12 @@ let compile_rntime ly cns          =
     let init_rc = init_rntimeCode (lookup_cnidx cns) cns                            in 
     foldl (append_rntime ly) init_rc cns
 
-let cnstrInfo_of_cnstrCode cc       = cnstrInfo_of_cn cc.cnstr_cn (program_of_cc cc)
+let info_of_cr cr       = cr_info_of_cn cr.cr_cn (program_of_cr cr)
 
-let sizes_of_cnstrCodes ccs         =
-    let lengths = map (code_len $ ce_of_cc) ccs                                     in
-    let lengths = idx_sort lengths                                                  in
-    L.map snd lengths
+let sizes_of_crs crs         =
+    let len_s = map (code_len $ ce_of_cr) crs                                     in
+    let len_s = idx_sort len_s                                                  in
+    L.map snd len_s
 
 let offsets_of_sizes init l         =
     let rec loop offsets current        = function 
@@ -713,33 +715,23 @@ let offsets_of_sizes init l         =
         | size::rest    -> loop(current::offsets)(current+size)rest                 in 
     loop [] init l 
 
-let rntimeInfo_of_rntimeCode rc ccs : rntimeInfo =
-    let ccs_sizes           = sizes_of_cnstrCodes ccs                               in
-    let ccs_offsets         = offsets_of_sizes (code_len rc.rntime_ce) ccs_sizes    in
-    let ccs_totalsize       = BL.sum ccs_sizes                                      in
-    { rntimeCodeSize        = ccs_totalsize + code_len rc.rntime_ce
-    ; rntimeCnstrSizes      = to_idxlist ccs_sizes
+let rntimeInfo_of_rntimeCode rc crs : rntimeInfo =
+    let crs_sizes           = sizes_of_crs crs                               in
+    let crs_offsets         = offsets_of_sizes (code_len rc.rntime_ce) crs_sizes    in
+    let crs_totalsize       = BL.sum crs_sizes                                      in
+    { rntimeCodeSize        = crs_totalsize + code_len rc.rntime_ce
+    ; rntimeCnstrSizes      = to_idxlist crs_sizes
     ; rntimeCnOffsts        = rc.rntime_cn_offsets
-    ; rntimeCnstrOffsts     = to_idxlist ccs_offsets }
+    ; rntimeCnstrOffsts     = to_idxlist crs_offsets }
 
 (*  Since the code is stored in the reverse order, the concatenation is also reversed. *)
-let concat_programs_rev programs    =
-    let rev_programs        = L.rev programs                                        in
-    L.concat rev_programs
-
-let program_of_cnstrs ccs           =
-    let programs            = map program_of_cc ccs                                 in
-    let programs            = idx_sort  programs                                    in
-    let programs            = L.map snd programs                                    in
-    concat_programs_rev programs
-
-let compose_bytecode ccs rc idx : big_int Evm.program =
-    let cnstrInfos          = map cnstrInfo_of_cnstrCode  ccs                       in
-    let rntimeInfo          = rntimeInfo_of_rntimeCode rc ccs                       in
+let compose_bytecode crs rc idx : big_int Evm.program =
+    let cnstrInfos          = map info_of_cr  crs                       in
+    let rntimeInfo          = rntimeInfo_of_rntimeCode rc crs                       in
     let cnly                = cnstrct_cnLayout cnstrInfos rntimeInfo                in
-    let cnstrCode           = lookup idx ccs                                        in
-    let imm_cnstr           = realize_program cnly idx(program_of_cc cnstrCode)     in
-    let cns_program         = program_of_cnstrs ccs                                 in 
+    let cr                  = lookup idx crs                                        in
+    let imm_cr              = realize_program cnly idx(program_of_cr cr)            in
+    let cns_program         = program_of_crs crs                                    in 
     let rn_program          = extract_program rc.rntime_ce                          in
     let imm_rntime          = realize_program cnly idx(cns_program@rn_program) in
-    imm_rntime @ imm_cnstr   (* the code is stored in the reverse order *)
+    imm_rntime @ imm_cr     (* the code is stored in the reverse order *)

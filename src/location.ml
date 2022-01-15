@@ -26,7 +26,6 @@ type imm                        =
                                 | RntimeCnstrOffset         of idx
                                 | RntimeCodeOffset          of idx
                                 | RntimeCodeSize
-                                | Minus                     of imm * imm
 
 let rec str_of_imm           =   function 
   | Big b                           -> "(Big "^(str_of_big b)^")"
@@ -42,7 +41,6 @@ let rec str_of_imm           =   function
   | RntimeCnstrOffset idx           -> "RntimeCnstrOffset (print cntrct id)"
   | RntimeCodeOffset idx            -> "RntimeCodeOffset (print cntrct id)"
   | RntimeCodeSize                  -> "RntimeCodeSize"
-  | Minus (a, b)                    -> "(- "^(str_of_imm a)^" "^(str_of_imm b)^")"
 
 
 let is_const_big (b:big)        =   function 
