@@ -46,39 +46,39 @@ let abi:bool                = (Some true = enable_abi.BatOptParse.Opt.option_get
 let ()      =
     Psr.add optparser ~long_names:["abi"] ~help:"print ABI" enable_abi ; 
     Psr.add optparser ~long_names:["asm"] ~help:"print Assembly Code" enable_asm ; 
-    let files                               = Psr.parse_argv optparser                          in
+    let files                       = Psr.parse_argv optparser                          in
     if files<>[] then e"Pass the contents to stdin.\n" else
-    let abi       : bool                    = (Some true = enable_abi.Option.option_get ())     in
-    let asm       : bool                    = (Some true = enable_asm.Option.option_get ())     in
+    let abi       : bool            = (Some true = enable_abi.Option.option_get ())     in
+    let asm       : bool            = (Some true = enable_asm.Option.option_get ())     in
     pe"---- compilation start ----" ; 
-    let lexbuf                              = Lexing.from_channel stdin                                 in
-    pe"------- lexing done -------" ; 
-    let _ASTs : unit toplevel list          = parse_with_error lexbuf                                   in
-    pe"------- parse done --------" ; 
-    let idx_ASTs                            = to_idxlist _ASTs                                          in
-    pe"------- indexed ASTs ------" ; 
-    let idx_typed_ASTs                      = Type.addTys idx_ASTs                                      in
-    pe"------- typed -------------" ;
-    let idx_ty_opt_ASTs                     = Eval.eval idx_typed_ASTs                                  in 
-    pe"------  evaluated ---------" ; 
-    let cns                                 = filter_map (function TmEv e   -> None 
+    let lexbuf                      = Lexing.from_channel stdin                                 in
+    pe"---- lexing done -------" ; 
+    let _ASTs : unit toplevel list  = parse_with_error lexbuf                                   in
+    pe"---- parse done --------" ; 
+    let idx_ASTs                    = to_idxlist _ASTs                                          in
+    pe"---- indexed ASTs ------" ; 
+    let idx_typed_ASTs              = Type.addTys idx_ASTs                                      in
+    pe"---- typed -------------" ;
+    let idx_ty_opt_ASTs             = Eval.eval idx_typed_ASTs                                  in 
+    pe"---- evaluated ---------" ; 
+    let cns                         = filter_map (function TmEv e   -> None 
                                                                  | cn       -> Some cn ) idx_ty_opt_ASTs  in
-    pe"------ extract cntrcts ----" ; 
+    pe"---- extract cntrcts ----" ; 
     match cns with
     | []  ->  ()
     | _   ->   
-    let crs        : creation idxlist         = compile_creations cns                        in          
-    pe"------ initial codes of cns built ------"; 
-    let cnstrInfos : LI.creation_info idxlist      = map info_of_cr crs            in          
-    pe"------ cnstrctor info built ------------";
-    let layt                                    = LI.cnstrct_storage cnstrInfos          in          
-    pe"------ storage layout built ------------";
-    let rc         : rntimeCode                 = compile_rntime layt cns                   in          
-    pe"------ contrct layout built ------------";
-    let tycn                                    = L.hd cns in 
-    let cn                                      = fst tycn in 
-    let bytecode   : big_int Evm.program        = compose_bytecode crs rc cn in 
-    pe"------ bytecode composed ---------------" ; 
+    let crs      : creation idxlist = init_creations cns               in          
+    pe"---- creation codes built ----"; 
+    let cr_infos                    = map info_of_cr crs               in          
+    pe"---- creation infos built ----";
+    let layt                        = LI.init_storage cr_infos          in          
+    pe"---- storage layout built ----";
+    let rc       : rntime           = compile_rntime layt cns           in          
+    pe"---- contrct layout built ----";
+    let tycn                        = L.hd cns in 
+    let cn                          = fst tycn in 
+    let bytecode : big Evm.program  = compose_bytecode crs rc cn in 
+    pe"---- bytecode composed -------"; 
     if  abi                                                                                               
         then Abi.prABI idx_ty_opt_ASTs                                                                          
         else if asm 

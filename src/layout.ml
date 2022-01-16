@@ -44,7 +44,7 @@ let calc_var_pos l idx          =   { offst             = 2
 let calc_arr_pos l idx          =   { offst             = 2 + (lookup idx l).var_size
                                     ; size              =     (lookup idx l).arr_size      } 
     
-let cnstrct_storage idx_lyts    :   storage 
+let init_storage idx_lyts       :   storage 
                                 =   { pc                = 0              
                                     ; ac                = 1
                                     ; cnidxs            = idxs idx_lyts 
@@ -87,7 +87,7 @@ let cnstrct_cnLayout   l (ri:rntimeInfo)        =   { initDataSize          = ca
                                                     ; rntimeCodeSize        = ri.rntimeCodeSize
                                                     ; rntimeCnOffsts        = ri.rntimeCnOffsts
                                                     ; rntimeCnstrOffsts     = ri.rntimeCnstrOffsts
-                                                    ; sl                    = cnstrct_storage l          }
+                                                    ; sl                    = init_storage l          }
 
 let rec realize_imm cnLayt (init_idx:idx)   = function 
     | Big b                         ->  b
@@ -187,15 +187,15 @@ let rec gen_field_locs offset used_plains used_seeds num_plains = function
                     else (offset + used_plains)             :: gen_field_locs offset (used_plains+1) used_seeds num_plains tys
 
 (* this needs to take stor_fieldVars_begin *)
-let fieldVar_locations offset cn : int list =
+let var_locs_of_cn offset cn : int list =
     let fldtys          = fldTys_of_cn cn               in
     let num_vars        = count_plain_args fldtys       in
     gen_field_locs offset 0 0 num_vars fldtys 
 
-let fieldArr_locations cn : int list =
-    let field_tys     = fldTys_of_cn cn                 in
-    let num_vars = count_plain_args field_tys           in
-    let total_num     = L.length field_tys              in
+let arr_locs_of_cn cn : int list =
+    let field_tys       = fldTys_of_cn cn                 in
+    let num_vars        = count_plain_args field_tys           in
+    let total_num       = L.length field_tys              in
     if total_num=num_vars 
         then []
         else BL.(range (2 + num_vars) `To (total_num + 1))
