@@ -10,98 +10,83 @@ open Evm
 module BL   = BatList
 module L    = List
 
+(******************************************************)
+(***                                                ***)
+(******************************************************)
 
-(**********************************************************)
-(***                                                    ***)
-(**********************************************************)
-
-type creation_info              =   { cr_size           : int
-                                    ; var_size          : int      
-                                    ; arr_size          : int    
-                                    ; fld_types         : ty list       }   
-
-let cr_info_of_cn cn initCode   =   { cr_size           = size_of_prog initCode                                
-                                    ; var_size          = size_of_vars_in_cn  cn                                  
-                                    ; arr_size          = len  (arrTys_of_cn  cn)                             
-                                    ; fld_types         = fldTys_of_cn      cn } 
-                                                                            
-type storage                    =   { pc                : int               (* The Storage in Runtime                                        *) 
-                                    ; ac                : int               (* Array elements are placed as in Solidity                      *)                  
-                                    ; cnidxs            : idx list          (*                                                               *)    
-                                    ; cr_sizes          : idx -> int        (*  S[0]  := PROGRAM COUNTER                                     *)    
-                                    ; vars              : idx -> int data   (*  S[1]  := ARRAY SEED COUNTER                                  *)    
-                                    ; arrs              : idx -> int data } (*  S[2]  := pod cntrct arg0   --+                ---+           *)    
-                                                                            (*   ...                         |   k  args         | n args    *)  
-                                                                            (*  S[k+1]:= pod cntrct argk-1 --+                   |           *)  
-                                                                            (*  S[k+2]:= array0's seed     --+                   |           *)  
-                                                                            (*   ...                         | (n-k) arrSeeds    |           *)  
-                                                                            (*  S[n+1]:= arraym's seed     --+                ---+           *)  
-
+type creation_info              =   { cr_size       : int                   (* The Storage in Runtime                                        *)
+                                    ; var_size      : int                   (* Array elements are placed as in Solidity                      *)
+                                    ; arr_size      : int                   (*                                                               *)
+                                    ; fld_types     : ty list           }   (*  S[0]  := PROGRAM COUNTER                                     *)
+                                                                            (*  S[1]  := ARRAY SEED COUNTER                                  *)
+type storage                    =   { pc            : int                   (*  S[2]  := pod cntrct arg0   --+                ---+           *)
+                                    ; ac            : int                   (*   ...                         |   k  args         | n args    *)              
+                                    ; cnidxs        : idx list              (*  S[k+1]:= pod cntrct argk-1 --+                   |           *)
+                                    ; cr_sizes      : idx -> int            (*  S[k+2]:= array0's seed     --+                   |           *)
+                                    ; vars          : idx -> int data       (*   ...                         | (n-k) arrSeeds    |           *)
+                                    ; arrs          : idx -> int data   }   (*  S[n+1]:= arraym's seed     --+                ---+           *)  
+                                                                          
 let calc_cr_sizes l idx         =   (lookup idx l).cr_size
-
-let calc_var_pos  l idx         =   { offst             = 2 
-                                    ; size              =     (lookup idx l).var_size      }
-let calc_arr_pos  l idx         =   { offst             = 2 + (lookup idx l).var_size
-                                    ; size              =     (lookup idx l).arr_size      } 
+let calc_var_pos  l idx         =   { offst         = 2 
+                                    ; size          =     (lookup idx l).var_size      }
+let calc_arr_pos  l idx         =   { offst         = 2 + (lookup idx l).var_size
+                                    ; size          =     (lookup idx l).arr_size      } 
     
-let init_storage istors       :   storage 
-                                =   { pc                = 0              
-                                    ; ac                = 1
-                                    ; cnidxs            = idxs istors
-                                    ; cr_sizes          = calc_cr_sizes istors 
-                                    ; vars              = calc_var_pos  istors
-                                    ; arrs              = calc_arr_pos  istors             } 
+let init_storage i_cr_infos     =   { pc            = 0              
+                                    ; ac            = 1
+                                    ; cnidxs        = idxs          i_cr_infos 
+                                    ; cr_sizes      = calc_cr_sizes i_cr_infos 
+                                    ; vars          = calc_var_pos  i_cr_infos
+                                    ; arrs          = calc_arr_pos  i_cr_infos         } 
 
-(**********************************************************)
-(***                                                    ***)
-(**********************************************************)
-type rntime_info                =   { rn_size         : int
-                                    ; rn_cns_pos      : int ilist   (* == cnstrCodeSizes *) 
-                                    ; rn_crs_pos      : int ilist
-                                    ; rn_crs_sizes    : int ilist                           }
+(******************************************************)
+(***                                                ***)
+(******************************************************)
+type rntime_info                =   { rn_size       : int
+                                    ; cns_pos       : int ilist (* == creation_sizes *) 
+                                    ; crs_pos       : int ilist
+                                    ; crs_sizes     : int ilist                        }
 
-(* init_data := Contract Creation Code                                                                          *) 
-(* The initial data is organized like this:                                                                     *)
-(* +---------------+                                                                                            *)
-(* | cnstr  code   |                                                                                            *)
-(* | rntime code  ---+                                                                                          *)
-(* | cnstr  args   | |                                                                                          *)
-(* +---------------+ |                                                                                          *)
-(*                   |  the rntime code is organized like this:                                                 *)
-(*                   |  +----------------------------------+       the rntime code for a particular cntrct      *)
-(*                   +->|dispatcher that jumps to StoredPC |      +--------------------------------------+      *)
-(*                      |rntime code for cntrct A     ----------->| dispatcher that jumps into a method  |      *)
-(*                      |rntime code for cntrct B          |      | rntime code for method f             |      *)
-(*                      |rntime code for cntrct C          |      | rntime code for method g             |      *)
-(*                      +----------------------------------+      +--------------------------------------+      *)
+(* init_data := Contract Creation Code                                                                  *) 
+(* The initial data is organized like this:                                                             *)
+(* +---------------+                                                                                    *)
+(* | creation code |      <--- this creation code is discarded in the creation                          *)
+(* | runtime  code---+                                                                                  *)
+(* | creation code | |  rntime code is organized like this:                                             *)
+(* +---------------+ |  +---------------------------------+    rntime code for a particular cntrct:     *)
+(*                   +--> dispatcher that jumps to StorPC |    +-------------------------------------+  *)
+(*                      | rntime code for cntrct A ------------> dispatcher that jumps into a method |  *)
+(*                      | rntime code for cntrct B        |    | rntime code for method f            |  *)
+(*                      | rntime code for cntrct C        |    | rntime code for method g            |  *)
+(*                      +---------------------------------+    +-------------------------------------+  *)
 
-type cnLayout                   =   { initdata_size      : idx -> int                      
-                                    ; rn_size            : int                   
-                                    ; rn_cns_pos         : int ilist               
-                                    ; rn_crs_pos         : int ilist
-                                    ; stor               : storage        }
+type layout                     =   { initdata_size : idx -> int                      
+                                    ; rntime_size   : int                   
+                                    ; rn_cns_pos    : int ilist               
+                                    ; rn_crs_pos    : int ilist
+                                    ; stor          : storage        }
 
-let calc_cr_arg_begin  l (ri:rntime_info) idx   =   calc_cr_sizes l idx + ri.rn_size
-let calc_initdata_size l (ri:rntime_info) idx   =   calc_cr_arg_begin l ri idx + (lookup idx l).var_size
-let cnstrct_cnLayout   l (ri:rntime_info)       =   { initdata_size         = calc_initdata_size l ri
-                                                    ; rn_size               = ri.rn_size
-                                                    ; rn_cns_pos            = ri.rn_cns_pos
-                                                    ; rn_crs_pos            = ri.rn_crs_pos
-                                                    ; stor                  = init_storage l          }
+let calc_cr_begin  l ri idx     =   calc_cr_sizes l idx + ri.rn_size
+let calc_initdata_size l ri idx =   calc_cr_begin l ri idx + (lookup idx l).var_size
+let init_layout   l ri          =   { initdata_size = calc_initdata_size l ri
+                                    ; rntime_size   = ri.rn_size
+                                    ; rn_cns_pos    = ri.cns_pos
+                                    ; rn_crs_pos    = ri.crs_pos
+                                    ; stor          = init_storage l          }
 
-let rec realize_imm cnLayt (init_idx:idx)   = function 
+let rec realize_imm lyt (init_idx:idx)   = function 
     | Big b                         ->  b
     | Int i                         ->  big i
     | Label l                       ->  big (Label.lookup_label l)
-    | StorPCIndex                   ->  big (cnLayt.stor.pc)
-    | StorFldBegin          idx     ->  big (cnLayt.stor.vars idx).offst
-    | StorFldSize           idx     ->  big (cnLayt.stor.vars idx).size
-    | InitDataSize          idx     ->  big (cnLayt.initdata_size idx)
-    | RnCodeOffset          idx     ->  big (cnLayt.stor.cr_sizes idx)
-    | RnCodeSize                    ->  big (cnLayt.rn_size)
-    | CreationSize          idx     ->  big (cnLayt.stor.cr_sizes idx)
-    | RnCrOffset            idx     ->  big (lookup idx cnLayt.rn_crs_pos)
-    | RnCnOffset            idx     ->  big (lookup idx cnLayt.rn_cns_pos)
+    | StorPC                        ->  big (lyt.stor.pc)
+    | StorFldBegin          idx     ->  big (lyt.stor.vars idx).offst
+    | StorFldSize           idx     ->  big (lyt.stor.vars idx).size
+    | InitDataSize          idx     ->  big (lyt.initdata_size idx)
+    | RnOffset              idx     ->  big (lyt.stor.cr_sizes idx)
+    | RnSize                        ->  big (lyt.rntime_size)
+    | CrSize                idx     ->  big (lyt.stor.cr_sizes idx)
+    | RnCrOffset            idx     ->  big (lookup idx lyt.rn_crs_pos)
+    | RnCnOffset            idx     ->  big (lookup idx lyt.rn_cns_pos)
     | RnMthdLabel    (idx,mthd_hd)  ->  big (Label.lookup_label (lookup_entry (Mthd(idx,mthd_hd)))) 
 
 let realize_opcode cnLayt (init_idx:idx)    = function 

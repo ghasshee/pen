@@ -145,23 +145,23 @@ let check_NOT_LT bound ce =                                     (*              
 (******************************************************)
                 
 let reset_PC ce   =
-    let ce      = PUSH1 StorPCIndex                 =>> ce    in  (*                                       0 >> .. *)
+    let ce      = PUSH1 StorPC                      =>> ce    in  (*                                       0 >> .. *)
     let ce      = SLOAD                             =>> ce    in  (*                                    S[0] >> .. *)
-    let ce      = PUSH1 StorPCIndex                 =>> ce    in  (*                               0 >> S[0] >> .. *)
+    let ce      = PUSH1 StorPC                      =>> ce    in  (*                               0 >> S[0] >> .. *)
     let ce      = DUP1                              =>> ce    in  (*                          0 >> 0 >> S[0] >> .. *)
                   SSTORE                            =>> ce        (* S'[0]=0                            S[0] >> .. *)
 
 let restore_PC ce       =                                         (*                                  bkp_PC >> .. *)
-    let ce      = PUSH1 StorPCIndex                 =>> ce    in  (*                             0 >> bkp_PC >> .. *)
+    let ce      = PUSH1 StorPC                      =>> ce    in  (*                             0 >> bkp_PC >> .. *)
                   SSTORE                            =>> ce        (* S'[0]=bkp_pc                               .. *)             
 
 let set_PC idx ce =                                               (*                                            .. *)
     let ce      = PUSH32(RnCnOffset idx)            =>> ce    in  (*                            rn_cn_offset >> .. *) 
-    let ce      = PUSH1 StorPCIndex                 =>> ce    in  (*                  storPC >> rn_cn_offset >> .. *) 
+    let ce      = PUSH1 StorPC                      =>> ce    in  (*                  storPC >> rn_cn_offset >> .. *) 
                   SSTORE                            =>> ce        (* S[storPC] := rn_cn_offset                  .. *) 
 
 let get_PC ce =
-    let ce      = PUSH1 StorPCIndex                 =>> ce    in
+    let ce      = PUSH1 StorPC                      =>> ce    in
                   SLOAD                             =>> ce 
 
 

@@ -50,37 +50,37 @@ let ()      =
     if files<>[] then e"Pass the contents to stdin.\n" else
     let abi       : bool            = (Some true = enable_abi.Option.option_get ())     in
     let asm       : bool            = (Some true = enable_asm.Option.option_get ())     in
-    pe"---- compilation start ----" ; 
-    let lexbuf                      = Lexing.from_channel stdin                                 in
-    pe"---- lexing done -------" ; 
-    let _ASTs : unit toplevel list  = parse_with_error lexbuf                                   in
-    pe"---- parse done --------" ; 
-    let idx_ASTs                    = to_ilist _ASTs                                          in
-    pe"---- indexed ASTs ------" ; 
-    let idx_typed_ASTs              = Type.addTys idx_ASTs                                      in
-    pe"---- typed -------------" ;
-    let idx_ty_opt_ASTs             = Eval.eval idx_typed_ASTs                                  in 
-    pe"---- evaluated ---------" ; 
-    let cns                         = filter_map (function TmEv e   -> None 
-                                                                 | cn       -> Some cn ) idx_ty_opt_ASTs  in
-    pe"---- extract cntrcts ----" ; 
+    pe"----- compilation start -----" ; 
+    let lexbuf                      = Lexing.from_channel stdin                             in
+    pe"-------- lexing done --------" ; 
+    let asts : unit toplevel list   = parse_with_error lexbuf                               in
+    pe"--------- parse done --------" ; 
+    let i_asts                      = to_ilist asts                                         in
+    pe"-------- indexed ASTs -------" ; 
+    let i_ty_asts                   = Type.addTys i_asts                                    in
+    pe"--------- typed -------------" ;
+    let i_ty_opt_asts               = Eval.eval i_ty_asts                                   in 
+    pe"--------- evaluated ---------" ; 
+    let cns                         = filter_map (function TmEv e -> None 
+                                                         | cn     -> Some cn) i_ty_opt_asts in
+    pe"------ extract cntrcts ------" ; 
     match cns with
     | []  ->  ()
     | _   ->   
-    let crs      : creation ilist = init_creations cns               in          
+    let crs      : creation ilist   = init_creations cns                in          
     pe"---- creation codes built ----"; 
-    let cr_infos                    = map info_of_cr crs               in          
+    let cr_infos                    = cr_infos_of_crs crs               in          
     pe"---- creation infos built ----";
-    let layt                        = LI.init_storage cr_infos          in          
+    let stor                        = LI.init_storage cr_infos          in          
     pe"---- storage layout built ----";
-    let rc       : rntime           = compile_rntime layt cns           in          
+    let rn       : rntime           = compile_rntime stor cns           in          
     pe"---- contrct layout built ----";
-    let tycn                        = L.hd cns in 
-    let cn                          = fst tycn in 
-    let bytecode : big Evm.program  = compose_bytecode crs rc cn in 
+    let tycn                        = L.hd cns                          in 
+    let cn                          = fst tycn                          in 
+    let bytecode : big Evm.program  = compose_bytecode crs rn cn        in 
     pe"---- bytecode composed -------"; 
     if  abi                                                                                               
-        then Abi.prABI idx_ty_opt_ASTs                                                                          
+        then Abi.prABI i_ty_opt_asts                                                                          
         else if asm 
             then Evm.prLn_encoded bytecode 
             else Evm.pr_encoded bytecode

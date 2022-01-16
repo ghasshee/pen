@@ -16,31 +16,31 @@ type imm                        =
                                 | Big                   of big_int
                                 | Int                   of int
                                 | Label                 of Label.label
-                                | StorPCIndex
+                                | StorPC
                                 | StorFldBegin          of int
                                 | StorFldSize           of int    (* the size depends on the cntrct id *)
                                 | InitDataSize          of idx
                                 | RnMthdLabel           of idx * Syntax.ty
-                                | CreationSize          of idx
+                                | CrSize                of idx
                                 | RnCrOffset            of idx
                                 | RnCnOffset            of idx    (* This index should be a JUMPDEST *)
-                                | RnCodeOffset          of idx
-                                | RnCodeSize
+                                | RnOffset              of idx
+                                | RnSize
 
 let rec str_of_imm           =   function 
   | Big b                           -> "(Big "^(str_of_big b)^")"
   | Int i                           -> "(Int "^(str_of_int i)^")"
   | Label _                         -> "Label (print label here)"
-  | StorPCIndex                     -> "StorPCIndex"
+  | StorPC                          -> "StorPC"
   | StorFldBegin _                  -> "StorFldBegin (print cntrct id)"
   | StorFldSize _                   -> "StorFldSize (print cntrct id)"
   | InitDataSize idx                -> "InitDataSize (print cntrct id here)"
   | RnCnOffset _                    -> "RnCnOffset (print contact id)"
   | RnMthdLabel(idx,header)         -> "RnMthdLabel (print cntrct id, case header)"
-  | CreationSize idx                -> "CreationSize (print cntrct id)"
+  | CrSize idx                      -> "CreationSize (print cntrct id)"
   | RnCrOffset idx                  -> "RnCrOffset (print cntrct id)"
-  | RnCodeOffset idx                -> "RnCodeOffset (print cntrct id)"
-  | RnCodeSize                      -> "RnCodeSize"
+  | RnOffset idx                    -> "RnOffset (print cntrct id)"
+  | RnSize                          -> "RnSize"
 
 
 let is_const_big (b:big)        =   function 

@@ -18,19 +18,19 @@ module  BL  = BatList
 (* var list list    := the whole variables in src code   *) 
 
 type context                    = bind list 
- and bind                       = BdName  of str       (* Parser Context *) 
-                                | BdTy    of str * ty 
-                                | BdRetTy of ty 
-                                | BdCtx   of context
-                                | BdEv    of str * ty list 
-                                | BdLoc   of str * location 
-                                | BdI   of ty tmty 
-                                | BdBrj   of context 
-                                | BdRec   of label   (* BdRec(start) *) 
+ and bind                       = BdName    of str       (* Parser Context *) 
+                                | BdTy      of str * ty 
+                                | BdRetTy   of ty 
+                                | BdCtx     of context
+                                | BdEv      of str * ty list 
+                                | BdLoc     of str * location 
+                                | BdI       of ty tmty 
+                                | BdBrj     of context 
+                                | BdRec     of label   (* BdRec(start) *) 
                                 | BdRecName of str
-                                | BdStruct of str 
+                                | BdStruct  of str 
                             
-let str_of_bind              = function 
+let str_of_bind                 = function 
     | BdRec(l)                      -> sprintf "BdRec(label %d)" l 
     | BdBrj ctx                     -> sprintf "BdBrj %s" "local" 
     | BdLoc(s,l)                    -> sprintf "BdLoc(%s,location)" s 
@@ -40,12 +40,10 @@ let str_of_bind              = function
     | BdCtx ctx                     -> sprintf "BdCtx %s" "local" 
     | _                             -> "Bd" 
 
-let rec str_of_ctx           = function 
+let rec str_of_ctx              = function 
     | []                            -> ""
     | x::xs                         -> str_of_bind x ^ "," ^ str_of_ctx xs 
 
-
-type le                         =   context 
 
 let empty_ctx                   = [] 
 let add_empty_ctx ctx           = BdCtx[] :: ctx
