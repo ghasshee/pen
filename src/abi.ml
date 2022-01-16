@@ -75,7 +75,7 @@ let prABI_toplevel seen_cnstrctr = function
     | TmCn(id,fs,ms)           -> prABI_cntrct seen_cnstrctr (TmCn(id,fs,ms))
     | TmEv e                   -> prABI_evnt e
 
-let prABI (tops : ty toplevel idxlist) : unit =
+let prABI (tops : ty toplevel ilist) : unit =
     let seen_cnstrctr    = ref false in
     let ()                  = printf "[" in
     let strs : str list  = L.map (prABI_toplevel seen_cnstrctr) (values tops) in

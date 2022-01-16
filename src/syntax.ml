@@ -253,7 +253,7 @@ let non_mapping_arg             = function
     | TyVar(_,_)                -> true 
     | _                         -> err "not an arg"
 
-let count_plain_args            = L.length $ (L.filter (not $ is_mapping)) 
+let count_vars                  = L.length $ (L.filter (not $ is_mapping)) 
 
 
 

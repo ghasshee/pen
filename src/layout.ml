@@ -15,12 +15,12 @@ module L    = List
 (***                                                    ***)
 (**********************************************************)
 
-type creation_info              =   { creation_size           : int
+type creation_info              =   { cr_size           : int
                                     ; var_size          : int      
                                     ; arr_size          : int    
                                     ; fld_types         : ty list       }   
 
-let cr_info_of_cn cn initCode   =   { creation_size           = size_of_program initCode                                
+let cr_info_of_cn cn initCode   =   { cr_size           = size_of_prog initCode                                
                                     ; var_size          = size_of_vars_in_cn  cn                                  
                                     ; arr_size          = len  (arrTys_of_cn  cn)                             
                                     ; fld_types         = fldTys_of_cn      cn } 
@@ -28,7 +28,7 @@ let cr_info_of_cn cn initCode   =   { creation_size           = size_of_program 
 type storage                    =   { pc                : int               (* The Storage in Runtime                                        *) 
                                     ; ac                : int               (* Array elements are placed as in Solidity                      *)                  
                                     ; cnidxs            : idx list          (*                                                               *)    
-                                    ; cr_size           : idx -> int        (*  S[0]  := PROGRAM COUNTER                                     *)    
+                                    ; cr_sizes          : idx -> int        (*  S[0]  := PROGRAM COUNTER                                     *)    
                                     ; vars              : idx -> int data   (*  S[1]  := ARRAY SEED COUNTER                                  *)    
                                     ; arrs              : idx -> int data } (*  S[2]  := pod cntrct arg0   --+                ---+           *)    
                                                                             (*   ...                         |   k  args         | n args    *)  
@@ -37,28 +37,28 @@ type storage                    =   { pc                : int               (* T
                                                                             (*   ...                         | (n-k) arrSeeds    |           *)  
                                                                             (*  S[n+1]:= arraym's seed     --+                ---+           *)  
 
-let calc_cr_size l idx : int    =   (lookup idx l).creation_size
+let calc_cr_sizes l idx         =   (lookup idx l).cr_size
 
-let calc_var_pos l idx          =   { offst             = 2 
+let calc_var_pos  l idx         =   { offst             = 2 
                                     ; size              =     (lookup idx l).var_size      }
-let calc_arr_pos l idx          =   { offst             = 2 + (lookup idx l).var_size
+let calc_arr_pos  l idx         =   { offst             = 2 + (lookup idx l).var_size
                                     ; size              =     (lookup idx l).arr_size      } 
     
-let init_storage idx_lyts       :   storage 
+let init_storage istors       :   storage 
                                 =   { pc                = 0              
                                     ; ac                = 1
-                                    ; cnidxs            = idxs idx_lyts 
-                                    ; cr_size           = calc_cr_size idx_lyts 
-                                    ; vars              = calc_var_pos idx_lyts
-                                    ; arrs              = calc_arr_pos idx_lyts               } 
+                                    ; cnidxs            = idxs istors
+                                    ; cr_sizes          = calc_cr_sizes istors 
+                                    ; vars              = calc_var_pos  istors
+                                    ; arrs              = calc_arr_pos  istors             } 
 
 (**********************************************************)
 (***                                                    ***)
 (**********************************************************)
-type rntimeInfo                 =   { rntimeCodeSize    : int
-                                    ; rntimeCnOffsts    : int idxlist   (* == cnstrCodeSizes *) 
-                                    ; rntimeCnstrOffsts : int idxlist
-                                    ; rntimeCnstrSizes  : int idxlist                           }
+type rntime_info                =   { rn_size         : int
+                                    ; rn_cns_pos      : int ilist   (* == cnstrCodeSizes *) 
+                                    ; rn_crs_pos      : int ilist
+                                    ; rn_crs_sizes    : int ilist                           }
 
 (* init_data := Contract Creation Code                                                                          *) 
 (* The initial data is organized like this:                                                                     *)
@@ -75,34 +75,34 @@ type rntimeInfo                 =   { rntimeCodeSize    : int
 (*                      |rntime code for cntrct C          |      | rntime code for method g             |      *)
 (*                      +----------------------------------+      +--------------------------------------+      *)
 
-type cnLayout                   =   { initDataSize              : idx -> int                      
-                                    ; rntimeCodeSize            : int                   
-                                    ; rntimeCnOffsts            : int idxlist               
-                                    ; rntimeCnstrOffsts         : int idxlist
-                                    ; sl                        : storage        }
+type cnLayout                   =   { initdata_size      : idx -> int                      
+                                    ; rn_size            : int                   
+                                    ; rn_cns_pos         : int ilist               
+                                    ; rn_crs_pos         : int ilist
+                                    ; stor               : storage        }
 
-let calc_cnstrArgBegin l (ri:rntimeInfo) idx    =   calc_cr_size l idx + ri.rntimeCodeSize
-let calc_initDataSize  l (ri:rntimeInfo) idx    =   calc_cnstrArgBegin l ri idx + (lookup idx l).var_size
-let cnstrct_cnLayout   l (ri:rntimeInfo)        =   { initDataSize          = calc_initDataSize l ri
-                                                    ; rntimeCodeSize        = ri.rntimeCodeSize
-                                                    ; rntimeCnOffsts        = ri.rntimeCnOffsts
-                                                    ; rntimeCnstrOffsts     = ri.rntimeCnstrOffsts
-                                                    ; sl                    = init_storage l          }
+let calc_cr_arg_begin  l (ri:rntime_info) idx   =   calc_cr_sizes l idx + ri.rn_size
+let calc_initdata_size l (ri:rntime_info) idx   =   calc_cr_arg_begin l ri idx + (lookup idx l).var_size
+let cnstrct_cnLayout   l (ri:rntime_info)       =   { initdata_size         = calc_initdata_size l ri
+                                                    ; rn_size               = ri.rn_size
+                                                    ; rn_cns_pos            = ri.rn_cns_pos
+                                                    ; rn_crs_pos            = ri.rn_crs_pos
+                                                    ; stor                  = init_storage l          }
 
 let rec realize_imm cnLayt (init_idx:idx)   = function 
     | Big b                         ->  b
     | Int i                         ->  big i
     | Label l                       ->  big (Label.lookup_label l)
-    | StorPCIndex                   ->  big (cnLayt.sl.pc)
-    | StorFieldsBegin       idx     ->  big (cnLayt.sl.vars idx).offst
-    | StorFieldsSize        idx     ->  big (cnLayt.sl.vars idx).size
-    | InitDataSize          idx     ->  big (cnLayt.initDataSize idx)
-    | RntimeCodeOffset      idx     ->  big (cnLayt.sl.cr_size idx)
-    | RntimeCodeSize                ->  big (cnLayt.rntimeCodeSize)
-    | CnstrCodeSize         idx     ->  big (cnLayt.sl.cr_size idx)
-    | RntimeCnstrOffset     idx     ->  big (lookup idx cnLayt.rntimeCnstrOffsts)
-    | RntimeCntrctOffset    idx     ->  big (lookup idx cnLayt.rntimeCnOffsts)
-    | RntimeMthdLabel(idx,mthd_hd)  ->  big (Label.lookup_label (lookup_entry (Mthd(idx,mthd_hd)))) 
+    | StorPCIndex                   ->  big (cnLayt.stor.pc)
+    | StorFldBegin          idx     ->  big (cnLayt.stor.vars idx).offst
+    | StorFldSize           idx     ->  big (cnLayt.stor.vars idx).size
+    | InitDataSize          idx     ->  big (cnLayt.initdata_size idx)
+    | RnCodeOffset          idx     ->  big (cnLayt.stor.cr_sizes idx)
+    | RnCodeSize                    ->  big (cnLayt.rn_size)
+    | CreationSize          idx     ->  big (cnLayt.stor.cr_sizes idx)
+    | RnCrOffset            idx     ->  big (lookup idx cnLayt.rn_crs_pos)
+    | RnCnOffset            idx     ->  big (lookup idx cnLayt.rn_cns_pos)
+    | RnMthdLabel    (idx,mthd_hd)  ->  big (Label.lookup_label (lookup_entry (Mthd(idx,mthd_hd)))) 
 
 let realize_opcode cnLayt (init_idx:idx)    = function 
     | PUSH1  imm      -> PUSH1  (realize_imm cnLayt init_idx imm)
@@ -178,7 +178,7 @@ let realize_opcode cnLayt (init_idx:idx)    = function
     | DUP6            -> DUP6
     | DUP7            -> DUP7
 
-let realize_program l init_idx p = L.map (realize_opcode l init_idx) p
+let realize_prog l init_idx p = L.map (realize_opcode l init_idx) p
 
 let rec gen_field_locs offset used_plains used_seeds num_plains = function 
     | []        ->  []
@@ -189,16 +189,16 @@ let rec gen_field_locs offset used_plains used_seeds num_plains = function
 (* this needs to take stor_fieldVars_begin *)
 let var_locs_of_cn offset cn : int list =
     let fldtys          = fldTys_of_cn cn               in
-    let num_vars        = count_plain_args fldtys       in
-    gen_field_locs offset 0 0 num_vars fldtys 
+    let varsize         = count_vars fldtys             in
+    gen_field_locs offset 0 0 varsize fldtys 
 
 let arr_locs_of_cn cn : int list =
-    let field_tys       = fldTys_of_cn cn                 in
-    let num_vars        = count_plain_args field_tys           in
-    let total_num       = L.length field_tys              in
-    if total_num=num_vars 
+    let fldtys          = fldTys_of_cn cn               in
+    let varsize         = count_vars fldtys             in
+    let fldsize         = L.length fldtys               in
+    if fldsize = varsize
         then []
-        else BL.(range (2 + num_vars) `To (total_num + 1))
+        else BL.(range (2+varsize) `To (fldsize+1))
 
 (*                                                                          *)
 (*            Storage of a contract                                         *)

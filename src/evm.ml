@@ -324,7 +324,7 @@ let size_of_opcode  = function
   | PUSH32 _        -> 1 + 32 
   | _               -> 1
 
-let size_of_program p = foldl (fun a i -> a + size_of_opcode i) 0 p 
+let size_of_prog p = foldl (fun a i -> size_of_opcode i + a) 0 p 
 
 let dup_succ       = function 
   | 0               -> DUP1

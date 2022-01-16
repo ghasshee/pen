@@ -45,7 +45,7 @@ let align_to_L ce ty        = function
 (***  1. CONTRACT CREATION CODE        ***)
 (*****************************************)
 
-(**   1.1  Var Fileds Setup        **) 
+(**   1.1  Stor Var Setup        **) 
 let mstore_vars cn ce =                                             (* This copies fieldVars at the end of the bytecode into MEM.             *) 
     let size    = size_of_vars_in_cn cn                         in  (* M[0x40](==M[64]) is increased accordingly                              *)
     let ce      = PUSH32(Int size)                  =>> ce      in  (*                                                             size >> .. *)
@@ -61,9 +61,9 @@ let mstore_vars cn ce =                                             (* This copi
 let check_codesize cnidx ce     =  
     let ce      = PUSH32(InitDataSize cnidx)        =>> ce      in  (*                                    datasize >> mem_start >> size >> .. *)
     let ce      = CODESIZE                          =>> ce      in  (*                        codesize >> datasize >> mem_start >> size >> .. *) 
-                  throw_if_NEQ                          ce        (* IF not eq THEN error *) 
+                  throw_if_NEQ                          ce          (* IF not eq THEN error                                                   *) 
 
-let sstore_vars cnidx ce   =                               
+let init_stor_vars cnidx ce   =                               
     let label   = fresh_label()                                 in
     let exit    = fresh_label()                                 in  (*                                                mem_start >> size >> .. *)  
     let ce      = check_codesize cnidx                  ce      in 
@@ -87,104 +87,84 @@ let sstore_vars cnidx ce   =
     let ce      = goto label                            ce      in  (*                                        idx+1 >> mem_start+0x20 >> size-0x20 >> .. *)
     let ce   = JUMPDEST exit                        =>> ce      in  (*                                          idx >>   mem_start    >>   size    >> .. *)
                   repeat POP 3                          ce          (*                                                                     .. *)
-(*  S[1]   := m   <- array seed                                               *)  
-(*  S[2]   := the value of arg1 is stored in message call                     *)  
-(*            ..                                                              *)  
-(*  S[k+1] := the value of argk is stored in message call                     *)  
 
 
-
-(**   1.2. Array Fields Setup    **)                   
+(**   1.2. Stor Arr Setup       **)                   
 let reset_salloc_arr ce = 
-    let ce      = PUSH1 (Int 1)                     =>> ce          in  (*                                           1 >> .. *)
-    let ce      = DUP1                              =>> ce          in  (*                                      1 >> 1 >> .. *)
-                  SSTORE                            =>> ce              (* S[1]:=1                                        .. *) 
+    let ce      = PUSH1 (Int 1)                     =>> ce      in  (*                                           1 >> .. *)
+    let ce      = DUP1                              =>> ce      in  (*                                      1 >> 1 >> .. *)
+                  SSTORE                            =>> ce          (* S[1]:=1                                        .. *) 
 
 let salloc_arr ce (arrArgLoc:int) =   
-    let label   = fresh_label()                                     in  (*                                                .. *) 
-    let ce      = PUSH4 (Int arrArgLoc)             =>> ce          in  (*                                        seed >> .. *)
-    let ce      = SLOAD                             =>> ce          in  (*                                     S[seed] >> .. *) 
-    let ce      = PUSH4 (Label label)               =>> ce          in  (*                            label >> S[seed] >> .. *)
-    let ce      = JUMPI                             =>> ce          in  (* IF S[seed]!=0 GOTO label                       .. *) 
-    let ce      = sincr 1                               ce          in  (*                                      S[1]++ >> .. *)      
-    let ce      = PUSH4 (Int arrArgLoc)             =>> ce          in  (*                                seed >> S[1] >> .. *)
-    let ce      = SSTORE                            =>> ce          in  (* S[seed]:=S[1]                                  .. *)
-                  JUMPDEST label                    =>> ce              (*                                                .. *)
+    let label   = fresh_label()                                 in  (*                                                .. *) 
+    let ce      = PUSH4 (Int arrArgLoc)             =>> ce      in  (*                                        seed >> .. *)
+    let ce      = SLOAD                             =>> ce      in  (*                                     S[seed] >> .. *) 
+    let ce      = PUSH4 (Label label)               =>> ce      in  (*                            label >> S[seed] >> .. *)
+    let ce      = JUMPI                             =>> ce      in  (* IF S[seed]!=0 GOTO label                       .. *) 
+    let ce      = sincr 1                               ce      in  (*                                      S[1]++ >> .. *)      
+    let ce      = PUSH4 (Int arrArgLoc)             =>> ce      in  (*                                seed >> S[1] >> .. *)
+    let ce      = SSTORE                            =>> ce      in  (* S[seed]:=S[1]                                  .. *)
+                  JUMPDEST label                    =>> ce          (*                                                .. *)
 
 let init_salloc_arr_if_not ce = 
-    let label   = fresh_label ()                                    in  (*                                                   *) 
-    let ce      = PUSH1 (Int 1)                     =>> ce          in  (*                                                   *) 
-    let ce      = SLOAD                             =>> ce          in  (*                                                   *)
-    let ce      = PUSH4 (Label label)               =>> ce          in  (*                                                   *) 
-    let ce      = JUMPI                             =>> ce          in  (* IF S[1]!=0 then GOTO label                  >> .. *)
-    let ce      = reset_salloc_arr                      ce          in  (*                                      1 >> 1 >> .. *) 
-                  JUMPDEST label                    =>> ce          
+    let label   = fresh_label ()                                in  (*                                                   *) 
+    let ce      = PUSH1 (Int 1)                     =>> ce      in  (*                                                   *) 
+    let ce      = SLOAD                             =>> ce      in  (*                                                   *)
+    let ce      = PUSH4 (Label label)               =>> ce      in  (*                                                   *) 
+    let ce      = JUMPI                             =>> ce      in  (* IF S[1]!=0 then GOTO label                  >> .. *)
+    let ce      = reset_salloc_arr                      ce      in  (*                                      1 >> 1 >> .. *) 
+                  JUMPDEST label                    =>> ce      
 
 let setup_arrs cn ce =
-    let ce      = init_salloc_arr_if_not                ce          in   
-    let arrLocs = arr_locs_of_cn cn                                  in  
+    let ce      = init_salloc_arr_if_not                ce      in   
+    let arrLocs = arr_locs_of_cn cn                             in  
                   foldl salloc_arr ce arrLocs 
 
 (**   1.3. Runtime CODE COPY         **) 
-let mstore_rn_code idx ce =                                          (*                                                           .. *)
-    let ce      = PUSH32(RntimeCodeSize)            =>> ce          in  (*                                                   size >> .. *)
-    let ce      = DUP1                              =>> ce          in  (*                                           size >> size >> .. *)  
-    let ce      = malloc                                ce          in  (*                                    alloc(size) >> size >> .. *)
-    let ce      = DUP2                              =>> ce          in  (*                            size >> alloc(size) >> size >> .. *)
-    let ce      = PUSH32(RntimeCodeOffset idx)      =>> ce          in  (*                     idx >> size >> alloc(size) >> size >> .. *)
-    let ce      = DUP3                              =>> ce          in  (*      alloc(size) >> idx >> size >> alloc(size) >> size >> .. *)
-                  CODECOPY                          =>> ce              (*                                    alloc(size) >> size >> .. *)
-                                                                        (*                                     codebegin                *)
+let mstore_rn_code idx ce =                                         (*                                                           .. *)
+    let ce      = PUSH32(RntimeCodeSize)            =>> ce      in  (*                                                   size >> .. *)
+    let ce      = DUP1                              =>> ce      in  (*                                           size >> size >> .. *)  
+    let ce      = malloc                                ce      in  (*                                    alloc(size) >> size >> .. *)
+    let ce      = DUP2                              =>> ce      in  (*                            size >> alloc(size) >> size >> .. *)
+    let ce      = PUSH32(RntimeCodeOffset idx)      =>> ce      in  (*                     idx >> size >> alloc(size) >> size >> .. *)
+    let ce      = DUP3                              =>> ce      in  (*      alloc(size) >> idx >> size >> alloc(size) >> size >> .. *)
+                  CODECOPY                          =>> ce          (*                                    alloc(size) >> size >> .. *)
+                                                                    (*                                     codebegin                *)
 (**   1.4.  CONTRACT CREATION   *****)
-type creation           =   { cr_ce           : ce
+type creation           =   { cr_vm           : vm
                             ; cr_ty           : ty
                             ; cr_cn           : ty toplevel } 
 
-let ce_of_cr cr         =   cr.cr_ce
-let size_of_cr          =   code_len        $ ce_of_cr 
-let program_of_cr       =   extract_program $ ce_of_cr  
+let vm_of_cr cr         =   cr.cr_vm
+let size_of_cr          =   code_len     $ vm_of_cr 
+let prog_of_cr          =   extract_prog $ vm_of_cr  
 let sizes_of_crs        =   L.map snd $ idx_sort $ map size_of_cr
-let programs_of_crs     =   L.map snd $ idx_sort $ map program_of_cr 
-let program_of_crs      =   L.concat $ L.rev $ programs_of_crs 
+let progs_of_crs        =   L.map snd $ idx_sort $ map prog_of_cr 
+let prog_of_crs         =   L.concat $ L.rev $ progs_of_crs 
 
 
 let codegen_creation cns idx = (* return ce which contains the program *) 
     let TmCn(id,_,_) as cn = lookup idx cns in 
-    let ce      =   empty_ce (lookup_cnidx cns) cns            in  (*                                                                                 *)
-    let ce      =   Comment("Begin Cnstrctr of Cntract "^id)=>> ce          in 
-    let ce      =   init_malloc                                 ce          in  (* M[64] := 96                                                                     *)
-    let ce      =   mstore_vars  cn                             ce          in  (*                                            alloc(argssize) << argssize << ..    *)
-    let ce      =   sstore_vars  idx                            ce          in  (* S[i..i+sz-1]:= argCodes               i << alloc(argssize) << argssize << ..    *)
-    let ce      =   setup_arrs   cn                             ce          in  (* S[1]        := #array                 i << alloc(argssize) << argssize << ..    *)
-    let ce      =   set_PC            idx                       ce          in  (* S[PC]       := rntime_cn_offst (returned body)                                  *)
-    let ce      =   mstore_rn_code    idx                       ce          in  (*                                      alloc(codesize) << codesize << i <<  ..    *)
-    let ce      =   RETURN                                  =>> ce          in  (* OUTPUT(M[code]) as The BODY code                                    i <<  ..    *)
-                    Comment("End Cnstrctr of Cntract "^id)  =>> ce 
+    let ce      =   empty_vm (lookup_cnidx cns) cns             in  (*                                                                                 *)
+    let ce      =   Comment("Begin Creation "^id)   =>> ce      in 
+    let ce      =   init_malloc                         ce      in  (* M[64] := 96                                                                     *)
+    let ce      =   mstore_vars  cn                     ce      in  (*                                            alloc(argssize) << argssize << ..    *)
+    let ce      =   init_stor_vars  idx                 ce      in  (* S[i..i+sz-1]:= argCodes               i << alloc(argssize) << argssize << ..    *)
+    let ce      =   setup_arrs   cn                     ce      in  (* S[1]        := #array                 i << alloc(argssize) << argssize << ..    *)
+    let ce      =   set_PC            idx               ce      in  (* S[PC]       := rn_cn_offst     (returned body)                                  *)
+    let ce      =   mstore_rn_code    idx               ce      in  (*                                      alloc(codesize) << codesize << i <<  ..    *)
+    let ce      =   RETURN                          =>> ce      in  (* OUTPUT(M[code]) as The BODY code                                    i <<  ..    *)
+                    Comment("End Creation "^id)     =>> ce 
 
 let init_creation cns idx  : creation =
     let cn      =   L.assoc idx cns in 
-    { cr_ce           = codegen_creation cns idx
+    { cr_vm           = codegen_creation cns idx
     ; cr_ty           = typeof_cn cn 
     ; cr_cn           = cn                                }
 
-let init_creations cns : creation idxlist =
-    idxmap (init_creation cns) cns
+let init_creations cns : creation ilist =
+    imap (init_creation cns) cns
 
-
-(***************************************)
-(***     2.    RUNTIME               ***)
-(***************************************)
-
-type rntime                 =   { rn_ce             : ce                                                       
-                                ; rn_cn_offsts      : int idxlist  }
-
-let init_rntime lookup_cn lyts =
-    let ce      =   empty_ce lookup_cn lyts                             in
-    let ce      =   error_loop ce                                       in 
-    let ce      =   get_PC                                      ce      in
-    let ce      =   JUMP                                    =>> ce      in
-    { rn_ce             = ce
-    ; rn_cn_offsts      = [] }
 
 (***************************************)
 (***     3.  DISPATHER               ***)
@@ -287,7 +267,7 @@ and push_loc ce aln ty      = function
                                 align_to_L ce ty aln 
 
 and mstore_new_instance id args msg ly le ce  =
-    let cnidx   =   lookup_cnidx_at_ce id                   ce      in 
+    let cnidx   =   lookup_cnidx_at_vm id                   ce      in 
     let ce      =   PUSH32(CnstrCodeSize cnidx)         =>> ce      in  (*                                                        size >> .. *) 
     let ce      =   PUSH32(RntimeCnstrOffset cnidx)     =>> ce      in  (*                                             cn_idx  >> size >> .. *)
     let ce      =   mstore_code                             ce      in  (*                                         alloc(size) >> size >> .. *)
@@ -422,7 +402,7 @@ and mload_ret_value ce =                                                (*      
 
 and codegen_send_cn cn m args msg ly le ce =  (* msg-call to a contract *) 
     let TyInstnc cname = snd cn                                     in  
-    let cnidx   = lookup_cnidx_at_ce cname                  ce      in 
+    let cnidx   = lookup_cnidx_at_vm cname                  ce      in 
     let callee  = lookup_cn cnidx                           ce      in
     let Some mname = m                                              in 
     let m       = lookup_mthd_head ce callee mname                  in
@@ -631,7 +611,7 @@ and sstore_vars offst idx vars ly le ce =
     le,ce
 
 and cont_call (TmCall(cn,args),_) ly le ce = 
-    let idx     =   lookup_cnidx_at_ce cn                   ce      in 
+    let idx     =   lookup_cnidx_at_vm cn                   ce      in 
     let offst   =   (ly.vars idx).offst                             in  
     let ce      =   Comment "Setting Cont"              =>> ce      in 
     let ce      =   set_PC idx                              ce      in  (*  S[PC] := rntime_offset_of_cn                                 .. *) 
@@ -688,44 +668,58 @@ let codegen_cntrct ly le ce (idx,TmCn(id,flds,mthds)) =
     let le,ce   = codegen_mthds ly idx (le,ce) mthds                in  
     ce
 
+(***************************************)
+(***     2.    RUNTIME               ***)
+(***************************************)
+
+type rntime                 =   { rn_vm         : vm                                                       
+                                ; rn_cns_pos    : int ilist  }
+
+let init_rntime lookup_cn lyts =
+    let vm      =   empty_vm lookup_cn lyts                             in
+    let vm      =   error_loop                                  vm      in 
+    let vm      =   get_PC                                      vm      in
+    let vm      =   JUMP                                    =>> vm      in
+    { rn_vm             = vm
+    ; rn_cns_pos        = [] }
+
+let append_rntime ly rc (idx,cn)   = pe("compiling contract" ^ str_of_int idx); 
+    { rn_vm             = codegen_cntrct ly(rntime_init_le cn)rc.rn_vm(idx,cn)
+    ; rn_cns_pos        = insert idx(code_len rc.rn_vm)rc.rn_cns_pos    }
+
+let compile_rntime ly cns   = 
+    let init_rc             = init_rntime (lookup_cnidx cns) cns            in 
+    foldl (append_rntime ly) init_rc cns
+
 (********************************************)
 (***     7. MAKE BYTECODE                ***)
 (********************************************)
 
-let append_rntime ly rc (idx,cn)   = pe("compiling contract" ^ str_of_int idx); 
-    { rn_ce             = codegen_cntrct ly(rntime_init_le cn)rc.rn_ce(idx,cn)
-    ; rn_cn_offsts      = insert idx(code_len rc.rn_ce)rc.rn_cn_offsts    }
+let info_of_cr cr           = cr_info_of_cn cr.cr_cn (prog_of_cr cr)
 
-let compile_rntime ly cns   = 
-    let init_rc             = init_rntime (lookup_cnidx cns) cns                in 
-    foldl (append_rntime ly) init_rc cns
-
-let info_of_cr cr           = cr_info_of_cn cr.cr_cn (program_of_cr cr)
-
-
-let offsets_of_sizes init l =
-    let rec loop offsets current    = function 
-        | []            -> L.rev offsets
-        | size::rest    -> loop(current::offsets)(current+size)rest                 in 
+let offsts_of_sizes init l =
+    let rec loop offsts current    = function 
+        | []            -> L.rev offsts
+        | size::rest    -> loop(current::offsts)(current+size)rest          in 
     loop [] init l 
 
-let rntimeInfo_of_rntimeCode rc crs : rntimeInfo =
-    let crs_sizes           = sizes_of_crs crs                                      in
-    let crs_offsets         = offsets_of_sizes (code_len rc.rn_ce) crs_sizes    in
-    let crs_totalsize       = BL.sum crs_sizes                                      in
-    { rntimeCodeSize        = crs_totalsize + code_len rc.rn_ce
-    ; rntimeCnstrSizes      = to_idxlist crs_sizes
-    ; rntimeCnOffsts        = rc.rn_cn_offsts
-    ; rntimeCnstrOffsts     = to_idxlist crs_offsets }
+let rntime_info_of_rntime rn crs : rntime_info =
+    let crs_sizes           = sizes_of_crs crs                              in
+    let crs_offsets         = offsts_of_sizes(code_len rn.rn_vm)crs_sizes   in
+    let crs_size            = BL.sum crs_sizes                              in 
+    { rn_size           = crs_size + code_len rn.rn_vm
+    ; rn_cns_pos        = rn.rn_cns_pos
+    ; rn_crs_pos        = to_ilist crs_offsets 
+    ; rn_crs_sizes      = to_ilist crs_sizes    }
 
-(*  Since the code is stored in the reverse order, the concatenation is also reversed. *)
+(*  Since codes are stored in reverse order, their concat is also reserved. *)
 let compose_bytecode crs rc idx : big_int Evm.program =
-    let cnstrInfos          = map info_of_cr  crs                                   in
-    let rntimeInfo          = rntimeInfo_of_rntimeCode rc crs                       in
-    let cnly                = cnstrct_cnLayout cnstrInfos rntimeInfo                in
-    let cr                  = lookup idx crs                                        in
-    let imm_cr              = realize_program cnly idx(program_of_cr cr)            in
-    let cns_program         = program_of_crs crs                                    in 
-    let rn_program          = extract_program rc.rn_ce                          in
-    let imm_rntime          = realize_program cnly idx(cns_program@rn_program)      in
+    let cr_infos            = map info_of_cr crs                            in
+    let rn_info             = rntime_info_of_rntime rc crs                  in
+    let cnly                = cnstrct_cnLayout cr_infos rn_info             in
+    let cr                  = lookup idx crs                                in
+    let imm_cr              = realize_prog cnly idx(prog_of_cr cr)          in
+    let cns_prog            = prog_of_crs crs                               in 
+    let rn_prog             = extract_prog rc.rn_vm                         in
+    let imm_rntime          = realize_prog cnly idx(cns_prog @ rn_prog)     in
     imm_rntime @ imm_cr     (* the code is stored in the reverse order *)

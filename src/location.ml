@@ -13,34 +13,34 @@ type 'a data                    =
 (*  IMMEDIATE VALUES ON STACK     *) 
 (**********************************)
 type imm                        =
-                                | Big                       of big_int
-                                | Int                       of int
-                                | Label                     of Label.label
+                                | Big                   of big_int
+                                | Int                   of int
+                                | Label                 of Label.label
                                 | StorPCIndex
-                                | StorFieldsBegin           of int
-                                | StorFieldsSize            of int    (* the size depends on the cntrct id *)
-                                | InitDataSize              of idx
-                                | RntimeCntrctOffset        of idx    (* This index should be a JUMPDEST *)
-                                | RntimeMthdLabel           of idx * Syntax.ty
-                                | CnstrCodeSize             of idx
-                                | RntimeCnstrOffset         of idx
-                                | RntimeCodeOffset          of idx
-                                | RntimeCodeSize
+                                | StorFldBegin          of int
+                                | StorFldSize           of int    (* the size depends on the cntrct id *)
+                                | InitDataSize          of idx
+                                | RnCnOffset            of idx    (* This index should be a JUMPDEST *)
+                                | RnMthdLabel           of idx * Syntax.ty
+                                | CreationSize          of idx
+                                | RnCrOffset         of idx
+                                | RnCodeOffset          of idx
+                                | RnCodeSize
 
 let rec str_of_imm           =   function 
   | Big b                           -> "(Big "^(str_of_big b)^")"
   | Int i                           -> "(Int "^(str_of_int i)^")"
   | Label _                         -> "Label (print label here)"
   | StorPCIndex                     -> "StorPCIndex"
-  | StorFieldsBegin _               -> "StorFieldBegin (print cntrct id)"
-  | StorFieldsSize _                -> "StorFieldsSize (print cntrct id)"
+  | StorFldBegin _                  -> "StorFldBegin (print cntrct id)"
+  | StorFldSize _                   -> "StorFldSize (print cntrct id)"
   | InitDataSize idx                -> "InitDataSize (print cntrct id here)"
-  | RntimeCntrctOffset _            -> "RntimeCntrctOffset (print contact id)"
-  | RntimeMthdLabel(idx,header)     -> "RntimeMthdLabel (print cntrct id, case header)"
-  | CnstrCodeSize idx               -> "CnstrCodeSize (print cntrct id)"
-  | RntimeCnstrOffset idx           -> "RntimeCnstrOffset (print cntrct id)"
-  | RntimeCodeOffset idx            -> "RntimeCodeOffset (print cntrct id)"
-  | RntimeCodeSize                  -> "RntimeCodeSize"
+  | RnCnOffset _                    -> "RnCnOffset (print contact id)"
+  | RnMthdLabel(idx,header)         -> "RnMthdLabel (print cntrct id, case header)"
+  | CreationSize idx                -> "CreationSize (print cntrct id)"
+  | RnCrOffset idx                  -> "RnCrOffset (print cntrct id)"
+  | RnCodeOffset idx                -> "RnCodeOffset (print cntrct id)"
+  | RnCodeSize                      -> "RnCodeSize"
 
 
 let is_const_big (b:big)        =   function 

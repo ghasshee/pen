@@ -241,17 +241,17 @@ let unique_cn cns =
     let cnames      =   L.map(function _,TmCn(id,_,_) -> id) cns in
     L.length cns  = L.length(BL.unique cnames)
 
-let addTy_cntrct cns (evs:ty idxlist) (TmCn(id,flds,mthds)) = 
+let addTy_cntrct cns (evs:ty ilist) (TmCn(id,flds,mthds)) = 
     assert (BL.for_all(arg_has_known_ty (typeof_cns cns)) flds) ; 
     assert (unique_sig (TmCn(id,flds,mthds)))  ; 
     let ctx         =   add_local (add_evnts empty_ctx(values evs)) (binds_of_tys flds) in
     TmCn(id,flds,L.map(addTy_mthd cns id ctx) mthds) 
 
-let addTy_toplevel cns (evs:ty idxlist) = function 
+let addTy_toplevel cns (evs:ty ilist) = function 
     | TmEv e      -> TmEv e
     | t           -> addTy_cntrct cns evs t
 
-let addTys (tops : unit toplevel idxlist)  =
+let addTys (tops : unit toplevel ilist)  =
     let cns         = filter_map (function  | TmEv e   -> None 
                                             | c        -> Some c ) tops in
     assert(unique_cn cns);

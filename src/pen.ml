@@ -55,7 +55,7 @@ let ()      =
     pe"---- lexing done -------" ; 
     let _ASTs : unit toplevel list  = parse_with_error lexbuf                                   in
     pe"---- parse done --------" ; 
-    let idx_ASTs                    = to_idxlist _ASTs                                          in
+    let idx_ASTs                    = to_ilist _ASTs                                          in
     pe"---- indexed ASTs ------" ; 
     let idx_typed_ASTs              = Type.addTys idx_ASTs                                      in
     pe"---- typed -------------" ;
@@ -67,7 +67,7 @@ let ()      =
     match cns with
     | []  ->  ()
     | _   ->   
-    let crs      : creation idxlist = init_creations cns               in          
+    let crs      : creation ilist = init_creations cns               in          
     pe"---- creation codes built ----"; 
     let cr_infos                    = map info_of_cr crs               in          
     pe"---- creation infos built ----";
@@ -103,7 +103,7 @@ let ()      =
 (*       |         AST          |                                                                                                  *)
 (*       +----------+-----------+                                                                                                  *)
 (*                  |                                                                                                              *)
-(*             to_idxlist                                                                                                          *)
+(*             to_ilist                                                                                                          *)
 (*                  |                                                                                                              *)
 (*                  v                                                                                                              *)
 (*       +----------------------+                                                                                                  *)

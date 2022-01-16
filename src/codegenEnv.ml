@@ -8,26 +8,26 @@ open Location
 
 
 
-type ce                             =   { stack_size    : int
+type vm                             =   { stack_size    : int
                                         ; program       : imm program
                                         ; lookup_cnidx  : str -> idx
-                                        ; cntrcts       : ty toplevel idxlist }
+                                        ; cns           : ty toplevel ilist }
 
-let empty_ce lookup cns             =   { stack_size    = 0
+let empty_vm lookup cns             =   { stack_size    = 0
                                         ; program       = empty_program
                                         ; lookup_cnidx  = lookup
-                                        ; cntrcts       = cns               }
+                                        ; cns           = cns               }
 
-let lookup_cnidx_at_ce cname ce     =   ce.lookup_cnidx cname 
-let lookup_cnidx   cns cname        =   lookup_idx      (function   TmCn(id,_,_) ->    id=cname) cns
-let lookup_icn_of_icns icns name    =   find_by_filter  (function i,TmCn(id,f,m) -> if id=name then i,TmCn(id,f,m) else raise Not_found) icns
-let lookup_cn           idx  ce     =   lookup idx ce.cntrcts 
-let cntrct_of_name  cname ce        =   lookup_cn (lookup_cnidx_at_ce cname ce) ce 
+let lookup_cnidx_at_vm  cnnm vm     =   vm.lookup_cnidx cnnm 
+let lookup_cnidx        cns cnnm    =   lookup_idx      (function   TmCn(id,_,_) ->    id=cnnm) cns
+let lookup_icn_of_icns icns cnnm    =   find_by_filter  (function i,TmCn(id,f,m) -> if id=cnnm then i,TmCn(id,f,m) else raise Not_found) icns
+let lookup_cn           idx  vm     =   lookup idx vm.cns 
+let cn_of_nm            vm  cnnm    =   lookup_cn (lookup_cnidx_at_vm cnnm vm) vm 
 
-let extract_program  ce             =   ce.program
-let get_stack_size   ce             =   ce.stack_size
-let set_stack_size   ce i           =   { ce with stack_size = i }
-let code_len         ce             =   size_of_program ce.program
+let extract_prog     vm             =   vm.program
+let get_stack_size   vm             =   vm.stack_size
+let set_stack_size   vm i           =   { vm with stack_size = i }
+let code_len         vm             =   size_of_prog vm.program
 
 
 (***************************************)
@@ -45,7 +45,7 @@ let append_opcode ce opcode         =
     { stack_size        = new_stack_size
     ; program           = opcode :: ce.program 
     ; lookup_cnidx      = ce.lookup_cnidx
-    ; cntrcts           = ce.cntrcts        }
+    ; cns               = ce.cns        }
 
 let (=>>) op ce                    =   append_opcode ce op  
 
@@ -85,18 +85,18 @@ let lookup_mthd_head_in_cntrct (TmCn(_,_,mthds)) mname =
     | [a]           ->  let TmMthd(head,_) = a in head 
     | _::_::_       ->  eprintf "method %s duplicated\n%!" mname;err "lookup_mthd_info_in_cntrct" 
 
-let rec lookup_mthd_head_top ce (seen:ty toplevel list) cn mname : ty=
+let rec lookup_mthd_head_top vm (seen:ty toplevel list) cn mname : ty=
     if L.mem cn seen then raise Not_found else
     try  lookup_mthd_head_in_cntrct cn mname
     with Not_found  ->  let seen        = cn :: seen in
-                        let becomes     = L.map (fun nm -> cntrct_of_name nm ce)(become cn) in
+                        let becomes     = L.map (fun nm -> cn_of_nm vm nm)(become cn) in
                         let rec lookup_becomes seen = function 
                            | []         ->  raise Not_found
-                           | b::bs      ->  try lookup_mthd_head_top ce seen b mname 
+                           | b::bs      ->  try lookup_mthd_head_top vm seen b mname 
                                             with Not_found -> lookup_becomes (b :: seen) bs  in
                         lookup_becomes seen becomes
 
-let lookup_mthd_head ce cn mname = lookup_mthd_head_top ce [] cn mname 
+let lookup_mthd_head vm cn mname = lookup_mthd_head_top vm [] cn mname 
 
 
 
