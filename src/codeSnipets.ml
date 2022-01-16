@@ -156,7 +156,7 @@ let restore_PC ce       =                                         (*            
                   SSTORE                            =>> ce        (* S'[0]=bkp_pc                               .. *)             
 
 let set_PC idx ce =                                               (*                                            .. *)
-    let ce      = PUSH32(RntimeCntrctOffset idx)    =>> ce    in  (*                            rn_cn_offset >> .. *) 
+    let ce      = PUSH32(RnCnOffset idx)            =>> ce    in  (*                            rn_cn_offset >> .. *) 
     let ce      = PUSH1 StorPCIndex                 =>> ce    in  (*                  storPC >> rn_cn_offset >> .. *) 
                   SSTORE                            =>> ce        (* S[storPC] := rn_cn_offset                  .. *) 
 

@@ -67,7 +67,7 @@ let init_stor_vars cnidx ce   =
     let label   = fresh_label()                                 in
     let exit    = fresh_label()                                 in  (*                                                mem_start >> size >> .. *)  
     let ce      = check_codesize cnidx                  ce      in 
-    let ce      = PUSH32(StorFieldsBegin cnidx)     =>> ce      in  (*                                          idx >>   mem_start    >>   size    >> .. *)
+    let ce      = PUSH32(StorFldBegin cnidx)        =>> ce      in  (*                                          idx >>   mem_start    >>   size    >> .. *)
     let ce   = JUMPDEST label                       =>> ce      in  (*                                          idx >>   mem_start    >>   size    >> .. *)
     let ce      = DUP3                              =>> ce      in  (*                                 size >>  idx >>   mem_start    >>   size    >> .. *)
     let ce      = if_0_GOTO exit                        ce      in  (* IF size==0 THEN GOTO exit                idx >>   mem_start    >>   size    >> .. *)   
@@ -122,11 +122,11 @@ let setup_arrs cn ce =
 
 (**   1.3. Runtime CODE COPY         **) 
 let mstore_rn_code idx ce =                                         (*                                                           .. *)
-    let ce      = PUSH32(RntimeCodeSize)            =>> ce      in  (*                                                   size >> .. *)
+    let ce      = PUSH32(RnCodeSize)                =>> ce      in  (*                                                   size >> .. *)
     let ce      = DUP1                              =>> ce      in  (*                                           size >> size >> .. *)  
     let ce      = malloc                                ce      in  (*                                    alloc(size) >> size >> .. *)
     let ce      = DUP2                              =>> ce      in  (*                            size >> alloc(size) >> size >> .. *)
-    let ce      = PUSH32(RntimeCodeOffset idx)      =>> ce      in  (*                     idx >> size >> alloc(size) >> size >> .. *)
+    let ce      = PUSH32(RnCodeOffset idx)          =>> ce      in  (*                     idx >> size >> alloc(size) >> size >> .. *)
     let ce      = DUP3                              =>> ce      in  (*      alloc(size) >> idx >> size >> alloc(size) >> size >> .. *)
                   CODECOPY                          =>> ce          (*                                    alloc(size) >> size >> .. *)
                                                                     (*                                     codebegin                *)
@@ -174,11 +174,11 @@ let dispatch_method idx le ce m =                                           (*  
     let ce      =   DUP1                                    =>> ce      in  (*                                   ABCD >> ABCD >> .. *)
     let ce      =   push_mthd_hash m                            ce      in  (*                              m >> ABCD >> ABCD >> .. *)
     let ce      =   EQ                                      =>> ce      in  (*                             m=ABCD?1:0 >> ABCD >> .. *)
-    let ce      =   PUSH32(RntimeMthdLabel(idx,m))          =>> ce      in  (*                Rntime(m) >> m=ABCD?1:0 >> ABCD >> .. *)
+    let ce      =   PUSH32(RnMthdLabel(idx,m))              =>> ce      in  (*                Rntime(m) >> m=ABCD?1:0 >> ABCD >> .. *)
                     JUMPI                                   =>> ce          (* if m=ABCD then GOTO Rntime(m)             ABCD >> .. *)
 
 let dispatch_default idx le ce =
-    let ce      =   PUSH32(RntimeMthdLabel(idx,TyDefault))  =>> ce      in
+    let ce      =   PUSH32(RnMthdLabel(idx,TyDefault))      =>> ce      in
                     JUMP                                    =>> ce     
 
 let push_inputdata32_from databegin ce =
@@ -268,8 +268,8 @@ and push_loc ce aln ty      = function
 
 and mstore_new_instance id args msg ly le ce  =
     let cnidx   =   lookup_cnidx_at_vm id                   ce      in 
-    let ce      =   PUSH32(CnstrCodeSize cnidx)         =>> ce      in  (*                                                        size >> .. *) 
-    let ce      =   PUSH32(RntimeCnstrOffset cnidx)     =>> ce      in  (*                                             cn_idx  >> size >> .. *)
+    let ce      =   PUSH32(CreationSize cnidx)          =>> ce      in  (*                                                        size >> .. *) 
+    let ce      =   PUSH32(RnCrOffset   cnidx)          =>> ce      in  (*                                             cn_idx  >> size >> .. *)
     let ce      =   mstore_code                             ce      in  (*                                         alloc(size) >> size >> .. *)
     let ce      =   SWAP1                               =>> ce      in  (*                                         size >> alloc(size) >> .. *)
     let ce      =   mstore_whole_code                       ce      in  (*                alloc(wsize) >> wsize >> size >> alloc(size) >> .. *)

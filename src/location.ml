@@ -20,10 +20,10 @@ type imm                        =
                                 | StorFldBegin          of int
                                 | StorFldSize           of int    (* the size depends on the cntrct id *)
                                 | InitDataSize          of idx
-                                | RnCnOffset            of idx    (* This index should be a JUMPDEST *)
                                 | RnMthdLabel           of idx * Syntax.ty
                                 | CreationSize          of idx
-                                | RnCrOffset         of idx
+                                | RnCrOffset            of idx
+                                | RnCnOffset            of idx    (* This index should be a JUMPDEST *)
                                 | RnCodeOffset          of idx
                                 | RnCodeSize
 
