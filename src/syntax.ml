@@ -59,7 +59,7 @@ and  'ty tm                     =
                                 |   TmId        of str
                                 |   TmIf        of 'ty tmty * 'ty tmty * 'ty tmty 
 (* TmReturn(ret,cont)        *) |   TmReturn    of 'ty tmty * 'ty tmty  
-(* TmArray(id,idx)           *) |   TmArray     of 'ty tmty * 'ty tmty      
+(* TmArr(id,idx)           *) |   TmArr     of 'ty tmty * 'ty tmty      
 (* TmSend(cn,mname,args,msg) *) |   TmSend      of 'ty tmty * str option * 'ty tmty list * 'ty tmty
 (* TmCall(cnname, args)      *) |   TmCall      of str * 'ty tmty list       
 (* TmNew(id,args,msg)        *) |   TmNew       of str * 'ty tmty list * 'ty tmty    
@@ -169,7 +169,7 @@ let rec str_of_tm  e            =  match fst e with
     | TmTrue                    -> "true"
     | TmFalse                   -> "false"
     | TmSend _                  -> "TmSend()" 
-    | TmArray(id,idx)           -> str_of_tm id ^ "[" ^ str_of_tm idx ^ "]" 
+    | TmArr(id,idx)           -> str_of_tm id ^ "[" ^ str_of_tm idx ^ "]" 
     | TmCall(id,args)           -> "TmCall(" ^ id ^ ")" 
     | TmAbort                   -> "abort" 
     | TmReturn(r,_)             -> "return " ^ str_of_tm r 

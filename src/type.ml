@@ -124,10 +124,10 @@ and  addTy_tm  cns cname ctx tm = pe("addTy_tm: " ^ str_of_tm tm );match fst tm 
                                         let tys             =   tys_of_vars(args_of_ev_args tyev)       in
                                         assert(typechecks tys tyArgs) ;
                                         TmLog(nm,tyArgs,Some(TyEv(id,tyev))), TyUnit   
-    | TmArray(aid,aidx)             ->  let a,TyMap(k,v)    =   aid     -|  (ctx,cns,cname)             in
+    | TmArr(aid,aidx)             ->  let a,TyMap(k,v)    =   aid     -|  (ctx,cns,cname)             in
                                         let i,ty            =   aidx    -|  (ctx,cns,cname)             in 
                                         assert (tyeqv k ty) ; 
-                                        TmArray((a,TyMap(k,v)),(i,ty)) , v   
+                                        TmArr((a,TyMap(k,v)),(i,ty)) , v   
     | Balanc      e                 ->  let e               =   e       -|  (ctx,cns,cname)             in
                                         assert (tyeqv TyAddr (get_ty e)) ; 
                                         Balanc e            ,   TyU256
@@ -156,10 +156,10 @@ and  addTy_tm  cns cname ctx tm = pe("addTy_tm: " ^ str_of_tm tm );match fst tm 
     | EpNow                         ->  EpNow                                               , TyU256
     | EpThis                        ->  EpThis                                              , TyInstnc cname
     | EpValue                       ->  EpValue                                             , TyU256
-    | TmAssign((TmArray(a,i),_),r)  ->  let a,TyMap(k,v)    =   a       -|  (ctx,cns,cname)             in  
+    | TmAssign((TmArr(a,i),_),r)  ->  let a,TyMap(k,v)    =   a       -|  (ctx,cns,cname)             in  
                                         let i               =   i       -|  (ctx,cns,cname)             in 
                                         let r               =   r       -|  (ctx,cns,cname)             in 
-                                        TmAssign((TmArray((a,TyMap(k,v)),i),TyRef v),r)     , TyUnit 
+                                        TmAssign((TmArr((a,TyMap(k,v)),i),TyRef v),r)     , TyUnit 
 
 and addTy_binop_arg cns cname ctx l r = 
     let l               =   l       -|  (ctx,cns,cname)     in 

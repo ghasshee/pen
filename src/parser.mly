@@ -118,7 +118,7 @@ tm:
     | SELFDESTRUCT tm                               { fun ctx ->    TmSfDstr($2 ctx)                                                     ,() }
     | tm DOT DEFAULT LPAR RPAR msg                  { fun ctx ->    TmSend($1 ctx,None,[],$6 ctx)                                           ,() }
     | tm DOT ID       arg_list msg                  { fun ctx ->    TmSend($1 ctx,Some $3,$4 ctx,$5 ctx)                                    ,() }
-    | tm LSQBR tm RSQBR                             { fun ctx ->    TmArray($1 ctx,$3 ctx)                                                  ,() }
+    | tm LSQBR tm RSQBR                             { fun ctx ->    TmArr($1 ctx,$3 ctx)                                                  ,() }
     | tm op tm                                      { fun ctx ->    $2 ($1 ctx)($3 ctx)                                                     ,() }
 appTm:
     | pathTm                                        { $1                                                                                        }

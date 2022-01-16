@@ -81,7 +81,7 @@ let push_storRange ce (data : imm data) =
                     SLOAD                           =>> ce 
 
 let dup_nth_from_bottom n ce  =
-                dup_succ(get_stack_size ce - n)     =>> ce 
+                dup_succ(get_stack_height ce - n)     =>> ce 
 
 let shiftRtop ce bits =
     assert (0 <= bits && bits < 256) ; 

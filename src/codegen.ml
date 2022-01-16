@@ -354,9 +354,9 @@ and codegen_tm ly le vm aln e       = pe_tm e; pe(str_of_ctx le); match e with
     | EpAddr(c,TyInstnc i)  ,TyAddr         ->                  (c,TyInstnc i)                     >>(aln,ly,le,vm) 
     | EpSender              ,TyAddr         ->                  align_addr aln             (CALLER          =>> vm) 
     | EpThis                ,_              ->                  align_addr aln             (ADDRESS         =>> vm) 
-    | TmArray(id,idx)       ,TyMap _        ->  let vm      =   codegen_array id idx                      ly le vm  in  (*            S[keccak(a[i])] >> .. *)
+    | TmArr(id,idx)       ,TyMap _        ->  let vm      =   codegen_array id idx                      ly le vm  in  (*            S[keccak(a[i])] >> .. *)
                                                 assert(aln=R);  salloc_array  id idx                      ly le vm      (*                     S[1]++ >> .. *)
-    | TmArray(id,idx)       ,      _        ->  assert(aln=R);  codegen_array id idx                      ly le vm      (*               S[keccak(a)] >> .. *)
+    | TmArr(id,idx)       ,      _        ->  assert(aln=R);  codegen_array id idx                      ly le vm      (*               S[keccak(a)] >> .. *)
     | TmId id               ,TyMap(a,b)     ->  let loc     =   lookup_le id le                                     in 
                                                 let vm      =   push_loc vm aln(TyMap(a,b))loc                      in 
                                                                 salloc_array_of_loc le vm loc                  
@@ -431,7 +431,7 @@ and codegen_send_eoa eoa msg ly le vm =   (* send value to an EOA *)
                   Comment("END send to Addr")           =>> vm 
 
 
-and sstore_to_lval(TmArray(a,i),_) ly le vm     =                       (*                                  rval >> .. *)
+and sstore_to_lval(TmArr(a,i),_) ly le vm     =                       (*                                  rval >> .. *)
     let vm      = keccak_of_array a i                 ly le vm      in  (*                      KEC(a^i) >> rval >> .. *)
                   SSTORE                                =>> vm          (* S[KEC(a^i)] := rval                      .. *)
 
