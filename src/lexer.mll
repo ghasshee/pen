@@ -64,7 +64,6 @@ rule read = parse
   | "="                             {   EQ                                      }
   | "new"                           {   NEW                                     }
   | "with"                          {   WITH                                    }
-  | "reentrance"                    {   REENTRANCE                              }
   | "selfdestruct"                  {   SELFDESTRUCT                            }
   | "."                             {   DOT                                     }
   | ":"                             {   COLON                                   }

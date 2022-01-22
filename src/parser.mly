@@ -24,7 +24,7 @@ let reserved x                  =   if BS.starts_with x "pre_" then err "Names '
 %token IF THEN ELSE 
 %token WITH
 %token RETURN BECOME
-%token ABORT REENTRANCE
+%token ABORT 
 %token NEW SELFDESTRUCT CALL 
 %token SENDER MSG VALUE BALANCE
 %token THIS NOW UNIT

@@ -89,10 +89,10 @@ let rec realize_imm lyt (init_idx:idx)   = function
     | RnCnOffset            idx     ->  big (lookup idx lyt.rn_cns_pos)
     | RnMthdLabel    (idx,mthd_hd)  ->  big (Label.lookup_label (lookup_entry (Mthd(idx,mthd_hd)))) 
 
-let realize_opcode cnLayt (init_idx:idx)    = function 
-    | PUSH1  imm      -> PUSH1  (realize_imm cnLayt init_idx imm)
-    | PUSH4  imm      -> PUSH4  (realize_imm cnLayt init_idx imm)
-    | PUSH32 imm      -> PUSH32 (realize_imm cnLayt init_idx imm)
+let realize_opcode lyt (init_idx:idx)    = function 
+    | PUSH1  imm      -> PUSH1  (realize_imm lyt init_idx imm)
+    | PUSH4  imm      -> PUSH4  (realize_imm lyt init_idx imm)
+    | PUSH32 imm      -> PUSH32 (realize_imm lyt init_idx imm)
     | Comment s       -> Comment s 
     | NOT             -> NOT
     | TIMESTAMP       -> TIMESTAMP
@@ -163,7 +163,7 @@ let realize_opcode cnLayt (init_idx:idx)    = function
     | DUP6            -> DUP6
     | DUP7            -> DUP7
 
-let realize_prog l init_idx p = L.map (realize_opcode l init_idx) p
+let realize_prog lyt init_idx p = L.map (realize_opcode lyt init_idx) p
 
 let rec gen_field_locs offset used_plains used_seeds num_plains = function 
     | []        ->  []

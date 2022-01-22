@@ -50,109 +50,109 @@ let ()      =
     if files<>[] then e"Pass the contents to stdin.\n" else
     let abi       : bool            = (Some true = enable_abi.Option.option_get ())     in
     let asm       : bool            = (Some true = enable_asm.Option.option_get ())     in
-    pe"----- compilation start -----" ; 
+    if asm then pe"----- compilation start -----" ; 
     let lexbuf                      = Lexing.from_channel stdin                             in
-    pe"-------- lexing done --------" ; 
+    if asm then pe"-------- lexing done --------" ; 
     let asts : unit toplevel list   = parse_with_error lexbuf                               in
-    pe"--------- parse done --------" ; 
+    if asm then pe"--------- parse done --------" ; 
     let i_asts                      = to_ilist asts                                         in
-    pe"-------- indexed ASTs -------" ; 
+    if asm then pe"-------- indexed ASTs -------" ; 
     let i_ty_asts                   = Type.addTys i_asts                                    in
-    pe"--------- typed -------------" ;
+    if asm then pe"--------- typed -------------" ;
     let i_ty_opt_asts               = Eval.eval i_ty_asts                                   in 
-    pe"--------- evaluated ---------" ; 
+    if asm then pe"--------- evaluated ---------" ; 
     let cns                         = filter_map (function TmEv e -> None 
                                                          | cn     -> Some cn) i_ty_opt_asts in
-    pe"------ extract cntrcts ------" ; 
+    if asm then pe"------ extract cntrcts ------" ; 
     match cns with
     | []  ->  ()
     | _   ->   
     let crs      : creation ilist   = init_creations cns                in          
-    pe"---- creation codes built ----"; 
+    if asm then pe"---- creation codes built ----"; 
     let cr_infos                    = cr_infos_of_crs crs               in          
-    pe"---- creation infos built ----";
+    if asm then pe"---- creation infos built ----";
     let stor                        = LI.init_storage cr_infos          in          
-    pe"---- storage layout built ----";
+    if asm then pe"---- storage layout built ----";
     let rn       : rntime           = compile_rntime stor cns           in          
-    pe"---- contrct layout built ----";
+    if asm then pe"---- contrct layout built ----";
     let tycn                        = L.hd cns                          in 
     let cn                          = fst tycn                          in 
     let bytecode : big Evm.program  = compose_bytecode crs rn cn        in 
-    pe"---- bytecode composed -------"; 
+    if asm then pe"----- bytecode composed ------"; 
     if  abi                                                                                               
         then Abi.prABI i_ty_opt_asts                                                                          
         else if asm 
             then Evm.prLn_encoded bytecode 
             else Evm.pr_encoded bytecode
-(*                                                                                                                                 *)
-(*       +----------------------+                                                                                                  *)
-(*       |         IO           |                                                                                                  *)
-(*       +----------+-----------+                                                                                                  *)
-(*                  |                                                                                                              *)
-(*           Lexing.from_channel                                                                                                   *)
-(*                  |                                                                                                              *)
-(*                  v                                                                                                              *)
-(*       +----------------------+                                                                                                  *)
-(*       |        TOKENS        |                                                                                                  *)
-(*       +----------+-----------+                                                                                                  *)
-(*                  |                                                                                                              *)
-(*            parse_with_error                                                                                                     *)
-(*                  |                                                                                                              *)
-(*                  v                                                                                                              *)
-(*       +----------------------+                                                                                                  *)
-(*       |         AST          |                                                                                                  *)
-(*       +----------+-----------+                                                                                                  *)
-(*                  |                                                                                                              *)
-(*             to_ilist                                                                                                          *)
-(*                  |                                                                                                              *)
-(*                  v                                                                                                              *)
-(*       +----------------------+                                                                                                  *)
-(*       |    indexed AST       |                                                                                                  *)
-(*       +----------+-----------+                                                                                                  *)
-(*                  |                                                                                                              *)
-(*               addTys                                                                                                            *)
-(*                  |                                                                                                              *)
-(*                  v                                                                                                              *)
-(*       +----------------------+                                                                                                  *)
-(*       |  indexed typed AST   |                                                                                                  *)
-(*       +----------+-----------+                                                                                                  *)
-(*                  |                                                                                                              *)
-(*         EVAL of lambda calc                 <--- to be implemented at `eval.ml`                                                 *)
-(*                  |                                                                                                              *)
-(*                  v                                                                                                              *)
-(*       +----------------------+                                                                                                  *)
-(*       |  indexed typed AST   |                                                                                                  *)
-(*       +----------+-----------+                                                                                                  *)
-(*                  |                                                                                                              *)
-(*            remove events                                                                                                        *)
-(*                  |                                                                                                              *)
-(*                  v                                                                                                              *)
-(*       +----------------------+                                                                                                  *)
-(*       | AST of typed cntrcts +-------------+                                                                                    *)
-(*       +----------+-----------+             |                                                                                    *)
-(*                  |                         |                                                                                    *)
-(*          compile_constrctrs                |                                                                                    *)
-(*                  |                         |                                                                                    *)
-(*                  v                         |                                                                                    *)
-(*       +----------+-----------+             |   compile_rntime     +---------------+                                             *)
-(*       |   constructor_codes  +-------+     +--------------------->+   rntimeCode  |                                             *)
-(*       +----------+-----------+       |     |                      +-------+-------+                                             *)
-(*                  |                   |     |                              |                                                     *)
-(*      storage_of_cnstrctrCode      |     |                              |                                                     *)
-(*                  |                   |     |                              |                                                     *)                  
-(*                  v                   +------------------------------+-----+                                                     *)
-(*       +----------+-----------+             |                        |                                                           *)
-(*       | cntrct_storage    |             |                        |                                                           *)
-(*       +----------+-----------+             |                 compose_bytecode                                                   *)
-(*                  |                         |                        |                                                           *)                  
-(*         cnstrct_storage                 |                        v                                                           *)
-(*                  |                         |              +---------+---------+                                                 *)
-(*                  v                         |              |      bytecode     |                                                 *)
-(*       +----------+-----------+             |              +-------------------+                                                 *)
-(*       |    storage        +-------------+                                                                                    *)                  
-(*       +----------------------+                                                                                                  *)
-(*                                                                                                                                 *)                  
-(*                                                                                                                                 *)
+(*                                                                                            *)
+(*       +----------------------+                                                             *)
+(*       |         IO           |                                                             *)
+(*       +----------+-----------+                                                             *)
+(*                  |                                                                         *)
+(*           Lexing.from_channel                                                              *)
+(*                  |                                                                         *)
+(*                  v                                                                         *)
+(*       +----------------------+                                                             *)
+(*       |        TOKENS        |                                                             *)
+(*       +----------+-----------+                                                             *)
+(*                  |                                                                         *)
+(*            parse_with_error                                                                *)
+(*                  |                                                                         *)
+(*                  v                                                                         *)
+(*       +----------------------+                                                             *)
+(*       |         AST          |                                                             *)
+(*       +----------+-----------+                                                             *)
+(*                  |                                                                         *)
+(*               to_ilist                                                                     *)
+(*                  |                                                                         *)
+(*                  v                                                                         *)
+(*       +----------------------+                                                             *)
+(*       |    indexed AST       |                                                             *)
+(*       +----------+-----------+                                                             *)
+(*                  |                                                                         *)
+(*               addTys                                                                       *)
+(*                  |                                                                         *)
+(*                  v                                                                         *)
+(*       +----------------------+                                                             *)
+(*       |  indexed typed AST   |                                                             *)
+(*       +----------+-----------+                                                             *)
+(*                  |                                                                         *)
+(*         EVAL of lambda calc                 <--- to be implemented at `eval.ml`            *)
+(*                  |                                                                         *)
+(*                  v                                                                         *)
+(*       +----------------------+                                                             *)
+(*       |  indexed typed AST   |                                                             *)
+(*       +----------+-----------+                                                             *)
+(*                  |                                                                         *)
+(*            remove events                                                                   *)
+(*                  |                                                                         *)
+(*                  v                                                                         *)
+(*       +----------------------+                                                             *)
+(*       | AST of typed cntrcts +-------------+                                               *)
+(*       +----------+-----------+             |                                               *)
+(*                  |                         |                                               *)
+(*          compile_constrctrs                |                                               *)
+(*                  |                         |                                               *)
+(*                  v                         |                                               *)
+(*       +----------+-----------+             |   compile_rntime     +---------------+        *)
+(*       |   constructor_codes  +-------+     +--------------------->+   rntimeCode  |        *)
+(*       +----------+-----------+       |     |                      +-------+-------+        *)
+(*                  |                   |     |                              |                *)
+(*         storage_of_cnstrctrCode      |     |                              |                *)
+(*                  |                   |     |                              |                *)                  
+(*                  v                   +------------------------------+-----+                *)
+(*       +----------+-----------+             |                        |                      *)
+(*       |    cntrct_storage    |             |                        |                      *)
+(*       +----------+-----------+             |                 compose_bytecode              *)
+(*                  |                         |                        |                      *)                  
+(*            cnstrct_storage                 |                        v                      *)
+(*                  |                         |              +---------+---------+            *)
+(*                  v                         |              |      bytecode     |            *)
+(*       +----------+-----------+             |              +-------------------+            *)
+(*       |       storage        +-------------+                                               *)                  
+(*       +----------------------+                                                             *)
+(*                                                                                            *)                  
+(*                                                                                            *)
 
 (* semiring test  
 let _ = pe (str_of_rig (mul (rig_of_int (168)) (N (S (S (S O))))))  

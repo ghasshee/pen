@@ -1,0 +1,134 @@
+eth.coinbase
+miner.setEtherBase(web3.eth.accounts[0])
+miner.setEtherbase(web3.eth.accounts[0])
+eth.accounts
+eth.getBalance(eth.coinbase)
+miner.start()
+eth.getBalance(eth.coinbase)
+quit()
+miner.start()
+eth.getBalance(eth.coinbase)
+miner.stop()
+eth.getBalance(eth.coinbase)
+miner.start()
+eth.getBalance(eth.coinbase)
+miner.start()
+eth.getBalance(eth.coinbase)
+miner.stop()
+eth.fromWei(eth.getBalance(eth.coinbase))
+eth
+account
+web3
+web3.fromWei(eth.getBalance(eth.coinbase))
+eth.blockNumber
+miner.start()
+eth.blockNumber
+miner.stop()
+eth.blockNumber
+miner.start()
+eth.blockNumber
+miner.start()
+eth.blockNumber
+eth.accounts
+miner.start()
+miner.atop()
+miner.stop()
+miner.start()
+web3.account
+miner.stop()
+miner.start()
+eth.getBalance(to)
+miner.start()
+miner.stop()
+miner.start()
+miner.stop()
+miner.start()
+miner.stop()
+miner.start()
+miner.stop()
+miner.start()
+miner.stop()
+miner.start()
+miner.stop()
+miner.start()
+miner.stop()
+String.splitAt
+:t splitAt
+:t 1
+miner
+miner.start()
+miner.stop()
+exit()
+quit()
+:q
+exit 0
+miner
+miner.start()
+miner.stop()
+personal
+etherbase
+web3
+miner.start()
+miner.stop()
+eth.coinbase
+eth
+eth.getBalance(eth.coinbase)
+eth.getBalance(eth.coinbase).toWei
+eth.getBalance(eth.coinbase)
+toWei(eth.getBalance(eth.coinbase))
+eth
+web3
+web3.fromWei(eth.getBalance(eth.coinbase))
+web3.toWei(eth.getBalance(eth.coinbase))
+web3.fromWei(eth.getBalance(eth.coinbase))
+web3.fromWei(web3.toWei(eth.getBalance(eth.coinbase)))
+web3.fromWei(eth.getBalance(eth.coinbase))
+eth.getBalance(eth.accounts[0])
+eth.getBalance(eth.accounts[1])
+eth.getBalance(eth.accounts[2])
+eth.getBalance(eth.accounts[3])
+eth.getBalance(eth.accounts[3]))
+fromWei(eth.getBalance(eth.accounts[3]))
+web3.fromWei(eth.getBalance(eth.accounts[3]))
+fromWei(eth.getBalance(eth.accounts[1]))
+web3.fromWei(eth.getBalance(eth.accounts[1]))
+loadScript('storage.js')
+loadScript('./storage.js')
+storageOutput
+var storageContractAbi = storageOutput.contracts['Storage.sol:Storage'].abi
+storageContractAbi
+storageContract = eth.contract(JSON.parse(storageContractAbi))
+JSON.parse(storageContractAbi)
+storageContractAbi
+JSON
+JSON.parse(storageContractAbi)
+miner.start(1)
+eth.contract(storageContractAbi)
+storageContract = eth.contract(storageContractAbi)
+storageContract
+var storageBinCode = "0x" + storageOutput.contracts['Storage.sol:Storage'].bin
+storageBinCode
+var object = { from : eth.accounts[0], data: storageBinCode, gas: 1000000 };
+onject
+object
+var storageInstance = storageContract.new(object)
+storageInstance
+eth.getTransactionRecept(storageInstance.transactionHash);
+eth.getTransactionReceipt(storageInstance.transactionHash);
+var storageAddress = eth.getTransationReceipt(storageInstance.transactionHash).contractAddress
+var storageAddress = eth.getTransactionReceipt(storageInstance.transactionHash).contractAddress
+storageAddress
+var storage = storageContract.at(storageAddress);
+storage
+storage.get.call()
+storage
+storage.get
+storage.get()
+storage.get.call
+storage.get.call()
+eth.coinbase
+eth.getBalance(eth.coinbase)
+eth.getBalance(eth.coinbase);
+web3.fromWei(eth.getBalance(eth.coinbase))
+miner.start(1)
+web3.fromWei(eth.getBalance(eth.coinbase))

@@ -129,7 +129,7 @@ let positions_of_argLens lens   =
                                         loop (used+32-alen :: ret) (used+32) rest in 
     loop [] 4(* signature length *) lens
 
-let callerArgLocs_of_mthd      =   function 
+let callerArgLocs_of_mthd       =   function 
     | TmMthd(TyDefault,_)           ->  []
     | TmMthd(TyMthd(id,args,ret),_) ->  let sizes       = L.map calldata_size_of_arg args   in
                                         let positions   = positions_of_argLens sizes        in
@@ -147,8 +147,8 @@ let rec add_loc le (key,loc)        =   match le with
     | []                            -> err "add_loc: no block"
     | BdCtx(h)::t                   -> BdCtx(BdLoc(key,loc) :: h) :: t
     | _ :: rest                     -> add_loc rest (key,loc)
-let add_locs le locs            =   foldl add_loc le locs
-let add_mthdCallerArgLocs mthd le     =   add_locs le (callerArgLocs_of_mthd mthd)
+let add_locs le locs                =   foldl add_loc le locs
+let add_mthdCallerArgLocs mthd le   =   add_locs le (callerArgLocs_of_mthd mthd)
 
 let add_fieldVar(le,idx)(TyVar(id,ty))    =
     let size                = size_of_ty ty                             in

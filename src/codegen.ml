@@ -88,7 +88,6 @@ let init_stor_vars cnidx vm   =
     let vm   = JUMPDEST exit                        =>> vm      in  (*                                          idx >>   mem_start    >>   size    >> .. *)
                   repeat POP 3                          vm          (*                                                                     .. *)
 
-
 (**   1.2. Stor Arr Setup       **)                   
 let reset_salloc_arr vm = 
     let vm      = PUSH1 (Int 1)                     =>> vm      in  (*                                           1 >> .. *)

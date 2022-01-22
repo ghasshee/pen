@@ -81,7 +81,7 @@ let stack_popped = function
 
 
 let stack_pushed = function
-  | PUSH1 _|PUSH4 _|PUSH32 _            -> 1
+  | PUSH1 _ |PUSH4 _ |PUSH32 _          -> 1
   | TIMESTAMP                           -> 1
   | ISZERO                              -> 1
   | EQ | LT | GT                        -> 1
