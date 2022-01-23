@@ -29,9 +29,12 @@ let errc str                = err("codegen_tm: " ^ str ^ " of unexpected type")
 (**      LIST OPERATERS                 **)
 (*****************************************)
 
-let ps = print_string
-let pe = print_endline
-let pf = printf
+let ps  = print_string
+let pe  = print_endline
+let pf  = printf
+let ef  = eprintf
+let ff  = fprintf
+let sf  = sprintf
 
 (*****************************************)
 (**      LIST OPERATERS                 **)
@@ -99,6 +102,7 @@ let (-!)                    = Big_int.minus_big_int
 let( *!)                    = Big_int.mult_big_int
 let (/!)                    = Big_int.div_big_int
 let (^!)                    = Big_int.power_big_int_positive_big_int
+let (<!)                    = Big_int.lt_big_int
 let (%!)                    = Big_int.mod_big_int
 let print_big               = ps $ str_of_big
 
@@ -120,7 +124,7 @@ let hex_of_big b len                    =   let s           =   B.to_string_in_h
                                             let prefix      =   S.make(char_len-S.length s)'0' in
                                             concat_hex(R.of_string prefix)(R.of_string s)
 
-let pr_hex ?prefix:(prefix="")h         =   printf"%s\n"(str_of_hex ~prefix h)
+let pr_hex ?prefix:(prefix="")h         =   pf "%s\n"(str_of_hex ~prefix h)
 let hex_of_str s                        =   R.of_string s  
 
 
@@ -141,7 +145,7 @@ let map              f  =   L.map  (fun(i,x)-> (i,f x))
 let imap             f  =   L.map  (fun(i,x)-> (i,f i)) 
 let filter_map       f  =   BL.filter_map (fun(i,x)->BO.map(fun y->i,y)(f x))
 let lookup              =   L.assoc 
-let pr_imap          f  =   L.iter (fun i->printf "%d ↦ %d, "i(f i))
+let pr_imap          f  =   L.iter (fun i -> pf "%d ↦ %d, "i(f i))
 let insert i a l        =   (i,a)::l       (* shall I sort it?  Maybe later at once. *)
 let lookup_idx f l      =   let i,_ = L.find (f $ snd) l in i 
 let empty               =   []

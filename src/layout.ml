@@ -89,11 +89,30 @@ let rec realize_imm lyt (init_idx:idx)   = function
     | RnCnOffset            idx     ->  big (lookup idx lyt.rn_cns_pos)
     | RnMthdLabel    (idx,mthd_hd)  ->  big (Label.lookup_label (lookup_entry (Mthd(idx,mthd_hd)))) 
 
+let classify_PUSH b = 
+    if b <! big 0        then err "PUSH VALUE cannot be NEGATIVE" else
+    if b <! big 256^! big 1    then PUSH1  b   else
+    if b <! big 256^! big 4    then PUSH4  b   else 
+    if b <! big 256^! big 5    then PUSH5  b   else 
+    if b <! big 256^! big 8    then PUSH8  b   else 
+    if b <! big 256^! big 16   then PUSH16 b   else
+    if b <! big 256^! big 20   then PUSH20 b   else 
+    if b <! big 256^! big 32   then PUSH32 b   else
+    err "PUSH VALUE IS TOO LARGE"
+
 let realize_opcode lyt (init_idx:idx)    = function 
-    | PUSH1  imm      -> PUSH1  (realize_imm lyt init_idx imm)
+ (* | PUSH1  imm      -> PUSH1  (realize_imm lyt init_idx imm)
     | PUSH4  imm      -> PUSH4  (realize_imm lyt init_idx imm)
-    | PUSH32 imm      -> PUSH32 (realize_imm lyt init_idx imm)
+    | PUSH5  imm      -> PUSH5  (realize_imm lyt init_idx imm)
+    | PUSH8  imm      -> PUSH8  (realize_imm lyt init_idx imm)
+    | PUSH16 imm      -> PUSH16 (realize_imm lyt init_idx imm)
+    | PUSH20 imm      -> PUSH20 (realize_imm lyt init_idx imm)
+    | PUSH32 imm      -> PUSH32 (realize_imm lyt init_idx imm) *)
+    | PUSH1 i|PUSH4 i|PUSH5 i|PUSH8 i|PUSH16 i|PUSH20 i|PUSH32 i 
+                      -> classify_PUSH (realize_imm lyt init_idx i)
     | Comment s       -> Comment s 
+    | SHL             -> SHL
+    | SHR             -> SHR
     | NOT             -> NOT
     | TIMESTAMP       -> TIMESTAMP
     | ISZERO          -> ISZERO

@@ -2,7 +2,6 @@ open Misc
 open Semiring
 open Lexer
 open Lexing
-open Printf
 open Syntax
 open Codegen
 open Big_int
@@ -17,17 +16,17 @@ module L      = List
  * https://github.com/realworldocaml/examples/tree/master/code/parsing-test
  * which is under UNLICENSE *)
 
-let e str                   = eprintf str; exit 1
+let e str                   = ef str; exit 1
 
 let pr_pos outx lexbuf      =
     let pos = lexbuf.lex_curr_p in
-    fprintf outx "%s:%d:%d" pos.pos_fname pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
+    ff outx "%s:%d:%d" pos.pos_fname pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
 
 let parse_with_error lexbuf = 
     try Parser.file Lexer.read lexbuf with
-    | SyntaxError e -> fprintf stderr "%a: %s\n"           pr_pos lexbuf e;exit (-1)
-    | Parser.Error  -> fprintf stderr "%a: syntax error\n" pr_pos lexbuf  ;exit (-1)
-    | e             -> fprintf stderr "%a: Unknown syntax error\n" pr_pos lexbuf  ; raise e; exit (-1)
+    | SyntaxError e -> ff stderr "%a: %s\n"           pr_pos lexbuf e;exit (-1)
+    | Parser.Error  -> ff stderr "%a: syntax error\n" pr_pos lexbuf  ;exit (-1)
+    | e             -> ff stderr "%a: Unknown syntax error\n" pr_pos lexbuf  ; raise e; exit (-1)
 
 
 let enable_abi              = StdOpt.store_true () 
@@ -57,7 +56,7 @@ let ()      =
     if asm then pe"--------- parse done --------" ; 
     let i_asts                      = to_ilist asts                                         in
     if asm then pe"-------- indexed ASTs -------" ; 
-    let i_ty_asts                   = Type.addTys i_asts                                    in
+    let i_ty_asts                   = Type.type_tops i_asts                                    in
     if asm then pe"--------- typed -------------" ;
     let i_ty_opt_asts               = Eval.eval i_ty_asts                                   in 
     if asm then pe"--------- evaluated ---------" ; 

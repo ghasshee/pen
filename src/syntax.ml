@@ -6,31 +6,29 @@ module L    = List
 module BL   = BatList
 
 
-
-
 (**********************************)
 (***          Types             ***)
 (**********************************)
 
-type ty           (* atomic *)  =   TyErr                             
-                  (* stomic *)  |   TyUnit             
-                  (* atomic *)  |   TyU256              (* 256 bits *) 
-                  (* atomic *)  |   TyU8                (*   8 bits *) 
-                  (* atomic *)  |   TyBytes32           (* 256 bits *) 
-                  (* atomic *)  |   TyAddr              (* 160 bits *) 
+type ty           (* atomic *)  =   TyErr                     
+                  (* stomic *)  |   TyUnit      
+                  (* atomic *)  |   TyU256      (* 256 bits *) 
+                  (* atomic *)  |   TyU8        (*   8 bits *) 
+                  (* atomic *)  |   TyBytes32   (* 256 bits *) 
+                  (* atomic *)  |   TyAddr      (* 160 bits *) 
                   (* atomic *)  |   TyBool 
-                  (* atomic *)  |   TyTuple             of ty list
-                  (* atomic *)  |   TyMap               of ty * ty 
-                  (* atomic *)  |   TyInstnc            of str                       
- (* TyMthd(id,args,ret)     *)  |   TyMthd              of str * ty list * ty        
+                  (* atomic *)  |   TyTuple     of ty list
+                  (* atomic *)  |   TyMap       of ty * ty 
+                  (* atomic *)  |   TyInstnc    of str                       
+ (* TyMthd(id,args,ret)     *)  |   TyMthd      of str * ty list * ty        
                                 |   TyDefault
-                                |   TyRef               of ty 
- (* TyAbs(arg, ret)         *)  |   TyAbs               of  ty * ty                  
-                                |   TyI                 of int * int                 
- (* TyVar(id, ty)           *)  |   TyVar               of str * ty                  
- (* TyEvVar(id,ty,indexed)  *)  |   TyEvVar             of str * ty * bool           
- (* TyEv(id,evargs)         *)  |   TyEv                of str * ty list 
- (* TyCn(id,fields,mthds)   *)  |   TyCn                of str * ty list * ty list   
+                                |   TyRef       of ty 
+ (* TyAbs(arg, ret)         *)  |   TyAbs       of  ty * ty                  
+                                |   TyI         of int * int                 
+ (* TyVar(id, ty)           *)  |   TyVar       of str * ty                  
+ (* TyEvVar(id,ty,indexed)  *)  |   TyEvVar     of str * ty * bool           
+ (* TyEv(id,evargs)         *)  |   TyEv        of str * ty list 
+ (* TyCn(id,fields,mthds)   *)  |   TyCn        of str * ty list * ty list   
 
     
 (**********************************)
@@ -59,7 +57,7 @@ and  'ty tm                     =
                                 |   TmId        of str
                                 |   TmIf        of 'ty tmty * 'ty tmty * 'ty tmty 
 (* TmReturn(ret,cont)        *) |   TmReturn    of 'ty tmty * 'ty tmty  
-(* TmArr(id,idx)           *) |   TmArr     of 'ty tmty * 'ty tmty      
+(* TmArr(id,idx)             *) |   TmArr       of 'ty tmty * 'ty tmty      
 (* TmSend(cn,mname,args,msg) *) |   TmSend      of 'ty tmty * str option * 'ty tmty list * 'ty tmty
 (* TmCall(cnname, args)      *) |   TmCall      of str * 'ty tmty list       
 (* TmNew(id,args,msg)        *) |   TmNew       of str * 'ty tmty list * 'ty tmty    
@@ -169,7 +167,7 @@ let rec str_of_tm  e            =  match fst e with
     | TmTrue                    -> "true"
     | TmFalse                   -> "false"
     | TmSend _                  -> "TmSend()" 
-    | TmArr(id,idx)           -> str_of_tm id ^ "[" ^ str_of_tm idx ^ "]" 
+    | TmArr(id,idx)             -> str_of_tm id ^ "[" ^ str_of_tm idx ^ "]" 
     | TmCall(id,args)           -> "TmCall(" ^ id ^ ")" 
     | TmAbort                   -> "abort" 
     | TmReturn(r,_)             -> "return " ^ str_of_tm r 

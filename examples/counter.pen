@@ -5,7 +5,6 @@ contract Counter(
     method () init() {
         let u256 counter = 0;
         return then become Counter(counter)
-
     }
 
     method () inc() {
@@ -16,6 +15,10 @@ contract Counter(
     method () reset()  {
         let u256 counter = 1; 
         return then become Counter(counter)
+    }
+
+    method u256 get() {
+        return _counter then become Counter(_counter)
     }
 }
 

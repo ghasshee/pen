@@ -75,40 +75,41 @@ let repeat opcode n ce = foldn n ((=>>)opcode) ce
 
 let push_storRange ce (data : imm data) =
     let i = match data.size with | Big b -> str_of_big b | Int i -> str_of_int i in 
-    printf "stor_size is %s\n" i ; 
+    (* #DEBUG pf "stor_size is %s\n" i ;  *) 
     assert (is_const_int 1 data.size) ; 
-    let ce      =   PUSH32 data.offst               =>> ce  in
+    let ce      =   PUSH8  data.offst               =>> ce  in
                     SLOAD                           =>> ce 
 
 let dup_nth_from_bottom n ce  =
-                dup_succ(get_stack_height ce - n)     =>> ce 
+                    dup_succ(get_stack_height ce-n) =>> ce 
 
 let shiftRtop ce bits =
     assert (0 <= bits && bits < 256) ; 
     if bits=0 then ce else                                      (*                                         x >> .. *) 
     let ce      = PUSH1 (Int bits)                  =>> ce  in  (*                                 bits >> x >> .. *)
-    let ce      = PUSH1 (Int 2)                     =>> ce  in  (*                            2 >> bits >> x >> .. *)
-    let ce      = EXP                               =>> ce  in  (*                              2**bits >> x >> .. *) 
-    let ce      = SWAP1                             =>> ce  in  (*                              x >> 2**bits >> .. *) 
-                  DIV                               =>> ce      (*                               x/(2**bits) >> .. *) 
+    let ce      = SWAP1                             =>> ce  in  (*                              x >>    bits >> .. *) 
+                  SHR                               =>> ce      (*                               x/(2**bits) >> .. *) 
 
 let shiftLtop ce bits =
     assert (0 <= bits && bits < 256) ; 
     if bits=0 then ce else                                      (*                                         x >> .. *)
     let ce      = PUSH1 (Int bits)                  =>> ce  in  (*                                 bits >> x >> .. *)                   
-    let ce      = PUSH1 (Int 2)                     =>> ce  in  (*                            2 >> bits >> x >> .. *) 
-    let ce      = EXP                               =>> ce  in  (*                              2**bits >> x >> .. *) 
-                  MUL                               =>> ce      (*                               (2**bits)*x >> .. *) 
+    let ce      = SWAP1                             =>> ce  in  (*                              2**bits >> x >> .. *) 
+                  SHL                               =>> ce      (*                               (2**bits)*x >> .. *) 
 
-let incr_top inc ce =
-    let ce      = PUSH32 (Int inc)                  =>> ce  in
+let incr_n     n ce =
+    let ce      = PUSH8 (Int n)                     =>> ce  in
                   ADD                               =>> ce      
+
+let incr     ce     = 
+    let ce      = PUSH1 (Int 0x01)                  =>> ce  in 
+                  ADD                               =>> ce 
 
 let sincr idx ce = 
     let ce      = PUSH1(Int idx)                    =>> ce  in  (*                                         i >> .. *) 
     let ce      = SLOAD                             =>> ce  in  (*                                      S[i] >> .. *) 
     let ce      = DUP1                              =>> ce  in  (*                              S[i] >> S[i] >> .. *) 
-    let ce      = incr_top 1                            ce  in  (*                            S[i]+1 >> S[i] >> .. *) 
+    let ce      = incr                                  ce  in  (*                            S[i]+1 >> S[i] >> .. *) 
     let ce      = PUSH1(Int idx)                    =>> ce  in  (*                       i >> S[i]+1 >> S[i] >> .. *) 
                   SSTORE                            =>> ce      (* S[i]:=S[i]+1                         S[i] >> .. *) 
 
@@ -156,7 +157,7 @@ let restore_PC ce       =                                         (*            
                   SSTORE                            =>> ce        (* S'[0]=bkp_pc                               .. *)             
 
 let set_PC idx ce =                                               (*                                            .. *)
-    let ce      = PUSH32(RnCnOffset idx)            =>> ce    in  (*                            rn_cn_offset >> .. *) 
+    let ce      = PUSH8 (RnCnOffset idx)            =>> ce    in  (*                            rn_cn_offset >> .. *) 
     let ce      = PUSH1 StorPC                      =>> ce    in  (*                  storPC >> rn_cn_offset >> .. *) 
                   SSTORE                            =>> ce        (* S[storPC] := rn_cn_offset                  .. *) 
 
@@ -180,12 +181,16 @@ let _EP         = Int 0x60         (* Escaping Variable Record Pointer *)
 let _EP_MIN     = Int 0x100
 let _EP_MAX     = let Int i = _MS_MIN in Int (i-2)
 
+
 let push_MSP    = PUSH1 _MSP
 let push_EP     = PUSH1 _EP 
 let push_MS_MIN = PUSH4 _MS_MIN
 let push_MS_MAX = PUSH4 _MS_MAX
 let push_EP_MIN = PUSH4 _EP_MIN
 let push_EP_MAX = PUSH4 _EP_MAX
+let push_HP     = PUSH1 _HP
+let push_HP_MIN = PUSH4 _HP_MIN
+
 
 let mPUSH_from_STACK ce = 
     let ce      = push_MSP                          =>> ce  in  (*                                                         sp >> x >> .. *)
@@ -228,7 +233,7 @@ let ePOP          ce =                                          (*              
     let ce      = MLOAD                             =>> ce  in  (*                                                           M[EP] >> .. *) 
     let ce      = PUSH1 (Int 0x40)                  =>> ce  in  (*                                                   0x40 >> M[EP] >> .. *)
     let ce      = PUSH1 (Int 0x20)                  =>> ce  in  (*                                           0x20 >> 0x40 >> M[EP] >> .. *) 
-    let ce      = DUP2                              =>> ce  in  (*                                  M[EP] >> 0x20 >> 0x40 >> M[EP] >> .. *)  
+    let ce      = DUP3                              =>> ce  in  (*                                  M[EP] >> 0x20 >> 0x40 >> M[EP] >> .. *)  
     let ce      = SUB                               =>> ce  in  (*                                     M[EP]-0x20 >> 0x40 >> M[EP] >> .. *)
     let ce      = check_NOT_LT _EP_MIN                  ce  in  (*                                     M[EP]-0x20 >> 0x40 >> M[EP] >> .. *)
     let ce      = MLOAD                             =>> ce  in  (*                                        retAddr >> 0x40 >> M[EP] >> .. *)
@@ -274,13 +279,13 @@ let mPOP    ce  =
  *      a    := alloc(size);               +--------+--------+       +--------+--------+
  *      push(a)                                BEFORE MEM                AFTER MEM      *)
 
-let init_malloc ce =                                            (* initialize as M[64] := 96  ( M[0x40] := 0x60 ) *)
-    let ce      = PUSH1 (Int 0x60)                  =>> ce  in
-    let ce      = PUSH1 (Int 0x40)                  =>> ce  in
+let init_malloc ce =                                            (* initialize as M[0x40] := 0x1000000 *)
+    let ce      = push_HP_MIN                       =>> ce  in
+    let ce      = push_HP                           =>> ce  in
                   MSTORE                            =>> ce    
 
 let malloc ce   =                                               (*  STACK                                            len >> .. *)
-    let ce      = PUSH1 (Int 0x40)                  =>> ce  in  (*                                             64 >> len >> .. *)
+    let ce      = push_HP                           =>> ce  in  (*                                             64 >> len >> .. *)
     let ce      = DUP1                              =>> ce  in  (*                                       64 >> 64 >> len >> .. *)
     let ce      = MLOAD                             =>> ce  in  (*                                    M[64] >> 64 >> len >> .. *)
     let ce      = DUP1                              =>> ce  in  (*                           M[64] >> M[64] >> 64 >> len >> .. *)
@@ -290,7 +295,7 @@ let malloc ce   =                                               (*  STACK       
                   MSTORE                            =>> ce      (*                                                 M[64] >> .. *) 
 
 let get_malloc ce    =                               
-    let ce      = PUSH1 (Int 0x40)                  =>> ce  in  (*                                                0x40   >> .. *) 
+    let ce      = push_HP                           =>> ce  in  (*                                                0x40   >> .. *) 
                   MLOAD                             =>> ce      (*                                              M[0x40]  >> .. *) 
       
 let mstore_code ce =                                            (*                                           idx >> size >> .. *)
@@ -320,7 +325,7 @@ let push_evnt_hash ev ce =
                   PUSH4(Big b)                      =>> ce             
 
 let mstore_mthd_hash mthd ce =
-    let ce      = PUSH1(Int 4)                      =>> ce  in  (*                                                     4 >> .. *)
+    let ce      = PUSH1(Int 0x04)                   =>> ce  in  (*                                                     4 >> .. *)
     let ce      = DUP1                              =>> ce  in  (*                                               4  >> 4 >> .. *)
     let ce      = malloc                                ce  in  (*                                         alloc(4) >> 4 >> .. *)
     let ce      = push_mthd_hash mthd                   ce  in  (*                                 hash >> alloc(4) >> 4 >> .. *)

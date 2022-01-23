@@ -144,7 +144,7 @@ aTm:
     | NOW     LPAR BLOCK RPAR                       { fun ctx ->    EpNow                                                                   ,() }
     | THIS                                          { fun ctx ->    EpThis                                                                  ,() }
     | ADDRESS LPAR  tm   RPAR                       { fun ctx ->    EpAddr ($3 ctx)                                                         ,() }
-    | ID                               { reserved $1; fun ctx ->    prBds ctx;pe $1;
+    | ID                               { reserved $1; fun ctx ->    (* #DEBUG prBds ctx;pe $1 ; *)
                                                 (           try     TmI(lookup_bruijn_idx $1 ctx,len ctx)                                 ,()  
                                                 with _ ->   try     TmIRec(lookup_rec_idx ($1^"'") ctx)                                   ,() 
                                                 with _ ->   try     TmIStrct(lookup_struct_idx $1 ctx)                                    ,() 

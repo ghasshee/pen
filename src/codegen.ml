@@ -48,7 +48,7 @@ let align_to_L vm ty        = function
 (**   1.1  Stor Var Setup        **) 
 let mstore_vars cn vm =                                             (* This copies fieldVars at the end of the bytecode into MEM.             *) 
     let size    = size_of_vars_in_cn cn                         in  (* M[0x40](==M[64]) is increased accordingly                              *)
-    let vm      = PUSH32(Int size)                  =>> vm      in  (*                                                             size >> .. *)
+    let vm      = PUSH4(Int size)                   =>> vm      in  (*                                                             size >> .. *)
     let vm      = DUP1                              =>> vm      in  (*                                                     size >> size >> .. *)
     let vm      = malloc                                vm      in  (*                                              alloc(size) >> size >> .. *)
     let vm      = DUP2                              =>> vm      in  (*                                      size >> alloc(size) >> size >> .. *)
@@ -65,9 +65,9 @@ let check_codesize cnidx vm     =
 
 let init_stor_vars cnidx vm   =                               
     let label   = fresh_label()                                 in
-    let exit    = fresh_label()                                 in  (*                                                mem_start >> size >> .. *)  
-    let vm      = check_codesize cnidx                  vm      in 
-    let vm      = PUSH32(StorFldBegin cnidx)        =>> vm      in  (*                                          idx >>   mem_start    >>   size    >> .. *)
+    let exit    = fresh_label()                                 in  (*                                                   mem_start    >>   size    >> .. *)  
+(*   let vm      = check_codesize cnidx                  vm      in *)
+    let vm      = PUSH4(StorFldBegin cnidx)         =>> vm      in  (*                                          idx >>   mem_start    >>   size    >> .. *)
     let vm   = JUMPDEST label                       =>> vm      in  (*                                          idx >>   mem_start    >>   size    >> .. *)
     let vm      = DUP3                              =>> vm      in  (*                                 size >>  idx >>   mem_start    >>   size    >> .. *)
     let vm      = if_0_GOTO exit                        vm      in  (* IF size==0 THEN GOTO exit                idx >>   mem_start    >>   size    >> .. *)   
@@ -80,9 +80,9 @@ let init_stor_vars cnidx vm   =
     let vm      = SWAP3                             =>> vm      in  (*                                 size >> 0x20 >>   mem_start    >>   idx     >> .. *)
     let vm      = SUB                               =>> vm      in  (*                                   size- 0x20 >>   mem_start    >>   idx     >> .. *)
     let vm      = SWAP2                             =>> vm      in  (*                                          idx >>   mem_start    >> size-0x20 >> .. *) 
-    let vm      = incr_top 1(*word*)                    vm      in  (*                                        idx+1 >>   mem_start    >> size-0x20 >> .. *)
+    let vm      = incr                                  vm      in  (*                                        idx+1 >>   mem_start    >> size-0x20 >> .. *)
     let vm      = SWAP1                             =>> vm      in  (*                                    mem_start >>       idx+1    >> size-0x20 >> .. *)
-    let vm      = incr_top 0x20                         vm      in  (*                               mem_start+0x20 >>       idx+1    >> size-0x20 >> .. *)
+    let vm      = incr_n   0x20                         vm      in  (*                               mem_start+0x20 >>       idx+1    >> size-0x20 >> .. *)
     let vm      = SWAP1                             =>> vm      in  (*                                        idx+1 >> mem_start+0x20 >> size-0x20 >> .. *)
     let vm      = goto label                            vm      in  (*                                        idx+1 >> mem_start+0x20 >> size-0x20 >> .. *)
     let vm   = JUMPDEST exit                        =>> vm      in  (*                                          idx >>   mem_start    >>   size    >> .. *)
@@ -146,7 +146,7 @@ let codegen_creation cns idx = (* return vm which contains the program *)
     let TmCn(id,_,_) as cn = lookup idx cns in 
     let vm      =   empty_vm (lookup_cnidx cns) cns             in  (*                                                                                 *)
     let vm      =   Comment("Begin Creation "^id)   =>> vm      in 
-    let vm      =   init_malloc                         vm      in  (* M[64] := 96                                                                     *)
+    let vm      =   init_malloc                         vm      in  (* M[0x40] := 0x60                                                                 *)
     let vm      =   mstore_vars        cn               vm      in  (*                                            alloc(argssize) << argssize << ..    *)
     let vm      =   init_stor_vars    idx               vm      in  (* S[i..i+sz-1]:= argCodes               i << alloc(argssize) << argssize << ..    *)
     let vm      =   init_stor_arrs     cn               vm      in  (* S[1]        := #array                 i << alloc(argssize) << argssize << ..    *)
@@ -173,22 +173,19 @@ let dispatch_method idx le vm m =                                           (*  
     let vm      =   DUP1                                    =>> vm      in  (*                                   ABCD >> ABCD >> .. *)
     let vm      =   push_mthd_hash m                            vm      in  (*                              m >> ABCD >> ABCD >> .. *)
     let vm      =   EQ                                      =>> vm      in  (*                             m=ABCD?1:0 >> ABCD >> .. *)
-    let vm      =   PUSH32(RnMthdLabel(idx,m))              =>> vm      in  (*                Rntime(m) >> m=ABCD?1:0 >> ABCD >> .. *)
+    let vm      =   PUSH8(RnMthdLabel(idx,m))               =>> vm      in  (*                Rntime(m) >> m=ABCD?1:0 >> ABCD >> .. *)
                     JUMPI                                   =>> vm          (* if m=ABCD then GOTO Rntime(m)             ABCD >> .. *)
 
 let dispatch_default idx le vm =
-    let vm      =   PUSH32(RnMthdLabel(idx,TyDefault))      =>> vm      in
+    let vm      =   PUSH8(RnMthdLabel(idx,TyDefault))       =>> vm      in
                     JUMP                                    =>> vm     
-
-let push_inputdata32_from databegin vm =
-    let vm      =   PUSH32 databegin                        =>> vm      in
-                    CALLDATALOAD                            =>> vm
 
 let dispatcher idx (TmCn(_,_,mthds)) le vm = 
     let tyMthds =   L.map(function TmMthd(head,_) -> head) mthds        in
     let uMthds  =   filter_method tyMthds                               in 
     let vm      =   Comment "BEGIN Method Dispatchers "     =>> vm      in 
-    let vm      =   push_inputdata32_from(Int 0)                vm      in  (*               ABCDxxxxxxxxxxxxxxxxxxxxxxxxxxxxx >> .. *)
+    let vm      =   PUSH1 (Int 0x00)                        =>> vm      in  (* get inputdata[0x00] *) 
+    let vm      =   CALLDATALOAD                            =>> vm      in  (*               ABCDxxxxxxxxxxxxxxxxxxxxxxxxxxxxx >> .. *)
     let vm      =   shiftRtop vm Crpt.(word_bits-sig_bits)              in  (*                                            ABCD >> .. *)                             
     let vm      =   foldl(dispatch_method idx le)vm uMthds              in  (* JUMP to Method ABCD                                   *)   
     let vm      =   POP                                     =>> vm      in  (*                                                    .. *)
@@ -219,7 +216,7 @@ and codegen_keccak256 args   ly le vm =
                 SHA3                            =>> vm                
 
 and codegen_ECDSArecover args ly le vm = match args with [h;v;r;s] ->  
-    let vm    = PUSH1 (Int 32)                  =>> vm      in  
+    let vm    = PUSH1 (Int 0x20)                =>> vm      in  
     let vm    = DUP1                            =>> vm      in  
     let vm    = malloc                              vm      in  
     let vm    = repeat DUP2 2                       vm      in  
@@ -322,7 +319,8 @@ and salloc_array_of_push push_array_seed vm =
 (* le is not updated here.  
  * le can only be updated in a variable initialization *)
 and (>>) e (aln,ly,le,vm)           = codegen_tm ly le vm aln e 
-and codegen_tm ly le vm aln e       = pe_tm e; pe(str_of_ctx le); match e with 
+and codegen_tm ly le vm aln e       = (* #DEBUG pe_tm e; pe(str_of_ctx le); *)
+    match e with 
     | TmApp(t1,t2)          ,_              ->                  codegen_app     (TmApp(t1,t2))            ly le vm 
     | TmAbs(x,tyX,t)        ,_              ->                  codegen_abs     (TmAbs(x,tyX,t))          ly le vm 
     | TmFix(f,n,ty,t)       ,_              ->                  codegen_fix     (TmFix(f,n,ty,t))         ly le vm 
@@ -501,7 +499,7 @@ and codegen_app_rec(TmApp((TmIRec(i),_),arg)) a ly le vm =
 and codegen_fix(TmFix(phi,n,ty,tm)) ly le vm = 
     let vm      = Comment "BEGIN FIX"                   =>> vm      in 
     let start   = fresh_label ()                                    in 
-    pf "! add_recursion_param(label%d)\n" start;     
+    (* #DEBUG pf "! add_recursion_param(label%d)\n" start;     *)
     let le      = add_recursion_param le start                      in
     let vm      = JUMPDEST start                        =>> vm      in 
     let vm      = tm                             >>(R,ly,le,vm)     in  (*                               tm >> .. *)
@@ -525,7 +523,7 @@ and codegen_app (TmApp(t1,t2)) ly le vm = match fst t1 with
     let vm      = codegen_fix (TmFix(f,n,ty,tm))      ly le vm      in
                   JUMPDEST ret                          =>> vm 
     | _ -> 
-    pf "! add_brjidx %s\n" (str_of_tm t2); 
+    (* #DEBUG pf "! add_brjidx %s\n" (str_of_tm t2); *)
     let le      = add_brjidx le t2                                  in       
                   t1                             >>(R,ly,le,vm)      
 
@@ -682,7 +680,7 @@ let init_rntime lookup_cn lyts =
     { rn_vm             = vm
     ; rn_cns_pos        = [] }
 
-let append_rntime ly rc (idx,cn)   = pe("compiling contract" ^ str_of_int idx); 
+let append_rntime ly rc (idx,cn)   = (* #DEBUG pe("compiling contract" ^ str_of_int idx); *)
     { rn_vm             = codegen_cntrct ly(rntime_init_le cn)rc.rn_vm(idx,cn)
     ; rn_cns_pos        = insert idx(code_len rc.rn_vm)rc.rn_cns_pos    }
 

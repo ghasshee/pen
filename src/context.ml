@@ -1,5 +1,4 @@
 
-open    Printf 
 open    Misc
 open    Syntax
 open    Location
@@ -31,14 +30,14 @@ type context                    = bind list
                                 | BdStruct  of str 
                             
 let str_of_bind                 =   function 
-    | BdRec(l)                  ->  sprintf "BdRec(label %d)" l 
-    | BdBrj ctx                 ->  sprintf "BdBrj %s" "local" 
-    | BdLoc(s,l)                ->  sprintf "BdLoc(%s,location)" s 
-    | BdName s                  ->  sprintf "BdName(%s)" s 
-    | BdRecName s               ->  sprintf "BdRecName(%s)" s 
-    | BdStruct s                ->  sprintf "BdStruct(%s)" s 
-    | BdCtx ctx                 ->  sprintf "BdCtx %s" "local" 
-    | _                         ->  "Bd" 
+    | BdRec(l)                  ->  sf "BdRec(label %d)" l 
+    | BdBrj ctx                 ->  sf "BdBrj %s" "local" 
+    | BdLoc(s,l)                ->  sf "BdLoc(%s,location)" s 
+    | BdName s                  ->  sf "BdName(%s)"         s 
+    | BdRecName s               ->  sf "BdRecName(%s)"      s 
+    | BdStruct s                ->  sf "BdStruct(%s)"       s 
+    | BdCtx ctx                 ->  sf "BdCtx %s" "local" 
+    | _                         ->  sf "Bd" 
 
 let rec str_of_ctx              =   function 
     | []                        ->  ""
@@ -50,9 +49,9 @@ let add_empty_ctx ctx           =   BdCtx[] :: ctx
 let add_empty_brj ctx           =   BdBrj[] :: ctx
 
 let prBd                        =   function 
-    | BdName str                ->  printf "BdName(%s) " str 
-    | BdRecName str             ->  printf "BdRecName(%s) " str
-    | BdStruct str              ->  printf "BdStruct(%s) " str 
+    | BdName str                ->  pf "BdName(%s) "    str 
+    | BdRecName str             ->  pf "BdRecName(%s) " str
+    | BdStruct str              ->  pf "BdStruct(%s) "  str 
 
 let prBds                       =   L.iter prBd 
 

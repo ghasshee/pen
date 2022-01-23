@@ -1,4 +1,3 @@
-open Printf
 open Big_int
 open Misc
 open Syntax
@@ -65,10 +64,10 @@ let calldata (o,s)              = Calldata {offst=o; size=s}
 
 
 let str_of_location          =   function 
-    | Stor _                        -> sprintf "Stor[..] "
-    | Mem  m                        -> sprintf "Mem[%d..%d] "      m.offst (m.offst+m.size-1) 
-    | Code _                        -> sprintf "Code    ... "
-    | Calldata c                    -> sprintf "CallData[%d..%d] " c.offst (c.offst+c.size-1)
-    | Stack i                       -> sprintf "Stack[%d] " i
+    | Stor _                        -> sf "Stor[..] "
+    | Mem  m                        -> sf "Mem[%d..%d] "      m.offst (m.offst+m.size-1) 
+    | Code _                        -> sf "Code    ... "
+    | Calldata c                    -> sf "CallData[%d..%d] " c.offst (c.offst+c.size-1)
+    | Stack i                       -> sf "Stack[%d] " i
 
 

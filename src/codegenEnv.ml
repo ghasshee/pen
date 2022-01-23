@@ -82,7 +82,7 @@ let lookup_mthd_head_at_cn (TmCn(_,_,mthds)) mname =
                              | TmMthd(TyMthd(id,_,_),_)  -> id=mname) mthds with 
     | []            ->  raise Not_found
     | [a]           ->  let TmMthd(head,_) = a in head 
-    | _::_::_       ->  eprintf "method %s duplicated\n%!" mname;err "lookup_mthd_info_in_cntrct" 
+    | _::_::_       ->  ef "method %s duplicated\n%!" mname; err "lookup_mthd_info_in_cntrct" 
 
 let rec lookup_mthd_head vm     = lookup_mthd_head_top vm [] 
 and     lookup_mthd_head_top vm seen cn mname =
