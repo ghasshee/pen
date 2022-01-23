@@ -19,6 +19,7 @@ type 'imm opcode =
     | BLOCKHASH | COINBASE  | TIMESTAMP | NUMBER    | DIFFICULTY| GASLIMIT          (*  40s *)
     | POP       | MLOAD     | MSTORE    | MSTORE8   | SLOAD     | SSTORE            (*  50s *)
     | JUMP      | JUMPI     | PC        | MSIZE     | GAS       | JUMPDEST of Label.label
+    | PUSH  of 'imm
     | PUSH1 of 'imm   | PUSH4 of 'imm   | PUSH5 of 'imm         | PUSH8 of 'imm     (*  60s *)
     | PUSH16 of 'imm        | PUSH20 of 'imm        | PUSH32 of 'imm                (*      *)
     | DUP1      | DUP2      | DUP3      | DUP4      | DUP5      | DUP6      | DUP7  (*  80s *)
@@ -40,7 +41,7 @@ let empty_program       = []
 let to_list (p : 'imm program) = L.rev p
 
 let stack_popped = function
-  | PUSH1 _|PUSH4 _|PUSH5 _|PUSH8 _| PUSH16 _|PUSH20 _|PUSH32 _     -> 0
+  | PUSH _                                                          -> 0
   | NOT | ISZERO                                                    -> 1
   | ADDMOD|MULMOD                                                   -> 3
   | ADD|SUB|MUL|DIV|SDIV|MOD|SMOD|EXP|SHA3|LT|GT|EQ|SHL|SHR         -> 2
@@ -81,9 +82,8 @@ let stack_popped = function
   | DUP7                                                            -> 7
   | Comment _ -> 0 
 
-
 let stack_pushed = function
-  | PUSH1 _|PUSH4 _|PUSH5 _|PUSH8 _|PUSH16 _|PUSH20 _|PUSH32 _      -> 1
+  | PUSH _                                                          -> 1 
   | TIMESTAMP                                                       -> 1
   | ISZERO                                                          -> 1
   | ADD|MUL|SUB|DIV|SDIV|EXP|MOD|SMOD|EQ|LT|GT|SHL|SHR              -> 1
@@ -221,14 +221,7 @@ let str_of_opcode_big = str_of_opcode str_of_push_big
 
 (*
 let str_of_push_imm = function
-  | PUSH1  v        -> "PUSH1 " ^ Location.str_of_imm v
-  | PUSH4  v        -> "PUSH4 " ^ Location.str_of_imm v
-  | PUSH5  v        -> "PUSH5 " ^ Location.str_of_imm v
-  | PUSH8  v        -> "PUSH8 " ^ Location.str_of_imm v 
-  | PUSH16 v        -> "PUSH16 "^ Location.str_of_imm v
-  | PUSH20 v        -> "PUSH20 "^ Location.str_of_imm v
-  | PUSH32 v        -> "PUSH32 "^ Location.str_of_imm v
-
+  | PUSH imm        -> "PUSH " ^ Location.str_of_imm imm
 let str_of_opcode_imm = str_of_opcode str_of_push_imm
 *)
 
@@ -341,6 +334,7 @@ let size_of_opcode  = function
   | PUSH16 _        -> 1 + 16 
   | PUSH20 _        -> 1 + 20 
   | PUSH32 _        -> 1 + 32 
+  | PUSH _          -> err "size_of_opcode: abstract PUSH opcode CANNOT DETERMINE THE SIZE"
   | _               -> 1
 
 let size_of_prog p = foldl (fun a i -> size_of_opcode i + a) 0 p 

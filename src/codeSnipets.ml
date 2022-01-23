@@ -27,21 +27,21 @@ let error_label = Int 3
 let error_loop ce = 
     let error   =   fresh_label ()                          in 
     let boost   =   fresh_label ()                          in 
-    let ce      =   PUSH1(Label boost)              =>> ce  in 
+    let ce      =   PUSH(Label boost)              =>> ce  in 
     let ce      =   JUMP                            =>> ce  in 
     let ce      =   Comment "BEGIN ERROR LOOP"      =>> ce  in 
     let ce      =   JUMPDEST error                  =>> ce  in 
-    let ce      =   PUSH1(Label error)              =>> ce  in 
+    let ce      =   PUSH(Label error)              =>> ce  in 
     let ce      =   JUMP                            =>> ce  in 
     let ce      =   Comment "END   ERROR LOOP"      =>> ce  in 
                     JUMPDEST boost                  =>> ce  
 
 let throw ce         = (* the same with solc. *)
-    let ce      =   PUSH1 error_label               =>> ce  in
+    let ce      =   PUSH error_label               =>> ce  in
                     JUMP                            =>> ce 
 
 let throw_if ce     =                                           (*                               cond >> .. *)
-    let ce      =   PUSH1 error_label               =>> ce  in  (*                   errlabel >> cond >> .. *)
+    let ce      =   PUSH error_label               =>> ce  in  (*                   errlabel >> cond >> .. *)
                     JUMPI                           =>> ce      (* if cond then goto err                 .. *) 
 
 let throw_if_0 ce    =                                          (*                                  i >> .. *)   
@@ -55,11 +55,11 @@ let throw_if_NEQ ce   =                                         (*              
                     throw_if                            ce      (* if a!=b then throw                    .. *) 
 
 let goto    la ce   = 
-    let ce      =   PUSH4(Label la)                 =>> ce  in 
+    let ce      =   PUSH(Label la)                 =>> ce  in 
                     JUMP                            =>> ce 
 
 let if_GOTO la ce   = 
-    let ce      =   PUSH4(Label la)                 =>> ce  in 
+    let ce      =   PUSH(Label la)                 =>> ce  in 
                     JUMPI                           =>> ce 
 
 let if_0_GOTO la ce = 
@@ -77,7 +77,7 @@ let push_storRange ce (data : imm data) =
     let i = match data.size with | Big b -> str_of_big b | Int i -> str_of_int i in 
     (* #DEBUG pf "stor_size is %s\n" i ;  *) 
     assert (is_const_int 1 data.size) ; 
-    let ce      =   PUSH8  data.offst               =>> ce  in
+    let ce      =   PUSH  data.offst                =>> ce  in
                     SLOAD                           =>> ce 
 
 let dup_nth_from_bottom n ce  =
@@ -86,57 +86,57 @@ let dup_nth_from_bottom n ce  =
 let shiftRtop ce bits =
     assert (0 <= bits && bits < 256) ; 
     if bits=0 then ce else                                      (*                                         x >> .. *) 
-    let ce      = PUSH1 (Int bits)                  =>> ce  in  (*                                 bits >> x >> .. *)
+    let ce      = PUSH (Int bits)                  =>> ce  in  (*                                 bits >> x >> .. *)
     let ce      = SWAP1                             =>> ce  in  (*                              x >>    bits >> .. *) 
                   SHR                               =>> ce      (*                               x/(2**bits) >> .. *) 
 
 let shiftLtop ce bits =
     assert (0 <= bits && bits < 256) ; 
     if bits=0 then ce else                                      (*                                         x >> .. *)
-    let ce      = PUSH1 (Int bits)                  =>> ce  in  (*                                 bits >> x >> .. *)                   
+    let ce      = PUSH (Int bits)                  =>> ce  in  (*                                 bits >> x >> .. *)                   
     let ce      = SWAP1                             =>> ce  in  (*                              2**bits >> x >> .. *) 
                   SHL                               =>> ce      (*                               (2**bits)*x >> .. *) 
 
 let incr_n     n ce =
-    let ce      = PUSH8 (Int n)                     =>> ce  in
+    let ce      = PUSH (Int n)                     =>> ce  in
                   ADD                               =>> ce      
 
 let incr     ce     = 
-    let ce      = PUSH1 (Int 0x01)                  =>> ce  in 
+    let ce      = PUSH (Int 0x01)                  =>> ce  in 
                   ADD                               =>> ce 
 
 let sincr idx ce = 
-    let ce      = PUSH1(Int idx)                    =>> ce  in  (*                                         i >> .. *) 
+    let ce      = PUSH(Int idx)                    =>> ce  in  (*                                         i >> .. *) 
     let ce      = SLOAD                             =>> ce  in  (*                                      S[i] >> .. *) 
     let ce      = DUP1                              =>> ce  in  (*                              S[i] >> S[i] >> .. *) 
     let ce      = incr                                  ce  in  (*                            S[i]+1 >> S[i] >> .. *) 
-    let ce      = PUSH1(Int idx)                    =>> ce  in  (*                       i >> S[i]+1 >> S[i] >> .. *) 
+    let ce      = PUSH(Int idx)                    =>> ce  in  (*                       i >> S[i]+1 >> S[i] >> .. *) 
                   SSTORE                            =>> ce      (* S[i]:=S[i]+1                         S[i] >> .. *) 
 
 let calldataload ce data =
     assert (0 < data.size && data.size <= 32);
-    let ce      = PUSH4 (Int data.offst)            =>> ce  in
+    let ce      = PUSH (Int data.offst)            =>> ce  in
                   CALLDATALOAD                      =>> ce  
 
 let keccak_cat ce =                                             (*                                    a >> b >> .. *) 
-    let ce      = PUSH1 (Int 0x00)                  =>> ce  in  (*                            0x00 >> a >> b >> .. *)
+    let ce      = PUSH (Int 0x00)                  =>> ce  in  (*                            0x00 >> a >> b >> .. *)
     let ce      = MSTORE                            =>> ce  in  (* M[0x00]=a                               b >> .. *)
-    let ce      = PUSH1 (Int 0x20)                  =>> ce  in  (*                                 0x20 >> b >> .. *)
+    let ce      = PUSH (Int 0x20)                  =>> ce  in  (*                                 0x20 >> b >> .. *)
     let ce      = MSTORE                            =>> ce  in  (* M[0x20]=b                                    .. *) 
-    let ce      = PUSH1 (Int 0x40)                  =>> ce  in  (*                                      0x40 >> .. *)
-    let ce      = PUSH1 (Int 0x00)                  =>> ce  in  (*                              0x0  >> 0x40 >> .. *)
+    let ce      = PUSH (Int 0x40)                  =>> ce  in  (*                                      0x40 >> .. *)
+    let ce      = PUSH (Int 0x00)                  =>> ce  in  (*                              0x0  >> 0x40 >> .. *)
                   SHA3                              =>> ce      (*                       sha3(M[0x00..0x3F]) >> .. *)
                                                                 (*                          sha3(a++b)             *)
 
 let check_NOT_GT bound ce =                                     (*                                         x >> .. *)
     let ce      = DUP1                              =>> ce  in  (*                                    x >> x >> .. *)
-    let ce      = PUSH32 bound                      =>> ce  in  (*                           bound >> x >> x >> .. *) 
+    let ce      = PUSH bound                      =>> ce  in  (*                           bound >> x >> x >> .. *) 
     let ce      = LT                                =>> ce  in  (*                          bound<x?1:0 >> x >> .. *) 
                   throw_if                              ce      (* IF x<bound THEN error                   x >> .. *)
 
 let check_NOT_LT bound ce =                                     (*                                         x >> .. *)
     let ce      = DUP1                              =>> ce  in  (*                                    x >> x >> .. *)
-    let ce      = PUSH32 bound                      =>> ce  in  (*                           bound >> x >> x >> .. *) 
+    let ce      = PUSH bound                      =>> ce  in  (*                           bound >> x >> x >> .. *) 
     let ce      = GT                                =>> ce  in  (*                          bound>x?1:0 >> x >> .. *) 
                   throw_if                              ce      (* IF x<bound then error                   x >> .. *)
 
@@ -146,23 +146,23 @@ let check_NOT_LT bound ce =                                     (*              
 (******************************************************)
                 
 let reset_PC ce   =
-    let ce      = PUSH1 StorPC                      =>> ce    in  (*                                       0 >> .. *)
+    let ce      = PUSH StorPC                      =>> ce    in  (*                                       0 >> .. *)
     let ce      = SLOAD                             =>> ce    in  (*                                    S[0] >> .. *)
-    let ce      = PUSH1 StorPC                      =>> ce    in  (*                               0 >> S[0] >> .. *)
+    let ce      = PUSH StorPC                      =>> ce    in  (*                               0 >> S[0] >> .. *)
     let ce      = DUP1                              =>> ce    in  (*                          0 >> 0 >> S[0] >> .. *)
                   SSTORE                            =>> ce        (* S'[0]=0                            S[0] >> .. *)
 
 let restore_PC ce       =                                         (*                                  bkp_PC >> .. *)
-    let ce      = PUSH1 StorPC                      =>> ce    in  (*                             0 >> bkp_PC >> .. *)
+    let ce      = PUSH StorPC                      =>> ce    in  (*                             0 >> bkp_PC >> .. *)
                   SSTORE                            =>> ce        (* S'[0]=bkp_pc                               .. *)             
 
 let set_PC idx ce =                                               (*                                            .. *)
-    let ce      = PUSH8 (RnCnOffset idx)            =>> ce    in  (*                            rn_cn_offset >> .. *) 
-    let ce      = PUSH1 StorPC                      =>> ce    in  (*                  storPC >> rn_cn_offset >> .. *) 
+    let ce      = PUSH (RnCnOffset idx)            =>> ce    in  (*                            rn_cn_offset >> .. *) 
+    let ce      = PUSH StorPC                      =>> ce    in  (*                  storPC >> rn_cn_offset >> .. *) 
                   SSTORE                            =>> ce        (* S[storPC] := rn_cn_offset                  .. *) 
 
 let get_PC ce =
-    let ce      = PUSH1 StorPC                      =>> ce    in
+    let ce      = PUSH StorPC                      =>> ce    in
                   SLOAD                             =>> ce 
 
 
@@ -182,14 +182,14 @@ let _EP_MIN     = Int 0x100
 let _EP_MAX     = let Int i = _MS_MIN in Int (i-2)
 
 
-let push_MSP    = PUSH1 _MSP
-let push_EP     = PUSH1 _EP 
-let push_MS_MIN = PUSH4 _MS_MIN
-let push_MS_MAX = PUSH4 _MS_MAX
-let push_EP_MIN = PUSH4 _EP_MIN
-let push_EP_MAX = PUSH4 _EP_MAX
-let push_HP     = PUSH1 _HP
-let push_HP_MIN = PUSH4 _HP_MIN
+let push_MSP    = PUSH _MSP
+let push_EP     = PUSH _EP 
+let push_MS_MIN = PUSH _MS_MIN
+let push_MS_MAX = PUSH _MS_MAX
+let push_EP_MIN = PUSH _EP_MIN
+let push_EP_MAX = PUSH _EP_MAX
+let push_HP     = PUSH _HP
+let push_HP_MIN = PUSH _HP_MIN
 
 
 let mPUSH_from_STACK ce = 
@@ -197,20 +197,20 @@ let mPUSH_from_STACK ce =
     let ce      = MLOAD                             =>> ce  in  (*                                                      M[sp] >> x >> .. *) 
     let ce      = check_NOT_GT _MS_MAX                  ce  in  (*                                                      M[sp] >> x >> .. *)
     let ce      = DUP1                              =>> ce  in  (*                                             M[sp] >> M[sp] >> x >> .. *)         
-    let ce      = PUSH1(Int 0x20)                   =>> ce  in  (*                                    0x20 >>  M[sp] >> M[sp] >> x >> .. *)
+    let ce      = PUSH(Int 0x20)                   =>> ce  in  (*                                    0x20 >>  M[sp] >> M[sp] >> x >> .. *)
     let ce      = ADD                               =>> ce  in  (*                                        0x20+M[sp] >> M[sp] >> x >> .. *)
     let ce      = push_MSP                          =>> ce  in  (*                                  SP >> 0x20+M[sp] >> M[sp] >> x >> .. *)
     let ce      = MSTORE                            =>> ce  in  (* M[sp]    := M[sp]+0x20                               M[sp] >> x >> .. *)
                   MSTORE                            =>> ce      (* M[M[sp]] := x                                                      .. *) 
 
-let mPUSH      x  ce = mPUSH_from_STACK ( PUSH32 x  =>> ce  ) 
+let mPUSH      x  ce = mPUSH_from_STACK ( PUSH x  =>> ce  ) 
 
 let ePUSH         ce =                                          (*                                                   x >> retlabel >> .. *) 
     let ce      = push_EP                           =>> ce  in  (*                                             EP >> x >> retlabel >> .. *)
     let ce      = MLOAD                             =>> ce  in  (*                                          M[EP] >> x >> retlabel >> .. *)
     let ce      = check_NOT_GT _EP_MAX                  ce  in  (*                                          M[EP] >> x >> retlabel >> .. *)
     let ce      = DUP1                              =>> ce  in  (*                                 M[EP] >> M[EP] >> x >> retlabel >> .. *)
-    let ce      = PUSH1(Int 0x40)                   =>> ce  in  (*                         0x40 >> M[EP] >> M[EP] >> x >> retlabel >> .. *)
+    let ce      = PUSH(Int 0x40)                   =>> ce  in  (*                         0x40 >> M[EP] >> M[EP] >> x >> retlabel >> .. *)
     let ce      = ADD                               =>> ce  in  (*                            0x40+M[EP] >> M[EP] >> x >> retlabel >> .. *)
     let ce      = push_EP                           =>> ce  in  (*                      EP >> 0x40+M[EP] >> M[EP] >> x >> retlabel >> .. *)
     let ce      = MSTORE                            =>> ce  in  (* M[EP] := M[EP]+0x40                      M[EP] >> x >> retlabel >> .. *)
@@ -222,7 +222,7 @@ let ePUSH         ce =                                          (*              
                   MSTORE                            =>> ce      (* M[M[EP]+0x20] := retAddr                                           .. *)
 
 let get_escaped_arg ce =                                        (*                                                                    .. *)
-    let ce      = PUSH1 (Int 0x40)                  =>> ce  in  (*                                                            0x40 >> .. *)
+    let ce      = PUSH (Int 0x40)                  =>> ce  in  (*                                                            0x40 >> .. *)
     let ce      = push_EP                           =>> ce  in  (*                                                      EP >> 0x40 >> .. *)
     let ce      = MLOAD                             =>> ce  in  (*                                                   M[EP] >> 0x40 >> .. *)
     let ce      = SUB                               =>> ce  in  (*                                                      M[EP]-0x40 >> .. *)
@@ -231,8 +231,8 @@ let get_escaped_arg ce =                                        (*              
 let ePOP          ce =                                          (*                                                                    .. *)  
     let ce      = push_EP                           =>> ce  in  (*                                                             EP  >> .. *)
     let ce      = MLOAD                             =>> ce  in  (*                                                           M[EP] >> .. *) 
-    let ce      = PUSH1 (Int 0x40)                  =>> ce  in  (*                                                   0x40 >> M[EP] >> .. *)
-    let ce      = PUSH1 (Int 0x20)                  =>> ce  in  (*                                           0x20 >> 0x40 >> M[EP] >> .. *) 
+    let ce      = PUSH (Int 0x40)                  =>> ce  in  (*                                                   0x40 >> M[EP] >> .. *)
+    let ce      = PUSH (Int 0x20)                  =>> ce  in  (*                                           0x20 >> 0x40 >> M[EP] >> .. *) 
     let ce      = DUP3                              =>> ce  in  (*                                  M[EP] >> 0x20 >> 0x40 >> M[EP] >> .. *)  
     let ce      = SUB                               =>> ce  in  (*                                     M[EP]-0x20 >> 0x40 >> M[EP] >> .. *)
     let ce      = check_NOT_LT _EP_MIN                  ce  in  (*                                     M[EP]-0x20 >> 0x40 >> M[EP] >> .. *)
@@ -243,7 +243,7 @@ let ePOP          ce =                                          (*              
                   MSTORE                            =>> ce      (* M[EP] := M[EP]-0x40                                     retAddr >> .. *)
 
 let mPOP_to_STACK ce = 
-    let ce      = PUSH1 (Int 0x20)                  =>> ce  in  (*                                                            0x20 >> .. *) 
+    let ce      = PUSH (Int 0x20)                  =>> ce  in  (*                                                            0x20 >> .. *) 
     let ce      = push_MSP                          =>> ce  in  (*                                                      sp >> 0x20 >> .. *)
     let ce      = MLOAD                             =>> ce  in  (*                                                   M[sp] >> 0x20 >> .. *) 
     let ce      = check_NOT_LT _MS_MIN                  ce  in  (*                                                   M[sp] >> 0x20 >> .. *)    
@@ -254,7 +254,7 @@ let mPOP_to_STACK ce =
                   MLOAD                             =>> ce      (*                                                   M[M[sp]-0x20] >> .. *)
 
 let mPOP    ce  = 
-    let ce      = PUSH1 (Int 0x20)                  =>> ce  in  (*                                                            0x20 >> .. *) 
+    let ce      = PUSH (Int 0x20)                  =>> ce  in  (*                                                            0x20 >> .. *) 
     let ce      = push_MSP                          =>> ce  in  (*                                                     SP  >> 0x20 >> .. *)
     let ce      = MLOAD                             =>> ce  in  (*                                                   M[SP] >> 0x20 >> .. *) 
     let ce      = check_NOT_LT _MS_MIN                  ce  in  (*                                                   M[SP] >> 0x20 >> .. *)
@@ -312,20 +312,20 @@ let mstore_whole_code ce =
     let ce      = DUP1                              =>> ce  in  (*                                          size >> size >> .. *)
     let ce      = malloc                                ce  in  (*                                   alloc(size) >> size >> .. *)
     let ce      = DUP2                              =>> ce  in  (*                           size >> alloc(size) >> size >> .. *)
-    let ce      = PUSH1(Int 0)                      =>> ce  in  (*                     0  >> size >> alloc(size) >> size >> .. *)
+    let ce      = PUSH(Int 0)                      =>> ce  in  (*                     0  >> size >> alloc(size) >> size >> .. *)
     let ce      = DUP3                              =>> ce  in  (*     alloc(size) >>  0  >> size >> alloc(size) >> size >> .. *)
                   CODECOPY                          =>> ce      (*       to           from           alloc(size) >> size >> .. *)
 
 let push_mthd_hash m ce =
     let b       = Crpt.(big_of_hex $ hash_ty_mthd)m         in  
-                  PUSH4(Big b)                      =>> ce    
+                  PUSH(Big b)                      =>> ce    
 
 let push_evnt_hash ev ce =
     let b       = Crpt.(big_of_hex $ hash_of_evnt)ev        in  
-                  PUSH4(Big b)                      =>> ce             
+                  PUSH(Big b)                      =>> ce             
 
 let mstore_mthd_hash mthd ce =
-    let ce      = PUSH1(Int 0x04)                   =>> ce  in  (*                                                     4 >> .. *)
+    let ce      = PUSH(Int 0x04)                   =>> ce  in  (*                                                     4 >> .. *)
     let ce      = DUP1                              =>> ce  in  (*                                               4  >> 4 >> .. *)
     let ce      = malloc                                ce  in  (*                                         alloc(4) >> 4 >> .. *)
     let ce      = push_mthd_hash mthd                   ce  in  (*                                 hash >> alloc(4) >> 4 >> .. *)

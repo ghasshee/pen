@@ -41,150 +41,26 @@ let align_to_L vm ty        = function
                                 shiftLtop vm ((32-size)*8) 
 
 
-(*****************************************)
-(***  1. CONTRACT CREATION CODE        ***)
-(*****************************************)
-
-(**   1.1  Stor Var Setup        **) 
-let mstore_vars cn vm =                                             (* This copies fieldVars at the end of the bytecode into MEM.             *) 
-    let size    = size_of_vars_in_cn cn                         in  (* M[0x40](==M[64]) is increased accordingly                              *)
-    let vm      = PUSH4(Int size)                   =>> vm      in  (*                                                             size >> .. *)
-    let vm      = DUP1                              =>> vm      in  (*                                                     size >> size >> .. *)
-    let vm      = malloc                                vm      in  (*                                              alloc(size) >> size >> .. *)
-    let vm      = DUP2                              =>> vm      in  (*                                      size >> alloc(size) >> size >> .. *)
-    let vm      = DUP1                              =>> vm      in  (*                              size >> size >> alloc(size) >> size >> .. *)
-    let vm      = CODESIZE                          =>> vm      in  (*                  codesize >> size >> size >> alloc(size) >> size >> .. *)
-    let vm      = SUB                               =>> vm      in  (*                     codesize-size >> size >> alloc(size) >> size >> .. *)
-    let vm      = DUP3                              =>> vm      in  (*      alloc(size) >> codesize-size >> size >> alloc(size) >> size >> .. *)
-                  CODECOPY                          =>> vm          (*          to             from                 alloc(size) >> size >> .. *)
-                                                                    (*                                               codebegin                *)
-let check_codesize cnidx vm     =  
-    let vm      = PUSH32(InitDataSize cnidx)        =>> vm      in  (*                                    datasize >> mem_start >> size >> .. *)
-    let vm      = CODESIZE                          =>> vm      in  (*                        codesize >> datasize >> mem_start >> size >> .. *) 
-                  throw_if_NEQ                          vm          (* IF not eq THEN error                                                   *) 
-
-let init_stor_vars cnidx vm   =                               
-    let label   = fresh_label()                                 in
-    let exit    = fresh_label()                                 in  (*                                                   mem_start    >>   size    >> .. *)  
-(*   let vm      = check_codesize cnidx                  vm      in *)
-    let vm      = PUSH4(StorFldBegin cnidx)         =>> vm      in  (*                                          idx >>   mem_start    >>   size    >> .. *)
-    let vm   = JUMPDEST label                       =>> vm      in  (*                                          idx >>   mem_start    >>   size    >> .. *)
-    let vm      = DUP3                              =>> vm      in  (*                                 size >>  idx >>   mem_start    >>   size    >> .. *)
-    let vm      = if_0_GOTO exit                        vm      in  (* IF size==0 THEN GOTO exit                idx >>   mem_start    >>   size    >> .. *)   
-    let vm      = DUP2                              =>> vm      in  (*                            mem_start >>  idx >>   mem_start    >>   size    >> .. *) 
-    let vm      = MLOAD                             =>> vm      in  (*                         M[mem_start] >>  idx >>   mem_start    >>   size    >> .. *)
-    let vm      = DUP2                              =>> vm      in  (*                  idx >> M[mem_start] >>  idx >>   mem_start    >>   size    >> .. *)
-    let vm      = SSTORE                            =>> vm      in  (* S[idx]=M[mem_start]                      idx >>   mem_start    >>   size    >> .. *)  
-    let vm      = PUSH1(Int 0x20)                   =>> vm      in  (*                                 0x20 >>  idx >>   mem_start    >>   size    >> .. *)
-    let vm      = SWAP1                             =>> vm      in  (*                                  idx >> 0x20 >>   mem_start    >>   size    >> .. *)
-    let vm      = SWAP3                             =>> vm      in  (*                                 size >> 0x20 >>   mem_start    >>   idx     >> .. *)
-    let vm      = SUB                               =>> vm      in  (*                                   size- 0x20 >>   mem_start    >>   idx     >> .. *)
-    let vm      = SWAP2                             =>> vm      in  (*                                          idx >>   mem_start    >> size-0x20 >> .. *) 
-    let vm      = incr                                  vm      in  (*                                        idx+1 >>   mem_start    >> size-0x20 >> .. *)
-    let vm      = SWAP1                             =>> vm      in  (*                                    mem_start >>       idx+1    >> size-0x20 >> .. *)
-    let vm      = incr_n   0x20                         vm      in  (*                               mem_start+0x20 >>       idx+1    >> size-0x20 >> .. *)
-    let vm      = SWAP1                             =>> vm      in  (*                                        idx+1 >> mem_start+0x20 >> size-0x20 >> .. *)
-    let vm      = goto label                            vm      in  (*                                        idx+1 >> mem_start+0x20 >> size-0x20 >> .. *)
-    let vm   = JUMPDEST exit                        =>> vm      in  (*                                          idx >>   mem_start    >>   size    >> .. *)
-                  repeat POP 3                          vm          (*                                                                     .. *)
-
-(**   1.2. Stor Arr Setup       **)                   
-let reset_salloc_arr vm = 
-    let vm      = PUSH1 (Int 1)                     =>> vm      in  (*                                           1 >> .. *)
-    let vm      = DUP1                              =>> vm      in  (*                                      1 >> 1 >> .. *)
-                  SSTORE                            =>> vm          (* S[1]:=1                                        .. *) 
-
-let salloc_arr vm (arrArgLoc:int) =   
-    let label   = fresh_label()                                 in  (*                                                .. *) 
-    let vm      = PUSH4 (Int arrArgLoc)             =>> vm      in  (*                                        seed >> .. *)
-    let vm      = SLOAD                             =>> vm      in  (*                                     S[seed] >> .. *) 
-    let vm      = PUSH4 (Label label)               =>> vm      in  (*                            label >> S[seed] >> .. *)
-    let vm      = JUMPI                             =>> vm      in  (* IF S[seed]!=0 GOTO label                       .. *) 
-    let vm      = sincr 1                               vm      in  (*                                      S[1]++ >> .. *)      
-    let vm      = PUSH4 (Int arrArgLoc)             =>> vm      in  (*                                seed >> S[1] >> .. *)
-    let vm      = SSTORE                            =>> vm      in  (* S[seed]:=S[1]                                  .. *)
-                  JUMPDEST label                    =>> vm          (*                                                .. *)
-
-let init_salloc_arr_if_not vm = 
-    let label   = fresh_label ()                                in  (*                                                   *) 
-    let vm      = PUSH1 (Int 1)                     =>> vm      in  (*                                                   *) 
-    let vm      = SLOAD                             =>> vm      in  (*                                                   *)
-    let vm      = PUSH4 (Label label)               =>> vm      in  (*                                                   *) 
-    let vm      = JUMPI                             =>> vm      in  (* IF S[1]!=0 then GOTO label                  >> .. *)
-    let vm      = reset_salloc_arr                      vm      in  (*                                      1 >> 1 >> .. *) 
-                  JUMPDEST label                    =>> vm      
-
-let init_stor_arrs cn vm =
-    let vm      = init_salloc_arr_if_not                vm      in   
-    let arrLocs = arr_locs_of_cn cn                             in  
-                  foldl salloc_arr vm arrLocs 
-
-(**   1.3. Runtime CODE COPY         **) 
-let mstore_rn_code idx vm =                                         (*                                                           .. *)
-    let vm      = PUSH32(RnSize)                    =>> vm      in  (*                                                   size >> .. *)
-    let vm      = DUP1                              =>> vm      in  (*                                           size >> size >> .. *)  
-    let vm      = malloc                                vm      in  (*                                    alloc(size) >> size >> .. *)
-    let vm      = DUP2                              =>> vm      in  (*                            size >> alloc(size) >> size >> .. *)
-    let vm      = PUSH32(RnOffset idx)              =>> vm      in  (*                     idx >> size >> alloc(size) >> size >> .. *)
-    let vm      = DUP3                              =>> vm      in  (*      alloc(size) >> idx >> size >> alloc(size) >> size >> .. *)
-                  CODECOPY                          =>> vm          (*                                    alloc(size) >> size >> .. *)
-                                                                    (*                                     codebegin                *)
-(**   1.4.  CONTRACT CREATION   *****)
-type creation           =   { cr_vm           : vm
-                            ; cr_ty           : ty
-                            ; cr_cn           : ty toplevel } 
-
-let vm_of_cr cr         =   cr.cr_vm
-let size_of_cr          =   code_len     $ vm_of_cr 
-let prog_of_cr          =   extract_prog $ vm_of_cr  
-let sizes_of_crs        =   L.map snd $ idx_sort $ map size_of_cr
-let progs_of_crs        =   L.map snd $ idx_sort $ map prog_of_cr 
-let prog_of_crs         =   L.concat $ L.rev $ progs_of_crs 
-
-
-let codegen_creation cns idx = (* return vm which contains the program *) 
-    let TmCn(id,_,_) as cn = lookup idx cns in 
-    let vm      =   empty_vm (lookup_cnidx cns) cns             in  (*                                                                                 *)
-    let vm      =   Comment("Begin Creation "^id)   =>> vm      in 
-    let vm      =   init_malloc                         vm      in  (* M[0x40] := 0x60                                                                 *)
-    let vm      =   mstore_vars        cn               vm      in  (*                                            alloc(argssize) << argssize << ..    *)
-    let vm      =   init_stor_vars    idx               vm      in  (* S[i..i+sz-1]:= argCodes               i << alloc(argssize) << argssize << ..    *)
-    let vm      =   init_stor_arrs     cn               vm      in  (* S[1]        := #array                 i << alloc(argssize) << argssize << ..    *)
-    let vm      =   set_PC            idx               vm      in  (* S[PC]       := rn_cn_offst     (returned body)                                  *)
-    let vm      =   mstore_rn_code    idx               vm      in  (*                                      alloc(codesize) << codesize << i <<  ..    *)
-    let vm      =   RETURN                          =>> vm      in  (* OUTPUT(M[code]) as The BODY code                                    i <<  ..    *)
-                    Comment("End Creation "^id)     =>> vm 
-
-let init_creation cns idx  : creation =
-    let cn      =   L.assoc idx cns in 
-    { cr_vm           = codegen_creation cns idx
-    ; cr_ty           = typeof_cn cn 
-    ; cr_cn           = cn                                }
-
-let init_creations cns : creation ilist =
-    imap (init_creation cns) cns
-
-
 (***************************************)
-(***     3.  DISPATHER               ***)
+(***     1.  DISPATHER               ***)
 (***************************************)
 
 let dispatch_method idx le vm m =                                           (*                                           ABCD >> .. *)  
     let vm      =   DUP1                                    =>> vm      in  (*                                   ABCD >> ABCD >> .. *)
     let vm      =   push_mthd_hash m                            vm      in  (*                              m >> ABCD >> ABCD >> .. *)
     let vm      =   EQ                                      =>> vm      in  (*                             m=ABCD?1:0 >> ABCD >> .. *)
-    let vm      =   PUSH8(RnMthdLabel(idx,m))               =>> vm      in  (*                Rntime(m) >> m=ABCD?1:0 >> ABCD >> .. *)
+    let vm      =   PUSH(RnMthdLabel(idx,m))               =>> vm      in  (*                Rntime(m) >> m=ABCD?1:0 >> ABCD >> .. *)
                     JUMPI                                   =>> vm          (* if m=ABCD then GOTO Rntime(m)             ABCD >> .. *)
 
 let dispatch_default idx le vm =
-    let vm      =   PUSH8(RnMthdLabel(idx,TyDefault))       =>> vm      in
+    let vm      =   PUSH(RnMthdLabel(idx,TyDefault))       =>> vm      in
                     JUMP                                    =>> vm     
 
 let dispatcher idx (TmCn(_,_,mthds)) le vm = 
     let tyMthds =   L.map(function TmMthd(head,_) -> head) mthds        in
     let uMthds  =   filter_method tyMthds                               in 
     let vm      =   Comment "BEGIN Method Dispatchers "     =>> vm      in 
-    let vm      =   PUSH1 (Int 0x00)                        =>> vm      in  (* get inputdata[0x00] *) 
+    let vm      =   PUSH (Int 0x00)                        =>> vm      in  (* get inputdata[0x00] *) 
     let vm      =   CALLDATALOAD                            =>> vm      in  (*               ABCDxxxxxxxxxxxxxxxxxxxxxxxxxxxxx >> .. *)
     let vm      =   shiftRtop vm Crpt.(word_bits-sig_bits)              in  (*                                            ABCD >> .. *)                             
     let vm      =   foldl(dispatch_method idx le)vm uMthds              in  (* JUMP to Method ABCD                                   *)   
@@ -196,7 +72,7 @@ let dispatcher idx (TmCn(_,_,mthds)) le vm =
     le,vm
 
 (*********************************************)
-(***     4.    CODEGEN  PRECONTRACT        ***)
+(***     2.    CODEGEN  PRECONTRACT        ***)
 (*********************************************)
 
 let rec codegen_pre_call id args rety aln ly le vm = match id with 
@@ -216,16 +92,16 @@ and codegen_keccak256 args   ly le vm =
                 SHA3                            =>> vm                
 
 and codegen_ECDSArecover args ly le vm = match args with [h;v;r;s] ->  
-    let vm    = PUSH1 (Int 0x20)                =>> vm      in  
+    let vm    = PUSH (Int 0x20)                =>> vm      in  
     let vm    = DUP1                            =>> vm      in  
     let vm    = malloc                              vm      in  
     let vm    = repeat DUP2 2                       vm      in  
     let vm    = get_malloc                          vm      in
     let vm    = mstore_mthd_args R args       ly le vm      in  
     let vm    = SWAP1                           =>> vm      in  
-    let vm    = PUSH1 (Int 0)                   =>> vm      in  
-    let vm    = PUSH1 (Int 1)                   =>> vm      in  
-    let vm    = PUSH4 (Int 10000)               =>> vm      in  
+    let vm    = PUSH (Int 0)                   =>> vm      in  
+    let vm    = PUSH (Int 1)                   =>> vm      in  
+    let vm    = PUSH (Int 10000)               =>> vm      in  
     let vm    = CALL                            =>> vm      in  
     let vm    = throw_if_0 vm                               in
     let vm    = POP                             =>> vm      in  
@@ -235,7 +111,7 @@ and codegen_ECDSArecover args ly le vm = match args with [h;v;r;s] ->
     | _         -> err "pre_ecdsarecover has a wrong number of args"
 
 (*********************************************)
-(***    5.    CODEGEN  TERM                ***)
+(***    3.    CODEGEN  TERM                ***)
 (*********************************************)
 (*
  *              ADDRESS              MEMORY 
@@ -264,8 +140,8 @@ and push_loc vm aln ty      = function
 
 and mstore_new_instance id args msg ly le vm  =
     let cnidx   =   lookup_cnidx_at_vm id                   vm      in 
-    let vm      =   PUSH32(CrSize     cnidx)            =>> vm      in  (*                                                        size >> .. *) 
-    let vm      =   PUSH32(RnCrOffset cnidx)            =>> vm      in  (*                                             cn_idx  >> size >> .. *)
+    let vm      =   PUSH(CrSize     cnidx)              =>> vm      in  (*                                                        size >> .. *) 
+    let vm      =   PUSH(RnCrOffset cnidx)              =>> vm      in  (*                                             cn_idx  >> size >> .. *)
     let vm      =   mstore_code                             vm      in  (*                                         alloc(size) >> size >> .. *)
     let vm      =   SWAP1                               =>> vm      in  (*                                         size >> alloc(size) >> .. *)
     let vm      =   mstore_whole_code                       vm      in  (*                alloc(wsize) >> wsize >> size >> alloc(size) >> .. *)
@@ -300,13 +176,13 @@ and salloc_array aid aidx ly le vm     =
                                                                       
 and salloc_array_of_loc le vm(Stor data) =       
     assert(data.size=Int 1) ;                                           (*                                        S[KEC(a_i)] >> .. *)     
-    let push vm =   PUSH32 data.offst                   =>> vm      in  
+    let push vm =   PUSH data.offst                     =>> vm      in  
                     salloc_array_of_push push               vm          (* S[KEC(a_i)]:= newSeed                      newSeed >> .. *)     
 
 and salloc_array_of_push push_array_seed vm =   
     let label   =   fresh_label ()                                  in  (*                                        S[KEC(a_i)] >> .. *) 
     let vm      =   DUP1                                =>> vm      in  (*                          S[KEC(a_i)] >> S[KEC(a_i)] >> .. *) 
-    let vm      =   PUSH4(Label label)                  =>> vm      in  (*                 label >> S[KEC(a_i)] >> S[KEC(a_i)] >> .. *) 
+    let vm      =   PUSH(Label label)                   =>> vm      in  (*                 label >> S[KEC(a_i)] >> S[KEC(a_i)] >> .. *) 
     let vm      =   JUMPI                               =>> vm      in  (* {IF S[KEC(a_i)]!=0 GOTO label}          S[KEC(a_i)] >> .. *) 
     let vm      =   POP                                 =>> vm      in  (*                                                      .. *) 
     let vm      =   push_array_seed                         vm      in  
@@ -329,12 +205,12 @@ and codegen_tm ly le vm aln e       = (* #DEBUG pe_tm e; pe(str_of_ctx le); *)
     | TmIf(b,t1,t2)         ,_              ->                  codegen_if      (TmIf(b,t1,t2))           ly le vm 
     | Balanc   e            ,_              ->                  BALANCE     =>>     (    e           >>(R,ly,le,vm))
     | EpValue               ,_              ->                  CALLVALUE                                   =>> vm      (* Value (wei) Transferred to the account *) 
-    | TmZero                ,_              ->                  PUSH1(Int 0)                                =>> vm 
+    | TmZero                ,_              ->                  PUSH(Int 0)                                 =>> vm 
     | EpNow                 ,_              ->                  TIMESTAMP                                   =>> vm 
-    | TmFalse               ,_              ->  assert(aln=R);  PUSH1(Int 0)                                =>> vm  
-    | TmTrue                ,_              ->  assert(aln=R);  PUSH1(Int 1)                                =>> vm 
-    | TmU256   d            ,_              ->  assert(aln=R);  PUSH32(Big d)                               =>> vm  
-    | TmU8     d            ,_              ->  assert(aln=R);  PUSH1(Big d)                                =>> vm  
+    | TmFalse               ,_              ->  assert(aln=R);  PUSH(Int 0)                                 =>> vm  
+    | TmTrue                ,_              ->  assert(aln=R);  PUSH(Int 1)                                 =>> vm 
+    | TmU256   d            ,_              ->  assert(aln=R);  PUSH(Big d)                                 =>> vm  
+    | TmU8     d            ,_              ->  assert(aln=R);  PUSH(Big d)                                 =>> vm  
     | TmAdd  (l,r)          ,_              ->                  codegen_op ADD l r                        ly le vm             
     | TmSub  (l,r)          ,_              ->                  codegen_op SUB l r                        ly le vm             
     | TmMul  (l,r)          ,_              ->                  codegen_op MUL l r                        ly le vm             
@@ -351,9 +227,9 @@ and codegen_tm ly le vm aln e       = (* #DEBUG pe_tm e; pe(str_of_ctx le); *)
     | EpAddr(c,TyInstnc i)  ,TyAddr         ->                  (c,TyInstnc i)                     >>(aln,ly,le,vm) 
     | EpSender              ,TyAddr         ->                  align_addr aln             (CALLER          =>> vm) 
     | EpThis                ,_              ->                  align_addr aln             (ADDRESS         =>> vm) 
-    | TmArr(id,idx)       ,TyMap _        ->  let vm      =   codegen_array id idx                      ly le vm  in  (*            S[keccak(a[i])] >> .. *)
+    | TmArr(id,idx)         ,TyMap _        ->  let vm      =   codegen_array id idx                      ly le vm  in  (*            S[keccak(a[i])] >> .. *)
                                                 assert(aln=R);  salloc_array  id idx                      ly le vm      (*                     S[1]++ >> .. *)
-    | TmArr(id,idx)       ,      _        ->  assert(aln=R);  codegen_array id idx                      ly le vm      (*               S[keccak(a)] >> .. *)
+    | TmArr(id,idx)         ,      _        ->  assert(aln=R);  codegen_array id idx                      ly le vm      (*               S[keccak(a)] >> .. *)
     | TmId id               ,TyMap(a,b)     ->  let loc     =   lookup_le id le                                     in 
                                                 let vm      =   push_loc vm aln(TyMap(a,b))loc                      in 
                                                                 salloc_array_of_loc le vm loc                  
@@ -363,7 +239,7 @@ and codegen_tm ly le vm aln e       = (* #DEBUG pe_tm e; pe(str_of_ctx le); *)
                                                 let vm      =   (ref,tyR)                            >>(R,ly,le,vm) in  (* pushes the pointer *)
                                                                 MLOAD                                       =>> vm 
     | e                                     ->  let _,vm    =   codegen_tm_eff e              aln         ly le vm  in 
-                                                                PUSH1(Int 0)                                =>> vm 
+                                                                PUSH(Int 0)                                =>> vm 
 
 and codegen_tm_eff tm aln ly le vm      =   match tm with 
     | TmAbort               ,TyErr          ->  le, throw vm                               
@@ -381,19 +257,19 @@ and codegen_op operator l r ly le vm =
 and push_msg_and_gas msg cn ly le vm = 
     let vm      = msg                            >>(R,ly,le,vm)     in  (*                                            value >> .. *) 
     let vm      = cn                             >>(R,ly,le,vm)     in  (*                                  cnAddr >> value >> .. *)
-    let vm      = PUSH4(Int 3000)                       =>> vm      in  (*                          3000 >> cnAddr >> value >> .. *)
+    let vm      = PUSH(Int 3000)                        =>> vm      in  (*                          3000 >> cnAddr >> value >> .. *)
     let vm      = GAS                                   =>> vm      in  (*                   gas >> 3000 >> cnAddr >> value >> .. *)
                   SUB                                   =>> vm          (*                      gas-3000 >> cnAddr >> value >> .. *)
 
 and call_and_restore_PC vm =                                            (*  gas-3000 >> cnAddr >> msg >> &mhash >> argssize+4 >> retbegin >> retsize >> retbegin >> retsize >> PCbkp >> .. *)
     let vm      = CALL                                  =>> vm      in  (*                                                                   success >> retbegin >> retsize >> PCbkp >> .. *)
-    let vm      = PUSH1(Int 0)                          =>> vm      in  (*                                                              0 >> success >> retbegin >> retsize >> PCbkp >> .. *)
+    let vm      = PUSH(Int 0)                           =>> vm      in  (*                                                              0 >> success >> retbegin >> retsize >> PCbkp >> .. *)
     let vm      = JUMPI                                 =>> vm      in  (*  IF success==0 THEN GOTO 0                                                   retbegin >> retsize >> PCbkp >> .. *)
     let vm      = SWAP2                                 =>> vm      in  (*                                                                              PCbkp >> retsize >> retbegin >> .. *)
                   restore_PC                                vm          (*                                                                                       retsize >> retbegin >> .. *)
 
 and mload_ret_value vm =                                                (*                                 retsize >> retbegin >> .. *)
-    let vm      = PUSH1 (Int 32)                        =>> vm      in  (*                           32 >> retsize >> retbegin >> .. *)
+    let vm      = PUSH (Int 32)                         =>> vm      in  (*                           32 >> retsize >> retbegin >> .. *)
     let vm      = throw_if_NEQ                              vm      in  (* IF 32!=retsize ERROR                       retbegin >> .. *)
                   MLOAD                                 =>> vm          (*                                         M[retbegin] >> .. *)
 
@@ -407,7 +283,7 @@ and codegen_send_cn cn m args msg ly le vm =  (* msg-call to a contract *)
     let retsize = size_of_ty reTy                                   in  (*                                                                                                              .. *)
     let vm      = Comment("BEGINE send to "^id)         =>> vm      in  
     let vm      = reset_PC                                  vm      in  (*                                                                                                     PCbkp >> .. *)
-    let vm      = PUSH1(Int retsize)                    =>> vm      in  (*                                                                                          retsize >> PCbkp >> .. *)
+    let vm      = PUSH(Int retsize)                     =>> vm      in  (*                                                                                          retsize >> PCbkp >> .. *)
     let vm      = DUP1                                  =>> vm      in  (*                                                                               retsize >> retsize >> PCbkp >> .. *)
     let vm      = malloc                                    vm      in  (*                                                                              retbegin >> retsize >> PCbkp >> .. *)
     let vm      = repeat DUP2 2                             vm      in  (*                                                       retbegin >> retsize >> retbegin >> retsize >> PCbkp >> .. *)
@@ -420,7 +296,7 @@ and codegen_send_cn cn m args msg ly le vm =  (* msg-call to a contract *)
 and codegen_send_eoa eoa msg ly le vm =   (* send value to an EOA *) 
     let vm      = Comment "BEGINE send to Addr"         =>> vm      in  (*                                                                   .. *) 
     let vm      = reset_PC                                  vm      in  (*                                                          PCbkp >> .. *) 
-    let vm      = PUSH1(Int 0)                          =>> vm      in  (*                                                     0 >> PCbkp >> .. *) 
+    let vm      = PUSH(Int 0)                           =>> vm      in  (*                                                     0 >> PCbkp >> .. *) 
     let vm      = repeat DUP1 5                             vm      in  (*                            0 >> 0 >> 0 >> 0 >> 0 >> 0 >> PCbkp >> .. *) 
     let vm      = push_msg_and_gas msg eoa            ly le vm      in  (* gas-3000 >> addr >> msg >> 0 >> 0 >> 0 >> 0 >> 0 >> 0 >> PCbkp >> .. *) 
     let vm      = call_and_restore_PC                       vm      in  (*                                                         0 >> 0 >> .. *)
@@ -428,7 +304,7 @@ and codegen_send_eoa eoa msg ly le vm =   (* send value to an EOA *)
                   Comment("END send to Addr")           =>> vm 
 
 
-and sstore_to_lval(TmArr(a,i),_) ly le vm     =                       (*                                  rval >> .. *)
+and sstore_to_lval(TmArr(a,i),_) ly le vm     =                         (*                                  rval >> .. *)
     let vm      = keccak_of_array a i                 ly le vm      in  (*                      KEC(a^i) >> rval >> .. *)
                   SSTORE                                =>> vm          (* S[KEC(a^i)] := rval                      .. *)
 
@@ -448,17 +324,17 @@ and checked_codegen_LAnd l r aln    ly le vm =
     let vm      =   POP                                 =>> vm      in  (*                                                        .. *)
     let vm      =   r                            >>(R,ly,le,vm)     in  (*                                                   r >> .. *)
     let vm      = JUMPDEST la                           =>> vm      in  (*                                                   r >> .. *)
-                    repeat ISZERO 2                       vm            (*                                                l&&r >> .. *)  
+                    repeat ISZERO 2                         vm          (*                                                l&&r >> .. *)  
 
 and mstore_mthd_args aln args       ly le vm =
-    let vm    = PUSH1(Int 0)                            =>> vm      in  (*                                                   0 >> .. *)
+    let vm    = PUSH(Int 0)                             =>> vm      in  (*                                                   0 >> .. *)
                 foldl (mstore_mthd_arg aln le ly) vm args               (*                                             sumsize >> .. *) 
 
 and mstore_mthd_arg aln le ly vm arg  =
     let ty      = get_ty arg                                        in  
     let i       = match aln with | L -> size_of_ty ty 
                                  | R -> 32                          in  (*                                                 sum >> .. *)
-    let vm      = PUSH1 (Int i)                         =>> vm      in  (*                                         size >> sum >> .. *)
+    let vm      = PUSH (Int i)                          =>> vm      in  (*                                         size >> sum >> .. *)
     let vm      = arg                          >>(aln,ly,le,vm)     in  (*                                  arg >> size >> sum >> .. *)
     let vm      = DUP2                                  =>> vm      in  (*                          size >> arg >> size >> sum >> .. *)
     let vm      = malloc                                    vm      in  (*                   alloc(size) >> arg >> size >> sum >> .. *)
@@ -476,13 +352,13 @@ and mstore_mhash_and_args mthd args ly le vm =                          (*      
 and codegen_mthd_argLen_chk m vm = match m with  
     | TyDefault     -> vm
     | TyMthd _      ->
-    let vm      = PUSH4(Int(calldatasize m))            =>> vm      in
+    let vm      = PUSH(Int(calldatasize m))             =>> vm      in
     let vm      = CALLDATASIZE                          =>> vm      in
                   throw_if_NEQ                              vm        
 
 and escape_ARG arg retlabel a       ly le vm = 
     let vm      = Comment "ESCAPE START"                =>> vm      in 
-    let vm      = PUSH32(Label retlabel)                =>> vm      in     
+    let vm      = PUSH(Label retlabel)                  =>> vm      in     
     let vm      = arg                            >>(a,ly,le,vm)     in 
     let vm      = ePUSH                                     vm      in
                   Comment "ESCAPE DONE"                 =>> vm 
@@ -569,7 +445,7 @@ and codegen_selfdstr tm ly le vm =
     le, vm
 
 and mstore_tms l aln ly le vm = match l with  
-    | []        ->  le,         repeat (PUSH1(Int 0)) 2     vm      
+    | []        ->  le,         repeat (PUSH(Int 0)) 2      vm      
     | tm::tms   ->  let le,vm = mstore_tm tm aln      ly le vm      in  (*                                      alloc(size) >> size >> .. *)
                     let vm    = SWAP1                   =>> vm      in  (*                                      size >> alloc(size) >> .. *)
                     let le,vm = mstore_tms tms aln    ly le vm      in  (*   0 >> 0 >> size' >> alloc(size') >> size >> alloc(size) >> .. *)
@@ -590,13 +466,13 @@ and codegen_log _ args ev ly le vm =
     le, vm
 
 (***************************************)
-(***     5. CODEGEN RETURN           ***)
+(***     4. CODEGEN RETURN           ***)
 (***************************************)
 
 and push_args le stor               = foldr (fun arg vm -> arg >> (R,stor,le,vm))  
 and sstore_words_to stor_locs vm    = foldl sstore_word_to vm stor_locs
 and sstore_word_to  vm stor_loc     =
-    let vm      =   PUSH32 (Int stor_loc)               =>> vm      in
+    let vm      =   PUSH (Int stor_loc)                 =>> vm      in
                     SSTORE                              =>> vm      
 
 and sstore_vars offst idx vars ly le vm = 
@@ -625,7 +501,7 @@ and cont_call (TmCall(cn,args),_) ly le vm =
  * --+---------+-- --+---------+--    *)
 
 and mstore_word ty vm = assert (size_of_ty ty <= 32)  ;                 (*                                   val >> .. *)   (* Here, FUN TYPE is excluded <- Problem #TODO *) 
-    let vm      = PUSH1(Int 32)                         =>> vm      in  (*                             32 >> val >> .. *)
+    let vm      = PUSH(Int 32)                         =>> vm      in  (*                             32 >> val >> .. *)
     let vm      = DUP1                                  =>> vm      in  (*                       32 >> 32 >> val >> .. *)
     let vm      = malloc                                    vm      in  (*                alloc(32) >> 32 >> val >> .. *)
     let vm      = SWAP2                                 =>> vm      in  (*                val >> 32 >> alloc(32) >> .. *)
@@ -688,10 +564,131 @@ let compile_rntime ly cns   =
     let init_rc             = init_rntime (lookup_cnidx cns) cns            in 
     foldl (append_rntime ly) init_rc cns
 
+(*****************************************)
+(***      7.   CREATION                ***)
+(*****************************************)
+
+(**   1.1  Stor Var Setup        **) 
+let mstore_vars cn vm =                                             (* This copies fieldVars at the end of the bytecode into MEM.             *) 
+    let size    = size_of_vars_in_cn cn                         in  (* M[0x40](==M[64]) is increased accordingly                              *)
+    let vm      = PUSH (Int size)                   =>> vm      in  (*                                                             size >> .. *)
+    let vm      = DUP1                              =>> vm      in  (*                                                     size >> size >> .. *)
+    let vm      = malloc                                vm      in  (*                                              alloc(size) >> size >> .. *)
+    let vm      = DUP2                              =>> vm      in  (*                                      size >> alloc(size) >> size >> .. *)
+    let vm      = DUP1                              =>> vm      in  (*                              size >> size >> alloc(size) >> size >> .. *)
+    let vm      = CODESIZE                          =>> vm      in  (*                  codesize >> size >> size >> alloc(size) >> size >> .. *)
+    let vm      = SUB                               =>> vm      in  (*                     codesize-size >> size >> alloc(size) >> size >> .. *)
+    let vm      = DUP3                              =>> vm      in  (*      alloc(size) >> codesize-size >> size >> alloc(size) >> size >> .. *)
+                  CODECOPY                          =>> vm          (*          to             from                 alloc(size) >> size >> .. *)
+                                                                    (*                                               codebegin                *)
+let check_codesize cnidx vm     =  
+    let vm      = PUSH (InitDataSize cnidx)         =>> vm      in  (*                                    datasize >> mem_start >> size >> .. *)
+    let vm      = CODESIZE                          =>> vm      in  (*                        codesize >> datasize >> mem_start >> size >> .. *) 
+                  throw_if_NEQ                          vm          (* IF not eq THEN error                                                   *) 
+
+let init_stor_vars cnidx vm   =                               
+    let label   = fresh_label()                                 in
+    let exit    = fresh_label()                                 in  (*                                                   mem_start    >>   size    >> .. *)  
+(*   let vm      = check_codesize cnidx                  vm      in *)
+    let vm      = PUSH (StorFldBegin cnidx)         =>> vm      in  (*                                          idx >>   mem_start    >>   size    >> .. *)
+    let vm   = JUMPDEST label                       =>> vm      in  (*                                          idx >>   mem_start    >>   size    >> .. *)
+    let vm      = DUP3                              =>> vm      in  (*                                 size >>  idx >>   mem_start    >>   size    >> .. *)
+    let vm      = if_0_GOTO exit                        vm      in  (* IF size==0 THEN GOTO exit                idx >>   mem_start    >>   size    >> .. *)   
+    let vm      = DUP2                              =>> vm      in  (*                            mem_start >>  idx >>   mem_start    >>   size    >> .. *) 
+    let vm      = MLOAD                             =>> vm      in  (*                         M[mem_start] >>  idx >>   mem_start    >>   size    >> .. *)
+    let vm      = DUP2                              =>> vm      in  (*                  idx >> M[mem_start] >>  idx >>   mem_start    >>   size    >> .. *)
+    let vm      = SSTORE                            =>> vm      in  (* S[idx]=M[mem_start]                      idx >>   mem_start    >>   size    >> .. *)  
+    let vm      = PUSH (Int 0x20)                   =>> vm      in  (*                                 0x20 >>  idx >>   mem_start    >>   size    >> .. *)
+    let vm      = SWAP1                             =>> vm      in  (*                                  idx >> 0x20 >>   mem_start    >>   size    >> .. *)
+    let vm      = SWAP3                             =>> vm      in  (*                                 size >> 0x20 >>   mem_start    >>   idx     >> .. *)
+    let vm      = SUB                               =>> vm      in  (*                                   size- 0x20 >>   mem_start    >>   idx     >> .. *)
+    let vm      = SWAP2                             =>> vm      in  (*                                          idx >>   mem_start    >> size-0x20 >> .. *) 
+    let vm      = incr                                  vm      in  (*                                        idx+1 >>   mem_start    >> size-0x20 >> .. *)
+    let vm      = SWAP1                             =>> vm      in  (*                                    mem_start >>       idx+1    >> size-0x20 >> .. *)
+    let vm      = incr_n   0x20                         vm      in  (*                               mem_start+0x20 >>       idx+1    >> size-0x20 >> .. *)
+    let vm      = SWAP1                             =>> vm      in  (*                                        idx+1 >> mem_start+0x20 >> size-0x20 >> .. *)
+    let vm      = goto label                            vm      in  (*                                        idx+1 >> mem_start+0x20 >> size-0x20 >> .. *)
+    let vm   = JUMPDEST exit                        =>> vm      in  (*                                          idx >>   mem_start    >>   size    >> .. *)
+                  repeat POP 3                          vm          (*                                                                     .. *)
+
+(**   1.2. Stor Arr Setup       **)                   
+let reset_salloc_arr vm = 
+    let vm      = PUSH (Int 1)                      =>> vm      in  (*                                           1 >> .. *)
+    let vm      = DUP1                              =>> vm      in  (*                                      1 >> 1 >> .. *)
+                  SSTORE                            =>> vm          (* S[1]:=1                                        .. *) 
+
+let salloc_arr vm (arrArgLoc:int) =   
+    let label   = fresh_label()                                 in  (*                                                .. *) 
+    let vm      = PUSH (Int arrArgLoc)              =>> vm      in  (*                                        seed >> .. *)
+    let vm      = SLOAD                             =>> vm      in  (*                                     S[seed] >> .. *) 
+    let vm      = PUSH (Label label)                =>> vm      in  (*                            label >> S[seed] >> .. *)
+    let vm      = JUMPI                             =>> vm      in  (* IF S[seed]!=0 GOTO label                       .. *) 
+    let vm      = sincr 1                               vm      in  (*                                      S[1]++ >> .. *)      
+    let vm      = PUSH (Int arrArgLoc)              =>> vm      in  (*                                seed >> S[1] >> .. *)
+    let vm      = SSTORE                            =>> vm      in  (* S[seed]:=S[1]                                  .. *)
+                  JUMPDEST label                    =>> vm          (*                                                .. *)
+
+let init_salloc_arr_if_not vm = 
+    let label   = fresh_label ()                                in  (*                                                   *) 
+    let vm      = PUSH (Int 1)                      =>> vm      in  (*                                                   *) 
+    let vm      = SLOAD                             =>> vm      in  (*                                                   *)
+    let vm      = PUSH (Label label)                =>> vm      in  (*                                                   *) 
+    let vm      = JUMPI                             =>> vm      in  (* IF S[1]!=0 then GOTO label                  >> .. *)
+    let vm      = reset_salloc_arr                      vm      in  (*                                      1 >> 1 >> .. *) 
+                  JUMPDEST label                    =>> vm      
+
+let init_stor_arrs cn vm =
+    let vm      = init_salloc_arr_if_not                vm      in   
+    let arrLocs = arr_locs_of_cn cn                             in  
+                  foldl salloc_arr vm arrLocs 
+
+(**   1.3. Runtime CODE COPY         **) 
+let mstore_rn_code idx vm =                                         (*                                                           .. *)
+    let vm      = PUSH(RnSize)                      =>> vm      in  (*                                                   size >> .. *)
+    let vm      = DUP1                              =>> vm      in  (*                                           size >> size >> .. *)  
+    let vm      = malloc                                vm      in  (*                                    alloc(size) >> size >> .. *)
+    let vm      = DUP2                              =>> vm      in  (*                            size >> alloc(size) >> size >> .. *)
+    let vm      = PUSH(RnOffset idx)                =>> vm      in  (*                     idx >> size >> alloc(size) >> size >> .. *)
+    let vm      = DUP3                              =>> vm      in  (*      alloc(size) >> idx >> size >> alloc(size) >> size >> .. *)
+                  CODECOPY                          =>> vm          (*                                    alloc(size) >> size >> .. *)
+                                                                    (*                                     codebegin                *)
+(**   1.4.  CONTRACT CREATION   *****)
+type creation           =   { cr_vm           : vm
+                            ; cr_ty           : ty
+                            ; cr_cn           : ty toplevel } 
+
+let codegen_creation cns idx = (* return vm which contains the program *) 
+    let TmCn(id,_,_) as cn = lookup idx cns in 
+    let vm      =   empty_vm (lookup_cnidx cns) cns             in  (*                                                                                 *)
+    let vm      =   Comment("Begin Creation "^id)   =>> vm      in 
+    let vm      =   init_malloc                         vm      in  (* M[0x40] := 0x60                                                                 *)
+    let vm      =   mstore_vars        cn               vm      in  (*                                            alloc(argssize) << argssize << ..    *)
+    let vm      =   init_stor_vars    idx               vm      in  (* S[i..i+sz-1]:= argCodes               i << alloc(argssize) << argssize << ..    *)
+    let vm      =   init_stor_arrs     cn               vm      in  (* S[1]        := #array                 i << alloc(argssize) << argssize << ..    *)
+    let vm      =   set_PC            idx               vm      in  (* S[PC]       := rn_cn_offst     (returned body)                                  *)
+    let vm      =   mstore_rn_code    idx               vm      in  (*                                      alloc(codesize) << codesize << i <<  ..    *)
+    let vm      =   RETURN                          =>> vm      in  (* OUTPUT(M[code]) as The BODY code                                    i <<  ..    *)
+                    Comment("End Creation "^id)     =>> vm 
+
+let init_creation cns idx  : creation =
+    let cn      =   L.assoc idx cns in 
+    { cr_vm           = codegen_creation cns idx
+    ; cr_ty           = typeof_cn cn 
+    ; cr_cn           = cn                                }
+
+let init_creations cns : creation ilist =
+    imap (init_creation cns) cns
+
 (********************************************)
 (***     7. MAKE BYTECODE                ***)
 (********************************************)
 
+let vm_of_cr cr     =   cr.cr_vm
+let size_of_cr      =   code_len     $ vm_of_cr 
+let prog_of_cr      =   extract_prog $ vm_of_cr  
+let sizes_of_crs    =   L.map snd $ idx_sort $ map size_of_cr
+let progs_of_crs    =   L.map snd $ idx_sort $ map prog_of_cr 
+let prog_of_crs     =   L.concat $ L.rev $ progs_of_crs 
 
 let cr_infos_of_crs =   map (fun cr -> 
                         { cr_size           = size_of_prog (prog_of_cr cr)
@@ -717,7 +714,7 @@ let rn_info_of_rn rn crs : rntime_info =
 (*  Since codes are stored in reverse order, their concat is also reserved. *)
 let compose_bytecode crs rc idx : big_int Evm.program =
     let cr_infos    =   cr_infos_of_crs   crs                         in
-    let rn_info     =    rn_info_of_rn rc crs                         in
+    let rn_info     =   rn_info_of_rn rc  crs                         in
     let layt        =   init_layout cr_infos rn_info                  in
     let cr          =   lookup idx crs                                in
     let imm_cr      =   realize_prog layt idx(prog_of_cr cr)          in

@@ -100,16 +100,17 @@ let classify_PUSH b =
     if b <! big 256^! big 32   then PUSH32 b   else
     err "PUSH VALUE IS TOO LARGE"
 
+    (*
+let size_PUSH = function
+    | PUSH (Int i)      -> size_of_opcode (classify_PUSH (big i))
+    | PUSH (Big b)      -> size_of_opcode (classify_PUSH b)
+    | PUSH (Label l)    -> size_of_opcode (classify_PUSH (Label.lookup_label l))
+    *)
+
+
+
 let realize_opcode lyt (init_idx:idx)    = function 
- (* | PUSH1  imm      -> PUSH1  (realize_imm lyt init_idx imm)
-    | PUSH4  imm      -> PUSH4  (realize_imm lyt init_idx imm)
-    | PUSH5  imm      -> PUSH5  (realize_imm lyt init_idx imm)
-    | PUSH8  imm      -> PUSH8  (realize_imm lyt init_idx imm)
-    | PUSH16 imm      -> PUSH16 (realize_imm lyt init_idx imm)
-    | PUSH20 imm      -> PUSH20 (realize_imm lyt init_idx imm)
-    | PUSH32 imm      -> PUSH32 (realize_imm lyt init_idx imm) *)
-    | PUSH1 i|PUSH4 i|PUSH5 i|PUSH8 i|PUSH16 i|PUSH20 i|PUSH32 i 
-                      -> classify_PUSH (realize_imm lyt init_idx i)
+    | PUSH imm        -> classify_PUSH (realize_imm lyt init_idx imm)
     | Comment s       -> Comment s 
     | SHL             -> SHL
     | SHR             -> SHR
