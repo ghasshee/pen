@@ -13,14 +13,11 @@ module  BL  = BatList
 (***              CONTEXT                ***)
 (*******************************************)
 
-(* var list         := local variables in a method scope *)
-(* var list list    := the whole variables in src code   *) 
-
 type context                    = bind list 
  and bind                       = BdName    of str       (* Parser Context *) 
                                 | BdTy      of str * ty 
-                                | BdRetTy   of ty 
-                                | BdCtx     of context
+                                | BdRet     of ty 
+                                | BdFrm     of context
                                 | BdEv      of str * ty list 
                                 | BdLoc     of str * location 
                                 | BdI       of ty tmty 
@@ -29,31 +26,9 @@ type context                    = bind list
                                 | BdRecName of str
                                 | BdStruct  of str 
                             
-let str_of_bind                 =   function 
-    | BdRec(l)                  ->  sf "BdRec(label %d)" l 
-    | BdBrj ctx                 ->  sf "BdBrj %s" "local" 
-    | BdLoc(s,l)                ->  sf "BdLoc(%s,location)" s 
-    | BdName s                  ->  sf "BdName(%s)"         s 
-    | BdRecName s               ->  sf "BdRecName(%s)"      s 
-    | BdStruct s                ->  sf "BdStruct(%s)"       s 
-    | BdCtx ctx                 ->  sf "BdCtx %s" "local" 
-    | _                         ->  sf "Bd" 
-
-let rec str_of_ctx              =   function 
-    | []                        ->  ""
-    | x::xs                     ->  str_of_bind x ^ "," ^ str_of_ctx xs 
-
-
 let empty_ctx                   =   [] 
-let add_empty_ctx ctx           =   BdCtx[] :: ctx
+let add_empty_ctx ctx           =   BdFrm[] :: ctx
 let add_empty_brj ctx           =   BdBrj[] :: ctx
-
-let prBd                        =   function 
-    | BdName str                ->  pf "BdName(%s) "    str 
-    | BdRecName str             ->  pf "BdRecName(%s) " str
-    | BdStruct str              ->  pf "BdStruct(%s) "  str 
-
-let prBds                       =   L.iter prBd 
 
 let rec lookup_bruijn_idx nm    =   function 
     | []                        ->  (*eprintf"Context: bruijn idx for %s not found\n" nm;*) raise Not_found
@@ -83,13 +58,12 @@ let rec lookup_recursion_param  =   function
 
 let add_recursion_param ctx start=  BdRec(start) :: ctx
 
-
 let lookup_id_local   nm        =   find_by_filter (function BdTy(id,ty)when id=nm -> ty          | _ -> raise Not_found) 
-let lookup_id         nm        =   find_by_filter (function BdCtx ctx -> lookup_id_local nm ctx  | _ -> raise Not_found)
+let lookup_id         nm        =   find_by_filter (function BdFrm ctx -> lookup_id_local nm ctx  | _ -> raise Not_found)
 let lookup_evnt       nm        =   find_by_filter (function BdEv(id,l) when id=nm -> TyEv(id,l)  | _ -> raise Not_found)
-let lookup_retTy                =   find_by_filter (function BdRetTy ty -> ty                     | _ -> raise Not_found) 
+let lookup_retTy                =   find_by_filter (function BdRet ty -> ty                       | _ -> raise Not_found) 
 let lookup_ll key               =   find_by_filter (function BdLoc(s,loc) when key=s -> loc       | _ -> raise Not_found)
-let lookup_le key               =   find_by_filter (function BdCtx ctx -> lookup_ll key ctx       | _ -> raise Not_found)
+let lookup_le key               =   find_by_filter (function BdFrm ctx -> lookup_ll key ctx       | _ -> raise Not_found)
 
 let rec lookup_brjidx_local idx =   function 
     | []                        ->  raise Not_found
@@ -103,13 +77,13 @@ let bind_of_ty                  =   function
     | TyVar(id,ty)              ->  BdTy(id,ty)
 let binds_of_tys                =   L.map bind_of_ty
 
-let add_local ctx local         =   BdCtx   local :: ctx 
-let add_retTy ctx retTy         =   BdRetTy retTy :: ctx 
+let add_local ctx local         =   BdFrm   local :: ctx 
+let add_retTy ctx retTy         =   BdRet retTy :: ctx 
 let add_evnts ctx evs           =   foldl (fun xs x -> (L.cons $ bind_of_ty) x xs) ctx evs  
 
 let rec (@@) (id,ty)            =   function   
     | []                        ->  err "add_var: no current scope" 
-    | BdCtx local:: rest        ->  BdCtx (BdTy(id,ty)::local) :: rest 
+    | BdFrm local:: rest        ->  BdFrm (BdTy(id,ty)::local) :: rest 
     | x :: rest                 ->  x ::  ((id,ty) @@ rest)
 
 let rec add_brjidx ctx tm       =   match ctx with 
@@ -139,34 +113,63 @@ let callerArgLocs_of_mthd       =   function
 
 (************************************************)
 (**         LL := LOCAL    LOCATIONs           **)
-(**         LE := LOCATION ENVIRONMENTS        **) 
+(**        ctx := LOCATION ENVIRONMENTS        **) 
 (************************************************)
     
-let rec add_loc le (key,loc)        =   match le with
+let rec add_loc ctx (key,loc)        = match ctx with
     | []                            -> err "add_loc: no block"
-    | BdCtx(h)::t                   -> BdCtx(BdLoc(key,loc) :: h) :: t
+    | BdFrm(h)::t                   -> BdFrm(BdLoc(key,loc) :: h) :: t
     | _ :: rest                     -> add_loc rest (key,loc)
-let add_locs le locs                =   foldl add_loc le locs
-let add_mthdCallerArgLocs mthd le   =   add_locs le (callerArgLocs_of_mthd mthd)
+let add_locs ctx                     =   foldl add_loc ctx 
+let add_mthdCallerArgLocs mthd ctx   =   add_locs ctx (callerArgLocs_of_mthd mthd)
 
-let add_fieldVar(le,idx)(TyVar(id,ty))    =
+let add_fieldVar(ctx,idx)(TyVar(id,ty))    =
     let size                = size_of_ty ty                             in
     let size                = if 0<size&&size<=32 then 1 else size/32   in 
     let loc                 = Stor{offst=Int idx;size=Int size}         in
-    let le'                 = add_loc le (id,loc)                       in
-    le' , idx + size  
-let add_fieldArr(le,idx)(TyVar(id,TyMap(_,_))) =
+    let ctx                 = add_loc ctx (id,loc)                      in
+    ctx , idx + size  
+
+let add_fieldArr(ctx,idx)(TyVar(id,TyMap(_,_))) =
     let size                = 1                                         in 
     let loc                 = Stor{offst=Int idx;size=Int size}         in
-    let le'                 = add_loc le (id,loc)                       in
-    le' , idx + size  
+    let ctx                 = add_loc ctx (id,loc)                      in
+    ctx , idx + size  
 
-let rntime_init_le cn =
+let rn_init_ctx cn =
     let varTys              = varTys_of_cn cn                           in
     let arrTys              = arrTys_of_cn cn                           in  
-    let init                = add_empty_ctx empty_ctx                   in
-    let le, mid             = foldl add_fieldVar (init,2) varTys        in  
-    let le, _               = foldl add_fieldArr (le,mid) arrTys        in
-    le
+    let ctx                 = add_empty_ctx empty_ctx                   in
+    let ctx, mid            = foldl add_fieldVar (ctx,2) varTys         in  
+    let ctx, _              = foldl add_fieldArr (ctx,mid) arrTys       in
+    ctx
 
+
+
+
+
+
+
+
+
+let str_of_bind                 =   function 
+    | BdRec(l)                  ->  sf "BdRec(label %d)" l 
+    | BdBrj ctx                 ->  sf "BdBrj %s" "local" 
+    | BdLoc(s,l)                ->  sf "BdLoc(%s,location)" s 
+    | BdName s                  ->  sf "BdName(%s)"         s 
+    | BdRecName s               ->  sf "BdRecName(%s)"      s 
+    | BdStruct s                ->  sf "BdStruct(%s)"       s 
+    | BdFrm ctx                 ->  sf "BdFrm %s" "local" 
+    | _                         ->  sf "Bd" 
+
+let rec str_of_ctx              =   function 
+    | []                        ->  ""
+    | x::xs                     ->  str_of_bind x ^ "," ^ str_of_ctx xs 
+
+let prBd                        =   function 
+    | BdName str                ->  pf "BdName(%s) "    str 
+    | BdRecName str             ->  pf "BdRecName(%s) " str
+    | BdStruct str              ->  pf "BdStruct(%s) "  str 
+
+let prBds                       =   L.iter prBd 
 

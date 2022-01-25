@@ -334,7 +334,7 @@ let size_of_opcode  = function
   | PUSH16 _        -> 1 + 16 
   | PUSH20 _        -> 1 + 20 
   | PUSH32 _        -> 1 + 32 
-  | PUSH _          -> err "size_of_opcode: abstract PUSH opcode CANNOT DETERMINE THE SIZE"
+  | PUSH _          -> 1 + 16 (* err "size_of_opcode: abstract PUSH opcode CANNOT DETERMINE THE SIZE" *)
   | _               -> 1
 
 let size_of_prog p = foldl (fun a i -> size_of_opcode i + a) 0 p 

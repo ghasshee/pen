@@ -74,20 +74,19 @@ let init_layout   l ri          =   { initdata_size = calc_initdata_size l ri
                                     ; rn_crs_pos    = ri.crs_pos
                                     ; stor          = init_storage l          }
 
-let rec realize_imm lyt (init_idx:idx)   = function 
+let rec realize_imm lyt = function 
     | Big b                         ->  b
     | Int i                         ->  big i
-    | Label l                       ->  big (Label.lookup_label l)
+    | Label l                       ->  big (lookup_label l)
+    | RnMthdLabel    (idx,mthd_hd)  ->  big (lookup_label (lookup_entry (Mthd(idx,mthd_hd)))) 
+
     | StorPC                        ->  big (lyt.stor.pc)
-    | StorFldBegin          idx     ->  big (lyt.stor.vars idx).offst
-    | StorFldSize           idx     ->  big (lyt.stor.vars idx).size
+    | StorVarBegin          idx     ->  big (lyt.stor.vars idx).offst
     | InitDataSize          idx     ->  big (lyt.initdata_size idx)
-    | RnOffset              idx     ->  big (lyt.stor.cr_sizes idx)
-    | RnSize                        ->  big (lyt.rntime_size)
     | CrSize                idx     ->  big (lyt.stor.cr_sizes idx)
+    | RnSize                        ->  big (lyt.rntime_size)
     | RnCrOffset            idx     ->  big (lookup idx lyt.rn_crs_pos)
     | RnCnOffset            idx     ->  big (lookup idx lyt.rn_cns_pos)
-    | RnMthdLabel    (idx,mthd_hd)  ->  big (Label.lookup_label (lookup_entry (Mthd(idx,mthd_hd)))) 
 
 let classify_PUSH b = 
     if b <! big 0        then err "PUSH VALUE cannot be NEGATIVE" else
@@ -109,8 +108,8 @@ let size_PUSH = function
 
 
 
-let realize_opcode lyt (init_idx:idx)    = function 
-    | PUSH imm        -> classify_PUSH (realize_imm lyt init_idx imm)
+let realize_opcode lyt  = function 
+    | PUSH imm        -> classify_PUSH (realize_imm lyt imm)
     | Comment s       -> Comment s 
     | SHL             -> SHL
     | SHR             -> SHR
@@ -183,7 +182,7 @@ let realize_opcode lyt (init_idx:idx)    = function
     | DUP6            -> DUP6
     | DUP7            -> DUP7
 
-let realize_prog lyt init_idx p = L.map (realize_opcode lyt init_idx) p
+let realize_prog lyt p = L.map (realize_opcode lyt) p 
 
 let rec gen_field_locs offset used_plains used_seeds num_plains = function 
     | []        ->  []

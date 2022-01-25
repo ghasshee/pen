@@ -29,12 +29,26 @@ let errc str                = err("codegen_tm: " ^ str ^ " of unexpected type")
 (**      LIST OPERATERS                 **)
 (*****************************************)
 
+let pi  = print_int
 let ps  = print_string
 let pe  = print_endline
 let pf  = printf
 let ef  = eprintf
 let ff  = fprintf
 let sf  = sprintf
+
+(*****************************************)
+(**        POLYMORPHIC FUNCTIONS        **)
+(*****************************************)
+
+let ($) f g x               = f (g x) 
+let ($$$) a b c d           = ($)($)($) a b c d
+
+let konst x y               = x
+let subst t1 t2 x           = ( t1 x ) ( t2 x ) 
+
+let rec foldn n succ zero   = if n=0 then zero else succ (foldn (n-1) succ zero) 
+
 
 (*****************************************)
 (**      LIST OPERATERS                 **)
@@ -64,18 +78,7 @@ let tl                          = L.tl
 let zip                         = L.combine
 let unzip                       = L.split 
 
-(*****************************************)
-(**        POLYMORPHIC FUNCTIONS        **)
-(*****************************************)
-
-let ($) f g x               = f (g x) 
-let ($$$) a b c d           = ($)($)($) a b c d
-
-let konst x y               = x
-let subst t1 t2 x           = ( t1 x ) ( t2 x ) 
-
-let rec foldn n succ zero   = if n=0 then zero else succ (foldn (n-1) succ zero) 
-
+let pr_ints                     = pe $ foldl (fun x xs -> pe x;xs) "" $ L.map str_of_int 
 
 (*****************************************)
 (**                BITS                 **)
@@ -97,6 +100,7 @@ let str_of_big              = Big_int.string_of_big_int
 let big_of_str              = Big_int.big_int_of_string
 let big_0                   = Big_int.zero_big_int
 let big_1                   = Big_int.unit_big_int
+let (==)                    = Big_int.eq_big_int
 let (+!)                    = Big_int.add_big_int
 let (-!)                    = Big_int.minus_big_int
 let( *!)                    = Big_int.mult_big_int

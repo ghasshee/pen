@@ -5,7 +5,7 @@ SRC=`echo $SRC | sed -e 's/\.pen//g' `
 OUT="../js/$SRC.js"
 
 make
-if  [ $SRC=="" ] 
+if  [ "$SRC" = "" ]   
 then 
     echo ""
     echo "================================================"

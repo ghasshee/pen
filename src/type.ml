@@ -91,17 +91,17 @@ and  type_tm  cns cname ctx tm  = (* #DEBUG pe("type_tm: " ^ str_of_tm tm ); *)
                                         assert(subtype tyR tyT); 
                                         TmFix(f,n,tyF,(t,tyT)), tyF 
     | TmI(i,n)                      ->  begin match ctx with 
-                                        | BdCtx lctx :: _   ->  let BdTy(id,ty) = L.nth lctx i          in
+                                        | BdFrm lctx :: _   ->  let BdTy(id,ty) = L.nth lctx i          in
                                                                 TmI(i,n)      , tyShift(i+1)ty  
                                         | _ :: ctx          ->  tm    -|?  (ctx,cns,cname)         
                                         | _                 ->  err "|- TmI : ??"                       end 
     | TmIRec(i(*, rig #TODO*) )     ->  begin match ctx with 
-                                        | BdCtx lctx :: _   ->  let BdTy(id,ty) = L.nth lctx i          in 
+                                        | BdFrm lctx :: _   ->  let BdTy(id,ty) = L.nth lctx i          in 
                                                                 TmIRec(i)     , tyShift(i+1)ty  
                                         | _ :: ctx          ->  tm    -|?  (ctx,cns,cname)         
                                         | _                 ->  err "|- TmIRec : ??"                    end 
     | TmIStrct(i)                   ->  begin match ctx with 
-                                        | BdCtx lctx :: _   ->  let BdTy(id,ty) = L.nth lctx i          in 
+                                        | BdFrm lctx :: _   ->  let BdTy(id,ty) = L.nth lctx i          in 
                                                                 TmIStrct(i)   , tyShift(i+1)ty  
                                         | _ :: ctx          ->  tm    -|?  (ctx,cns,cname)         
                                         | _                 ->  err "|- TmIStrct : ??"                  end 
