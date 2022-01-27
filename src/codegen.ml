@@ -25,7 +25,6 @@ module L    = List
 let calldatasize (TyMthd(_,args,_)) =
     4 (* for signature *) + size_of_args args   
 
-
 (***************************************)
 (***     1.  DISPATHER               ***)
 (***************************************)
@@ -147,53 +146,33 @@ and codegen_array a i ly le vm    =                                     (*      
     let vm      =   kec_of_arr a i                    ly le vm      in  (*                                      keccak(a[i]) >> .. *)
                     SLOAD                               @>> vm          (*                                   S[keccak(a[i])] >> .. *) 
 
-(*                    
-and salloc_array a i ly le vm     =
-                    salloc_array_of (kec_of_arr a i ly le)  vm          (* S[KEC(a_i)]:= newSeed                      newSeed >> .. *)     
-*)
-
-and salloc_array_of_loc le vm(Stor data) = 
-                    assert(data.size=Int 1) ;                           (*                                        S[KEC(a_i)] >> .. *)     
-                    salloc_array_of ((@>>)(PUSH data.offst))vm          (* S[KEC(a_i)]:= newSeed                      newSeed >> .. *)     
 and codegen_aid (Stor data) le vm = 
     let vm      =   PUSH data.offst                     @>> vm      in 
     let vm      =   DUP1                                @>> vm      in 
     let vm      =   SLOAD                               @>> vm      in 
                     salloc_array' vm        
 
-and salloc_array_of push_arr_loc vm =   
-    let label   =   fresh_label ()                                  in  (*                                        S[KEC(a_i)] >> .. *) 
-    let vm      =   DUP1                                @>> vm      in  (*                         S[KEC(a_i)] >> S[KEC(a_i)] >> .. *) 
-    let vm      =   if_GOTO label                           vm      in  (* IF stacktop != 0 GOTO label            S[KEC(a_i)] >> .. *)
-    let vm      =   POP                                 @>> vm      in  (*                                                       .. *) 
-    let vm      =   push_arr_loc                            vm      in  (*                                           KEC(a_i) >> .. *) 
-    let vm      =   sincr 1 1                               vm      in  (*                                 S[1]++ >> KEC(a_i) >> .. *) 
-    let vm      =   DUP1                                @>> vm      in  (*                     newseed >> newseed >> KEC(a_i) >> .. *) 
-    let vm      =   SWAP2                               @>> vm      in  (*                     KEC(a_i) >> newseed >> newseed >> .. *) 
-    let vm      =   SSTORE                              @>> vm      in  (* S[KEC(a_i)]:= newseed                      newseed >> .. *)
-                    JUMPDEST label                      @>> vm          (*                                                          *)
-
 and codegen_secondary_arr a i ly le vm = 
-    let vm      =   kec_of_arr a i            ly le vm in (*                   kec(a_i) >> .. *)
-    let vm      =   DUP1                        @>> vm in (*            kec(a_i) >> kec(a_i) >> .. *)
-    let vm      =   SLOAD                       @>> vm in (*           S[kec(a_i) >> kec(a_i) >> .. *)
+    let vm      =   kec_of_arr a i                    ly le vm      in (*                   kec(a_i) >> .. *)
+    let vm      =   DUP1                                @>> vm      in (*            kec(a_i) >> kec(a_i) >> .. *)
+    let vm      =   SLOAD                               @>> vm      in (*           S[kec(a_i) >> kec(a_i) >> .. *)
                     salloc_array' vm 
 
 and salloc_array' vm = 
-    let exit    =   fresh_label ()                     in
-    let label   =   fresh_label ()                     in (*                                 S[loc] >> loc >> .. *)
-    let vm      =   DUP1                        @>> vm in (*                       S[loc] >> S[loc] >> loc >> .. *)
-    let vm      =   if_GOTO label                   vm in (* IF S[loc] != 0 GOTO label       S[loc] >> loc >> .. *) 
-    let vm      =   POP                         @>> vm in (*                                           loc >> .. *)
-    let vm      =   sincr 1 1                       vm in (*                                S[AC]++ >> loc >> .. *)
-    let vm      =   DUP1                        @>> vm in (*                     new_aid >> new_aid >> loc >> .. *)         
-    let vm      =   SWAP2                       @>> vm in (*                     loc >> new_aid >> new_aid >> .. *)
-    let vm      =   SSTORE                      @>> vm in (* S[loc] := new_aid                     new_aid >> .. *)
-    let vm      =   goto exit                       vm in (*                                       new_aid >> .. *)
-    let vm      =   JUMPDEST label              @>> vm in (*                                 S[loc] >> loc >> .. *)
-    let vm      =   SWAP1                       @>> vm in (*                                 loc >> S[loc] >> .. *)
-    let vm      =   POP                         @>> vm in (*                                        S[loc] >> .. *)
-                    JUMPDEST exit               @>> vm    (*                                        S[loc] >> .. *)
+    let exit    =   fresh_label ()                                  in
+    let label   =   fresh_label ()                                  in (*                                 S[loc] >> loc >> .. *)
+    let vm      =   DUP1                                @>> vm      in (*                       S[loc] >> S[loc] >> loc >> .. *)
+    let vm      =   if_GOTO label                           vm      in (* IF S[loc] != 0 GOTO label       S[loc] >> loc >> .. *) 
+    let vm      =   POP                                 @>> vm      in (*                                           loc >> .. *)
+    let vm      =   sincr 1 1                               vm      in (*                                S[AC]++ >> loc >> .. *)
+    let vm      =   DUP1                                @>> vm      in (*                     new_aid >> new_aid >> loc >> .. *)         
+    let vm      =   SWAP2                               @>> vm      in (*                     loc >> new_aid >> new_aid >> .. *)
+    let vm      =   SSTORE                              @>> vm      in (* S[loc] := new_aid                     new_aid >> .. *)
+    let vm      =   goto exit                               vm      in (*                                       new_aid >> .. *)
+    let vm      =   JUMPDEST label                      @>> vm      in (*                                 S[loc] >> loc >> .. *)
+    let vm      =   SWAP1                               @>> vm      in (*                                 loc >> S[loc] >> .. *)
+    let vm      =   POP                                 @>> vm      in (*                                        S[loc] >> .. *)
+                    JUMPDEST exit                       @>> vm         (*                                        S[loc] >> .. *)
 
 (* le is not updated here.  
  * le can only be updated in a variable initialization *)
