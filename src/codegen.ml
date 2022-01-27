@@ -185,7 +185,7 @@ and codegen_tm ly le vm aln e       = (* #DEBUG pe_tm e; pe(str_of_ctx le); *)
     | TmI(i,n)              ,_              ->                  codegen_idx     (TmI(i,n))                ly le vm 
     | TmIStrct(i)           ,_              ->                  codegen_istrct  (TmIStrct(i))             ly le vm 
     | TmIf(b,t1,t2)         ,_              ->                  codegen_if      (TmIf(b,t1,t2))           ly le vm 
-    | Balanc   e            ,_              ->                  BALANCE     @>>     (    e          @> (R,ly,le,vm))
+    | Balanc   e            ,_              ->                  BALANCE     @>>          e          @> (R,ly,le,vm)
     | EpValue               ,_              ->                  CALLVALUE                                   @>> vm   (* Value (wei) Transferred to the account *) 
     | TmZero                ,_              ->                  PUSH(Int 0)                                 @>> vm 
     | EpNow                 ,_              ->                  TIMESTAMP                                   @>> vm 
@@ -200,24 +200,23 @@ and codegen_tm ly le vm aln e       = (* #DEBUG pe_tm e; pe(str_of_ctx le); *)
     | TmGT   (l,r)          ,_              ->  assert(aln=R);  codegen_op GT  l r                        ly le vm           
     | TmEQ   (l,r)          ,_              ->  assert(aln=R);  codegen_op EQ  l r                        ly le vm           
     | TmNEQ  (l,r)          ,_              ->  assert(aln=R);  ISZERO  @>>     codegen_op EQ l r         ly le vm
-    | TmNOT    e            ,_              ->  assert(aln=R);  ISZERO  @>>          (    e       @> (aln,ly,le,vm)) 
+    | TmNOT    e            ,_              ->  assert(aln=R);  ISZERO  @>>               e       @> (aln,ly,le,vm)  
     | TmLAND (l,r)          ,_              ->                  checked_codegen_LAnd l r aln              ly le vm 
     | TmCall(id,args)       ,rety           ->                  codegen_pre_call id args rety aln         ly le vm
-    | TmSend((e,TyAddr),m,args,msg)    ,_   ->  assert(aln=R);  codegen_send_eoa (e,TyAddr)         msg   ly le vm 
-    | TmSend((c,TyIstc n),m,args,msg),_   ->  assert(aln=R);  codegen_send_cn(c,TyIstc n)m args msg   ly le vm 
-    | TmNew(id,args,msg)    ,TyIstc _     ->  assert(aln=R);  codegen_new    id args msg                ly le vm 
-    | TmAddr(c,TyIstc i)  ,TyAddr         ->                  (c,TyIstc i)                    @> (aln,ly,le,vm) 
+    | TmSend((e,TyAddr  ),m,ags,msg),_      ->  assert(aln=R);  codegen_send_eoa(e,TyAddr)         msg    ly le vm 
+    | TmSend((c,TyIstc n),m,ags,msg),_      ->  assert(aln=R);  codegen_send_cn(c,TyIstc n) m ags  msg    ly le vm 
+    | TmNew(id,args,msg)    ,TyIstc _       ->  assert(aln=R);  codegen_new    id args msg                ly le vm 
+    | TmAddr(c,TyIstc i)    ,TyAddr         ->                  (c,TyIstc i)                      @> (aln,ly,le,vm) 
     | TmSender              ,TyAddr         ->                  shift_by_aln aln TyAddr    (CALLER          @>> vm) 
     | TmThis                ,_              ->                  shift_by_aln aln TyAddr    (ADDRESS         @>> vm) 
     | TmArr(a,i) (*a[i][j]*),TyMap _        ->  assert(aln=R);  codegen_secondary_arr a i                 ly le vm     
     | TmArr(ai,j)(*a[i][j]*),      _        ->  assert(aln=R);  codegen_arr ai j                          ly le vm     
     | TmId id               ,TyMap(a,b)     ->                  codegen_aid (lookup_le id le)                le vm 
     | TmId id               ,ty             ->                  push_loc (lookup_le id le) aln ty               vm     
-    | TmDeref(ref,tyR)      ,ty             ->  assert(size_of_ty ty<=32 && tyR=TyRef ty && aln=R) ;                   
-                                                let vm      =   (ref,tyR)                           @> (R,ly,le,vm) in 
-                                                                MLOAD                                       @>> vm 
+    | TmDeref(ref,tyR)      ,ty             ->  assert(aln=R);  assert(size_of_ty ty<=32 && tyR=TyRef ty); 
+                                                                MLOAD   @>> (ref,tyR)               @> (R,ly,le,vm) 
     | e                                     ->  let _,vm    =   codegen_tm_eff e              aln         ly le vm  in 
-                                                                PUSH(Int 0)                                @>> vm 
+                                                                PUSH (Int 0)                                @>> vm 
 
 and codegen_tm_eff tm aln ly le vm      =   match tm with 
     | TmAbort               ,TyErr          ->  le, throw vm                               
@@ -227,10 +226,7 @@ and codegen_tm_eff tm aln ly le vm      =   match tm with
     | TmReturn(ret,cont)    ,_              ->  codegen_return ret cont ly le vm    
     | e                                     ->  pf "codegen_tm: %s " (str_of_tm e); raise Not_found
     
-and codegen_op operator l r ly le vm =
-    let vm      =   r                           @> (R,ly,le,vm)     in 
-    let vm      =   l                           @> (R,ly,le,vm)     in 
-                    operator                            @>> vm 
+and codegen_op op l r ly le vm          =   op @>> l @> (R,ly,le, r @> (R,ly,le,vm))      
             
 and push_msg_and_gas msg cn ly le vm = 
     let vm      =   msg                         @> (R,ly,le,vm)     in  (*                                            value >> .. *) 
@@ -252,11 +248,11 @@ and mload_ret_value vm =                                                (*      
                     MLOAD                               @>> vm          (*                                         M[retbegin] >> .. *)
 
 and codegen_send_cn cn m args msg ly le vm =  (* msg-call to a contract *) 
-    let TyIstc cname = snd cn                                     in  
-    let cnidx   =   lookup_cnidx_at_vm cname                vm      in 
+    let TyIstc cnm = snd cn                                     in  
+    let cnidx   =   lookup_cnidx_at_vm cnm                vm      in 
     let callee  =   lookup_cn cnidx                         vm      in
-    let Some mname = m                                              in 
-    let m       =   lookup_mthd_head vm callee mname                in
+    let Some mnm = m                                              in 
+    let m       =   lookup_mthd_head vm callee mnm                in
     let TyMthd(id,_,reTy) = m                                       in 
     let retsize =   size_of_ty reTy                                 in  (*                                                                                                              .. *)
     let vm      =   Comment("BEGINE send to "^id)       @>> vm      in  
