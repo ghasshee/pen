@@ -142,7 +142,7 @@ and kec_of_arr aid aidx ly le vm  =                                     (* kec(a
     let vm      =   aid                         @> (R,ly,le,vm)     in  (*                                array_loc >> index >> .. *)
                     keccak_cat                              vm          (*                            sha3(array_loc++index) >> .. *) 
       
-and codegen_array a i ly le vm    =                                     (*                                                      .. *)
+and codegen_arr a i ly le vm    =                                       (*                                                      .. *)
     let vm      =   kec_of_arr a i                    ly le vm      in  (*                                      keccak(a[i]) >> .. *)
                     SLOAD                               @>> vm          (*                                   S[keccak(a[i])] >> .. *) 
 
@@ -150,15 +150,15 @@ and codegen_aid (Stor data) le vm =
     let vm      =   PUSH data.offst                     @>> vm      in 
     let vm      =   DUP1                                @>> vm      in 
     let vm      =   SLOAD                               @>> vm      in 
-                    salloc_array' vm        
+                    salloc_aid                              vm 
 
 and codegen_secondary_arr a i ly le vm = 
     let vm      =   kec_of_arr a i                    ly le vm      in (*                   kec(a_i) >> .. *)
     let vm      =   DUP1                                @>> vm      in (*            kec(a_i) >> kec(a_i) >> .. *)
     let vm      =   SLOAD                               @>> vm      in (*           S[kec(a_i) >> kec(a_i) >> .. *)
-                    salloc_array' vm 
+                    salloc_aid                              vm 
 
-and salloc_array' vm = 
+and salloc_aid vm = 
     let exit    =   fresh_label ()                                  in
     let label   =   fresh_label ()                                  in (*                                 S[loc] >> loc >> .. *)
     let vm      =   DUP1                                @>> vm      in (*                       S[loc] >> S[loc] >> loc >> .. *)
@@ -186,7 +186,7 @@ and codegen_tm ly le vm aln e       = (* #DEBUG pe_tm e; pe(str_of_ctx le); *)
     | TmIStrct(i)           ,_              ->                  codegen_istrct  (TmIStrct(i))             ly le vm 
     | TmIf(b,t1,t2)         ,_              ->                  codegen_if      (TmIf(b,t1,t2))           ly le vm 
     | Balanc   e            ,_              ->                  BALANCE     @>>     (    e          @> (R,ly,le,vm))
-    | EpValue               ,_              ->                  CALLVALUE                                   @>> vm      (* Value (wei) Transferred to the account *) 
+    | EpValue               ,_              ->                  CALLVALUE                                   @>> vm   (* Value (wei) Transferred to the account *) 
     | TmZero                ,_              ->                  PUSH(Int 0)                                 @>> vm 
     | EpNow                 ,_              ->                  TIMESTAMP                                   @>> vm 
     | TmFalse               ,_              ->  assert(aln=R);  PUSH(Int 0)                                 @>> vm  
@@ -209,12 +209,12 @@ and codegen_tm ly le vm aln e       = (* #DEBUG pe_tm e; pe(str_of_ctx le); *)
     | EpAddr(c,TyInstnc i)  ,TyAddr         ->                  (c,TyInstnc i)                    @> (aln,ly,le,vm) 
     | EpSender              ,TyAddr         ->                  shift_by_aln aln TyAddr    (CALLER          @>> vm) 
     | EpThis                ,_              ->                  shift_by_aln aln TyAddr    (ADDRESS         @>> vm) 
-    | TmArr(a,i)(*a_i[j]*)  ,TyMap _        ->  assert(aln=R);  codegen_secondary_arr a i                 ly le vm      (*            S[keccak(a[i])] >> .. *)
-    | TmArr(id,idx)         ,      _        ->  assert(aln=R);  codegen_array id idx                      ly le vm      (*               S[keccak(a)] >> .. *)
+    | TmArr(a,i) (*a[i][j]*),TyMap _        ->  assert(aln=R);  codegen_secondary_arr a i                 ly le vm     
+    | TmArr(ai,j)(*a[i][j]*),      _        ->  assert(aln=R);  codegen_arr ai j                          ly le vm     
     | TmId id               ,TyMap(a,b)     ->                  codegen_aid (lookup_le id le)                le vm 
-    | TmId id               ,ty             ->                  push_loc (lookup_le id le) aln ty               vm      (*                        loc >> .. *)
-    | TmDeref(ref,tyR)      ,ty             ->  assert(size_of_ty ty<=32 && tyR=TyRef ty && aln=R) ;                    (* assuming word-size *)
-                                                let vm      =   (ref,tyR)                           @> (R,ly,le,vm) in  (* pushes the pointer *)
+    | TmId id               ,ty             ->                  push_loc (lookup_le id le) aln ty               vm     
+    | TmDeref(ref,tyR)      ,ty             ->  assert(size_of_ty ty<=32 && tyR=TyRef ty && aln=R) ;                   
+                                                let vm      =   (ref,tyR)                           @> (R,ly,le,vm) in 
                                                                 MLOAD                                       @>> vm 
     | e                                     ->  let _,vm    =   codegen_tm_eff e              aln         ly le vm  in 
                                                                 PUSH(Int 0)                                @>> vm 
