@@ -334,6 +334,26 @@ let mstore_mthd_hash mthd vm =
 
 
 
+(******************************************************)
+(***     0. ALIGNMENT R ? L ?                       ***)
+(******************************************************)
+                
+type alignment              = L | R
+
+let shift_by_aln aln ty vm  = match aln with 
+    | R                     ->  vm
+    | L                     ->  let size = size_of_ty ty in
+                                assert (size <= 32) ;
+                                shiftL ((32-size)*8) vm
+
+let push_loc loc aln ty vm  = match loc with 
+    | Code       _          ->  err "push_loc: Code"  
+    | Calldata range        ->  calldataload range      vm
+    | Stor     range        ->  let vm = push_storRange vm range in 
+                                shift_by_aln aln ty vm
+    | Stack      n          ->  let vm = dup_nth_from_bottom n vm in 
+                                shift_by_aln aln ty vm
+
 
 
 

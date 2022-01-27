@@ -25,18 +25,6 @@ module L    = List
 let calldatasize (TyMthd(_,args,_)) =
     4 (* for signature *) + size_of_args args   
 
-(******************************************************)
-(***     0. ALIGNMENT R ? L ?                       ***)
-(******************************************************)
-                
-type alignment              = L | R
-
-let shift_by_aln aln ty vm  = match aln with 
-    | R                     ->  vm
-    | L                     ->  let size = size_of_ty ty in
-                                assert (size <= 32) ;
-                                shiftL ((32-size)*8) vm
-
 
 (***************************************)
 (***     1.  DISPATHER               ***)
@@ -126,14 +114,6 @@ and codegen_ECDSArecover args ly le vm = match args with [h;v;r;s] ->
  *          |---------------------|-----------------|
  *          | argsize+size+wsize  |                 |
  *          |                ...  |                 |             *)                                                                 
-
-and push_loc loc aln ty vm  = match loc with 
-    | Code       _          ->  err "push_loc: Code"  
-    | Calldata range        ->  calldataload range      vm
-    | Stor     range        ->  let vm = push_storRange vm range in 
-                                shift_by_aln aln ty vm
-    | Stack      n          ->  let vm = dup_nth_from_bottom n vm in 
-                                shift_by_aln aln ty vm
 
 and mstore_new_instance id args msg ly le vm  =
     let cnidx   =   lookup_cnidx_at_vm id                   vm      in 
