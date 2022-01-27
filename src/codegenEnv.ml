@@ -47,7 +47,7 @@ let append_opcode vm opcode         =
     ; lookup_cnidx          = vm.lookup_cnidx
     ; cns                   = vm.cns        }
 
-let (=>>) op vm                     =   append_opcode vm op  
+let (@>>) op vm                     =   append_opcode vm op  
 
 
 (*************************************************)
