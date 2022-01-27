@@ -191,7 +191,7 @@ let rec gen_field_locs offset used_plains used_seeds num_plains = function
                     else (offset + used_plains)             :: gen_field_locs offset (used_plains+1) used_seeds num_plains tys
 
 (* this needs to take stor_fieldVars_begin *)
-let var_locs_of_cn offset cn : int list =
+let arg_locs_of_cn offset cn : int list =
     let fldtys          = fldTys_of_cn cn               in
     let varsize         = count_vars fldtys             in
     gen_field_locs offset 0 0 varsize fldtys 

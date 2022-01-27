@@ -248,11 +248,11 @@ and mload_ret_value vm =                                                (*      
                     MLOAD                               @>> vm          (*                                         M[retbegin] >> .. *)
 
 and codegen_send_cn cn m args msg ly le vm =  (* msg-call to a contract *) 
-    let TyIstc cnm = snd cn                                     in  
-    let cnidx   =   lookup_cnidx_at_vm cnm                vm      in 
+    let TyIstc cnm = snd cn                                         in  
+    let cnidx   =   lookup_cnidx_at_vm cnm                  vm      in 
     let callee  =   lookup_cn cnidx                         vm      in
-    let Some mnm = m                                              in 
-    let m       =   lookup_mthd_head vm callee mnm                in
+    let Some mnm = m                                                in 
+    let m       =   lookup_mthd_head vm callee mnm                  in
     let TyMthd(id,_,reTy) = m                                       in 
     let retsize =   size_of_ty reTy                                 in  (*                                                                                                              .. *)
     let vm      =   Comment("BEGINE send to "^id)       @>> vm      in  
@@ -356,7 +356,6 @@ and codegen_fix(TmFix(phi,n,ty,tm)) ly le vm =
     let vm      =   JUMP                                @>> vm      in  (* GOTO retAddr                  tm >> .. *)
                     Comment "END FIX"                   @>> vm      
        
-
 and codegen_istrct (TmIStrct(i))    ly le vm = 
     let vm      =   Comment "BEGIN Struct Parameter"    @>> vm      in
     let vm      =   get_escaped_arg                         vm      in 
@@ -371,19 +370,15 @@ and codegen_app (TmApp(t1,t2)) ly le vm = match fst t1 with
     let vm      =   escape_ARG t2 ret               R ly le vm      in 
     let vm      =   codegen_fix (TmFix(f,n,ty,tm))    ly le vm      in
                     JUMPDEST ret                        @>> vm 
-    | _ -> 
-    (* #DEBUG pf "! add_brjidx %s\n" (str_of_tm t2); *)
+    | _ -> (* #DEBUG pf "! add_brjidx %s\n" (str_of_tm t2); *)
     let le      =   add_brjidx le t2                                in       
                     t1                          @> (R,ly,le,vm)      
 
-and codegen_abs (TmAbs(x,tyX,t))    ly le vm = 
-    let vm      =   t                           @> (R,ly,le,vm)     in
-    vm 
-
-and codegen_idx (TmI(i,n))          ly le vm = 
-    let tm      =   lookup_brjidx i le                              in 
-                    tm                          @> (R,ly,le,vm)       
+and codegen_abs (TmAbs(x,_,t)) ly le vm =   
+                    t                           @> (R,ly,le,vm)     
        
+and codegen_idx(TmI(i,n))      ly le vm = 
+                    lookup_brjidx i le          @> (R,ly,le,vm)       
 
 and codegen_if (TmIf(b,t1,t2))      ly le vm = 
     let elif    =   fresh_label()                                   in 
@@ -398,8 +393,7 @@ and codegen_if (TmIf(b,t1,t2))      ly le vm =
     let vm      =   JUMPDEST elif                       @>> vm      in 
     let vm      =   t2                          @> (R,ly,le,vm)     in 
     let vm      =   Comment "FI"                        @>> vm      in 
-    let vm      =   JUMPDEST fi                         @>> vm      in 
-    vm
+                    JUMPDEST fi                         @>> vm      
 
 and codegen_mthd ly cnidx (le,vm) (TmMthd(hd,bd))  =
     let vm      =   Comment ("BEGIN " ^str_of_ty hd)    @>> vm      in  
@@ -443,17 +437,15 @@ and codegen_log _ args ev ly le vm =
 (***************************************)
 
 and push_args le sto                = foldr (fun arg vm -> arg @> (R,sto,le,vm))  
-and sstore_words_to sto_locs vm     = foldl sstore_word_to vm sto_locs
-and sstore_word_to  vm sto_loc      =
-    let vm      =   PUSH (Int sto_loc)                  @>> vm      in
-                    SSTORE                              @>> vm      
+and sstores_to locs vm     = foldl sstore_to vm locs
+and sstore_to  vm loc      = SSTORE @>> PUSH (Int loc) @>> vm      
 
-and sstore_vars offst idx vars sto le vm = 
+and sstore_vars offst idx args sto le vm = 
     let cn      =   lookup_cn idx                           vm      in 
-    let varlocs =   var_locs_of_cn offst cn                         in
-    assert(L.length varlocs=L.length vars) ; 
-    let vm      =   push_args le sto vars vm                        in  (*                                         argk >> .. >> arg1 >> .. *)
-    let vm      =   sstore_words_to varlocs vm                      in  (*  S[l_k]:=argk; .. ; S[l_1]:=arg1                              .. *)
+    let arglocs =   arg_locs_of_cn offst cn                         in
+    assert(len arglocs = len args) ; 
+    let vm      =   push_args le sto args                   vm      in  (*                                         argk >> .. >> arg1 >> .. *)
+    let vm      =   sstores_to arglocs                      vm      in  (*  S[l_k]:=argk; .. ; S[l_1]:=arg1                              .. *)
     le,vm
 
 and cont_call (TmCall(cn,args),_) sto le vm = 
