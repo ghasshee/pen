@@ -202,7 +202,7 @@ and type_call cns cname ctx (TmCall(id,args)) =
         | "iszero"                  ->  begin match args with
             | [arg]                     ->  TyBool
             | _                         ->  err "should not happen" end 
-        | cnname when true          ->  let i,cn = lookup_icn_of_icns cns cnname in 
+        | cnname when true          ->  let i,cn = lookup_icn cns cnname in 
                                         typeof_cn cn 
         | _                         ->  err "type_call: should not happen" in
     TmCall(id,args) , rety 
