@@ -14,6 +14,10 @@ module L    = List
 (***                                                ***)
 (******************************************************)
 
+let pc          = 0
+let ac          = 1
+let fldbegin    = 2
+
 type creation_info              =   { cr_size       : int                   (* The Storage in Runtime                                        *)
                                     ; var_size      : int                   (* Array elements are placed as in Solidity                      *)
                                     ; arr_size      : int                   (*                                                               *)
@@ -52,9 +56,9 @@ type rntime_info                =   { rn_size       : int
 (* +---------------+                                                                                    *)
 (* | creation code |      <--- this creation code is discarded in the creation                          *)
 (* | runtime  code---+                                                                                  *)
-(* | creation code | |  rntime code is organized like this:                                             *)
+(* | creation codes| |  rntime code is organized like this:                                             *)
 (* +---------------+ |  +---------------------------------+    rntime code for a particular cntrct:     *)
-(*                   +--> dispatcher that jumps to StorPC |    +-------------------------------------+  *)
+(*                   +--> dispatcher that jumps to S[PC]  |    +-------------------------------------+  *)
 (*                      | rntime code for cntrct A ------------> dispatcher that jumps into a method |  *)
 (*                      | rntime code for cntrct B        |    | rntime code for method f            |  *)
 (*                      | rntime code for cntrct C        |    | rntime code for method g            |  *)
@@ -99,88 +103,46 @@ let classify_PUSH b =
     if b <! big 256^! big 32   then PUSH32 b   else
     err "PUSH VALUE IS TOO LARGE"
 
-    (*
-let size_PUSH = function
-    | PUSH (Int i)      -> size_of_opcode (classify_PUSH (big i))
-    | PUSH (Big b)      -> size_of_opcode (classify_PUSH b)
-    | PUSH (Label l)    -> size_of_opcode (classify_PUSH (Label.lookup_label l))
-    *)
-
-
 
 let realize_opcode lyt  = function 
     | PUSH imm        -> classify_PUSH (realize_imm lyt imm)
-    | Comment s       -> Comment s 
-    | SHL             -> SHL
-    | SHR             -> SHR
-    | NOT             -> NOT
-    | TIMESTAMP       -> TIMESTAMP
-    | ISZERO          -> ISZERO
-    | EQ              -> EQ
-    | LT              -> LT
-    | GT              -> GT
-    | BALANCE         -> BALANCE
-    | STOP            -> STOP
-    | ADD             -> ADD
-    | MUL             -> MUL
-    | SUB             -> SUB
-    | DIV             -> DIV
-    | SDIV            -> SDIV
-    | MOD             -> MOD
-    | SMOD            -> SMOD
-    | ADDMOD          -> ADDMOD
-    | MULMOD          -> MULMOD
-    | EXP             -> EXP
-    | SIGNEXTEND      -> SIGNEXTEND
-    | SHA3            -> SHA3
-    | ADDRESS         -> ADDRESS
-    | ORIGIN          -> ORIGIN
-    | CALLER          -> CALLER
-    | CALLVALUE       -> CALLVALUE
-    | CALLDATALOAD    -> CALLDATALOAD
-    | CALLDATASIZE    -> CALLDATASIZE
-    | CALLDATACOPY    -> CALLDATACOPY
-    | CODESIZE        -> CODESIZE
-    | CODECOPY        -> CODECOPY
-    | GASPRICE        -> GASPRICE
-    | EXTCODESIZE     -> EXTCODESIZE
-    | EXTCODECOPY     -> EXTCODECOPY
-    | POP             -> POP
-    | MLOAD           -> MLOAD
-    | MSTORE          -> MSTORE
-    | MSTORE8         -> MSTORE8
-    | SLOAD           -> SLOAD
-    | SSTORE          -> SSTORE
-    | JUMP            -> JUMP
-    | JUMPI           -> JUMPI
-    | PC              -> PC
-    | MSIZE           -> MSIZE
-    | GAS             -> GAS
-    | JUMPDEST l      -> JUMPDEST l
-    | LOG0            -> LOG0
-    | LOG1            -> LOG1
-    | LOG2            -> LOG2
-    | LOG3            -> LOG3
-    | LOG4            -> LOG4
-    | CREATE          -> CREATE
-    | CALL            -> CALL
-    | CALLCODE        -> CALLCODE
-    | RETURN          -> RETURN
-    | DELEGATECALL    -> DELEGATECALL
-    | SELFDESTRUCT    -> SELFDESTRUCT
-    | SWAP1           -> SWAP1
-    | SWAP2           -> SWAP2
-    | SWAP3           -> SWAP3
-    | SWAP4           -> SWAP4
-    | SWAP5           -> SWAP5
-    | SWAP6           -> SWAP6
-    | DUP1            -> DUP1
-    | DUP2            -> DUP2
-    | DUP3            -> DUP3
-    | DUP4            -> DUP4
-    | DUP5            -> DUP5
-    | DUP6            -> DUP6
-    | DUP7            -> DUP7
+    | Comment s       -> Comment s        | MLOAD           -> MLOAD                 
+    | SHL             -> SHL              | MSTORE          -> MSTORE             
+    | SHR             -> SHR              | MSTORE8         -> MSTORE8
+    | NOT             -> NOT              | SLOAD           -> SLOAD
+    | TIMESTAMP       -> TIMESTAMP        | SSTORE          -> SSTORE
+    | ISZERO          -> ISZERO           | JUMP            -> JUMP
+    | EQ              -> EQ               | JUMPI           -> JUMPI
+    | LT              -> LT               | PC              -> PC
+    | GT              -> GT               | MSIZE           -> MSIZE
+    | BALANCE         -> BALANCE          | GAS             -> GAS
+    | STOP            -> STOP             | JUMPDEST l      -> JUMPDEST l
+    | ADD             -> ADD              | LOG0            -> LOG0
+    | MUL             -> MUL              | LOG1            -> LOG1
+    | SUB             -> SUB              | LOG2            -> LOG2
+    | DIV             -> DIV              | LOG3            -> LOG3
+    | SDIV            -> SDIV             | LOG4            -> LOG4
+    | MOD             -> MOD              | CREATE          -> CREATE
+    | SMOD            -> SMOD             | CALL            -> CALL
+    | ADDMOD          -> ADDMOD           | CALLCODE        -> CALLCODE
+    | MULMOD          -> MULMOD           | RETURN          -> RETURN
+    | EXP             -> EXP              | DELEGATECALL    -> DELEGATECALL
+    | SIGNEXTEND      -> SIGNEXTEND       | SELFDESTRUCT    -> SELFDESTRUCT
+    | SHA3            -> SHA3             | SWAP1           -> SWAP1
+    | ADDRESS         -> ADDRESS          | SWAP2           -> SWAP2
+    | ORIGIN          -> ORIGIN           | SWAP3           -> SWAP3
+    | CALLER          -> CALLER           | SWAP4           -> SWAP4
+    | CALLVALUE       -> CALLVALUE        | SWAP5           -> SWAP5
+    | CALLDATALOAD    -> CALLDATALOAD     | SWAP6           -> SWAP6
+    | CALLDATASIZE    -> CALLDATASIZE     | DUP1            -> DUP1
+    | CALLDATACOPY    -> CALLDATACOPY     | DUP2            -> DUP2
+    | CODESIZE        -> CODESIZE         | DUP3            -> DUP3
+    | CODECOPY        -> CODECOPY         | DUP4            -> DUP4
+    | GASPRICE        -> GASPRICE         | DUP5            -> DUP5
+    | EXTCODESIZE     -> EXTCODESIZE      | DUP6            -> DUP6
+    | EXTCODECOPY     -> EXTCODECOPY      | DUP7            -> DUP7              
+    | POP             -> POP                                              
+                                                                          
 
 let realize_prog lyt p = L.map (realize_opcode lyt) p 
 
@@ -191,10 +153,10 @@ let rec gen_arg_locs offst used_vars used_aids varsize = function
                     else (offst           + used_vars) :: gen_arg_locs offst (used_vars+1) used_aids varsize tys
 
 (* this needs to take stor_fieldVars_begin *)
-let arg_locs_of_cn offset cn : int list =
+let arg_locs_of_cn offst cn : int list =
     let fldtys          = fldTys_of_cn cn               in
     let varsize         = count_vars fldtys             in
-    gen_arg_locs offset 0 0 varsize fldtys 
+    gen_arg_locs offst 0 0 varsize fldtys 
 
 let arr_locs_of_cn cn : int list =
     let fldtys          = fldTys_of_cn cn               in
