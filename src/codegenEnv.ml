@@ -59,8 +59,8 @@ and mthds_become ms                 =   L.concat (L.map mthd_become ms)
 and mthd_become(TmMthd(_,body))     =   tm_become body 
 and tms_become es                   =   L.concat (L.map tm_become es)
 and tm_become  e                    =   match fst e with
-    | TmAbort  | TmUnit  | TmTrue | TmFalse | EpNow | EpThis | EpValue | EpSender | TmId _  | TmU8 _ | TmU256 _ -> []
-    | EpAddr e | TmNOT e | TmDeref e | Balanc e | TmSfDstr e ->  tm_become e
+    | TmAbort  | TmUnit  | TmTrue | TmFalse | EpNow | TmThis | EpValue | TmSender | TmId _  | TmU8 _ | TmU256 _ -> []
+    | TmAddr e | TmNOT e | TmDeref e | Balanc e | TmSfDstr e ->  tm_become e
     | TmLT   (l,r) | TmGT   (l,r) | TmNEQ  (l,r) | TmEQ  (l,r)           
     | TmMul  (l,r) | TmAdd  (l,r) | TmLAND (l,r) | TmSub (l,r)          
                                     ->  (tm_become l) @ (tm_become r)

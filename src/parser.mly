@@ -77,7 +77,7 @@ ty:
     | BOOL                                          { TyBool                                                                                    }
     | ty DARROW ty                                  { TyMap($1,$3)                                                                              }
     | ty ARROW ty                                   { TyAbs($1,$3)                                                                              } 
-    | ID                                            { TyInstnc $1                                                                               }
+    | ID                                            { TyIstc $1                                                                               }
 
 
 ret: 
@@ -139,11 +139,11 @@ aTm:
     | U8                                            { fun ctx ->    TmU256 $1                                                               ,() }
     | UNIT                                          { fun ctx ->    TmUnit                                                                  ,() }
     | VALUE   LPAR  MSG  RPAR                       { fun ctx ->    EpValue                                                                 ,() }
-    | SENDER  LPAR  MSG  RPAR                       { fun ctx ->    EpSender                                                                ,() }
+    | SENDER  LPAR  MSG  RPAR                       { fun ctx ->    TmSender                                                                ,() }
     | BALANCE LPAR  tm   RPAR                       { fun ctx ->    Balanc ($3 ctx)                                                         ,() }
     | NOW     LPAR BLOCK RPAR                       { fun ctx ->    EpNow                                                                   ,() }
-    | THIS                                          { fun ctx ->    EpThis                                                                  ,() }
-    | ADDRESS LPAR  tm   RPAR                       { fun ctx ->    EpAddr ($3 ctx)                                                         ,() }
+    | THIS                                          { fun ctx ->    TmThis                                                                  ,() }
+    | ADDRESS LPAR  tm   RPAR                       { fun ctx ->    TmAddr ($3 ctx)                                                         ,() }
     | ID                               { reserved $1; fun ctx ->    (* #DEBUG prBds ctx;pe $1 ; *)
                                                 (           try     TmI(lookup_bruijn_idx $1 ctx,len ctx)                                 ,()  
                                                 with _ ->   try     TmIRec(lookup_rec_idx ($1^"'") ctx)                                   ,() 

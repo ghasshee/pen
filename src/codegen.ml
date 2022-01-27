@@ -204,11 +204,11 @@ and codegen_tm ly le vm aln e       = (* #DEBUG pe_tm e; pe(str_of_ctx le); *)
     | TmLAND (l,r)          ,_              ->                  checked_codegen_LAnd l r aln              ly le vm 
     | TmCall(id,args)       ,rety           ->                  codegen_pre_call id args rety aln         ly le vm
     | TmSend((e,TyAddr),m,args,msg)    ,_   ->  assert(aln=R);  codegen_send_eoa (e,TyAddr)         msg   ly le vm 
-    | TmSend((c,TyInstnc n),m,args,msg),_   ->  assert(aln=R);  codegen_send_cn(c,TyInstnc n)m args msg   ly le vm 
-    | TmNew(id,args,msg)    ,TyInstnc _     ->  assert(aln=R);  codegen_new    id args msg                ly le vm 
-    | EpAddr(c,TyInstnc i)  ,TyAddr         ->                  (c,TyInstnc i)                    @> (aln,ly,le,vm) 
-    | EpSender              ,TyAddr         ->                  shift_by_aln aln TyAddr    (CALLER          @>> vm) 
-    | EpThis                ,_              ->                  shift_by_aln aln TyAddr    (ADDRESS         @>> vm) 
+    | TmSend((c,TyIstc n),m,args,msg),_   ->  assert(aln=R);  codegen_send_cn(c,TyIstc n)m args msg   ly le vm 
+    | TmNew(id,args,msg)    ,TyIstc _     ->  assert(aln=R);  codegen_new    id args msg                ly le vm 
+    | TmAddr(c,TyIstc i)  ,TyAddr         ->                  (c,TyIstc i)                    @> (aln,ly,le,vm) 
+    | TmSender              ,TyAddr         ->                  shift_by_aln aln TyAddr    (CALLER          @>> vm) 
+    | TmThis                ,_              ->                  shift_by_aln aln TyAddr    (ADDRESS         @>> vm) 
     | TmArr(a,i) (*a[i][j]*),TyMap _        ->  assert(aln=R);  codegen_secondary_arr a i                 ly le vm     
     | TmArr(ai,j)(*a[i][j]*),      _        ->  assert(aln=R);  codegen_arr ai j                          ly le vm     
     | TmId id               ,TyMap(a,b)     ->                  codegen_aid (lookup_le id le)                le vm 
@@ -252,7 +252,7 @@ and mload_ret_value vm =                                                (*      
                     MLOAD                               @>> vm          (*                                         M[retbegin] >> .. *)
 
 and codegen_send_cn cn m args msg ly le vm =  (* msg-call to a contract *) 
-    let TyInstnc cname = snd cn                                     in  
+    let TyIstc cname = snd cn                                     in  
     let cnidx   =   lookup_cnidx_at_vm cname                vm      in 
     let callee  =   lookup_cn cnidx                         vm      in
     let Some mname = m                                              in 

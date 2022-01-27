@@ -19,7 +19,7 @@ type ty           (* atomic *)  =   TyErr
                   (* atomic *)  |   TyBool 
                   (* atomic *)  |   TyTuple     of ty list
                   (* atomic *)  |   TyMap       of ty * ty 
-                  (* atomic *)  |   TyInstnc    of str                       
+                  (* atomic *)  |   TyIstc    of str                       
  (* TyMthd(id,args,ret)     *)  |   TyMthd      of str * ty list * ty        
                                 |   TyDefault
                                 |   TyRef       of ty 
@@ -72,7 +72,7 @@ and  'ty tm                     =
                                 |   TmGT        of 'ty tmty * 'ty tmty
                                 |   TmEQ        of 'ty tmty * 'ty tmty
                                 |   TmNEQ       of 'ty tmty * 'ty tmty
-                                |   EpAddr      of 'ty tmty
+                                |   TmAddr      of 'ty tmty
                                 |   TmNOT       of 'ty tmty
                                 |   TmU256      of big
                                 |   TmU8        of big
@@ -82,8 +82,8 @@ and  'ty tm                     =
                                 |   TmTrue
                                 |   TmFalse
                                 |   EpValue
-                                |   EpSender
-                                |   EpThis
+                                |   TmSender
+                                |   TmThis
                                 |   EpNow
 
 let get_tm  (tm,_)              =   tm
@@ -141,7 +141,7 @@ let rec str_of_ty               =  function
     | TyTuple            _      ->  "tuple" 
     | TyMap(a,b)                ->  "mapping" 
     | TyCn(id,_,_)              ->  "contract arch "     ^ id
-    | TyInstnc     s            ->  "contract instance " ^ s
+    | TyIstc     s            ->  "contract instance " ^ s
     | TyMthd(id,_,_)            ->  "method " ^ id 
     | TyDefault                 ->  "default" 
     | TyAbs(a,b)                ->  str_of_ty a ^ "→" ^ str_of_ty b
@@ -175,16 +175,16 @@ let rec str_of_tm  e            =  match fst e with
     | TmNew         _           -> "new"
     | TmSfDstr   _              -> "selfdestruct"
     | TmAssign(l,r)             -> "assignment" 
-    | EpThis                    -> "this"
+    | TmThis                    -> "this"
     | EpNow                     -> "now"
-    | EpSender                  -> "sender"
+    | TmSender                  -> "sender"
     | EpValue                   -> "value"
     | TmNOT         _           -> "not"
     | TmNEQ         _           -> "neq"
     | TmLAND        _           -> "_ && _"
     | TmLT          _           -> "lt"
     | TmGT          _           -> "gt"
-    | EpAddr        _           -> "address"
+    | TmAddr        _           -> "address"
     | TmDeref       _           -> "dereference of ..."
     | Balanc        _           -> "balance" 
 
@@ -216,7 +216,7 @@ let size_of_ty (* in bytes *)   = function
     | TyU256                    -> 32
     | TyBytes32                 -> 32
     | TyAddr                    -> 20
-    | TyInstnc _                -> 20 (* address as word *)
+    | TyIstc _                -> 20 (* address as word *)
     | TyBool                    -> 32
     | TyRef     _               -> 32
     | TyUnit                    -> err "size_of_ty TyUnit" 

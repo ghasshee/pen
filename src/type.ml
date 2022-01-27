@@ -15,7 +15,7 @@ module L    = List
 
 let tyeqv t0 t1                 =   ( t0 = t1 )  ||  ( match t0, t1 with
                                 | TyErr, _ | _, TyErr -> true
-                                | TyAddr, TyInstnc _    -> true
+                                | TyAddr, TyIstc _    -> true
                                 | _     , _             -> false ) 
 
 let assert_tyeqv l r            =   let tyl = get_ty l in
@@ -59,7 +59,7 @@ let rec is_known_ty tycns       =   function
     | TyTuple l                     ->  BL.for_all (is_known_ty tycns) l
     | TyRef l                       ->  is_known_ty tycns l
     | TyMap(a,b)                    ->  is_known_ty tycns a && is_known_ty tycns b
-    | TyInstnc cn                   ->  is_known_cn tycns cn
+    | TyIstc cn                   ->  is_known_cn tycns cn
 
 let arg_has_known_ty tycns      =   function 
     | TyVar(_,ty)                  ->  is_known_ty tycns ty 
@@ -146,16 +146,16 @@ and  type_tm  cns cname ctx tm  = (* #DEBUG pe("type_tm: " ^ str_of_tm tm ); *)
     | TmSub(l, r)                   ->  let l,r = (l,r)  -|?? (ctx,cns,cname) in TmSub(l,r)  , get_ty l
     | TmAdd(l, r)                   ->  let l,r = (l,r)  -|?? (ctx,cns,cname) in TmAdd(l,r)  , get_ty l 
     | TmSfDstr    e                 ->  TmSfDstr   (e    -|?  (ctx,cns,cname))              , TyUnit           
-    | EpAddr      e                 ->  EpAddr     (e    -|?  (ctx,cns,cname))              , TyAddr  
+    | TmAddr      e                 ->  TmAddr     (e    -|?  (ctx,cns,cname))              , TyAddr  
     | TmU256      d                 ->  TmU256      d                                       , TyU256
     | TmU8        d                 ->  TmU8        d                                       , TyU8
     | TmAbort                       ->  TmAbort                                             , TyErr
     | TmUnit                        ->  TmUnit                                              , TyUnit    
     | TmTrue                        ->  TmTrue                                              , TyBool
     | TmFalse                       ->  TmFalse                                             , TyBool
-    | EpSender                      ->  EpSender                                            , TyAddr
+    | TmSender                      ->  TmSender                                            , TyAddr
     | EpNow                         ->  EpNow                                               , TyU256
-    | EpThis                        ->  EpThis                                              , TyInstnc cname
+    | TmThis                        ->  TmThis                                              , TyIstc cname
     | EpValue                       ->  EpValue                                             , TyU256
     | TmAssign((TmArr(a,i),_),r)    ->  let a,TyMap(k,v)    =   a       -|?  (ctx,cns,cname)             in  
                                         let i               =   i       -|?  (ctx,cns,cname)             in 
@@ -171,7 +171,7 @@ and type_binop_arg cns cname ctx l r =
 and type_new cns cname ctx id args msg =
     let msg             =   msg     -|?  (ctx,cns,cname)     in
     let args            =   args    -|???(ctx,cns,cname)     in
-    TmNew(id,args,msg)  ,   TyInstnc id 
+    TmNew(id,args,msg)  ,   TyIstc id 
 
 and type_return cns cname ctx ret cont=
     let ret             =   ret     -|?  (ctx,cns,cname)     in
