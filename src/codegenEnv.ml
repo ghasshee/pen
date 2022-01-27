@@ -7,7 +7,6 @@ open Location
 open Layout
 
 
-
 type vm                             =   { stack_height  : int
                                         ; program       : imm program
                                         ; cns           : ty toplevel ilist }
@@ -16,7 +15,7 @@ let empty_vm cns                    =   { stack_height  = 0
                                         ; program       = empty_program
                                         ; cns           = cns               }
 
-let lookup_cnidx        cns nm      =   lookup_idx  (function   TmCn(id,_,_) ->    id=nm) cns
+let lookup_cnidx       icns nm      =   lookup_idx  (function   TmCn(id,_,_) ->    id=nm) icns
 let lookup_icn         icns nm      =   find_by     (function i,TmCn(id,f,m) -> if id=nm then i,TmCn(id,f,m) else raise Not_found) icns
 let cn_of_nm            vm  nm      =   lookup (lookup_cnidx vm.cns nm) vm.cns 
 
