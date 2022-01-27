@@ -115,7 +115,7 @@ and codegen_ECDSArecover args ly le vm = match args with [h;v;r;s] ->
  *          |                ...  |                 |             *)                                                                 
 
 and mstore_new_instance id args msg ly le vm  =
-    let cnidx   =   lookup_cnidx_at_vm id                   vm      in 
+    let cnidx   =   lookup_cnidx vm.cns id                          in 
     let vm      =   PUSH(CrSize     cnidx)              @>> vm      in  (*                                                        size >> .. *) 
     let vm      =   PUSH(RnCrOffset cnidx)              @>> vm      in  (*                                             cn_idx  >> size >> .. *)
     let vm      =   mstore_code                             vm      in  (*                                         alloc(size) >> size >> .. *)
@@ -249,7 +249,7 @@ and mload_ret_value vm =                                                (*      
 
 and codegen_send_cn cn m args msg ly le vm =  (* msg-call to a contract *) 
     let TyIstc cnm = snd cn                                         in  
-    let cnidx   =   lookup_cnidx_at_vm cnm                  vm      in 
+    let cnidx   =   lookup_cnidx vm.cns cnm                         in 
     let callee  =   lookup_cn cnidx                         vm      in
     let Some mnm = m                                                in 
     let m       =   lookup_mthd_head vm callee mnm                  in
@@ -449,7 +449,7 @@ and sstore_vars offst idx args sto le vm =
     le,vm
 
 and cont_call (TmCall(cn,args),_) sto le vm = 
-    let idx     =   lookup_cnidx_at_vm cn                   vm      in 
+    let idx     =   lookup_cnidx vm.cns cn                          in 
     let offst   =   (sto.vars idx).offst                            in  
     let vm      =   Comment "Setting Cont"              @>> vm      in 
     let vm      =   set_PC idx                              vm      in  (*  S[PC] := rntime_offset_of_cn                                 .. *) 

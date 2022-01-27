@@ -16,11 +16,10 @@ let empty_vm cns                    =   { stack_height  = 0
                                         ; program       = empty_program
                                         ; cns           = cns               }
 
-let lookup_cnidx        cns nm      =   lookup_idx      (function   TmCn(id,_,_) ->    id=nm) cns
-let lookup_cnidx_at_vm   nm vm      =   lookup_cnidx vm.cns nm 
-let lookup_icn         icns nm      =   find_by  (function i,TmCn(id,f,m) -> if id=nm then i,TmCn(id,f,m) else raise Not_found) icns
+let lookup_cnidx        cns nm      =   lookup_idx  (function   TmCn(id,_,_) ->    id=nm) cns
+let lookup_icn         icns nm      =   find_by     (function i,TmCn(id,f,m) -> if id=nm then i,TmCn(id,f,m) else raise Not_found) icns
 let lookup_cn           idx vm      =   lookup idx vm.cns 
-let cn_of_nm            vm  nm      =   lookup_cn (lookup_cnidx_at_vm nm vm) vm 
+let cn_of_nm            vm  nm      =   lookup_cn (lookup_cnidx vm.cns nm) vm 
 
 let extract_prog       vm           =   vm.program
 let get_stack_height   vm           =   vm.stack_height
@@ -42,7 +41,7 @@ let append_opcode vm opcode         =
     if new_stack_height > 1024 then raise StackOverFlow else    
     { stack_height          = new_stack_height
     ; program               = opcode :: vm.program 
-    ; cns                   = vm.cns        }
+    ; cns                   = vm.cns                }
 
 let (@>>) op vm                     =   append_opcode vm op  
 
