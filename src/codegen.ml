@@ -250,7 +250,7 @@ and mload_ret_value vm =                                                (*      
 and codegen_send_cn cn m args msg ly le vm =  (* msg-call to a contract *) 
     let TyIstc cnm = snd cn                                         in  
     let cnidx   =   lookup_cnidx vm.cns cnm                         in 
-    let callee  =   lookup_cn cnidx                         vm      in
+    let callee  =   lookup cnidx vm.cns                             in
     let Some mnm = m                                                in 
     let m       =   lookup_mthd_head vm callee mnm                  in
     let TyMthd(id,_,reTy) = m                                       in 
@@ -441,7 +441,7 @@ and sstores_to locs vm     = foldl sstore_to vm locs
 and sstore_to  vm loc      = SSTORE @>> PUSH (Int loc) @>> vm      
 
 and sstore_vars offst idx args sto le vm = 
-    let cn      =   lookup_cn idx                           vm      in 
+    let cn      =   lookup idx vm.cns                               in
     let arglocs =   arg_locs_of_cn offst cn                         in
     assert(len arglocs = len args) ; 
     let vm      =   push_args le sto args                   vm      in  (*                                         argk >> .. >> arg1 >> .. *)
