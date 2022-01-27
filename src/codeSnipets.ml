@@ -81,7 +81,7 @@ let push_storRange vm (data : imm data) =
                     SLOAD                           @>> vm 
 
 let dup_nth_from_bottom n vm  =
-                    dup_succ(get_stack_height vm-n) @>> vm 
+                    dup_succ(vm.stack_height - n)   @>> vm 
 
 let shiftR bits vm =
     assert (0 <= bits && bits < 256) ; 

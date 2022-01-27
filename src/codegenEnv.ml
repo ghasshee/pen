@@ -22,10 +22,7 @@ let lookup_cn           idx vm      =   lookup idx vm.cns
 let cn_of_nm            vm  nm      =   lookup_cn (lookup_cnidx vm.cns nm) vm 
 
 let extract_prog       vm           =   vm.program
-let get_stack_height   vm           =   vm.stack_height
-let set_stack_height   vm i         =   { vm with stack_height = i }
 let code_len           vm           =   size_of_prog vm.program
-
 
 (***************************************)
 (*         APPEND OPCODE               *)
@@ -33,13 +30,13 @@ let code_len           vm           =   size_of_prog vm.program
 
 let append_opcode vm opcode         = 
     if vm.stack_height < stack_popped opcode then raise StackUnderFlow else 
-    begin match opcode with 
-    | JUMPDEST l        ->  begin try ignore ( Label.lookup_label   l )
-                            with Not_found ->  Label.register_label l (code_len vm) end
-    | _                 ->  () end ; 
-    let new_stack_height    = vm.stack_height - stack_popped opcode + stack_pushed opcode in
-    if new_stack_height > 1024 then raise StackOverFlow else    
-    { stack_height          = new_stack_height
+    ( match opcode with 
+    | JUMPDEST l        ->  (try ignore      ( Label.lookup_label   l )
+                            with Not_found ->  Label.register_label l (code_len vm) )
+    | _                 ->  () ) ; 
+    let height    = vm.stack_height - stack_popped opcode + stack_pushed opcode in
+    if height > 1024 then raise StackOverFlow else    
+    { stack_height          = height
     ; program               = opcode :: vm.program 
     ; cns                   = vm.cns                }
 
