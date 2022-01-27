@@ -184,11 +184,11 @@ let realize_opcode lyt  = function
 
 let realize_prog lyt p = L.map (realize_opcode lyt) p 
 
-let rec gen_arg_locs offset used_vars used_aids varsize = function 
+let rec gen_arg_locs offst used_vars used_aids varsize = function 
     | []        ->  []
     | ty::tys   ->  if is_mapping ty
-                    then (offset + varsize + used_aids) :: gen_arg_locs offset used_vars (used_aids+1) varsize tys
-                    else (offset           + used_vars) :: gen_arg_locs offset (used_vars+1) used_aids varsize tys
+                    then (offst + varsize + used_aids) :: gen_arg_locs offst used_vars (used_aids+1) varsize tys
+                    else (offst           + used_vars) :: gen_arg_locs offst (used_vars+1) used_aids varsize tys
 
 (* this needs to take stor_fieldVars_begin *)
 let arg_locs_of_cn offset cn : int list =

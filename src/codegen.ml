@@ -514,7 +514,7 @@ type rntime             =   { rn_vm         : vm
                             ; rn_cns_pos    : int ilist  }
 
 let init_rntime lookup_cn cns =
-    let vm      =   empty_vm lookup_cn cns                      in
+    let vm      =   empty_vm cns                                in
     let vm      =   error_loop                          vm      in 
     let vm      =   get_PC                              vm      in
     let vm      =   JUMP                            @>> vm      in
@@ -544,7 +544,7 @@ let mstore_rn_code idx vm =                                         (*          
                                                                     (*                                     codebegin                *)
 let codegen_creation cns idx = (* return vm which contains the program *) 
     let TmCn(id,_,_) as cn = lookup idx cns in 
-    let vm      =   empty_vm (lookup_cnidx cns) cns             in  (*                                                                          *)
+    let vm      =   empty_vm cns                                in  (*                                                                          *)
     let vm      =   Comment("Begin Creation "^id)   @>> vm      in 
     let vm      =   init_malloc                         vm      in  (* M[0x40] := 0x60                                                          *)
     let vm      =   salloc_arrs        cn               vm      in  (* S[1]    := #array                i << alloc(argssize) << argssize << ..  *)
