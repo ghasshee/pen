@@ -130,7 +130,7 @@ and codegen_ECDSArecover args ly le vm = match args with [h;v;r;s] ->
  *          | argsize+size+wsize  |                 |
  *          |                ...  |                 |             *)                                                                 
 
-and push_loc vm aln ty      = function 
+and push_loc loc aln ty vm  = match loc with 
     | Code       _          ->  err "push_loc: Code"  
     | Calldata range        ->  calldataload range      vm
     | Stor     range        ->  let vm = push_storRange vm range in 
@@ -161,21 +161,28 @@ and codegen_new id args msg ly le vm   =
     let vm      =   SWAP1                               @>> vm      in  (*                             PCbkp >> CreateResult >> .. *)
                     restore_PC                              vm          (*                                      CreateResult >> .. *)
 
-and codegen_array aid aidx ly le vm    =                                (*                                                      .. *)
-    let vm      =   kec_of_arr aid aidx               ly le vm      in  (*                                      keccak(a[i]) >> .. *)
-                    SLOAD                               @>> vm          (*                                   S[keccak(a[i])] >> .. *) 
-
 and kec_of_arr aid aidx ly le vm  =                                     (* kec(a_i) := the seed of array *) 
     let vm      =   aidx                        @> (R,ly,le,vm)     in  (*                                             index >> .. *)    
     let vm      =   aid                         @> (R,ly,le,vm)     in  (*                                array_loc >> index >> .. *)
                     keccak_cat                              vm          (*                            sha3(array_loc++index) >> .. *) 
       
+and codegen_array a i ly le vm    =                                     (*                                                      .. *)
+    let vm      =   kec_of_arr a i                    ly le vm      in  (*                                      keccak(a[i]) >> .. *)
+                    SLOAD                               @>> vm          (*                                   S[keccak(a[i])] >> .. *) 
+
+(*                    
 and salloc_array a i ly le vm     =
                     salloc_array_of (kec_of_arr a i ly le)  vm          (* S[KEC(a_i)]:= newSeed                      newSeed >> .. *)     
-                                                                      
+*)
+
 and salloc_array_of_loc le vm(Stor data) = 
                     assert(data.size=Int 1) ;                           (*                                        S[KEC(a_i)] >> .. *)     
                     salloc_array_of ((@>>)(PUSH data.offst))vm          (* S[KEC(a_i)]:= newSeed                      newSeed >> .. *)     
+and codegen_aid (Stor data) le vm = 
+    let vm      =   PUSH data.offst                     @>> vm      in 
+    let vm      =   DUP1                                @>> vm      in 
+    let vm      =   SLOAD                               @>> vm      in 
+                    salloc_array' vm        
 
 and salloc_array_of push_arr_loc vm =   
     let label   =   fresh_label ()                                  in  (*                                        S[KEC(a_i)] >> .. *) 
@@ -187,7 +194,29 @@ and salloc_array_of push_arr_loc vm =
     let vm      =   DUP1                                @>> vm      in  (*                     newseed >> newseed >> KEC(a_i) >> .. *) 
     let vm      =   SWAP2                               @>> vm      in  (*                     KEC(a_i) >> newseed >> newseed >> .. *) 
     let vm      =   SSTORE                              @>> vm      in  (* S[KEC(a_i)]:= newseed                      newseed >> .. *)
-                    JUMPDEST label                      @>> vm          (*                                                         *)
+                    JUMPDEST label                      @>> vm          (*                                                          *)
+
+and codegen_secondary_arr a i ly le vm = 
+    let vm      =   kec_of_arr a i            ly le vm in (*                   kec(a_i) >> .. *)
+    let vm      =   DUP1                        @>> vm in (*            kec(a_i) >> kec(a_i) >> .. *)
+    let vm      =   SLOAD                       @>> vm in (*           S[kec(a_i) >> kec(a_i) >> .. *)
+                    salloc_array' vm 
+
+and salloc_array' vm = 
+    let exit    =   fresh_label ()                     in
+    let label   =   fresh_label ()                     in (*                                 S[loc] >> loc >> .. *)
+    let vm      =   DUP1                        @>> vm in (*                       S[loc] >> S[loc] >> loc >> .. *)
+    let vm      =   if_GOTO label                   vm in (* IF S[loc] != 0 GOTO label       S[loc] >> loc >> .. *) 
+    let vm      =   POP                         @>> vm in (*                                           loc >> .. *)
+    let vm      =   sincr 1 1                       vm in (*                                S[AC]++ >> loc >> .. *)
+    let vm      =   DUP1                        @>> vm in (*                     new_aid >> new_aid >> loc >> .. *)         
+    let vm      =   SWAP2                       @>> vm in (*                     loc >> new_aid >> new_aid >> .. *)
+    let vm      =   SSTORE                      @>> vm in (* S[loc] := new_aid                     new_aid >> .. *)
+    let vm      =   goto exit                       vm in (*                                       new_aid >> .. *)
+    let vm      =   JUMPDEST label              @>> vm in (*                                 S[loc] >> loc >> .. *)
+    let vm      =   SWAP1                       @>> vm in (*                                 loc >> S[loc] >> .. *)
+    let vm      =   POP                         @>> vm in (*                                        S[loc] >> .. *)
+                    JUMPDEST exit               @>> vm    (*                                        S[loc] >> .. *)
 
 (* le is not updated here.  
  * le can only be updated in a variable initialization *)
@@ -224,14 +253,10 @@ and codegen_tm ly le vm aln e       = (* #DEBUG pe_tm e; pe(str_of_ctx le); *)
     | EpAddr(c,TyInstnc i)  ,TyAddr         ->                  (c,TyInstnc i)                    @> (aln,ly,le,vm) 
     | EpSender              ,TyAddr         ->                  align_addr aln             (CALLER          @>> vm) 
     | EpThis                ,_              ->                  align_addr aln             (ADDRESS         @>> vm) 
-    | TmArr(id,idx)         ,TyMap _        ->  let vm      =   codegen_array id idx                      ly le vm  in  (*            S[keccak(a[i])] >> .. *)
-                                                assert(aln=R);  salloc_array  id idx                      ly le vm      (*                     S[1]++ >> .. *)
+    | TmArr(a,i)(*a_i[j]*)  ,TyMap _        ->  assert(aln=R);  codegen_secondary_arr a i                 ly le vm      (*            S[keccak(a[i])] >> .. *)
     | TmArr(id,idx)         ,      _        ->  assert(aln=R);  codegen_array id idx                      ly le vm      (*               S[keccak(a)] >> .. *)
-    | TmId id               ,TyMap(a,b)     ->  let loc     =   lookup_le id le                                     in 
-                                                let vm      =   push_loc vm aln(TyMap(a,b))loc                      in 
-                                                                salloc_array_of_loc le vm loc                  
-    | TmId id               ,ty             ->  let loc     =   lookup_le id le                                     in  
-                                                                push_loc vm aln ty loc                                  (*                        loc >> .. *)
+    | TmId id               ,TyMap(a,b)     ->                  codegen_aid (lookup_le id le)                le vm 
+    | TmId id               ,ty             ->                  push_loc (lookup_le id le) aln ty               vm      (*                        loc >> .. *)
     | TmDeref(ref,tyR)      ,ty             ->  assert(size_of_ty ty<=32 && tyR=TyRef ty && aln=R) ;                    (* assuming word-size *)
                                                 let vm      =   (ref,tyR)                           @> (R,ly,le,vm) in  (* pushes the pointer *)
                                                                 MLOAD                                       @>> vm 
