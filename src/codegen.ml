@@ -31,10 +31,7 @@ let calldatasize (TyMthd(_,args,_)) =
                 
 type alignment              = L | R
 
-let align_addr aln vm       = match aln with 
-    | R                     ->  vm
-    | L                     ->  shiftL (12 * 8) vm
-let align_to_L vm ty        = function 
+let shift_by_aln aln ty vm  = match aln with 
     | R                     ->  vm
     | L                     ->  let size = size_of_ty ty in
                                 assert (size <= 32) ;
@@ -134,9 +131,9 @@ and push_loc loc aln ty vm  = match loc with
     | Code       _          ->  err "push_loc: Code"  
     | Calldata range        ->  calldataload range      vm
     | Stor     range        ->  let vm = push_storRange vm range in 
-                                align_to_L vm ty aln  
+                                shift_by_aln aln ty vm
     | Stack      n          ->  let vm = dup_nth_from_bottom n vm in 
-                                align_to_L vm ty aln 
+                                shift_by_aln aln ty vm
 
 and mstore_new_instance id args msg ly le vm  =
     let cnidx   =   lookup_cnidx_at_vm id                   vm      in 
@@ -251,8 +248,8 @@ and codegen_tm ly le vm aln e       = (* #DEBUG pe_tm e; pe(str_of_ctx le); *)
     | TmSend((c,TyInstnc n),m,args,msg),_   ->  assert(aln=R);  codegen_send_cn(c,TyInstnc n)m args msg   ly le vm 
     | TmNew(id,args,msg)    ,TyInstnc _     ->  assert(aln=R);  codegen_new    id args msg                ly le vm 
     | EpAddr(c,TyInstnc i)  ,TyAddr         ->                  (c,TyInstnc i)                    @> (aln,ly,le,vm) 
-    | EpSender              ,TyAddr         ->                  align_addr aln             (CALLER          @>> vm) 
-    | EpThis                ,_              ->                  align_addr aln             (ADDRESS         @>> vm) 
+    | EpSender              ,TyAddr         ->                  shift_by_aln aln TyAddr    (CALLER          @>> vm) 
+    | EpThis                ,_              ->                  shift_by_aln aln TyAddr    (ADDRESS         @>> vm) 
     | TmArr(a,i)(*a_i[j]*)  ,TyMap _        ->  assert(aln=R);  codegen_secondary_arr a i                 ly le vm      (*            S[keccak(a[i])] >> .. *)
     | TmArr(id,idx)         ,      _        ->  assert(aln=R);  codegen_array id idx                      ly le vm      (*               S[keccak(a)] >> .. *)
     | TmId id               ,TyMap(a,b)     ->                  codegen_aid (lookup_le id le)                le vm 
