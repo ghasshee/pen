@@ -54,9 +54,9 @@ let rec foldn n succ zero   = if n=0 then zero else succ (foldn (n-1) succ zero)
 (**      LIST OPERATERS                 **)
 (*****************************************)
 
-let rec find_by_filter f        = function 
+let rec find_by f        = function 
     | []        ->  raise Not_found 
-    | x::xs     ->  try f x     with Not_found -> find_by_filter f xs 
+    | x::xs     ->  try f x     with Not_found -> find_by f xs 
 
 let rec change_fst_by_filter f  = function 
     | []        ->  raise Not_found 

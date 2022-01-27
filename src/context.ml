@@ -58,18 +58,18 @@ let rec lookup_recursion_param  =   function
 
 let add_recursion_param ctx start=  BdRec(start) :: ctx
 
-let lookup_id_local   nm        =   find_by_filter (function BdTy(id,ty)when id=nm -> ty          | _ -> raise Not_found) 
-let lookup_id         nm        =   find_by_filter (function BdFrm ctx -> lookup_id_local nm ctx  | _ -> raise Not_found)
-let lookup_evnt       nm        =   find_by_filter (function BdEv(id,l) when id=nm -> TyEv(id,l)  | _ -> raise Not_found)
-let lookup_retTy                =   find_by_filter (function BdRet ty -> ty                       | _ -> raise Not_found) 
-let lookup_ll key               =   find_by_filter (function BdLoc(s,loc) when key=s -> loc       | _ -> raise Not_found)
-let lookup_le key               =   find_by_filter (function BdFrm ctx -> lookup_ll key ctx       | _ -> raise Not_found)
+let lookup_id_local   nm        =   find_by (function BdTy(id,ty)when id=nm -> ty          | _ -> raise Not_found) 
+let lookup_id         nm        =   find_by (function BdFrm ctx -> lookup_id_local nm ctx  | _ -> raise Not_found)
+let lookup_evnt       nm        =   find_by (function BdEv(id,l) when id=nm -> TyEv(id,l)  | _ -> raise Not_found)
+let lookup_retTy                =   find_by (function BdRet ty -> ty                       | _ -> raise Not_found) 
+let lookup_ll key               =   find_by (function BdLoc(s,loc) when key=s -> loc       | _ -> raise Not_found)
+let lookup_le key               =   find_by (function BdFrm ctx -> lookup_ll key ctx       | _ -> raise Not_found)
 
 let rec lookup_brjidx_local idx =   function 
     | []                        ->  raise Not_found
     | BdI(tm)::rest when idx=0  ->  tm 
     | _::rest                   ->  lookup_brjidx_local (idx-1) rest
-let lookup_brjidx       idx     =   find_by_filter (function BdBrj ctx -> lookup_brjidx_local idx ctx| _ -> raise Not_found)
+let lookup_brjidx       idx     =   find_by (function BdBrj ctx -> lookup_brjidx_local idx ctx| _ -> raise Not_found)
 
 
 let bind_of_ty                  =   function 

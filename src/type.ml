@@ -38,8 +38,8 @@ let subtype                     = tyeqv
 (**         METHOD TyCheck         **) 
 (************************************) 
 
-let find_tyMthd_in_cn mname = find_by_filter (function TyMthd(i,r,m)when i=mname    -> TyMthd(i,r,m)                    | _ -> raise Not_found) 
-let find_tyMthd       mname = find_by_filter (function TyCn(_,_,mthds)              -> find_tyMthd_in_cn mname mthds    | _ -> raise Not_found)
+let find_tyMthd_in_cn mname = find_by (function TyMthd(i,r,m)when i=mname    -> TyMthd(i,r,m)                    | _ -> raise Not_found) 
+let find_tyMthd       mname = find_by (function TyCn(_,_,mthds)              -> find_tyMthd_in_cn mname mthds    | _ -> raise Not_found)
 
 let typeof_mthd                 =   function 
     | TmMthd(TyMthd(id,ags,r),_)    ->  TyMthd(id, tys_of_vars ags, r)
