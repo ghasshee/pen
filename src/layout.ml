@@ -10,9 +10,9 @@ open Evm
 module BL   = BatList
 module L    = List
 
-(******************************************************)
-(***                                                ***)
-(******************************************************)
+(*********************************************)
+(***            CREATION INFO              ***)
+(*********************************************)
 
 let pc          = 0
 let ac          = 1
@@ -43,11 +43,12 @@ let init_storage i_cr_infos     =   { pc            = 0
                                     ; vars          = calc_var_pos  i_cr_infos
                                     ; arrs          = calc_arr_pos  i_cr_infos         } 
 
-(******************************************************)
-(***                                                ***)
-(******************************************************)
+(*********************************************)
+(***            RUNTIME INFO               ***)
+(*********************************************)
+
 type rntime_info                =   { rn_size       : int
-                                    ; cns_pos       : int ilist (* == creation_sizes *) 
+                                    ; cns_pos       : int ilist 
                                     ; crs_pos       : int ilist
                                     ; crs_sizes     : int ilist                        }
 
@@ -103,10 +104,9 @@ let classify_PUSH b =
     if b <! big 256^! big 32   then PUSH32 b   else
     err "PUSH VALUE IS TOO LARGE"
 
-
 let realize_opcode lyt  = function 
     | PUSH imm        -> classify_PUSH (realize_imm lyt imm)
-    | Comment s       -> Comment s        | MLOAD           -> MLOAD                 
+    | POP             -> POP              | MLOAD           -> MLOAD          
     | SHL             -> SHL              | MSTORE          -> MSTORE             
     | SHR             -> SHR              | MSTORE8         -> MSTORE8
     | NOT             -> NOT              | SLOAD           -> SLOAD
@@ -141,7 +141,7 @@ let realize_opcode lyt  = function
     | GASPRICE        -> GASPRICE         | DUP5            -> DUP5
     | EXTCODESIZE     -> EXTCODESIZE      | DUP6            -> DUP6
     | EXTCODECOPY     -> EXTCODECOPY      | DUP7            -> DUP7              
-    | POP             -> POP                                              
+    | Comment s       -> Comment s        
                                                                           
 
 let realize_prog lyt p = L.map (realize_opcode lyt) p 
@@ -166,22 +166,21 @@ let arr_locs_of_cn cn : int list =
         then []
         else BL.(range (2+varsize) `To (fldsize+1))
 
-(*                                                                          *)
-(*            Storage of a contract                                         *)
-(*            +---+-----------------+                                       *)
-(*            |0  |PC               |                                       *)
-(*            |1  |ArraySeedCounter |                                       *)
-(*            |2  |arg1 ----+       |    ------+                            *)
-(*            |3  |arg2     |       |          |                            *)
-(*            |4  |arg3     + num of plains    |                            *)
-(*            |.. |         |       |          + total_num (of args)        *)
-(*            |k+1|argk ----+       |          |                            *)
-(*            |k+2|arr1             |          |                            *)
-(*            |.. | ..              |          |                            *)
-(*            |n+1|arrm   ---------------------+                            *)
-(*            |   |                 |                                       *)
-(*            +---+-----------------+                                       *)
-(*                                                                          *)
-(*                                                                          *)
+(*                                                                      *)
+(*          Storage of a contract                                       *)
+(*          +---+-----------------+                                     *)
+(*          |0  |PC               |                                     *)
+(*          |1  |ArraySeedCounter |                                     *)
+(*          |2  |arg1 ----+       |    ----+                            *)
+(*          |3  |arg2     |       |        |                            *)
+(*          |4  |arg3     + num of vars    |                            *)
+(*          |.. |         |       |        + total_num (of args)        *)
+(*          |k+1|argk ----+       |        |                            *)
+(*          |k+2|aid1             |        |                            *)
+(*          |.. | ..              |        |                            *)
+(*          |n+1|aidm   -------------------+                            *)
+(*          |   |                 |                                     *)
+(*          +---+-----------------+                                     *)
+(*                                                                      *)
 
 
