@@ -153,9 +153,9 @@ and codegen_aid (Stor data) le vm =
                     salloc_aid                              vm 
 
 and codegen_secondary_arr a i ly le vm = 
-    let vm      =   kec_of_arr a i                    ly le vm      in (*                   kec(a_i) >> .. *)
-    let vm      =   DUP1                                @>> vm      in (*            kec(a_i) >> kec(a_i) >> .. *)
-    let vm      =   SLOAD                               @>> vm      in (*           S[kec(a_i) >> kec(a_i) >> .. *)
+    let vm      =   kec_of_arr a i                    ly le vm      in (*                         kec(a_i) >> .. *)
+    let vm      =   DUP1                                @>> vm      in (*             kec(a_i) >> kec(a_i) >> .. *)
+    let vm      =   SLOAD                               @>> vm      in (*          S[kec(a_i)] >> kec(a_i) >> .. *)
                     salloc_aid                              vm 
 
 and salloc_aid vm = 
@@ -603,6 +603,8 @@ let rn_info_of_rn rn crs =
                         ; crs_sizes         = to_ilist crs_sizes    }
 
 let compose_bytecode crs rn idx : big_int Evm.program =
+    let crs         =   map (fun cr -> { cr with cr_vm = { cr.cr_vm with program = L.map classify_PUSH_imm cr.cr_vm.program } }) crs in 
+    let rn          =   { rn with rn_vm = { rn.rn_vm with program = L.map classify_PUSH_imm rn.rn_vm.program } } in 
     let rn_info     =   rn_info_of_rn rn  crs                       in (* rn_size *)
     let cr_infos    =   cr_infos_of_crs   crs                       in 
     let layt        =   init_layout cr_infos rn_info                in

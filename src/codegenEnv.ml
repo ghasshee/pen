@@ -27,7 +27,7 @@ let code_len           vm           =   size_of_prog vm.program
 (***************************************)
 
 let append_opcode vm opcode         = 
-    if vm.stack_height < stack_popped opcode then raise StackUnderFlow else 
+    (* if vm.stack_height < stack_popped opcode then raise StackUnderFlow else  *) 
     ( match opcode with 
     | JUMPDEST l        ->  (try ignore      ( Label.lookup_label   l )
                             with Not_found ->  Label.register_label l (code_len vm) )

@@ -84,14 +84,39 @@ let rec realize_imm lyt = function
     | Int i                         ->  big i
     | Label l                       ->  big (lookup_label l)
     | RnMthdLabel    (idx,mthd_hd)  ->  big (lookup_label (lookup_entry (Mthd(idx,mthd_hd)))) 
-
     | StorPC                        ->  big (lyt.stor.pc)
     | StorVarBegin          idx     ->  big (lyt.stor.vars idx).offst
+
     | InitDataSize          idx     ->  big (lyt.initdata_size idx)
     | CrSize                idx     ->  big (lyt.stor.cr_sizes idx)
     | RnSize                        ->  big (lyt.rntime_size)
     | RnCrOffset            idx     ->  big (lookup idx lyt.rn_crs_pos)
     | RnCnOffset            idx     ->  big (lookup idx lyt.rn_cns_pos)
+
+let rec numerize_imm = function
+    | Big b                     -> Big (b)
+    | Int i                     -> Big (big i)
+    | Label l                   -> Big (big (lookup_label l))
+    | RnMthdLabel (idx,mhd)     -> Big (big (lookup_label (lookup_entry (Mthd(idx,mhd)))))
+    | StorPC                    -> Big (big 0)
+    | StorVarBegin _            -> Big (big 2)
+    | imm                       -> imm
+
+
+let classify_PUSH_imm = function 
+    | PUSH imm                  -> begin match numerize_imm imm with 
+        | Big b                     -> begin 
+                                        if b <! big 0 then err "PUSH VALUE cannot be NEGATIVE" else
+                                        if b <! big 256^! big 1    then PUSH1  (Big b)  else
+                                        if b <! big 256^! big 4    then PUSH4  (Big b)  else 
+                                        if b <! big 256^! big 5    then PUSH5  (Big b)  else 
+                                        if b <! big 256^! big 8    then PUSH8  (Big b)  else 
+                                        if b <! big 256^! big 16   then PUSH16 (Big b)  else
+                                        if b <! big 256^! big 20   then PUSH20 (Big b)  else 
+                                        if b <! big 256^! big 32   then PUSH32 (Big b)  else
+                                        err "PUSH VALUE IS TOO LARGE" end 
+        | imm                       -> PUSH8 imm end 
+    | opcode                    -> opcode ;;
 
 let classify_PUSH b = 
     if b <! big 0        then err "PUSH VALUE cannot be NEGATIVE" else
@@ -105,7 +130,14 @@ let classify_PUSH b =
     err "PUSH VALUE IS TOO LARGE"
 
 let realize_opcode lyt  = function 
-    | PUSH imm        -> classify_PUSH (realize_imm lyt imm)
+ (*   | PUSH   imm      -> classify_PUSH (realize_imm lyt imm) *)
+    | PUSH1  imm      -> PUSH1 (realize_imm lyt imm)
+    | PUSH4  imm      -> PUSH4 (realize_imm lyt imm)
+    | PUSH5  imm      -> PUSH5 (realize_imm lyt imm)
+    | PUSH8  imm      -> PUSH8 (realize_imm lyt imm)
+    | PUSH16 imm      -> PUSH16(realize_imm lyt imm)
+    | PUSH20 imm      -> PUSH20(realize_imm lyt imm)
+    | PUSH32 imm      -> PUSH32(realize_imm lyt imm)
     | POP             -> POP              | MLOAD           -> MLOAD          
     | SHL             -> SHL              | MSTORE          -> MSTORE             
     | SHR             -> SHR              | MSTORE8         -> MSTORE8
