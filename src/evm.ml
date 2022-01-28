@@ -31,107 +31,51 @@ type 'imm opcode =
 
 type 'imm program       = 'imm opcode list
 
-let num_opcodes         = L.length
-
-let empty_program       = []
-
-(** The program is stored in the reverse order *)
-(* let append_inst orig i = i :: orig *) 
-
-let to_list (p : 'imm program) = L.rev p
+let empty_prog          = []
 
 let stack_popped = function
   | PUSH _                                                          -> 0
-  | NOT | ISZERO                                                    -> 1
-  | ADDMOD|MULMOD                                                   -> 3
-  | ADD|SUB|MUL|DIV|SDIV|MOD|SMOD|EXP|SHA3|LT|GT|EQ|SHL|SHR         -> 2
   | STOP|ADDRESS|ORIGIN|CALLER|CALLVALUE|TIMESTAMP                  -> 0
-  | CODESIZE|CALLDATASIZE                                           -> 0
-  | PC|MSIZE|GAS|GASPRICE                                           -> 0
-  | JUMPDEST _                                                      -> 0
-  | SIGNEXTEND                                                      -> 2
-  | BALANCE                                                         -> 1
-  | CALLDATALOAD                                                    -> 1
-  | CALLDATACOPY | CODECOPY                                         -> 3
-  | EXTCODESIZE                                                     -> 1
+  | CODESIZE|CALLDATASIZE|PC|MSIZE|GAS|GASPRICE                     -> 0
+  | Comment _ | JUMPDEST _                                          -> 0
+  | MLOAD|SLOAD|POP|NOT|ISZERO|JUMP                                 -> 1
+  | BALANCE|EXTCODESIZE|CALLDATALOAD|SELFDESTRUCT                   -> 1
+  | ADD|SUB|MUL|DIV|SDIV|MOD|SMOD|EXP|SHA3|LT|GT|EQ|SHL|SHR         -> 2
+  | MSTORE|MSTORE8|SSTORE|RETURN|JUMPI|SIGNEXTEND                   -> 2
+  | ADDMOD|MULMOD                                                   -> 3
+  | CALLDATACOPY|CODECOPY|CREATE                                    -> 3
   | EXTCODECOPY                                                     -> 4
-  | MSTORE|MSTORE8|SSTORE|RETURN                                    -> 2
-  | MLOAD|SLOAD|POP                                                 -> 1
-  | JUMP                                                            -> 1
-  | JUMPI                                                           -> 2
-  | SWAP1                                                           -> 2
-  | SWAP2                                                           -> 3
-  | SWAP3                                                           -> 4
-  | SWAP4                                                           -> 5
-  | SWAP5                                                           -> 6
-  | SWAP6                                                           -> 7
-  | LOG0                                                            -> 2
-  | LOG1                                                            -> 3
-  | LOG2                                                            -> 4
-  | LOG3                                                            -> 5
-  | LOG4                                                            -> 6
-  | CREATE                                                          -> 3
   | CALL | CALLCODE | DELEGATECALL                                  -> 7
-  | SELFDESTRUCT                                                    -> 1
-  | DUP1                                                            -> 1
-  | DUP2                                                            -> 2
-  | DUP3                                                            -> 3
-  | DUP4                                                            -> 4
-  | DUP5                                                            -> 5
-  | DUP6                                                            -> 6
-  | DUP7                                                            -> 7
-  | Comment _ -> 0 
+  | DUP1  -> 1
+  | DUP2  -> 2   | SWAP1 -> 2   | LOG0  -> 2
+  | DUP3  -> 3   | SWAP2 -> 3   | LOG1  -> 3
+  | DUP4  -> 4   | SWAP3 -> 4   | LOG2  -> 4
+  | DUP5  -> 5   | SWAP4 -> 5   | LOG3  -> 5
+  | DUP6  -> 6   | SWAP5 -> 6   | LOG4  -> 6
+  | DUP7  -> 7   | SWAP6 -> 7
 
 let stack_pushed = function
+  | STOP | RETURN | SELFDESTRUCT                                    -> 0
+  | POP                                                             -> 0
+  | CALLDATACOPY|CODECOPY|EXTCODECOPY                               -> 0
+  | MSTORE|MSTORE8|SSTORE                                           -> 0
+  | JUMP|JUMPI                                                      -> 0
+  | JUMPDEST _                                                      -> 0
   | PUSH _                                                          -> 1 
-  | TIMESTAMP                                                       -> 1
-  | ISZERO                                                          -> 1
+  | ISZERO|NOT|BALANCE|SIGNEXTEND|SHA3                              -> 1
   | ADD|MUL|SUB|DIV|SDIV|EXP|MOD|SMOD|EQ|LT|GT|SHL|SHR              -> 1
   | ADDMOD|MULMOD                                                   -> 1
-  | NOT                                                             -> 1
-  | BALANCE                                                         -> 1
-  | STOP                                                            -> 0
-  | SIGNEXTEND                                                      -> 1
-  | SHA3                                                            -> 1
-  | ADDRESS                                                         -> 1
-  | ORIGIN                                                          -> 1
-  | CALLER                                                          -> 1
-  | CALLVALUE| CALLDATALOAD| CALLDATASIZE                           -> 1
-  | CALLDATACOPY                                                    -> 0
-  | CODESIZE                                                        -> 1
-  | CODECOPY                                                        -> 0
-  | GASPRICE                                                        -> 1
-  | EXTCODESIZE                                                     -> 1
-  | EXTCODECOPY                                                     -> 0
-  | POP                                                             -> 0
-  | MLOAD                                                           -> 1
-  | MSTORE                                                          -> 0
-  | MSTORE8                                                         -> 0
-  | SLOAD                                                           -> 1
-  | SSTORE                                                          -> 0
-  | JUMP|JUMPI                                                      -> 0
-  | PC|MSIZE|GAS                                                    -> 1
-  | JUMPDEST _                                                      -> 0
-  | SWAP1                                                           -> 2
-  | SWAP2                                                           -> 3
-  | SWAP3                                                           -> 4
-  | SWAP4                                                           -> 5
-  | SWAP5                                                           -> 6
-  | SWAP6                                                           -> 7
-  | DUP1                                                            -> 2
-  | DUP2                                                            -> 3
-  | DUP3                                                            -> 4
-  | DUP4                                                            -> 5
-  | DUP5                                                            -> 6
-  | DUP6                                                            -> 7
-  | DUP7                                                            -> 8
-  | LOG0|LOG1|LOG2|LOG3|LOG4                                        -> 0
-  | CREATE                                                          -> 1
-  | CALL                                                            -> 1
-  | CALLCODE                                                        -> 1
-  | RETURN                                                          -> 0
-  | DELEGATECALL                                                    -> 1
-  | SELFDESTRUCT                                                    -> 0
+  | ADDRESS|ORIGIN|CALLER|CALLVALUE|CALLDATALOAD|CALLDATASIZE       -> 1
+  | CODESIZE|GASPRICE|EXTCODESIZE|TIMESTAMP|PC|MSIZE|GAS            -> 1
+  | MLOAD|SLOAD                                                     -> 1
+  | CREATE | CALL | CALLCODE | DELEGATECALL                         -> 1
+  | DUP1  -> 2 | SWAP1 -> 2 | LOG0  -> 0 
+  | DUP2  -> 3 | SWAP2 -> 3 | LOG1  -> 0 
+  | DUP3  -> 4 | SWAP3 -> 4 | LOG2  -> 0 
+  | DUP4  -> 5 | SWAP4 -> 5 | LOG3  -> 0 
+  | DUP5  -> 6 | SWAP5 -> 6 | LOG4  -> 0
+  | DUP6  -> 7 | SWAP6 -> 7
+  | DUP7  -> 8
   | Comment _ -> 0
 
 let str_of_opcode str_of_push = function 
@@ -193,7 +137,7 @@ let str_of_push_imm = function
 let str_of_opcode_imm = str_of_opcode str_of_push_imm
 *)
 
-let str_of_opcodes_big p    = S.concat""(L.map(fun op->str_of_opcode_big op^"\n")(to_list p))
+let str_of_opcodes_big p    = S.concat""(L.map(fun op->str_of_opcode_big op^"\n")(rev p))
 let pr_opcodes_big        p = pf "%s"(str_of_opcodes_big p) 
 
 let hex_of_opcode = 
@@ -243,9 +187,6 @@ let hex_of_opcode =
                                  | SELFDESTRUCT    -> h "ff"
   
   
-  
-  
-
 let log = function 
   | 0               -> LOG0
   | 1               -> LOG1

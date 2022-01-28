@@ -12,7 +12,7 @@ type vm                             =   { stack_height  : int
                                         ; cns           : ty toplevel ilist }
 
 let empty_vm cns                    =   { stack_height  = 0
-                                        ; program       = empty_program
+                                        ; program       = empty_prog
                                         ; cns           = cns               }
 
 let lookup_cnidx       icns nm      =   lookup_idx  (function   TmCn(id,_,_) ->    id=nm) icns

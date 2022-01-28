@@ -76,6 +76,7 @@ let (++)                    = L.append
 let len                     = L.length
 let lookup                  = L.assoc 
 let tl                      = L.tl
+let rev                     = L.rev
 let zip                     = L.combine
 let unzip                   = L.split 
 
