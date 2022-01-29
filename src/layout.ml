@@ -79,11 +79,58 @@ let init_layout   l ri          =   { initdata_size = calc_initdata_size l ri
                                     ; rn_crs_pos    = ri.crs_pos
                                     ; stor          = init_storage l          }
 
-let rec realize_imm lyt = function 
+let log_size b   = 
+    if b <! big 0 then err "log_size takes POSITIVE value" else 
+    if b <! big 0x100 ^! big 1  then 1  else  
+    if b <! big 0x100 ^! big 4  then 4  else 
+    if b <! big 0x100 ^! big 5  then 5  else 
+    if b <! big 0x100 ^! big 8  then 8  else  
+    if b <! big 0x100 ^! big 16 then 16 else 
+    if b <! big 0x100 ^! big 20 then 20 else 
+    if b <! big 0x100 ^! big 32 then 32 else err "log_size: TOO BIG INT"
+
+
+exception SizeDeterminedLater
+
+let vsize_of_imm = function 
+    | Big b                         ->  log_size b
+    | Int i                         ->  log_size (big i)
+    | Label l                       ->  log_size (big (lookup_label l))
+    | RnMthdLabel (idx,mhd)         ->  log_size (big (lookup_entry (Mthd(idx,mhd))))
+    | StorPC                        ->  1 
+    | StorVarBegin      idx         ->  1
+    | _                             ->  raise SizeDeterminedLater 
+
+let vsize_of_opcode = function 
+    | PUSH imm                      ->  1 + vsize_of_imm imm
+    | opcode                        ->  size_of_opcode opcode 
+
+let vsize_of_prog = 
+    let rec loop later = function 
+    | []                            -> 0, later
+    | o :: os                       -> let size, later = loop later os in 
+                                       try  vsize_of_opcode o + size, later 
+                                       with SizeDeterminedLater -> size, 1 + later  in 
+    loop 0
+
+let push_n n imm = match n with 
+    | 1 -> PUSH1  imm   
+    | 4 -> PUSH4  imm     
+    | 5 -> PUSH5  imm  
+    | 8 -> PUSH8  imm  
+    | 16-> PUSH16 imm  
+    | 20-> PUSH20 imm  
+    | 32-> PUSH32 imm  
+    | n -> err "push_n : NonSupportedNumber"
+
+
+
+
+let realize_imm lyt = function 
     | Big b                         ->  b
     | Int i                         ->  big i
     | Label l                       ->  big (lookup_label l)
-    | RnMthdLabel    (idx,mthd_hd)  ->  big (lookup_label (lookup_entry (Mthd(idx,mthd_hd)))) 
+    | RnMthdLabel    (idx,mhd)      ->  big (lookup_label (lookup_entry (Mthd(idx,mhd)))) 
     | StorPC                        ->  big (lyt.stor.pc)
     | StorVarBegin          idx     ->  big (lyt.stor.vars idx).offst
 
@@ -93,7 +140,7 @@ let rec realize_imm lyt = function
     | RnCrOffset            idx     ->  big (lookup idx lyt.rn_crs_pos)
     | RnCnOffset            idx     ->  big (lookup idx lyt.rn_cns_pos)
 
-let rec numerize_imm = function
+let numerize_imm = function
     | Big b                     -> Big (b)
     | Int i                     -> Big (big i)
     | Label l                   -> Big (big (lookup_label l))
@@ -102,8 +149,7 @@ let rec numerize_imm = function
     | StorVarBegin _            -> Big (big 2)
     | imm                       -> imm
 
-
-let classify_PUSH_imm = function 
+let classify_PUSH_imm n = function 
     | PUSH imm                  -> begin match numerize_imm imm with 
         | Big b                     -> begin 
                                         if b <! big 0 then err "PUSH VALUE cannot be NEGATIVE" else
@@ -114,8 +160,8 @@ let classify_PUSH_imm = function
                                         if b <! big 256^! big 16   then PUSH16 (Big b)  else
                                         if b <! big 256^! big 20   then PUSH20 (Big b)  else 
                                         if b <! big 256^! big 32   then PUSH32 (Big b)  else
-                                        err "PUSH VALUE IS TOO LARGE" end 
-        | imm                       -> PUSH8 imm end 
+                                        err "classify_PUSH_imm: TOO BIG INT" end 
+        | imm                       -> push_n n imm end 
     | opcode                    -> opcode ;;
 
 let classify_PUSH b = 

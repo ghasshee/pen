@@ -518,12 +518,12 @@ let init_rntime lookup_cn cns =
     let vm      =   error_loop                          vm      in 
     let vm      =   get_PC                              vm      in
     let vm      =   JUMP                            @>> vm      in
-    { rn_vm         = vm
-    ; rn_cns_pos    = [] }
+                            { rn_vm         = vm
+                            ; rn_cns_pos    = [] }
 
 let append_rntime sto rc (idx,cn)   = (* #DEBUG pe("compiling contract" ^ str_of_int idx); *)
-    { rn_vm         = codegen_cntrct sto (rn_init_ctx cn) rc.rn_vm (idx,cn)
-    ; rn_cns_pos    = insert idx (code_len rc.rn_vm) rc.rn_cns_pos    }
+                            { rn_vm         = codegen_cntrct sto (rn_init_ctx cn) rc.rn_vm (idx,cn)
+                            ; rn_cns_pos    = insert idx (code_len rc.rn_vm) rc.rn_cns_pos    }
 
 let compile_rntime sto cns   = 
     let rn      =   init_rntime (lookup_cnidx cns) cns          in 
@@ -575,6 +575,19 @@ let sizes_of_crs        =   L.map snd $ idx_sort $ map size_of_cr
 let progs_of_crs        =   L.map snd $ idx_sort $ map prog_of_cr 
 let prog_of_crs         =   L.concat  $ L.rev    $ progs_of_crs 
 
+
+let sizes_of_codes crs rn = 
+    let sz_rn,la_rn             =   vsize_of_prog rn.rn_vm.program in
+    let i_crs                   =   map (vsize_of_prog $ extract_prog $ vm_of_cr) crs in 
+    let _,crs                   =   unzip i_crs in 
+    let szs_crs,las_crs         =   unzip crs in 
+    let sz_crs,la_crs           =   sum szs_crs, sum las_crs in 
+    let sz,la                   =   sz_rn + sz_crs , la_rn + la_crs in 
+    let temp_size               =   sz + la * (1 + 32) in 
+    let push_size               =   1 + log_size (big temp_size) in 
+    push_size, sz + la * push_size :: sz_rn + la_rn * push_size ::  L.map (fun (sz,la) -> sz + la * push_size) crs
+
+
 (* 
 let rec offsts_of_sizes init = function 
     | []            ->  []
@@ -588,10 +601,10 @@ let offsts_of_sizes init sizes =
     loop [] init sizes
 
 let cr_infos_of_crs     =   map (fun cr -> 
-                        { cr_size           = size_of_prog (prog_of_cr cr)
-                        ; var_size          = size_of_vars_in_cn cr.cr_cn                                  
-                        ; arr_size          = len  (arrTys_of_cn cr.cr_cn)                             
-                        ; fld_types         = fldTys_of_cn       cr.cr_cn  } )
+                            { cr_size           = size_of_prog (prog_of_cr cr)
+                            ; var_size          = size_of_vars_in_cn cr.cr_cn                                  
+                            ; arr_size          = len  (arrTys_of_cn cr.cr_cn)                             
+                            ; fld_types         = fldTys_of_cn       cr.cr_cn  } )
                                                                             
 let rn_info_of_rn rn crs =
     let crs_sizes   =   sizes_of_crs crs                            in
@@ -603,8 +616,12 @@ let rn_info_of_rn rn crs =
                         ; crs_sizes         = to_ilist crs_sizes    }
 
 let compose_bytecode crs rn idx : big_int Evm.program =
-    let crs         =   map (fun cr -> { cr with cr_vm = { cr.cr_vm with program = L.map classify_PUSH_imm cr.cr_vm.program } }) crs in 
-    let rn          =   { rn with rn_vm = { rn.rn_vm with program = L.map classify_PUSH_imm rn.rn_vm.program } } in 
+    let pushsz, szs =   sizes_of_codes crs rn in 
+    let pushsz      =   pushsz - 1 in 
+    (*let ()          =   pi pushsz in 
+    let ()          =   pr_ints szs in  *)
+    let crs         =   map (fun cr -> { cr with cr_vm = { cr.cr_vm with program = L.map (classify_PUSH_imm pushsz) cr.cr_vm.program } }) crs in 
+    let rn          =   { rn with rn_vm = { rn.rn_vm with program = L.map (classify_PUSH_imm pushsz) rn.rn_vm.program } } in 
     let rn_info     =   rn_info_of_rn rn  crs                       in (* rn_size *)
     let cr_infos    =   cr_infos_of_crs   crs                       in 
     let layt        =   init_layout cr_infos rn_info                in

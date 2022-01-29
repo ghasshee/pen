@@ -79,6 +79,7 @@ let tl                      = L.tl
 let rev                     = L.rev
 let zip                     = L.combine
 let unzip                   = L.split 
+let sum                     = foldl (+) 0
 
 let pr_ints                 = pe $ foldl (fun x xs -> pe x;xs) "" $ L.map str_of_int 
 
