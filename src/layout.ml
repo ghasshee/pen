@@ -79,6 +79,11 @@ let init_layout   l ri          =   { initdata_size = calc_initdata_size l ri
                                     ; rn_crs_pos    = ri.crs_pos
                                     ; stor          = init_storage l          }
 
+
+(*************************)
+(* SIZE DECISION of PUSH *) 
+(*************************)
+
 let log_size b   = 
     if b <! big 0 then err "log_size takes POSITIVE value" else 
     if b <! big 0x100 ^! big 1  then 1  else  
@@ -89,7 +94,6 @@ let log_size b   =
     if b <! big 0x100 ^! big 16 then 16 else 
     if b <! big 0x100 ^! big 20 then 20 else 
     if b <! big 0x100 ^! big 32 then 32 else err "log_size: TOO BIG INT"
-
 
 exception SizeDeterminedLater
 
@@ -115,18 +119,41 @@ let vsize_of_prog =
     loop 0
 
 let push_n n imm = match n with 
-    | 1 -> PUSH1  imm   
-    | 2 -> PUSH2  imm   
-    | 4 -> PUSH4  imm     
-    | 5 -> PUSH5  imm  
-    | 8 -> PUSH8  imm  
-    | 16-> PUSH16 imm  
-    | 20-> PUSH20 imm  
-    | 32-> PUSH32 imm  
-    | n -> err "push_n : NonSupportedNumber"
+    | 1  -> PUSH1  imm   | 8  -> PUSH8  imm 
+    | 2  -> PUSH2  imm   | 16 -> PUSH16 imm 
+    | 4  -> PUSH4  imm   | 20 -> PUSH20 imm   
+    | 5  -> PUSH5  imm   | 32 -> PUSH32 imm 
+    | n     -> err "push_n : NonSupportedNumber"
+
+let numerize_imm = function
+    | Big b                     -> Big (b)
+    | Int i                     -> Big (big i)
+    | Label l                   -> Big (big (lookup_label l))
+    | RnMthdLabel (idx,mhd)     -> Big (big (lookup_label (lookup_entry (Mthd(idx,mhd)))))
+    | StorPC                    -> Big (big 0)
+    | StorVarBegin _            -> Big (big 2)
+    | imm                       -> imm
+
+let classify_PUSH sol_push_sz = function 
+    | PUSH imm                  -> begin match numerize_imm imm with 
+        | Big b                     -> begin 
+                                        if b <! big 0 then err "PUSH VALUE cannot be NEGATIVE" else
+                                        if b <! big 256^! big 1    then PUSH1  (Big b)  else
+                                        if b <! big 256^! big 2    then PUSH2  (Big b)  else
+                                        if b <! big 256^! big 4    then PUSH4  (Big b)  else 
+                                        if b <! big 256^! big 5    then PUSH5  (Big b)  else 
+                                        if b <! big 256^! big 8    then PUSH8  (Big b)  else 
+                                        if b <! big 256^! big 16   then PUSH16 (Big b)  else
+                                        if b <! big 256^! big 20   then PUSH20 (Big b)  else 
+                                        if b <! big 256^! big 32   then PUSH32 (Big b)  else
+                                        err "classify_PUSH: TOO BIG INT" end 
+        | imm                       -> push_n sol_push_sz imm end 
+    | opcode                    -> opcode ;;
 
 
-
+(***********************************)
+(* PROGRAM REALIZATION with LAYOUT *) 
+(***********************************)
 
 let realize_imm lyt = function 
     | Big b                         ->  b
@@ -142,45 +169,7 @@ let realize_imm lyt = function
     | RnCrOffset            idx     ->  big (lookup idx lyt.rn_crs_pos)
     | RnCnOffset            idx     ->  big (lookup idx lyt.rn_cns_pos)
 
-let numerize_imm = function
-    | Big b                     -> Big (b)
-    | Int i                     -> Big (big i)
-    | Label l                   -> Big (big (lookup_label l))
-    | RnMthdLabel (idx,mhd)     -> Big (big (lookup_label (lookup_entry (Mthd(idx,mhd)))))
-    | StorPC                    -> Big (big 0)
-    | StorVarBegin _            -> Big (big 2)
-    | imm                       -> imm
-
-let classify_PUSH_imm n = function 
-    | PUSH imm                  -> begin match numerize_imm imm with 
-        | Big b                     -> begin 
-                                        if b <! big 0 then err "PUSH VALUE cannot be NEGATIVE" else
-                                        if b <! big 256^! big 1    then PUSH1  (Big b)  else
-                                        if b <! big 256^! big 2    then PUSH2  (Big b)  else
-                                        if b <! big 256^! big 4    then PUSH4  (Big b)  else 
-                                        if b <! big 256^! big 5    then PUSH5  (Big b)  else 
-                                        if b <! big 256^! big 8    then PUSH8  (Big b)  else 
-                                        if b <! big 256^! big 16   then PUSH16 (Big b)  else
-                                        if b <! big 256^! big 20   then PUSH20 (Big b)  else 
-                                        if b <! big 256^! big 32   then PUSH32 (Big b)  else
-                                        err "classify_PUSH_imm: TOO BIG INT" end 
-        | imm                       -> push_n n imm end 
-    | opcode                    -> opcode ;;
-(*
-let classify_PUSH b = 
-    if b <! big 0        then err "PUSH VALUE cannot be NEGATIVE" else
-    if b <! big 256^! big 1    then PUSH1  b   else
-    if b <! big 256^! big 2    then PUSH1  b   else
-    if b <! big 256^! big 4    then PUSH4  b   else 
-    if b <! big 256^! big 5    then PUSH5  b   else 
-    if b <! big 256^! big 8    then PUSH8  b   else 
-    if b <! big 256^! big 16   then PUSH16 b   else
-    if b <! big 256^! big 20   then PUSH20 b   else 
-    if b <! big 256^! big 32   then PUSH32 b   else
-    err "PUSH VALUE IS TOO LARGE"
-*)
 let realize_opcode lyt  = function 
- (*   | PUSH   imm      -> classify_PUSH (realize_imm lyt imm) *)
     | PUSH1  imm      -> PUSH1 (realize_imm lyt imm)
     | PUSH2  imm      -> PUSH2 (realize_imm lyt imm)
     | PUSH4  imm      -> PUSH4 (realize_imm lyt imm)
@@ -226,20 +215,21 @@ let realize_opcode lyt  = function
     | EXTCODECOPY     -> EXTCODECOPY      | DUP7            -> DUP7              
     | Comment s       -> Comment s        
                                                                           
-
 let realize_prog lyt p = L.map (realize_opcode lyt) p 
 
-let rec gen_arg_locs offst used_vars used_aids varsize = function 
+
+
+
+let rec gen_arg_locs offst vid aid varsz = function 
     | []        ->  []
     | ty::tys   ->  if is_mapping ty
-                    then (offst + varsize + used_aids) :: gen_arg_locs offst used_vars (used_aids+1) varsize tys
-                    else (offst           + used_vars) :: gen_arg_locs offst (used_vars+1) used_aids varsize tys
+                    then offst + varsz + aid :: gen_arg_locs offst vid (aid+1) varsz tys
+                    else offst         + vid :: gen_arg_locs offst (vid+1) aid varsz tys
 
-(* this needs to take stor_fieldVars_begin *)
 let arg_locs_of_cn offst cn : int list =
     let fldtys          = fldTys_of_cn cn               in
-    let varsize         = count_vars fldtys             in
-    gen_arg_locs offst 0 0 varsize fldtys 
+    let varsz           = count_vars fldtys             in
+    gen_arg_locs offst 0 0 varsz fldtys 
 
 let arr_locs_of_cn cn : int list =
     let fldtys          = fldTys_of_cn cn               in

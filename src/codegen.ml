@@ -484,9 +484,7 @@ and codegen_return ret cont sto le vm =
     let le,vm   =   cont_call cont                   sto le vm      in
     let vm      =   (match ret with
     | TmUnit,_  ->  STOP                                @>> vm        
-    | tm        ->  
-    let le,vm   =   mstore_tm tm                   R sto le vm      in
-                    RETURN                              @>> vm  )   in 
+    | tm        ->  RETURN @>> snd ( mstore_tm tm  R sto le vm ))   in 
     let vm      =   Comment "END RETURN"                @>> vm      in 
     le,vm
 
@@ -620,8 +618,8 @@ let compose_bytecode crs rn idx : big_int Evm.program =
     let pushsz      =   pushsz - 1 in 
     let ()          =   pi pushsz in 
     let ()          =   pr_ints szs in  
-    let crs         =   map (fun cr -> { cr with cr_vm = { cr.cr_vm with program = L.map (classify_PUSH_imm pushsz) cr.cr_vm.program } }) crs in 
-    let rn          =   { rn with rn_vm = { rn.rn_vm with program = L.map (classify_PUSH_imm pushsz) rn.rn_vm.program } } in 
+    let crs         =   map (fun cr -> { cr with cr_vm = { cr.cr_vm with program = L.map (classify_PUSH pushsz) cr.cr_vm.program } }) crs in 
+    let rn          =   { rn with rn_vm = { rn.rn_vm with program = L.map (classify_PUSH pushsz) rn.rn_vm.program } } in 
     let rn_info     =   rn_info_of_rn rn  crs                       in (* rn_size *)
     let cr_infos    =   cr_infos_of_crs   crs                       in 
     let layt        =   init_layout cr_infos rn_info                in
