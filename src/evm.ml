@@ -20,7 +20,7 @@ type 'imm opcode =
     | POP       | MLOAD     | MSTORE    | MSTORE8   | SLOAD     | SSTORE            (*  50s *)
     | JUMP      | JUMPI     | PC        | MSIZE     | GAS       | JUMPDEST of Label.label
     | PUSH  of 'imm
-    | PUSH1 of 'imm   | PUSH4 of 'imm   | PUSH5 of 'imm         | PUSH8 of 'imm     (*  60s *)
+    | PUSH1 of 'imm | PUSH2 of 'imm | PUSH4 of 'imm | PUSH5 of 'imm | PUSH8 of 'imm (*  60s *)
     | PUSH16 of 'imm        | PUSH20 of 'imm        | PUSH32 of 'imm                (*      *)
     | DUP1      | DUP2      | DUP3      | DUP4      | DUP5      | DUP6      | DUP7  (*  80s *)
     | SWAP1     | SWAP2     | SWAP3     | SWAP4     | SWAP5     | SWAP6             (*  90s *)
@@ -122,6 +122,7 @@ let str_of_opcode str_of_push = function
 
 let str_of_push_big = function
   | PUSH1  v        -> "PUSH1 " ^ str_of_hex (hex_of_big v  1)
+  | PUSH2  v        -> "PUSH2 " ^ str_of_hex (hex_of_big v  2)
   | PUSH4  v        -> "PUSH4 " ^ str_of_hex (hex_of_big v  4)
   | PUSH5  v        -> "PUSH5 " ^ str_of_hex (hex_of_big v  5)
   | PUSH8  v        -> "PUSH8 " ^ str_of_hex (hex_of_big v  8)
@@ -143,6 +144,7 @@ let pr_opcodes_big        p = pf "%s"(str_of_opcodes_big p)
 let hex_of_opcode = 
   let h = hex_of_str in function 
   | PUSH1 i         -> concat_hex (h "60") (hex_of_big i  1)
+  | PUSH2 i         -> concat_hex (h "61") (hex_of_big i  2)
   | PUSH4 i         -> concat_hex (h "63") (hex_of_big i  4)
   | PUSH5 i         -> concat_hex (h "64") (hex_of_big i  5)
   | PUSH8 i         -> concat_hex (h "67") (hex_of_big i  8)
@@ -206,6 +208,7 @@ let encode_program       p  = str_of_hex ~prefix:"0x" (hex_of_program p)
 let size_of_opcode  = function 
   | Comment _       -> 0 
   | PUSH1 _         -> 1 + 1 
+  | PUSH2 _         -> 1 + 2
   | PUSH4 _         -> 1 + 4 
   | PUSH5 _         -> 1 + 5 
   | PUSH8 _         -> 1 + 8 

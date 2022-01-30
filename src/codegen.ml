@@ -618,8 +618,8 @@ let rn_info_of_rn rn crs =
 let compose_bytecode crs rn idx : big_int Evm.program =
     let pushsz, szs =   sizes_of_codes crs rn in 
     let pushsz      =   pushsz - 1 in 
-    (*let ()          =   pi pushsz in 
-    let ()          =   pr_ints szs in  *)
+    let ()          =   pi pushsz in 
+    let ()          =   pr_ints szs in  
     let crs         =   map (fun cr -> { cr with cr_vm = { cr.cr_vm with program = L.map (classify_PUSH_imm pushsz) cr.cr_vm.program } }) crs in 
     let rn          =   { rn with rn_vm = { rn.rn_vm with program = L.map (classify_PUSH_imm pushsz) rn.rn_vm.program } } in 
     let rn_info     =   rn_info_of_rn rn  crs                       in (* rn_size *)

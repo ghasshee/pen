@@ -82,6 +82,7 @@ let init_layout   l ri          =   { initdata_size = calc_initdata_size l ri
 let log_size b   = 
     if b <! big 0 then err "log_size takes POSITIVE value" else 
     if b <! big 0x100 ^! big 1  then 1  else  
+    if b <! big 0x100 ^! big 2  then 2  else  
     if b <! big 0x100 ^! big 4  then 4  else 
     if b <! big 0x100 ^! big 5  then 5  else 
     if b <! big 0x100 ^! big 8  then 8  else  
@@ -115,6 +116,7 @@ let vsize_of_prog =
 
 let push_n n imm = match n with 
     | 1 -> PUSH1  imm   
+    | 2 -> PUSH2  imm   
     | 4 -> PUSH4  imm     
     | 5 -> PUSH5  imm  
     | 8 -> PUSH8  imm  
@@ -154,6 +156,7 @@ let classify_PUSH_imm n = function
         | Big b                     -> begin 
                                         if b <! big 0 then err "PUSH VALUE cannot be NEGATIVE" else
                                         if b <! big 256^! big 1    then PUSH1  (Big b)  else
+                                        if b <! big 256^! big 2    then PUSH2  (Big b)  else
                                         if b <! big 256^! big 4    then PUSH4  (Big b)  else 
                                         if b <! big 256^! big 5    then PUSH5  (Big b)  else 
                                         if b <! big 256^! big 8    then PUSH8  (Big b)  else 
@@ -163,10 +166,11 @@ let classify_PUSH_imm n = function
                                         err "classify_PUSH_imm: TOO BIG INT" end 
         | imm                       -> push_n n imm end 
     | opcode                    -> opcode ;;
-
+(*
 let classify_PUSH b = 
     if b <! big 0        then err "PUSH VALUE cannot be NEGATIVE" else
     if b <! big 256^! big 1    then PUSH1  b   else
+    if b <! big 256^! big 2    then PUSH1  b   else
     if b <! big 256^! big 4    then PUSH4  b   else 
     if b <! big 256^! big 5    then PUSH5  b   else 
     if b <! big 256^! big 8    then PUSH8  b   else 
@@ -174,10 +178,11 @@ let classify_PUSH b =
     if b <! big 256^! big 20   then PUSH20 b   else 
     if b <! big 256^! big 32   then PUSH32 b   else
     err "PUSH VALUE IS TOO LARGE"
-
+*)
 let realize_opcode lyt  = function 
  (*   | PUSH   imm      -> classify_PUSH (realize_imm lyt imm) *)
     | PUSH1  imm      -> PUSH1 (realize_imm lyt imm)
+    | PUSH2  imm      -> PUSH2 (realize_imm lyt imm)
     | PUSH4  imm      -> PUSH4 (realize_imm lyt imm)
     | PUSH5  imm      -> PUSH5 (realize_imm lyt imm)
     | PUSH8  imm      -> PUSH8 (realize_imm lyt imm)
