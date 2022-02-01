@@ -620,8 +620,8 @@ let rn_info_of_rn rn crs =
 
 let compose_bytecode crs rn idx : big_int Evm.program =
     let immsz,szs   =   sizes_of_codes crs rn in 
-    let ()          =   pf "imm_size is %d ↦ PUSH%d" immsz immsz in 
-    let ()          =   pr_ints szs in  
+    (*let ()          =   pf "imm_size is %d ↦ PUSH%d" immsz immsz in 
+    let ()          =   pr_ints szs in   *)
     let crs         =   map(update_prog_of_cr (dec_push_prog immsz))crs in 
     let rn          =       update_prog_of_rn (dec_push_prog immsz) rn  in 
     let rn_info     =   rn_info_of_rn rn  crs                           in (* rn_size *)
