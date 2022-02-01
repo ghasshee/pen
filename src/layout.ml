@@ -134,7 +134,7 @@ let numerize_imm = function
     | StorVarBegin _            -> Big (big 2)
     | imm                       -> imm
 
-let classify_PUSH sol_push_sz = function 
+let dec_PUSH sol_push_sz = function 
     | PUSH imm                  -> begin match numerize_imm imm with 
         | Big b                     -> begin 
                                         if b <! big 0 then err "PUSH VALUE cannot be NEGATIVE" else

@@ -582,9 +582,13 @@ let sizes_of_codes crs rn =
     let sz_crs,la_crs           =   sum szs_crs, sum las_crs in 
     let sz,la                   =   sz_rn + sz_crs , la_rn + la_crs in 
     let temp_size               =   sz + la * (1 + 32) in 
-    let push_size               =   1 + log_size (big temp_size) in 
-    push_size, sz + la * push_size :: sz_rn + la_rn * push_size ::  L.map (fun (sz,la) -> sz + la * push_size) crs
+    let imm_size                =   log_size (big temp_size) in 
+    let push_size               =   imm_size + 1 in 
+    imm_size, sz + la * push_size :: sz_rn + la_rn * push_size ::  L.map (fun (sz,la) -> sz + la * push_size) crs
 
+let dec_push_prog immsz     =   L.map (dec_PUSH immsz) 
+let update_prog_of_cr f cr  =   { cr with cr_vm = { cr.cr_vm with program = f cr.cr_vm.program } }
+let update_prog_of_rn f rn  =   { rn with rn_vm = { rn.rn_vm with program = f rn.rn_vm.program } }
 
 (* 
 let rec offsts_of_sizes init = function 
@@ -613,22 +617,22 @@ let rn_info_of_rn rn crs =
                         ; crs_pos           = to_ilist crs_offsts 
                         ; crs_sizes         = to_ilist crs_sizes    }
 
+
 let compose_bytecode crs rn idx : big_int Evm.program =
-    let pushsz, szs =   sizes_of_codes crs rn in 
-    let pushsz      =   pushsz - 1 in 
-    let ()          =   pi pushsz in 
+    let immsz,szs   =   sizes_of_codes crs rn in 
+    let ()          =   pf "imm_size is %d ↦ PUSH%d" immsz immsz in 
     let ()          =   pr_ints szs in  
-    let crs         =   map (fun cr -> { cr with cr_vm = { cr.cr_vm with program = L.map (classify_PUSH pushsz) cr.cr_vm.program } }) crs in 
-    let rn          =   { rn with rn_vm = { rn.rn_vm with program = L.map (classify_PUSH pushsz) rn.rn_vm.program } } in 
-    let rn_info     =   rn_info_of_rn rn  crs                       in (* rn_size *)
-    let cr_infos    =   cr_infos_of_crs   crs                       in 
-    let layt        =   init_layout cr_infos rn_info                in
-    let cr          =   lookup idx crs                              in
-    let cr_prog     =   prog_of_cr cr                               in
-    let crs_prog    =   prog_of_crs crs                             in 
-    let rn_prog     =   extract_prog rn.rn_vm                       in
-    let cr_code     =   realize_prog layt cr_prog                   in
-    let crs_code    =   realize_prog layt crs_prog                  in 
-    let rn_code     =   realize_prog layt rn_prog                   in 
+    let crs         =   map(update_prog_of_cr (dec_push_prog immsz))crs in 
+    let rn          =       update_prog_of_rn (dec_push_prog immsz) rn  in 
+    let rn_info     =   rn_info_of_rn rn  crs                           in (* rn_size *)
+    let cr_infos    =   cr_infos_of_crs   crs                           in 
+    let layt        =   init_layout cr_infos rn_info                    in
+    let cr          =   lookup idx crs                                  in
+    let cr_prog     =   prog_of_cr cr                                   in
+    let crs_prog    =   prog_of_crs crs                                 in 
+    let rn_prog     =   extract_prog rn.rn_vm                           in
+    let cr_code     =   realize_prog layt cr_prog                       in
+    let crs_code    =   realize_prog layt crs_prog                      in 
+    let rn_code     =   realize_prog layt rn_prog                       in 
     crs_code @ rn_code @ cr_code  
     (* the generated  OPCODE list is stored in reverse order *)
