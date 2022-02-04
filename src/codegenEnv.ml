@@ -28,10 +28,10 @@ let code_len           vm           =   size_of_prog vm.program
 
 let append_opcode vm opcode         = 
     (* if vm.stack_height < stack_popped opcode then raise StackUnderFlow else  *) 
-    ( match opcode with 
+  (*  ( match opcode with 
     | JUMPDEST l        ->  (try ignore      ( Label.lookup_label   l )
                             with Not_found ->  Label.register_label l (code_len vm) )
-    | _                 ->  () ) ; 
+    | _                 ->  () ) ; *)
     let height    = vm.stack_height - stack_popped opcode + stack_pushed opcode in
     if height > 1024 then raise StackOverFlow else    
     { stack_height          = height
@@ -39,6 +39,15 @@ let append_opcode vm opcode         =
     ; cns                   = vm.cns                }
 
 let (@>>) op vm                     =   append_opcode vm op  
+
+let mk_labels prog = let prog = rev prog in 
+    let rec loop size = function 
+    | []                    ->  []
+    | JUMPDEST l :: ops     ->  (try ignore     ( Label.lookup_label l )
+                                with Not_found -> Label.register_label l size); 
+                                loop (1 + size) ops
+    | op         :: ops     ->  loop (size_of_opcode op + size) ops in 
+    loop 0 prog
 
 
 (*************************************************)

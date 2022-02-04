@@ -100,8 +100,8 @@ exception SizeDeterminedLater
 let vsize_of_imm = function 
     | Big b                         ->  log_size b
     | Int i                         ->  log_size (big i)
-    | Label l                       ->  log_size (big (lookup_label l))
-    | RnMthdLabel (idx,mhd)         ->  log_size (big (lookup_entry (Mthd(idx,mhd))))
+    (*| Label l                       ->  begin try log_size (big (lookup_label l)) with _ -> err"vsize_of_imm" end *)
+    (*| RnMthdLabel (idx,mhd)         ->  log_size (big (lookup_entry (Mthd(idx,mhd)))) *)
     | StorPC                        ->  1 
     | StorVarBegin      idx         ->  1
     | _                             ->  raise SizeDeterminedLater 
@@ -128,8 +128,8 @@ let push_n n imm = match n with
 let numerize_imm = function
     | Big b                     -> Big (b)
     | Int i                     -> Big (big i)
-    | Label l                   -> Big (big (lookup_label l))
-    | RnMthdLabel (idx,mhd)     -> Big (big (lookup_label (lookup_entry (Mthd(idx,mhd)))))
+    (*| Label l                   -> begin try Big (big (lookup_label l)) with _ -> err "numerize_imm" end*) 
+    (*| RnMthdLabel (idx,mhd)     -> Big (big (lookup_label (lookup_entry (Mthd(idx,mhd))))) *)
     | StorPC                    -> Big (big 0)
     | StorVarBegin _            -> Big (big 2)
     | imm                       -> imm

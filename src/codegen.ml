@@ -574,6 +574,7 @@ let progs_of_crs        =   L.map snd $ idx_sort $ map prog_of_cr
 let prog_of_crs         =   L.concat  $ L.rev    $ progs_of_crs 
 
 
+(*  PUSH SIZE SOLVER *) 
 let sizes_of_codes crs rn = 
     let sz_rn,la_rn             =   vsize_of_prog rn.rn_vm.program in
     let i_crs                   =   map (vsize_of_prog $ extract_prog $ vm_of_cr) crs in 
@@ -622,8 +623,10 @@ let compose_bytecode crs rn idx : big_int Evm.program =
     let immsz,szs   =   sizes_of_codes crs rn in 
     (*let ()          =   pf "imm_size is %d ↦ PUSH%d" immsz immsz in 
     let ()          =   pr_ints szs in   *)
-    let crs         =   map(update_prog_of_cr (dec_push_prog immsz))crs in 
     let rn          =       update_prog_of_rn (dec_push_prog immsz) rn  in 
+    let crs         =   map(update_prog_of_cr (dec_push_prog immsz))crs in 
+    let _           =       update_prog_of_rn  mk_labels            rn  in 
+    let _           =   map(update_prog_of_cr  mk_labels)           crs in
     let rn_info     =   rn_info_of_rn rn  crs                           in (* rn_size *)
     let cr_infos    =   cr_infos_of_crs   crs                           in 
     let layt        =   init_layout cr_infos rn_info                    in

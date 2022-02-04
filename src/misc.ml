@@ -148,6 +148,7 @@ let to_ilist            =   function
 
 let idx_sort         l  =   L.sort (fun a b -> compare (fst a)(fst b)) l 
 let map              f  =   L.map  (fun(i,x)-> (i,f x)) 
+let iter             f  =   L.iter (fun(i,x)-> f x)
 let imap             f  =   L.map  (fun(i,x)-> (i,f i)) 
 let filter_map       f  =   BL.filter_map (fun(i,x)->BO.map(fun y->i,y)(f x))
 let pr_imap          f  =   L.iter (fun i -> pf "%d ↦ %d, "i(f i))
