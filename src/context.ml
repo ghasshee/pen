@@ -103,7 +103,7 @@ let positions_of_argLens lens   =
     loop [] 4(* signature length *) lens
 
 let callerArgLocs_of_mthd       =   function 
-    | TmMthd(TyDefault,_)           ->  []
+    | TmMthd(TyDflt,_)           ->  []
     | TmMthd(TyMthd(id,args,ret),_) ->  let sizes       = L.map calldata_size_of_arg args   in
                                         let positions   = positions_of_argLens sizes        in
                                         let size_pos    = L.combine positions sizes         in

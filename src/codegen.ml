@@ -37,7 +37,7 @@ let dispatch_mthd idx le vm m =                                           (*    
                     JUMPI                                   @>> vm          (* if m=ABCD then GOTO Rntime(m)             ABCD >> .. *)
 
 let dispatch_dflt idx le vm   =
-    let vm      =   PUSH(RnMthdLabel(idx,TyDefault))        @>> vm      in
+    let vm      =   PUSH(RnMthdLabel(idx,TyDflt))        @>> vm      in
                     JUMP                                    @>> vm     
 
 let dispatcher idx (TmCn(_,_,mthds)) le vm = 
@@ -323,7 +323,7 @@ and mstore_mhash_and_args mthd args ly le vm =                        (*        
                     SWAP1                               @>> vm          (*                                 &mhash >> argsize+4 >> .. *)
 
 and codegen_mthd_argLen_chk m vm = match m with  
-    | TyDefault     -> vm
+    | TyDflt     -> vm
     | TyMthd _      ->
     let vm      =   PUSH(Int(calldatasize m))           @>> vm      in
     let vm      =   CALLDATASIZE                        @>> vm      in

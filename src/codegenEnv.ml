@@ -27,11 +27,6 @@ let code_len           vm           =   size_of_prog vm.program
 (***************************************)
 
 let append_opcode vm opcode         = 
-    (* if vm.stack_height < stack_popped opcode then raise StackUnderFlow else  *) 
-  (*  ( match opcode with 
-    | JUMPDEST l        ->  (try ignore      ( Label.lookup_label   l )
-                            with Not_found ->  Label.register_label l (code_len vm) )
-    | _                 ->  () ) ; *)
     let height    = vm.stack_height - stack_popped opcode + stack_pushed opcode in
     if height > 1024 then raise StackOverFlow else    
     { stack_height          = height
@@ -54,9 +49,9 @@ let mk_labels prog = let prog = rev prog in
 (*    BECOME := lookup continuation contracts    *) 
 (*************************************************)
 
-let rec  become (TmCn(_,_,mthds))   =   mthds_become mthds
+let rec  become (TmCn(_,_,ms))      =   mthds_become ms
 and mthds_become ms                 =   L.concat (L.map mthd_become ms)
-and mthd_become(TmMthd(_,body))     =   tm_become body 
+and mthd_become(TmMthd(_,bd))       =   tm_become bd 
 and tms_become es                   =   L.concat (L.map tm_become es)
 and tm_become  e                    =   match fst e with
     | TmAbort  | TmUnit  | TmTrue | TmFalse | EpNow | TmThis | EpValue | TmSender | TmId _  | TmU8 _ | TmU256 _ -> []
@@ -75,28 +70,48 @@ and tm_become  e                    =   match fst e with
                                                                      | None          -> [] )
                                 
 
+let becomes vm cn =  
+    let rec loop seen cn = 
+        if L.mem cn seen then raise Not_found else 
+        let seen    = cn :: seen                        in
+        let becomes = L.map (cn_of_nm vm) (become cn)   in 
+        let rec loop2 seen = function 
+            | []    -> seen 
+            | b::bs -> try loop seen b 
+                       with Not_found -> loop2 (b::seen) bs in 
+        loop2 seen becomes in 
+    loop [] cn
+        
+
 
 (* LOOKUP_USUALMETHOD *) 
+let mthd_has_name nm = function 
+    | TmMthd(TyDflt,_)          -> false
+    | TmMthd(TyMthd(id,_,_),_)  -> id=nm 
+    | _                         -> err("mthd_has_name: "^nm^" not found")
 
-let lookup_mthd_head_at_cn (TmCn(_,_,mthds)) mname =
-    match L.filter (function | TmMthd(TyDefault,_)       -> false
-                             | TmMthd(TyMthd(id,_,_),_)  -> id=mname) mthds with 
-    | []            ->  raise Not_found
-    | [a]           ->  let TmMthd(head,_) = a in head 
-    | _::_::_       ->  ef "method %s duplicated\n%!" mname; err "lookup_mthd_info_in_cntrct" 
+let find_mhead_of_cn mnm (TmCn(_,_,ms)) = 
+    match L.filter (mthd_has_name mnm) ms with 
+    | []        -> raise Not_found
+    | [m]       -> let TmMthd(hd,_) = m in hd
+    | _         -> err("find_mhead_of_cn : mthd "^mnm^" duplicated ")
 
-let rec lookup_mthd_head vm     = lookup_mthd_head_top vm [] 
-and     lookup_mthd_head_top vm seen cn mname =
+let lookup_mthd_head vm cn mnm  = find_by (find_mhead_of_cn mnm) (becomes vm cn)   
+
+(*
+let rec lookup_mthd_head vm     = find_mhead vm [] 
+
+and     find_mhead vm seen cn mnm =
     if L.mem cn seen then raise Not_found else
-    try  lookup_mthd_head_at_cn cn mname
-    with Not_found  ->  let seen        = cn :: seen in
-                        let becomes     = L.map(cn_of_nm vm)(become cn) in
+    try  find_mhead_of_cn cn mnm
+    with Not_found  ->  let seen        =   cn :: seen in
+                        let becomes     =   L.map(cn_of_nm vm)(become cn) in
                         let rec lookup_becomes seen = function 
                            | []         ->  raise Not_found
-                           | b::bs      ->  try lookup_mthd_head_top vm seen b mname 
-                                            with Not_found -> lookup_becomes(b::seen)bs  in
+                           | b::bs      ->  try  find_mhead vm seen b mnm 
+                                            with Not_found -> lookup_becomes (b::seen) bs  in
                         lookup_becomes seen becomes
 
 
-
+*)
 

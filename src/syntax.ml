@@ -21,7 +21,7 @@ type ty           (* atomic *)  =   TyErr
                   (* atomic *)  |   TyMap       of ty * ty 
                   (* atomic *)  |   TyIstc    of str                       
  (* TyMthd(id,args,ret)     *)  |   TyMthd      of str * ty list * ty        
-                                |   TyDefault
+                                |   TyDflt
                                 |   TyRef       of ty 
  (* TyAbs(arg, ret)         *)  |   TyAbs       of  ty * ty                  
                                 |   TyI         of int * int                 
@@ -113,9 +113,9 @@ let varTys_of_cn(TmCn(_,fls,_)) =   filter_vars fls
 let arrTys_of_cn(TmCn(_,fls,_)) =   filter_arrs fls
 let fldTys_of_cn(TmCn(_,fls,_)) =   tys_of_vars fls
 
-let filter_method               =   BL.filter_map (function   | TyDefault             -> None 
+let filter_method               =   BL.filter_map (function   | TyDflt             -> None 
                                                               | TyMthd(i,a,r)         -> Some (TyMthd(i,a,r)) )  
-let default_exists              =   L.exists      (function   | TyDefault             -> true
+let default_exists              =   L.exists      (function   | TyDflt             -> true
                                                               | TyMthd(_,_,_)         -> false  )
 
 let cnname_of_ret_cont          = function 
@@ -124,7 +124,7 @@ let cnname_of_ret_cont          = function
 
 let argTys_of_mthd              = function 
     | TyMthd(_,argTys,_)        -> argTys
-    | TyDefault                 -> []
+    | TyDflt                 -> []
 
 (*****************************************)
 (***           PRINTING                ***)
@@ -143,7 +143,7 @@ let rec str_of_ty               =  function
     | TyCn(id,_,_)              ->  "contract arch "     ^ id
     | TyIstc     s            ->  "contract instance " ^ s
     | TyMthd(id,_,_)            ->  "method " ^ id 
-    | TyDefault                 ->  "default" 
+    | TyDflt                 ->  "default" 
     | TyAbs(a,b)                ->  str_of_ty a ^ "→" ^ str_of_ty b
     | _                         ->  "undefined" 
 

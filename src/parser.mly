@@ -58,7 +58,7 @@ mthd:
     | mthd_head LBRACE tm RBRACE                    { TmMthd($1,$3 [])                                                                          }
 
 mthd_head:
-    | DEFAULT                                       { TyDefault                                                                                 }
+    | DEFAULT                                       { TyDflt                                                                                 }
     | METHOD ty ID plist(arg)                       { TyMthd($3,$4,$2)                                                                          }
     | METHOD LPAR RPAR ID plist(arg)                { TyMthd($4,$5,TyUnit   )                                                                   }
 

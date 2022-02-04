@@ -43,7 +43,7 @@ let find_tyMthd       mname = find_by (function TyCn(_,_,mthds)              -> 
 
 let typeof_mthd                 =   function 
     | TmMthd(TyMthd(id,ags,r),_)    ->  TyMthd(id, tys_of_vars ags, r)
-    | TmMthd(TyDefault,_)           ->  TyMthd("", [], TyUnit   ) 
+    | TmMthd(TyDflt,_)           ->  TyMthd("", [], TyUnit   ) 
 
 let typeof_cn(TmCn(id,flds,ms)) =   TyCn(id, tys_of_vars flds, L.map typeof_mthd ms)
 let typeof_cns                  =   map typeof_cn 
@@ -215,7 +215,7 @@ and typechecks tys actual       =   L.for_all2 (fun ty (_,a)-> ty=a) tys actual
 (************************************) 
 
 let type_mthd_head cns         =   function 
-    | TyDefault                     ->  TyDefault
+    | TyDflt                     ->  TyDflt
     | TyMthd(id,argTys,retTy)       ->  assert (BL.for_all (arg_has_known_ty (typeof_cns cns)) argTys) ; 
                                         (* #DEBUG  pe("is_known_ty: " ^ str_of_ty retTy);  *)
                                         assert (is_known_ty (typeof_cns cns) retTy) ;
@@ -223,7 +223,7 @@ let type_mthd_head cns         =   function
 
 let rettypeof_mthd = function 
     | TyMthd(_,_,rety)      -> rety
-    | TyDefault             -> TyUnit   
+    | TyDflt             -> TyUnit   
 
 let type_mthd cns cn_name ctx (TmMthd(head,body)) = 
     let rety        =   rettypeof_mthd head             in
@@ -234,7 +234,7 @@ let type_mthd cns cn_name ctx (TmMthd(head,body)) =
     TmMthd(type_mthd_head cns head, type_tm cns cn_name ctx'' body)
 
 let unique_sig (TmCn(_,_,mthds)) =
-    let sigs        =   L.map (function | TmMthd(TyDefault,_)   -> None
+    let sigs        =   L.map (function | TmMthd(TyDflt,_)   -> None
                                         | TmMthd(tyM,_)         -> Some (str_of_tyMthd tyM)) mthds in
     L.length sigs = L.length(BL.unique sigs) 
 
