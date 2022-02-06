@@ -1,0 +1,97 @@
+assoc.cmo : assoc.cmi
+assoc.cmx : assoc.cmi
+assoc.cmi :
+bamboo.cmo : type.cmi syntax.cmi support.cmo lexer.cmo storage.cmi \
+    evm.cmi crypto.cmi codegen.cmi assoc.cmi
+bamboo.cmx : type.cmx syntax.cmx support.cmx lexer.cmx storage.cmx \
+    evm.cmx crypto.cmx codegen.cmx assoc.cmx
+codegen.cmo : syntax.cmi storage.cmi pseudoImm.cmi locationEnv.cmi \
+    location.cmi storage.cmi label.cmi evm.cmi crypto.cmi \
+    entryDatabase.cmi cntrct.cmi codegenEnv.cmi assoc.cmi codegen.cmi
+codegen.cmx : syntax.cmx storage.cmx pseudoImm.cmx locationEnv.cmx \
+    location.cmx storage.cmx label.cmx evm.cmx crypto.cmx \
+    entryDatabase.cmx cntrct.cmx codegenEnv.cmx assoc.cmx codegen.cmi
+codegen.cmi : syntax.cmi pseudoImm.cmi locationEnv.cmi storage.cmi \
+    evm.cmi cntrct.cmi codegenEnv.cmi assoc.cmi
+codegenEnv.cmo : syntax.cmi pseudoImm.cmi label.cmi evm.cmi assoc.cmi \
+    codegenEnv.cmi
+codegenEnv.cmx : syntax.cmx pseudoImm.cmx label.cmx evm.cmx assoc.cmx \
+    codegenEnv.cmi
+codegenEnv.cmi : syntax.cmi pseudoImm.cmi evm.cmi assoc.cmi
+compileFile.cmo : type.cmi syntax.cmi parse.cmi storage.cmi evm.cmi \
+    codegen.cmi assoc.cmi compileFile.cmi
+compileFile.cmx : type.cmx syntax.cmx parse.cmx storage.cmx evm.cmx \
+    codegen.cmx assoc.cmx compileFile.cmi
+compileFile.cmi :
+cntrct.cmo : syntax.cmi misc.cmi crypto.cmi cntrct.cmi
+cntrct.cmx : syntax.cmx misc.cmx crypto.cmx cntrct.cmi
+cntrct.cmi : syntax.cmi crypto.cmi assoc.cmi
+endToEnd.cmo : crypto.cmi compileFile.cmi
+endToEnd.cmx : crypto.cmx compileFile.cmx
+entryDatabase.cmo : syntax.cmi label.cmi assoc.cmi \
+    entryDatabase.cmi
+entryDatabase.cmx : syntax.cmx label.cmx assoc.cmx \
+    entryDatabase.cmi
+entryDatabase.cmi : syntax.cmi label.cmi assoc.cmi
+crypto.cmo : syntax.cmi location.cmi assoc.cmi crypto.cmi
+crypto.cmx : syntax.cmx location.cmx assoc.cmx crypto.cmi
+crypto.cmi : syntax.cmi location.cmi assoc.cmi
+evm.cmo : pseudoImm.cmi label.cmi hexa.cmi evm.cmi
+evm.cmx : pseudoImm.cmx label.cmx hexa.cmx evm.cmi
+evm.cmi : pseudoImm.cmi label.cmi hexa.cmi
+hex_test.cmo : hexa.cmi evm.cmi
+hex_test.cmx : hexa.cmx evm.cmx
+hexa.cmo : hexa.cmi
+hexa.cmx : hexa.cmi
+hexa.cmi :
+label.cmo : label.cmi
+label.cmx : label.cmi
+label.cmi :
+storage.cmo : syntax.cmi storage.cmi pseudoImm.cmi label.cmi evm.cmi \
+    crypto.cmi entryDatabase.cmi assoc.cmi storage.cmi
+storage.cmx : syntax.cmx storage.cmx pseudoImm.cmx label.cmx evm.cmx \
+    crypto.cmx entryDatabase.cmx assoc.cmx storage.cmi
+storage.cmi : syntax.cmi storage.cmi pseudoImm.cmi evm.cmi assoc.cmi
+lexer.cmo : parser.cmi
+lexer.cmx : parser.cmx
+location.cmo : pseudoImm.cmi location.cmi
+location.cmx : pseudoImm.cmx location.cmi
+location.cmi : pseudoImm.cmi
+locationEnv.cmo : syntax.cmi pseudoImm.cmi misc.cmi location.cmi \
+    crypto.cmi assoc.cmi locationEnv.cmi
+locationEnv.cmx : syntax.cmx pseudoImm.cmx misc.cmx location.cmx \
+    crypto.cmx assoc.cmx locationEnv.cmi
+locationEnv.cmi : syntax.cmi location.cmi crypto.cmi assoc.cmi
+misc.cmo : misc.cmi
+misc.cmx : misc.cmi
+misc.cmi :
+parse.cmo : parser.cmi lexer.cmo parse.cmi
+parse.cmx : parser.cmx lexer.cmx parse.cmi
+parse.cmi : syntax.cmi
+parser.cmo : syntax.cmi parser.cmi
+parser.cmx : syntax.cmx parser.cmi
+parser.cmi : syntax.cmi
+parser_test.cmo : parser.cmi lexer.cmo
+parser_test.cmx : parser.cmx lexer.cmx
+pseudoImm.cmo : syntax.cmi label.cmi assoc.cmi pseudoImm.cmi
+pseudoImm.cmx : syntax.cmx label.cmx assoc.cmx pseudoImm.cmi
+pseudoImm.cmi : syntax.cmi label.cmi assoc.cmi
+sideEffect.cmo : sideEffect.cmi
+sideEffect.cmx : sideEffect.cmi
+sideEffect.cmi :
+storage.cmo : storage.cmi
+storage.cmx : storage.cmi
+storage.cmi :
+support.cmo : parser.cmi lexer.cmo
+support.cmx : parser.cmx lexer.cmx
+syntax.cmo : sideEffect.cmi syntax.cmi
+syntax.cmx : sideEffect.cmx syntax.cmi
+syntax.cmi : sideEffect.cmi
+type.cmo : context.cmi syntax.cmi sideEffect.cmi crypto.cmi cntrct.cmi \
+    assoc.cmi type.cmi
+type.cmx : context.cmx syntax.cmx sideEffect.cmx crypto.cmx cntrct.cmx \
+    assoc.cmx type.cmi
+type.cmi : syntax.cmi assoc.cmi
+context.cmo : syntax.cmi misc.cmi assoc.cmi context.cmi
+context.cmx : syntax.cmx misc.cmx assoc.cmx context.cmi
+context.cmi : syntax.cmi sideEffect.cmi assoc.cmi

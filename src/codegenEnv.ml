@@ -96,7 +96,7 @@ let find_mhead_of_cn mnm (TmCn(_,_,ms)) =
     | [m]       -> let TmMthd(hd,_) = m in hd
     | _         -> err("find_mhead_of_cn : mthd "^mnm^" duplicated ")
 
-let lookup_mthd_head vm cn mnm  = find_by (find_mhead_of_cn mnm) (becomes vm cn)   
+let find_mhead vm cn mnm  = find_by (find_mhead_of_cn mnm) (becomes vm cn)   
 
 (*
 let rec lookup_mthd_head vm     = find_mhead vm [] 
