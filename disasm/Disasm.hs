@@ -172,5 +172,3 @@ disasm l = case l of
     "FF":s  -> SELFDESTRUCT                     : disasm s
     e   :s  -> UNDEFINED (map toUpper e) : disasm s 
 
-disasm_DUP  n s = undefined -- ("DUP"  ++ show n) : disasm s
-disasm_SWAP n s = undefined -- ("SWAP" ++ show n) : disasm s
