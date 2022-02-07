@@ -4,11 +4,13 @@ import Data.Char
 import Prelude hiding (EQ,LT,GT) 
 
 import Asm
+import Hex
 
 
 main = do 
     words <- mkList [] 
-    pr $ disasm $ map (map toUpper) $ words 
+    let prog = disasm $ map (map toUpper) $ words 
+    pr True 0 prog 
 
 mkList l = do 
     e <- isEOF
@@ -18,8 +20,19 @@ mkList l = do
     b <- getChar 
     mkList $ [a,b] : l 
 
-pr []       = return ()
-pr (s:ss)   = do print s; pr ss 
+
+pr :: Bool -> Integer -> [OPCODE] -> IO ()
+pr cr sz []       = return ()
+pr cr sz (s:ss)   = do 
+                    let hex = toHex sz 
+                    let len = length hex
+                    putStr $ replicate (8-len) '0'
+                    putStr hex
+                    putStr ":   "
+                    print s
+                    if s==INVALID && cr 
+                        then do putStrLn "// RUNTIME"; pr False 0 ss 
+                        else pr cr (sz + size s) ss 
 
 disasm l = case l of 
     []      ->                                          []

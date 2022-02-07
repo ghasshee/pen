@@ -144,3 +144,40 @@ data OPCODE = UNDEFINED String
             | INVALID
             | SELFDESTRUCT deriving (Show, Eq)
 
+size :: OPCODE -> Integer 
+size op = case op of 
+    PUSH1  _ -> 1 + 1 
+    PUSH2  _ -> 1 + 2 
+    PUSH3  _ -> 1 + 3 
+    PUSH4  _ -> 1 + 4 
+    PUSH5  _ -> 1 + 5 
+    PUSH6  _ -> 1 + 6 
+    PUSH7  _ -> 1 + 7 
+    PUSH8  _ -> 1 + 8  
+    PUSH9  _ -> 1 + 9 
+    PUSH10 _ -> 1 + 10
+    PUSH11 _ -> 1 + 11
+    PUSH12 _ -> 1 + 12
+    PUSH13 _ -> 1 + 13
+    PUSH14 _ -> 1 + 14
+    PUSH15 _ -> 1 + 15
+    PUSH16 _ -> 1 + 16
+    PUSH17 _ -> 1 + 17
+    PUSH18 _ -> 1 + 18
+    PUSH19 _ -> 1 + 19
+    PUSH20 _ -> 1 + 20
+    PUSH21 _ -> 1 + 21
+    PUSH22 _ -> 1 + 22
+    PUSH23 _ -> 1 + 23
+    PUSH24 _ -> 1 + 24
+    PUSH25 _ -> 1 + 25
+    PUSH26 _ -> 1 + 26
+    PUSH27 _ -> 1 + 27
+    PUSH28 _ -> 1 + 28
+    PUSH29 _ -> 1 + 29
+    PUSH30 _ -> 1 + 30
+    PUSH31 _ -> 1 + 31
+    PUSH32 _ -> 1 + 32
+    _        -> 1
+
+

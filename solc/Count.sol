@@ -12,15 +12,5 @@ contract Count {
     }
 }
 
-contract Object {
-    uint256 id;
-
-    abstract constructor() public {
-        id = 100;
-    }
-    function get() public returns (uint256) {
-        return id;
-    }
-}
 
 
