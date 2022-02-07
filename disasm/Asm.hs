@@ -1,12 +1,5 @@
 module Asm where 
 
-import System.IO 
-import Data.Word
-import Data.Binary.Get
-import Data.List 
-import Data.Char
-
-
 data OPCODE = UNDEFINED String
             | STOP
             | ADD         

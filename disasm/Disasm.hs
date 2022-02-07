@@ -3,31 +3,27 @@ import Data.List
 import Data.Char
 import Prelude hiding (EQ,LT,GT) 
 
-import Hex
 import Asm
 
-mkList :: [String] -> IO [String]
-mkList l = do 
-    e <- isEOF
-    if e then return $ reverse l else do 
-    a <- getChar
-    if a == '\n' then return $ reverse l else do 
-    b <- getChar 
-    let word = [a,b] 
-    mkList $ word : l 
 
 main = do 
     words <- mkList [] 
-    let words' = map (map toUpper) words
-    let l = disasm words'
-    pr l 
+    pr $ disasm $ map (map toUpper) $ words 
+
+mkList l = do 
+    e <- isEOF
+    if e          then return $ reverse l else do 
+    a <- getChar
+    if a == '\n'  then return $ reverse l else do 
+    b <- getChar 
+    mkList $ [a,b] : l 
 
 pr []       = return ()
-pr (s:ss)   = do putStrLn (show s); pr ss 
+pr (s:ss)   = do print s; pr ss 
 
 disasm l = case l of 
-    []      -> []
-    "0x":s  -> disasm s 
+    []      ->                                          []
+    "0x":s  ->                                    disasm s 
     "00":s  -> STOP                             : disasm s
     "01":s  -> ADD                              : disasm s 
     "02":s  -> MUL                              : disasm s 
@@ -170,5 +166,5 @@ disasm l = case l of
     "FD":s  -> REVERT                           : disasm s
     "FE":s  -> INVALID                          : disasm s
     "FF":s  -> SELFDESTRUCT                     : disasm s
-    e   :s  -> UNDEFINED (map toUpper e) : disasm s 
+    e   :s  -> UNDEFINED e                      : disasm s 
 
