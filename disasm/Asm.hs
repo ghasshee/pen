@@ -1,6 +1,9 @@
 module Asm where 
 
-data OPCODE = UNDEFINED String
+
+data OPCODE = L | R | EOF
+            | UNDEFINED String
+            | INFO      String
             | STOP
             | ADD         
             | MUL
