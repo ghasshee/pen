@@ -151,7 +151,7 @@ splitF opcodes = case opcodes of
     []              -> ([], []) 
 
     
-parse = fmap splitF . fparen . (\ops -> cut ops []) 
+parse = concat . fmap (fst . splitF) . fparen . (\ops -> cut ops []) 
 
     
     
