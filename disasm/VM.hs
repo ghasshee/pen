@@ -6,17 +6,25 @@ import Tree
 
 rev = reverse 
 
+cut []       blks       = rev blks   
+cut(o:os) ((JUMP:b):bs) = cut os ([o]:(JUMP:b):bs) 
+cut(o:os) []            = cut os ([o]:[])
+cut(o:os) (b:bs)        = cut os ((o:b):bs) 
 
-paren ops = par (rev ops) [-2]
+fparen blks = fmap paren blks 
+
+paren ops = par ops [-2]
  
 par                 :: [OPCODE] -> [Int] -> [OPCODE] 
 par [EOF] [-2]      = []
 par []   l          = par [EOF] l 
 par asms (hd:tl)    = 
-    if hd == -1  then error "arg counting stack cannot be -1" else   
-    if hd == 0   then case tl of 
-                    [-2]    -> (R : par [EOF] [-2])  
-                    t:ts    -> R : par asms (t-1:ts) else case asms of 
+    if hd == -1 then error "arg counting stack cannot be -1" else   
+    if hd == 0  then case tl of 
+                    [-2]    -> (R : par [EOF] [-2]    )  
+                    t:ts    -> (R : par asms (t-1:ts) )
+                    []      -> (R : []                )
+                else case asms of 
     STOP            : os    -> (L : STOP       : R : par os (hd:tl)     ) 
     ADD             : os    -> (L : ADD            : par os (2:hd:tl)   )      
     MUL             : os    -> (L : MUL            : par os (2:hd:tl)   ) 
@@ -98,9 +106,9 @@ prog =
      MUL, 
      POP, 
      PUSH1 "10",
-     SUB]
-prog1 = 
-    [PUSH1 "9",
+     SUB,
+     JUMP,
+     PUSH1 "9",
      PUSH1 "1", PUSH1 "2", ADD, 
      PUSH1 "3", PUSH1 "4", SUB, 
      PUSH1 "7",
@@ -143,7 +151,7 @@ splitF opcodes = case opcodes of
     []              -> ([], []) 
 
     
-parse = splitF . paren 
+parse = fmap splitF . fparen . (\ops -> cut ops []) 
 
     
     

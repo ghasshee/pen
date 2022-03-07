@@ -8,7 +8,7 @@ data RBTree a' = RED a' [RBTree a']
                | BLK a' [RBTree a'] deriving Eq 
 
 instance Show a' => Show (RBTree a') where 
-    show    = showT "    "
+    show  s  = "\n" ++ showT "    " s
         where
         showT s (RED a x)       = "+-  " ++ show a ++ "\n" ++ showF s x 
         showT s (BLK a x)       = "*-( " ++ show a ++ "\n" ++ showF s x
