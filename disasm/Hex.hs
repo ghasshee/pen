@@ -19,9 +19,9 @@ hexChar 'E' = 14
 hexChar 'F' = 15
 
 
-parseHex :: String -> Integer 
-parseHex [] = 0 
-parseHex str = hexChar (last str) + 16 * parseHex (init str)
+fromHex :: String -> Integer 
+fromHex [] = 0 
+fromHex str = hexChar (last str) + 16 * fromHex (init str)
 
 
 toHexChar :: Integer -> Char
