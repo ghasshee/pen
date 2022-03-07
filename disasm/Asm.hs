@@ -1,7 +1,13 @@
+{-# LANGUAGE TypeOperators #-} 
+{-# LANGUAGE DataKinds #-} 
+
 module Asm where 
 
+import Tree 
+import Data.Finite 
 
-data OPCODE = L | R | EOF
+
+data OPCODE = L | R | EOF 
             | UNDEFINED String
             | INFO      String
             | STOP
@@ -67,6 +73,7 @@ data OPCODE = L | R | EOF
             | MSIZE
             | GAS
             | JUMPDEST
+            | PUSH (Finite 33) String
             | PUSH1  String 
             | PUSH2  String 
             | PUSH3  String 
@@ -99,6 +106,7 @@ data OPCODE = L | R | EOF
             | PUSH30 String 
             | PUSH31 String 
             | PUSH32 String 
+            | DUP (Finite 17) 
             | DUP1 
             | DUP2 
             | DUP3 
@@ -131,6 +139,7 @@ data OPCODE = L | R | EOF
             | SWAP14
             | SWAP15
             | SWAP16
+            | LOG (Finite 5) 
             | LOG0
             | LOG1
             | LOG2
