@@ -12,6 +12,8 @@ main = do
     words <- mkList [] 
     let prog = disasm 2 $ map (map toUpper) $ words 
     pr True 0 prog 
+    let tree = parse prog 
+    print tree
 
 mkList l = do 
     e <- isEOF
@@ -89,7 +91,7 @@ disasm n l      = case l of
     "39":s      -> CODECOPY                         : disasm n s
     "3A":s      -> GASPRICE                         : disasm n s
     "3B":s      -> EXTCODESIZE                      : disasm n s
-    "3C":s      -> EXTCODESOPY                      : disasm n s
+    "3C":s      -> EXTCODECOPY                      : disasm n s
     "3D":s      -> RETURNDATASIZE                   : disasm n s
     "3E":s      -> RETURNDATACOPY                   : disasm n s
     "3F":s      -> EXTCODEHASH                      : disasm n s
