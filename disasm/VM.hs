@@ -84,7 +84,7 @@ par (o:os)(hd:tl)   = let f = par os in case o of
     MSTORE8         -> L : MSTORE8          : f (2:hd+1:tl) 
     SLOAD           -> L : SLOAD            : f (1:hd:tl)   
     SSTORE          -> L : SSTORE           : f (2:hd+1:tl) 
-    JUMP            -> L : JUMP             : f [1]         
+    JUMP            -> L : JUMP             : f (1:hd+1:tl)         
     JUMPI           -> L : JUMPI            : f (2:hd+1:tl)  
     JUMPDEST        -> L : JUMPDEST     : R : f (hd+1:tl)    
     PC              -> L : PC           : R : f (hd-1:tl)   
