@@ -230,8 +230,9 @@
 ],[
 *-( JUMPDEST
 ],[
++-  PUSH1 "3D"
+,
 *-( JUMP
-    +-  PUSH1 "3D"
     +-  PUSH1 "54"
 ],[
 *-( JUMPDEST
@@ -259,12 +260,16 @@
 ],[
 *-( JUMPDEST
 ],[
++-  SLOAD
+    +-  PUSH1 "00"
+,
++-  PUSH1 "60"
+,
++-  SWAP1
+,
++-  PUSH1 "01"
+,
 *-( JUMP
-    +-  SLOAD
-    |   +-  PUSH1 "00"
-    +-  PUSH1 "60"
-    +-  SWAP1
-    +-  PUSH1 "01"
     +-  PUSH1 "65"
 ],[
 *-( JUMPDEST
