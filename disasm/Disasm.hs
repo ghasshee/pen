@@ -1,4 +1,5 @@
 import System.IO 
+import Control.Monad
 import Data.List 
 import Data.Char
 import Prelude hiding (EQ,LT,GT) 
@@ -12,7 +13,9 @@ main = do
     words <- mkList [] 
     let prog = disasm 2 $ map (map toUpper) $ words 
     pr True 0 prog 
-    let tree = parse prog 
+    let progs = cuts prog 
+    mapM print $ progs 
+    let tree = fparse progs
     print tree
 
 mkList l = do 

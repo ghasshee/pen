@@ -2,10 +2,34 @@ module Tree where
 
 import Comonad
 
-data Tree a' = Node a' [Tree a'] deriving Eq
+data Tree a'    = Node a' [Tree a']     deriving Eq
 
-data RBTree a' = RED a' [RBTree a'] 
-               | BLK a' [RBTree a'] deriving Eq 
+data RBTree a'  = RED a' [RBTree a'] 
+                | BLK a' [RBTree a']    deriving Eq 
+
+
+data ROOT a'    = RT Int [RBLTree a'] deriving (Show, Eq) 
+
+data RBLTree a' = RD  a' [RBLTree a'] 
+                | BK  a' [RBLTree a'] 
+                | LN     (ROOT   a')  deriving Eq  
+
+instance Show a' => Show (RBLTree a') where 
+    show  s  = "\n" ++ showT "    " s
+        where
+        showT s (RD a x)        = "+-  " ++ show a ++ "\n" ++ showF s x 
+        showT s (BK a x)        = "*-( " ++ show a ++ "\n" ++ showF s x
+        showT s (LN(RT n _))    = "*=> LINK" ++ show n
+        showF s []              = ""
+        showF s [RD a x]        = s ++ "+-  " ++ show a ++ "\n" ++ showF(s ++ "    ")x
+        showF s [BK a x]        = s ++ "*-( " ++ show a ++ "\n" ++ showF(s ++ "    ")x
+        showF s [LN(RT n _)]    = s ++ "*=> LINK " ++ show n ++ "\n" 
+        showF s (RD a x:xs)     = s ++ "+-  " ++ show a ++ "\n" 
+                                    ++ showF(s ++ "|   ")x ++ showF s xs 
+        showF s (BK a x:xs)     = s ++ "*-( " ++ show a ++ "\n" 
+                                    ++ showF(s ++ "|   ")x ++ showF s xs 
+        showF s (LN(RT n _):xs) = s ++ "*=> LINK " ++ show n ++ "\n" 
+                                    ++ showF s xs 
 
 instance Show a' => Show (RBTree a') where 
     show  s  = "\n" ++ showT "    " s
@@ -29,11 +53,11 @@ instance Show a' => Show (Tree a') where
         showF s (Node a x:xs)   = s ++ "+- " ++ show a ++ "\n" ++ showF(s ++ "|  ")x
                                     ++ showF s xs 
 
+
 foldt g h d c (Node a [])       = g a d 
 foldt g h d c (Node a xs)       = g a (foldf g h d c xs)
 foldf g h d c []                = c 
 foldf g h d c (x:xs)            = h (foldt g h d c x) (foldf g h d c xs)
-
 
 foldrbt g h d c (RED a [])      = g a d 
 foldrbt g h d c (BLK a [])      = g a d 
@@ -41,6 +65,14 @@ foldrbt g h d c (RED a xs)      = g a (foldrbf g h d c xs)
 foldrbt g h d c (BLK a xs)      = g a (foldrbf g h d c xs)
 foldrbf g h d c []              = c 
 foldrbf g h d c (x:xs)          = h (foldrbt g h d c x) (foldrbf g h d c xs)
+
+foldrblt g h d c (RD a [])      = g a d 
+foldrblt g h d c (BK a [])      = g a d 
+foldrblt g h d c (RD a xs)      = g a (foldrblf g h d c xs)
+foldrblt g h d c (BK a xs)      = g a (foldrblf g h d c xs)
+foldrblf g h d c []             = c 
+foldrblf g h d c (x:xs)         = h (foldrblt g h d c x) (foldrblf g h d c xs)
+
 
 instance Functor RBTree where   
     fmap f (RED a [])           = RED (f a) []
