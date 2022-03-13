@@ -1,6 +1,6 @@
 
 all : 
-	ghc Disasm
+	ghc Main -o Devm 
 
 clean : 
 	rm Disasm *.o *.hi

@@ -138,22 +138,22 @@ par (o:os)(hd:tl)   = let f = par os in case o of
     DUP14           -> L : DUP14        : R : f (hd-1:tl)   
     DUP15           -> L : DUP15        : R : f (hd-1:tl)   
     DUP16           -> L : DUP16        : R : f (hd-1:tl)   
-    SWAP1           -> L : SWAP1        : R : f (hd+1:tl)   
-    SWAP2           -> L : SWAP2        : R : f (hd+1:tl)   
-    SWAP3           -> L : SWAP3        : R : f (hd+1:tl)   
-    SWAP4           -> L : SWAP4        : R : f (hd+1:tl)   
-    SWAP5           -> L : SWAP5        : R : f (hd+1:tl)   
-    SWAP6           -> L : SWAP6        : R : f (hd+1:tl)   
-    SWAP7           -> L : SWAP7        : R : f (hd+1:tl)   
-    SWAP8           -> L : SWAP8        : R : f (hd+1:tl)   
-    SWAP9           -> L : SWAP9        : R : f (hd+1:tl)   
-    SWAP10          -> L : SWAP10       : R : f (hd+1:tl)   
-    SWAP11          -> L : SWAP11       : R : f (hd+1:tl)   
-    SWAP12          -> L : SWAP12       : R : f (hd+1:tl)   
-    SWAP13          -> L : SWAP13       : R : f (hd+1:tl)   
-    SWAP14          -> L : SWAP14       : R : f (hd+1:tl)   
-    SWAP15          -> L : SWAP15       : R : f (hd+1:tl)   
-    SWAP16          -> L : SWAP16       : R : f (hd+1:tl)   
+    SWAP1           -> L : SWAP1        : R : f (hd:tl)   
+    SWAP2           -> L : SWAP2        : R : f (hd:tl)   
+    SWAP3           -> L : SWAP3        : R : f (hd:tl)   
+    SWAP4           -> L : SWAP4        : R : f (hd:tl)   
+    SWAP5           -> L : SWAP5        : R : f (hd:tl)   
+    SWAP6           -> L : SWAP6        : R : f (hd:tl)   
+    SWAP7           -> L : SWAP7        : R : f (hd:tl)   
+    SWAP8           -> L : SWAP8        : R : f (hd:tl)   
+    SWAP9           -> L : SWAP9        : R : f (hd:tl)   
+    SWAP10          -> L : SWAP10       : R : f (hd:tl)   
+    SWAP11          -> L : SWAP11       : R : f (hd:tl)   
+    SWAP12          -> L : SWAP12       : R : f (hd:tl)   
+    SWAP13          -> L : SWAP13       : R : f (hd:tl)   
+    SWAP14          -> L : SWAP14       : R : f (hd:tl)   
+    SWAP15          -> L : SWAP15       : R : f (hd:tl)   
+    SWAP16          -> L : SWAP16       : R : f (hd:tl)   
     CREATE          -> L : CREATE           : f (3:hd:tl) 
     CALL            -> L : CALL             : f (7:hd:tl)
     CALLCODE        -> L : CALLCODE         : f (7:hd:tl)
@@ -211,6 +211,22 @@ splitT opcodes =
     JUMP            : os -> (BLK JUMP         (r ags), cnt)     where (ags,cnt) = f os
     JUMPI           : os -> (BLK JUMPI        (r ags), cnt)     where (ags,cnt) = f os
     JUMPDEST s      : os -> (BLK (JUMPDEST s) (r ags), cnt)     where (ags,cnt) = f os
+    SWAP1           : os -> (BLK SWAP1        (r ags), cnt)     where (ags,cnt) = f os
+    SWAP2           : os -> (BLK SWAP2        (r ags), cnt)     where (ags,cnt) = f os
+    SWAP3           : os -> (BLK SWAP3        (r ags), cnt)     where (ags,cnt) = f os
+    SWAP4           : os -> (BLK SWAP4        (r ags), cnt)     where (ags,cnt) = f os
+    SWAP5           : os -> (BLK SWAP5        (r ags), cnt)     where (ags,cnt) = f os
+    SWAP6           : os -> (BLK SWAP6        (r ags), cnt)     where (ags,cnt) = f os
+    SWAP7           : os -> (BLK SWAP7        (r ags), cnt)     where (ags,cnt) = f os
+    SWAP8           : os -> (BLK SWAP8        (r ags), cnt)     where (ags,cnt) = f os
+    SWAP9           : os -> (BLK SWAP9        (r ags), cnt)     where (ags,cnt) = f os
+    SWAP10          : os -> (BLK SWAP10       (r ags), cnt)     where (ags,cnt) = f os
+    SWAP11          : os -> (BLK SWAP11       (r ags), cnt)     where (ags,cnt) = f os
+    SWAP12          : os -> (BLK SWAP12       (r ags), cnt)     where (ags,cnt) = f os
+    SWAP13          : os -> (BLK SWAP13       (r ags), cnt)     where (ags,cnt) = f os
+    SWAP14          : os -> (BLK SWAP14       (r ags), cnt)     where (ags,cnt) = f os
+    SWAP15          : os -> (BLK SWAP15       (r ags), cnt)     where (ags,cnt) = f os
+    SWAP16          : os -> (BLK SWAP16       (r ags), cnt)     where (ags,cnt) = f os
     o               : os -> (RED o            (r ags), cnt)     where (ags,cnt) = f os 
 
 
