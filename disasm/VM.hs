@@ -7,17 +7,17 @@ import Tree
 bottom  = 0
 rev     = reverse 
 
-cut []       blks           = rev blks   
-cut(o:os) ((JUMP    :b):bs) = cut os ([o]:(JUMP:b):bs) 
-cut(o:os) ((RETURN  :b):bs) = cut os ([o]:(RETURN:b):bs) 
-cut(o:os) ((REVERT  :b):bs) = cut os ([o]:(REVERT:b):bs) 
-cut(o:os) ([JUMPDEST]  :bs) = cut os ([o]:[JUMPDEST]:bs)
-cut(o:os) ((JUMPDEST:b):bs) = cut os ([o]:[JUMPDEST]:b:bs)
-cut(o:os) ([INVALID]   :bs) = cut os ([o]:[INVALID]:bs)
-cut(o:os) ((INVALID :b):bs) = cut os ([o]:[INVALID]:b:bs)
-cut(o:os) []                = cut os ([o]:[])
-cut(o:os) ([]:bs)           = cut os ([o]:bs) 
-cut(o:os) (b:bs)            = cut os ((o:b):bs) 
+cut []       blks               = rev blks   
+cut(o:os) ((JUMP    :b):bs)     = cut os ([o]:(JUMP:b):bs) 
+cut(o:os) ((RETURN  :b):bs)     = cut os ([o]:(RETURN:b):bs) 
+cut(o:os) ((REVERT  :b):bs)     = cut os ([o]:(REVERT:b):bs) 
+cut(o:os) ([JUMPDEST s]  :bs)   = cut os ([o]:[JUMPDEST s]:bs)
+cut(o:os) ((JUMPDEST s:b):bs)   = cut os ([o]:[JUMPDEST s]:b:bs)
+cut(o:os) ([INVALID]   :bs)     = cut os ([o]:[INVALID]:bs)
+cut(o:os) ((INVALID :b):bs)     = cut os ([o]:[INVALID]:b:bs)
+cut(o:os) []                    = cut os ([o]:[])
+cut(o:os) ([]:bs)               = cut os ([o]:bs) 
+cut(o:os) (b:bs)                = cut os ((o:b):bs) 
 
 fparen blks = fmap paren blks 
 
@@ -86,7 +86,7 @@ par (o:os)(hd:tl)   = let f = par os in case o of
     SSTORE          -> L : SSTORE           : f (2:hd+1:tl) 
     JUMP            -> L : JUMP             : f (1:hd+1:tl)         
     JUMPI           -> L : JUMPI            : f (2:hd+1:tl)  
-    JUMPDEST        -> L : JUMPDEST     : R : f (hd+1:tl)    
+    JUMPDEST s      -> L : JUMPDEST s   : R : f (hd+1:tl)    
     PC              -> L : PC           : R : f (hd-1:tl)   
     MSIZE           -> L : MSIZE        : R : f (hd-1:tl)   
     GAS             -> L : GAS          : R : f (hd-1:tl)   
@@ -210,7 +210,7 @@ splitT opcodes =
     SSTORE          : os -> (BLK SSTORE       (r ags), cnt)     where (ags,cnt) = f os
     JUMP            : os -> (BLK JUMP         (r ags), cnt)     where (ags,cnt) = f os
     JUMPI           : os -> (BLK JUMPI        (r ags), cnt)     where (ags,cnt) = f os
-    JUMPDEST        : os -> (BLK JUMPDEST     (r ags), cnt)     where (ags,cnt) = f os
+    JUMPDEST s      : os -> (BLK (JUMPDEST s) (r ags), cnt)     where (ags,cnt) = f os
     o               : os -> (RED o            (r ags), cnt)     where (ags,cnt) = f os 
 
 

@@ -1,27 +1,26 @@
 module Hex where 
 
-hexChar :: Char -> Integer
-hexChar '0' = 0
-hexChar '1' = 1
-hexChar '2' = 2
-hexChar '3' = 3
-hexChar '4' = 4
-hexChar '5' = 5
-hexChar '6' = 6
-hexChar '7' = 7
-hexChar '8' = 8
-hexChar '9' = 9
-hexChar 'A' = 10
-hexChar 'B' = 11
-hexChar 'C' = 12
-hexChar 'D' = 13
-hexChar 'E' = 14
-hexChar 'F' = 15
+fromhexChar :: Char -> Integer
+fromhexChar '0' = 0
+fromhexChar '1' = 1
+fromhexChar '2' = 2
+fromhexChar '3' = 3
+fromhexChar '4' = 4
+fromhexChar '5' = 5
+fromhexChar '6' = 6
+fromhexChar '7' = 7
+fromhexChar '8' = 8
+fromhexChar '9' = 9
+fromhexChar 'A' = 10
+fromhexChar 'B' = 11
+fromhexChar 'C' = 12
+fromhexChar 'D' = 13
+fromhexChar 'E' = 14
+fromhexChar 'F' = 15
 
-
-fromHex :: String -> Integer 
-fromHex [] = 0 
-fromHex str = hexChar (last str) + 16 * fromHex (init str)
+fromHex     :: String -> Integer 
+fromHex []  = 0 
+fromHex str = fromhexChar (last str) + 16 * fromHex (init str)
 
 
 toHexChar :: Integer -> Char
@@ -42,7 +41,7 @@ toHexChar 13='D'
 toHexChar 14='E'  
 toHexChar 15='F'  
 
-toHex :: Integer -> String 
+toHex   :: Integer -> String 
 toHex 0 = ""
 toHex n = toHex (div n 16) ++ [toHexChar (rem n 16)]
 
