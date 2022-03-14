@@ -1,6 +1,6 @@
 
 all : 
-	ghc Main -o Devm 
+	ghc Decompile -o Devm 
 
 clean : 
-	rm Disasm *.o *.hi
+	rm Devm *.o *.hi
