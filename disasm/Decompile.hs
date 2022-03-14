@@ -4,19 +4,22 @@ module Main where
 import Lex
 import Disasm
 import VM
+import Tree
 
 
 main = do 
     -- | Lexer 
     words <- bytes 
     -- | DisAsm 
-    let prog = lineNo $ disAsm words 
+    let prog    = lineNo $ disAsm words 
     prAsm prog
     -- | Cut Asm 
-    let progs = cuts $ extract prog 
+    let progs   = cut $ extract prog 
     mapM print $ progs 
     -- | Decompile
-    let tree = fparse progs
+    let tree    = map parse progs
+    let ptree   = map elder_unclesRB tree
+    print ptree
     print tree
 
 

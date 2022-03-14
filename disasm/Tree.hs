@@ -74,6 +74,38 @@ foldrblf g h d c []             = c
 foldrblf g h d c (x:xs)         = h (foldrblt g h d c x) (foldrblf g h d c xs)
 
 
+ancesterRB = flip walkrbt [] where 
+    walkrbt (RED  a []) parents     = RED  (a,parents) []
+    walkrbt (RED  a xs) parents     = RED  (a,parents) (walkrbf xs (a:parents))
+    walkrbt (BLK  a []) parents     = BLK  (a,parents) []
+    walkrbt (BLK  a xs) parents     = BLK  (a,parents) (walkrbf xs (a:parents))
+    walkrbf []          parents     = []
+    walkrbf (x:xs)      parents     = walkrbt x parents : walkrbf xs parents 
+
+ancester = flip walkt [] where 
+    walkt (Node a []) parents       = Node (a,parents) []
+    walkt (Node a xs) parents       = Node (a,parents) (walkf xs (a:parents))
+    walkf []          parents       = []
+    walkf (x:xs)      parents       = walkt x parents : walkf xs parents 
+
+elder_uncles = flip walkt [] where 
+    walkt (Node a []) uncles        = Node (a,uncles) [] 
+    walkt (Node a xs) uncles        = Node (a,uncles) (walkf xs []) 
+    walkf []          uncles        = []
+    walkf (x:xs)      uncles        = walkt x uncles : walkf xs (x:uncles) 
+
+elder_unclesRB = flip walkt [] where
+    walkt (RED  a []) uncles        = RED  (a,uncles) [] 
+    walkt (BLK  a []) uncles        = BLK  (a,uncles) [] 
+    walkt (RED  a xs) uncles        = RED  (a,uncles) (walkf xs uncles) 
+    walkt (BLK  a xs) uncles        = BLK  (a,uncles) (walkf xs uncles) 
+    walkf []          uncles        = []
+    walkf (x:xs)      uncles        = walkt x uncles : walkf xs (a:uncles) 
+                                        where a = case x of 
+                                                    RED a _ -> a 
+                                                    BLK a _ -> a 
+    
+
 instance Functor RBTree where   
     fmap f (RED a [])           = RED (f a) []
     fmap f (BLK a [])           = BLK (f a) []

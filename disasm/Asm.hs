@@ -4,7 +4,7 @@ import Tree
 import Data.Finite 
 
 
-data OPCODE = L | R | EOF 
+data OPCODE = L | R | SEQ
             | UNDEFINED String
             | INFO      String
             | STOP
