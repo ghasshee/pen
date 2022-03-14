@@ -12,13 +12,15 @@ cut os  = ct os [] where
     ct (o:os) ((JUMP    :b):bs)     = ct os ([o]:(JUMP:b):bs) 
     ct (o:os) ((RETURN  :b):bs)     = ct os ([o]:(RETURN:b):bs) 
     ct (o:os) ((REVERT  :b):bs)     = ct os ([o]:(REVERT:b):bs) 
-    ct (o:os) ([JUMPDEST s]  :bs)   = ct os ([o]:[JUMPDEST s]:bs)
-    ct (o:os) ((JUMPDEST s:b):bs)   = ct os ([o]:[JUMPDEST s]:b:bs)
-    ct (o:os) ([INVALID]   :bs)     = ct os ([o]:[INVALID]:bs)
-    ct (o:os) ((INVALID :b):bs)     = ct os ([o]:[INVALID]:b:bs)
+    -- ct (o:os) ([JUMPDEST s]  :bs)   = ct os ([o]:[JUMPDEST s]:bs)
+    -- ct (o:os) ((JUMPDEST s:b):bs)   = ct os ([o]:[JUMPDEST s]:b:bs)
+    -- ct (o:os) ([INVALID]   :bs)     = ct os ([o]:[INVALID]:bs)
+    -- ct (o:os) ((INVALID :b):bs)     = ct os ([o]:[INVALID]:b:bs)
+    ct (JUMPDEST s:os)  bs          = ct os ([JUMPDEST s]:bs)
+    ct (INVALID:os)     bs          = ct os ([]:[INVALID]:bs)
     ct (o:os) []                    = ct os ([o]:[])
-    ct (o:os) ([]:bs)               = ct os ([o]:bs) 
     ct (o:os) (b:bs)                = ct os ((o:b):bs) 
+
 
 
 paren       :: [OPCODE] -> [OPCODE] 
@@ -226,6 +228,7 @@ splitT opcodes =
     SWAP14          : os -> (BLK SWAP14       (r ags), cnt)     where (ags,cnt) = f os
     SWAP15          : os -> (BLK SWAP15       (r ags), cnt)     where (ags,cnt) = f os
     SWAP16          : os -> (BLK SWAP16       (r ags), cnt)     where (ags,cnt) = f os
+    INVALID         : os -> (BLK INVALID      (r ags), cnt)     where (ags,cnt) = f os 
     o               : os -> (RED o            (r ags), cnt)     where (ags,cnt) = f os 
 
 
@@ -238,9 +241,8 @@ splitF opcodes = case opcodes of
 
 split opcodes = BLK SEQ $ rev $ fst $ splitF opcodes 
    
-parse prog  = split . paren $ prog 
-
-map_parse progs = map parse progs
+parse       = split . paren  
+map_parse   = map parse 
 
     
     

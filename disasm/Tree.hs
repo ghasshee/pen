@@ -100,10 +100,9 @@ elder_unclesRB = flip walkt [] where
     walkt (RED  a xs) uncles        = RED  (a,uncles) (walkf xs uncles) 
     walkt (BLK  a xs) uncles        = BLK  (a,uncles) (walkf xs uncles) 
     walkf []          uncles        = []
-    walkf (x:xs)      uncles        = walkt x uncles : walkf xs (a:uncles) 
-                                        where a = case x of 
-                                                    RED a _ -> a 
-                                                    BLK a _ -> a 
+    walkf (x:xs)      uncles        = walkt x uncles : case x of 
+                                            RED a _ -> walkf xs (a:uncles) 
+                                            BLK a _ -> walkf xs uncles 
     
 
 instance Functor RBTree where   
