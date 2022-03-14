@@ -8,18 +8,14 @@ bottom  = 0
 rev     = reverse 
 
 cut os  = ct os [] where 
-    ct  []       blks               = rev blks   
-    ct (o:os) ((JUMP    :b):bs)     = ct os ([o]:(JUMP:b):bs) 
-    ct (o:os) ((RETURN  :b):bs)     = ct os ([o]:(RETURN:b):bs) 
-    ct (o:os) ((REVERT  :b):bs)     = ct os ([o]:(REVERT:b):bs) 
-    -- ct (o:os) ([JUMPDEST s]  :bs)   = ct os ([o]:[JUMPDEST s]:bs)
-    -- ct (o:os) ((JUMPDEST s:b):bs)   = ct os ([o]:[JUMPDEST s]:b:bs)
-    -- ct (o:os) ([INVALID]   :bs)     = ct os ([o]:[INVALID]:bs)
-    -- ct (o:os) ((INVALID :b):bs)     = ct os ([o]:[INVALID]:b:bs)
-    ct (JUMPDEST s:os)  bs          = ct os ([JUMPDEST s]:bs)
-    ct (INVALID:os)     bs          = ct os ([]:[INVALID]:bs)
-    ct (o:os) []                    = ct os ([o]:[])
-    ct (o:os) (b:bs)                = ct os ((o:b):bs) 
+    ct  []       blks                   = rev blks   
+    ct (JUMPDEST s:os)  bs              = ct os ([]:[JUMPDEST s]:bs)
+    ct (INVALID   :os)  bs              = ct os ([]:[INVALID]:bs)
+    ct (o         :os) ((JUMP  :b):bs)  = ct os ([o]:(JUMP:b):bs) 
+    ct (o         :os) ((RETURN:b):bs)  = ct os ([o]:(RETURN:b):bs) 
+    ct (o         :os) ((REVERT:b):bs)  = ct os ([o]:(REVERT:b):bs) 
+    ct (o         :os)  []              = ct os ([o]:[])
+    ct (o         :os) (b:bs)           = ct os ((o:b):bs) 
 
 
 
@@ -163,7 +159,7 @@ paren ops   = p ops [0] where
         CREATE2         -> L : CREATE2          : f (4:hd:tl) 
         STATICCALL      -> L : STATICCALL       : f (6:hd:tl)
         REVERT          -> L : REVERT           : f (2:hd+1:tl)
-        INVALID         ->                        f (hd:tl)  
+        INVALID         -> L : INVALID      : R : f (hd:tl)  
         SELFDESTRUCT    -> L : SELFDESTRUCT     : f (1:hd+1:tl)
         INFO s          ->                        f (hd:tl)  
 
