@@ -18,7 +18,7 @@ instance Show Term where
 
 letbind o n = LET (X n) o 
 
-var t = fst $ vt t 0 where 
+var t = vt t where 
     vt (RED o []) n     = (RED (LET(X n)o) [],n+1)  
     vt (RED o xs) n     = (RED (LET(X n)o) xs', m) where
                                 (xs', m)    = vf xs (n+1) 
@@ -29,6 +29,12 @@ var t = fst $ vt t 0 where
     vf (x:xs)     n     = (x' : xs', k) where
                                 (x',m)      = vt x n 
                                 (xs',k)     = vf xs m
+
+mapvar ts = mvar ts 0 where 
+    mvar []     n   = []  
+    mvar (t:ts) n   = t' : mvar ts m where 
+                        (t', m)             = var t n
+
 
 
 elder_unclesLet = flip walkt [] where

@@ -19,7 +19,7 @@ main = do
     mapM print $ progs 
     -- | Decompile
     let tree    = map parse progs
-    let lettree = map var tree
+    let lettree = mapvar tree
     let ptree   = map elder_unclesLet lettree
     print lettree
     print "*****************************************************"
