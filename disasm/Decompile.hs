@@ -20,6 +20,10 @@ main = do
     let tree    = map parse progs
     let ptree   = map elder_unclesRB tree
     print ptree
+    
+    print "*****************************************************"
+    print "***       Generated Decompiled Tree               ***"
+    print "*****************************************************"
     print tree
 
 
