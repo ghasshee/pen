@@ -4,6 +4,7 @@ module Main where
 import Lex
 import Disasm
 import VM
+import Var 
 import Tree
 
 
@@ -18,9 +19,13 @@ main = do
     mapM print $ progs 
     -- | Decompile
     let tree    = map parse progs
-    let ptree   = map elder_unclesRB tree
+    let lettree = map var tree
+    let ptree   = map elder_unclesLet lettree
+    print lettree
+    print "*****************************************************"
+    print "***       Generated LET TREE                      ***"
+    print "*****************************************************"
     print ptree
-    
     print "*****************************************************"
     print "***       Generated Decompiled Tree               ***"
     print "*****************************************************"

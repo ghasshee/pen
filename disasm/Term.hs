@@ -3,6 +3,8 @@ module Term where
 
 
 
+
+
 data Tm     = TmADD             Tm Tm
             | TmSUB             Tm Tm 
             | TmMUL             Tm Tm
