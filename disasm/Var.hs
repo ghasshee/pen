@@ -13,10 +13,9 @@ data Term   = LET Var OPCODE
             | UNIT OPCODE 
 
 instance Show Term where 
-    show (LET v o) = "let " ++ show v ++ " = " ++ show o 
+    show (LET v o) = show v ++ " = " ++ show o 
     show (UNIT o)  = show o 
 
-letbind o n = LET (X n) o 
 
 var t = vt t where 
     vt (RED o []) n     = (RED (LET(X n)o) [],n+1)  
@@ -31,9 +30,9 @@ var t = vt t where
                                 (xs',k)     = vf xs m
 
 mapvar ts = mvar ts 0 where 
-    mvar []     n   = []  
-    mvar (t:ts) n   = t' : mvar ts m where 
-                        (t', m)             = var t n
+    mvar []     n       = []  
+    mvar (t:ts) n       = t' : mvar ts m where 
+                                (t', m)     = var t n
 
 
 
