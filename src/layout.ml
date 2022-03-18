@@ -178,6 +178,7 @@ let realize_opcode lyt  = function
     | PUSH16 imm      -> PUSH16(realize_imm lyt imm)
     | PUSH20 imm      -> PUSH20(realize_imm lyt imm)
     | PUSH32 imm      -> PUSH32(realize_imm lyt imm)
+    | INVALID         -> INVALID 
     | POP             -> POP              | MLOAD           -> MLOAD          
     | SHL             -> SHL              | MSTORE          -> MSTORE             
     | SHR             -> SHR              | MSTORE8         -> MSTORE8

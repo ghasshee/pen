@@ -19,22 +19,11 @@ module Crpt  = Crypto
 module BL   = BatList
 module L    = List
 
-let error_label = Int 3
+let error_label = Int 0 
 
 (******************************************************)
 (***     1. ERROR HANDLING                          ***)
 (******************************************************)
-let error_loop vm = 
-    let error   =   fresh_label ()                          in 
-    let boost   =   fresh_label ()                          in 
-    let vm      =   PUSH(Label boost)               @>> vm  in 
-    let vm      =   JUMP                            @>> vm  in 
-    let vm      =   Comment "BEGIN ERROR LOOP"      @>> vm  in 
-    let vm      =   JUMPDEST error                  @>> vm  in 
-    let vm      =   PUSH(Label error)               @>> vm  in 
-    let vm      =   JUMP                            @>> vm  in 
-    let vm      =   Comment "END   ERROR LOOP"      @>> vm  in 
-                    JUMPDEST boost                  @>> vm  
 
 let throw vm         = (* the same with solc. *)
     let vm      =   PUSH error_label                @>> vm  in

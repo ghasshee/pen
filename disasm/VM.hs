@@ -9,7 +9,7 @@ rev     = reverse
 
 cut os  = ct os [] where 
     ct  []       blks                   = rev blks   
-    ct (JUMPDEST s:os)  bs              = ct os ([]:[JUMPDEST s]:bs)
+    ct (JUMPDEST s:os)  bs              = ct os ([JUMPDEST s]:bs)
     ct (INVALID   :os)  bs              = ct os ([]:[INVALID]:bs)
     ct (o         :os) ((JUMP  :b):bs)  = ct os ([o]:(JUMP:b):bs) 
     ct (o         :os) ((RETURN:b):bs)  = ct os ([o]:(RETURN:b):bs) 

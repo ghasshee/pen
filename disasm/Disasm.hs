@@ -45,7 +45,7 @@ disAsm = loop 2 where
                         INFO (concat(take 3  s))         : loop 0 (drop 3 s)
     loop 0 (o:s)    =   INFO o                           : loop 0 s
     loop n (o:s)    =   case o of 
-        "0x"        ->                                     loop n s 
+        "0X"        ->                                     loop n s 
         "00"        ->  STOP                             : loop n s
         "01"        ->  ADD                              : loop n s 
         "02"        ->  MUL                              : loop n s 

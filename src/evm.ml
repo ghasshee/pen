@@ -34,6 +34,7 @@ type 'imm program       = 'imm opcode list
 let empty_prog          = []
 
 let stack_popped = function
+  | INVALID                                                         -> 0 
   | PUSH _                                                          -> 0
   | STOP|ADDRESS|ORIGIN|CALLER|CALLVALUE|TIMESTAMP                  -> 0
   | CODESIZE|CALLDATASIZE|PC|MSIZE|GAS|GASPRICE                     -> 0
@@ -55,6 +56,7 @@ let stack_popped = function
   | DUP7  -> 7   | SWAP6 -> 7
 
 let stack_pushed = function
+  | INVALID                                                         -> 0 
   | STOP | RETURN | SELFDESTRUCT                                    -> 0
   | POP                                                             -> 0
   | CALLDATACOPY|CODECOPY|EXTCODECOPY                               -> 0
@@ -186,7 +188,7 @@ let hex_of_opcode =
   | EXTCODECOPY     -> h "3c"    | CALLCODE        -> h "f2"
   | TIMESTAMP       -> h "42"    | RETURN          -> h "f3"
   | Comment s       -> h ""      | DELEGATECALL    -> h "f4"
-                                 | SELFDESTRUCT    -> h "ff"
+  | INVALID         -> h "fe"    | SELFDESTRUCT    -> h "ff"
   
   
 let log = function 

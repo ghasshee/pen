@@ -513,7 +513,6 @@ type rntime             =   { rn_vm         : vm
 
 let init_rntime lookup_cn cns =
     let vm      =   empty_vm cns                                in
-    let vm      =   error_loop                          vm      in 
     let vm      =   get_PC                              vm      in
     let vm      =   JUMP                            @>> vm      in
                             { rn_vm         = vm
@@ -549,7 +548,8 @@ let codegen_creation cns idx = (* return vm which contains the program *)
     let vm      =   set_PC            idx               vm      in  (* S[PC]   := rn_cn_offst    (returned body)                                *)
     let vm      =   mstore_rn_code    idx               vm      in  (*                                 alloc(codesize) << codesize << i <<  ..  *)
     let vm      =   RETURN                          @>> vm      in  (* OUTPUT(M[code]) as The BODY code                               i <<  ..  *)
-                    Comment("End Creation "^id)     @>> vm 
+    let vm      =   Comment("End Creation "^id)     @>> vm      in 
+                    INVALID                         @>> vm      
 
 type creation           =   { cr_vm           : vm
                             ; cr_ty           : ty

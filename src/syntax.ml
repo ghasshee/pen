@@ -137,13 +137,13 @@ let rec str_of_ty               =  function
     | TyAddr                    ->  "address" 
     | TyBool                    ->  "bool" 
     | TyRef              _      ->  "ref" 
-    | TyUnit                    ->  "()"
+    | TyUnit                    ->  "void"
     | TyTuple            _      ->  "tuple" 
-    | TyMap(a,b)                ->  "mapping" 
-    | TyCn(id,_,_)              ->  "contract arch "     ^ id
-    | TyIstc     s            ->  "contract instance " ^ s
+    | TyMap(a,b)                ->  "mapping ("^str_of_ty a^" => "^str_of_ty b^")" 
+    | TyCn(id,_,_)              ->  "ContractArchType " ^ id
+    | TyIstc     s              ->  "ContractInstanceType " ^ s
     | TyMthd(id,_,_)            ->  "method " ^ id 
-    | TyDflt                 ->  "default" 
+    | TyDflt                    ->  "default" 
     | TyAbs(a,b)                ->  str_of_ty a ^ "→" ^ str_of_ty b
     | _                         ->  "undefined" 
 
@@ -188,7 +188,7 @@ let rec str_of_tm  e            =  match fst e with
     | TmDeref       _           -> "dereference of ..."
     | Balanc        _           -> "balance" 
 
-let str_of_tyMthd (TyMthd(id,args,ret))  =
+let str_of_tyMthd (TyMthd(id,args,_))  =
     let argTys          = tys_of_vars (filter_vars args)        in
     let strTys          = L.map str_of_ty argTys                in
     let tys             = S.concat "," strTys                   in
