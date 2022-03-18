@@ -314,7 +314,7 @@ and mstore_mthd_arg aln le ly vm arg  =
     let vm      =   MSTORE                              @>> vm      in  (* M[alloc(size)] := arg                   size >> sum >> .. *)
                     ADD                                 @>> vm          (*                                            size+sum >> .. *)
 
-and mstore_mhash_and_args mthd args ly le vm =                        (*                                                        .. *)
+and mstore_mhash_and_args mthd args ly le vm =                          (*                                                        .. *)
     let vm      =   mstore_mthd_hash mthd                   vm      in  (*                                         &mhash >> 4 >> .. *)
     let vm      =   mstore_mthd_args R args ly           le vm      in  (*                              argsize >> &mhash >> 4 >> .. *)
     let vm      =   SWAP1                               @>> vm      in  (*                              &mhash >> argsize >> 4 >> .. *)
@@ -324,7 +324,7 @@ and mstore_mhash_and_args mthd args ly le vm =                        (*        
 
 and codegen_mthd_argLen_chk m vm = match m with  
     | TyDflt     -> vm
-    | TyMthd _      ->
+    | TyMthd _   ->
     let vm      =   PUSH(Int(calldatasize m))           @>> vm      in
     let vm      =   CALLDATASIZE                        @>> vm      in
                     throw_if_NEQ                            vm        
@@ -436,7 +436,7 @@ and codegen_log _ args ev ly le vm =
 (***     4. CODEGEN RETURN           ***)
 (***************************************)
 
-and push_args le sto                = foldr (fun arg vm -> arg @> (R,sto,le,vm))  
+and push_args le sto       = foldr (fun arg vm -> arg @> (R,sto,le,vm))  
 and sstores_to locs vm     = foldl sstore_to vm locs
 and sstore_to  vm loc      = SSTORE @>> PUSH (Int loc) @>> vm      
 
