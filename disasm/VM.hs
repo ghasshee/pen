@@ -3,13 +3,14 @@ module VM where
 import Prelude hiding (EQ,LT,GT)
 import Asm
 import Tree
+import Hex
 
 bottom  = 0
 rev     = reverse 
 
 cut os  = ct os [] where 
     ct  []       blks                   = rev blks   
-    ct (JUMPDEST s:os)  bs              = ct os ([JUMPDEST s]:bs)
+    ct (JUMPDEST s:os)  bs              = ct os ([]:[JUMPDEST s]:bs)
     ct (INVALID   :os)  bs              = ct os ([]:[INVALID]:bs)
     ct (o         :os) ((JUMP  :b):bs)  = ct os ([o]:(JUMP:b):bs) 
     ct (o         :os) ((RETURN:b):bs)  = ct os ([o]:(RETURN:b):bs) 
@@ -238,12 +239,55 @@ splitF opcodes = case opcodes of
     e : ops         -> error (show e) 
     []              -> ([], []) 
 
-split opcodes = BLK SEQ $ rev $ fst $ splitF opcodes 
-   
+split       = BLK SEQ . rev . fst . splitF  
 parse       = split . paren  
 map_parse   = map parse 
 
+cat []  = []
+cat (BLK SEQ [BLK (JUMPDEST s) []] : BLK SEQ seq : xs ) = BLK SEQ (BLK(JUMPDEST s)[]: seq) : cat xs  
+cat (x:xs) = x : cat xs 
     
     
 
+
+destJUMPI xs = loop xs [] True where 
+    loop [] [a,b] True                      = a 
+    loop [] [a,b] False                     = b 
+    loop [] _     _                         = ""
+    loop (RED (PUSH1 a)as: xs) ret swap     = loop xs (a:ret) swap
+    loop (RED (PUSH2 a)as: xs) ret swap     = loop xs (a:ret) swap
+    loop (RED (PUSH3 a)as: xs) ret swap     = loop xs (a:ret) swap
+    loop (RED (PUSH4 a)as: xs) ret swap     = loop xs (a:ret) swap
+    loop (RED o        as: xs) ret swap     = loop xs (show o:ret) swap
+    loop (BLK SWAP1 _:xs) ret swap          = loop xs ret     (not swap) 
+    loop (x:xs) ret swap                    = loop xs ret     swap
+
+destJUMP xs     = loop xs [] where 
+    loop [] [a]                             = a 
+    loop (RED (PUSH1 a)as: xs) ret          = loop xs (a:ret) 
+    loop (RED (PUSH2 a)as: xs) ret          = loop xs (a:ret) 
+    loop (RED o        as: xs) ret          = loop xs ("FFFFFFFFFFFFFF":ret) 
+    loop (BLK _ _        : xs) ret          = loop xs ret 
+
+
+assocDEST dest []     = BLK (UNDEFINED "NOLINK") [] 
+assocDEST dest (x:xs) = case x of 
+    BLK SEQ (BLK (JUMPDEST s)_:_) -> if fromHex s == fromHex dest 
+                                        then x 
+                                        else assocDEST dest xs 
+    _                             -> assocDEST dest xs 
+
+
+
+link [] whole = [] 
+link (BLK JUMPI as : xs) whole  = let dest = destJUMPI as in 
+                                  let tree = [assocDEST dest whole] in 
+                                  let cont = link tree whole in 
+                                  BLK JUMPI (link as whole++ cont) : link xs whole
+link (BLK JUMP as  : xs) whole  = let dest = destJUMP as in 
+                                  let tree = [assocDEST dest whole] in 
+                                  let cont = link tree whole in 
+                                  BLK JUMP (link as whole ++ cont) : link xs whole 
+link (BLK a as : xs) whole      = BLK a (link as whole) : link xs whole
+link (RED a as : xs) whole      = RED a (link as whole) : link xs whole
 

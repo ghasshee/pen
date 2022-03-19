@@ -18,17 +18,25 @@ main = do
     let progs   = cut $ extract prog 
     mapM print $ progs 
     -- | Decompile
-    let tree    = map parse progs
-    let lettree = mapvar tree
-    let ptree   = map elder_unclesLet lettree
-    print lettree
+    let trees   = cat $ map parse progs
+    let linked  = link trees trees    
+    let letrees = mapvar linked
+    let ptrees  = map elder_unclesLet letrees
     print "*****************************************************"
-    print "***       Generated LET TREE                      ***"
+    print "***       LET Segment Trees                       ***"
     print "*****************************************************"
-    print ptree
+    print letrees
     print "*****************************************************"
-    print "***       Generated Decompiled Tree               ***"
+    print "***       Decompiled Segment Trees                ***"
     print "*****************************************************"
-    print tree
+    print trees
+    print "*****************************************************"
+    print "***       Concatenated JUMPing Segments           ***"
+    print "*****************************************************"
+    print linked
+    print "*****************************************************"
+    print "***       Program Trees holding STACK Variables   ***"
+    print "*****************************************************"
+    print ptrees
 
 
