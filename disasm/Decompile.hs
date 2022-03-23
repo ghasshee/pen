@@ -7,6 +7,7 @@ import VM
 import Link
 import Let
 import Tree
+import Eval
 
 
 main = do 
@@ -26,8 +27,11 @@ main = do
     let vartrees    = mapvar linked
     -- | Show Variable Stack States  
     let uncletrees  = map uncleVars vartrees 
-    let rmDUP       = fmap rmDUPs uncletrees 
-    let rmSTACKTOP  = fmap rmSTACKTOPs rmDUP
+    let dupRemoved  = fmap rmDUPs uncletrees 
+    let varRemoved  = fmap (rmVARs . rmSTACKTOPs) dupRemoved
+    let swapRemoved = fmap rmSWAPs varRemoved
+    let trees'      = fmap unUncle swapRemoved 
+    let linked'     = link trees' 
     print "*****************************************************"
     print "***       LET Segment Trees                       ***"
     print "*****************************************************"
@@ -47,11 +51,15 @@ main = do
     print "*****************************************************"
     print "***       DUP Removed                             ***"
     print "*****************************************************"
-    print $ fmap (fmap fst) rmSTACKTOP
+    print $ fmap (fmap fst) varRemoved
     print "*****************************************************"
     print "***       Program Trees holding STACK Variables   ***"
     print "*****************************************************"
-    print $ fmap (fmap fst) $ fmap rmSWAPs rmSTACKTOP
+    print $ fmap (fmap fst) swapRemoved
+    print "*****************************************************"
+    print "***       Decompiled Segment Trees                ***"
+    print "*****************************************************"
+    print trees' 
 
 
 

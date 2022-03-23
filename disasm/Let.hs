@@ -14,7 +14,6 @@ instance Show a' => Show (Let a') where
     show (UNIT o)  = show o 
 
 
-
 var :: RBTree OPCODE -> Integer -> (RBTree (Let OPCODE), Integer) 
 var t = vt t where 
     vt (RED o []) n     = (RED (LET(X n)o) [],n+1)  
@@ -35,7 +34,6 @@ mapvar ts = mvar ts 0 where
                                 (t', m)     = var t n
 
 
-
 uncleVars :: RBTree (Let OPCODE) -> RBTree (Let OPCODE,[Var]) 
 uncleVars = flip walkt [] where
     walkt (RED  a [])     uncles    = RED  (a,uncles) [] 
@@ -51,8 +49,15 @@ uncleVars = flip walkt [] where
                                             RED (LET v _) _             -> walkf xs (v:uncles) n 
                                             _                           -> walkf xs uncles     n
     
+unUncle :: AST -> RBTree OPCODE 
+unUncle = walkT where 
+    walkT (RED(LET v a,us)as)   = RED a (walkF as)
+    walkT (BLK(UNIT  b,us)bs)   = BLK b (walkF bs)
+    walkF []                    = []
+    walkF (x:xs)                = walkT x : walkF xs 
 
 
+type AST = RBTree (Let OPCODE, [Var]) 
 
 
 rmSTACKTOPs :: AST -> AST
@@ -61,8 +66,16 @@ rmSTACKTOP (t,l) = rm (t,l) where
     rm  (LET x (STACKTOP n), uncles) | length uncles > n = (LET x (VAR(uncles !! (n-1))), l) 
     rm  x                                                = x 
 
+rmVARs  :: AST -> AST 
+rmVARs tree = rmT tree tree where 
+    rmT tree (RED(LET _(VAR x),_)_)  = search tree x 
+    rmT tree (RED a as)              = RED a (rmF tree as) 
+    rmT tree (BLK b bs)              = BLK b (rmF tree bs)
+    rmF tree []                      = [] 
+    rmF tree (x:xs)                  = rmT tree x: rmF tree xs 
 
-rmDUPs :: RBTree (Let OPCODE, [Var]) -> RBTree (Let OPCODE, [Var]) 
+
+rmDUPs :: AST -> AST
 rmDUPs = fmap rmDUP  
 rmDUP (t,l) = rm (t,l) where 
     rm (LET a DUP1, x:xs)           = (LET a (VAR x),l)
@@ -79,7 +92,6 @@ rmDUP (t,l) = rm (t,l) where
 
 
 
-type AST = RBTree (Let OPCODE, [Var]) 
 
 search :: AST -> Var -> AST  
 search tree x = case searchT tree x of 
@@ -93,6 +105,7 @@ searchF []                   a          = Nothing
 searchF (x:xs)               a          = case searchT x a of 
                                                 Nothing -> searchF xs a 
                                                 Just a  -> Just a                 
+
 
 
 rmSWAPs :: AST -> AST 
