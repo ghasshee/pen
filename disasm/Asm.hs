@@ -1,10 +1,10 @@
 module Asm where 
 
 import Tree 
-import Data.Finite 
+import Var
 
 
-data OPCODE = L | R | SEQ | STACKTOP 
+data OPCODE = L | R | SEQ | STACKTOP Int | VAR Var
             | UNDEFINED String
             | INFO      String
             | STOP

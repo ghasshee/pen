@@ -4,10 +4,15 @@ import Prelude hiding (EQ,LT,GT)
 import Asm
 import Tree
 import Hex
+import Test
 
 bottom  = 0
 rev     = reverse 
 
+
+-- | Cut OPCODEs such that 
+-- | 1. JUMPDEST and INVALID are separators 
+-- | 2. JUMP, RETURN or REVERT can finish the block 
 cut os  = ct os [] where 
     ct  []       blks                   = rev blks   
     ct (JUMPDEST s:os)  bs              = ct os ([]:[JUMPDEST s]:bs)
@@ -19,13 +24,13 @@ cut os  = ct os [] where
     ct (o         :os) (b:bs)           = ct os ((o:b):bs) 
 
 
-
+-- | Insert Parenthesises (L,R) 
 paren       :: [OPCODE] -> [OPCODE] 
 paren ops   = p ops [0] where 
     p [] [_]        =                             []
     p [] [0,n]      =                         R : p [] [n]  
     p [] (0:t:ts)   =                         R : p [] (t-1:ts) 
-    p [] (hd:tl)    =      L : STACKTOP     : R : p [] (hd-1:tl) 
+    p [] (hd:tl)    =      L : STACKTOP hd  : R : p [] (hd-1:tl) 
     p os [0,n]      =                         R : p os [n]      
     p os (0:t:ts)   =                         R : p os (t-1:ts) 
     p (o:os)(hd:tl) = let f = p os in case o of 
@@ -167,127 +172,68 @@ paren ops   = p ops [0] where
         SELFDESTRUCT    -> L : SELFDESTRUCT     : f (1:hd+1:tl)
         INFO s          ->                        f (hd:tl)  
 
--- e.g. for test 
-prog = 
-    [PUSH1 "1", PUSH1 "2", ADD, 
-     PUSH1 "3", PUSH1 "4", SUB, 
-     ADD,
-     PUSH1 "1", PUSH1 "2", ADD, 
-     STOP, 
-     PUSH1 "3", PUSH1 "4", SUB, 
-     MUL, 
-     POP, 
-     PUSH1 "10",
-     SUB,
-     JUMP,
-     PUSH1 "9",
-     PUSH1 "1", PUSH1 "2", ADD, 
-     PUSH1 "3", PUSH1 "4", SUB, 
-     PUSH1 "7",
-     CALLDATACOPY, 
-     PUSH1 "1", PUSH1 "2", ADD, 
-     PUSH1 "3", PUSH1 "4", SUB, 
-     MUL, 
-     SUB]
-prog2 = 
-    [PUSH1 "1", PUSH1 "2", ADD, 
-     PUSH1 "3", 
-     ADD]
 
 
-splitT :: [OPCODE]  -> (RBTree OPCODE, [OPCODE]) 
-splitT opcodes = 
+-- | Build Abstract Syntax Tree s.t.
+-- | 1. Red Tree has a root OPCODE which returns new value on STACK
+-- | 2. Black Tree has a root which does not put new value on STACK
+knitT :: [OPCODE]  -> (RBTree OPCODE, [OPCODE]) 
+knitT opcodes = 
     let r = rev in 
-    let f = splitF in 
+    let f = knitF in 
     case opcodes of 
-    STOP            : os -> (BLK STOP         (r ags), cnt)     where (ags,cnt) = f os
-    CALLDATACOPY    : os -> (BLK CALLDATACOPY (r ags), cnt)     where (ags,cnt) = f os
-    CODECOPY        : os -> (BLK CODECOPY     (r ags), cnt)     where (ags,cnt) = f os
-    EXTCODECOPY     : os -> (BLK EXTCODECOPY  (r ags), cnt)     where (ags,cnt) = f os
-    RETURNDATACOPY  : os -> (BLK RETURNDATACOPY(r as), cnt)     where ( as,cnt) = f os
-    POP             : os -> (BLK POP          (r ags), cnt)     where (ags,cnt) = f os
-    MSTORE          : os -> (BLK MSTORE       (r ags), cnt)     where (ags,cnt) = f os
-    MSTORE8         : os -> (BLK MSTORE8      (r ags), cnt)     where (ags,cnt) = f os
-    SSTORE          : os -> (BLK SSTORE       (r ags), cnt)     where (ags,cnt) = f os
-    JUMP            : os -> (BLK JUMP         (r ags), cnt)     where (ags,cnt) = f os
-    JUMPI           : os -> (BLK JUMPI        (r ags), cnt)     where (ags,cnt) = f os
-    JUMPDEST s      : os -> (BLK (JUMPDEST s) (r ags), cnt)     where (ags,cnt) = f os
-    SWAP1           : os -> (BLK SWAP1        (r ags), cnt)     where (ags,cnt) = f os
-    SWAP2           : os -> (BLK SWAP2        (r ags), cnt)     where (ags,cnt) = f os
-    SWAP3           : os -> (BLK SWAP3        (r ags), cnt)     where (ags,cnt) = f os
-    SWAP4           : os -> (BLK SWAP4        (r ags), cnt)     where (ags,cnt) = f os
-    SWAP5           : os -> (BLK SWAP5        (r ags), cnt)     where (ags,cnt) = f os
-    SWAP6           : os -> (BLK SWAP6        (r ags), cnt)     where (ags,cnt) = f os
-    SWAP7           : os -> (BLK SWAP7        (r ags), cnt)     where (ags,cnt) = f os
-    SWAP8           : os -> (BLK SWAP8        (r ags), cnt)     where (ags,cnt) = f os
-    SWAP9           : os -> (BLK SWAP9        (r ags), cnt)     where (ags,cnt) = f os
-    SWAP10          : os -> (BLK SWAP10       (r ags), cnt)     where (ags,cnt) = f os
-    SWAP11          : os -> (BLK SWAP11       (r ags), cnt)     where (ags,cnt) = f os
-    SWAP12          : os -> (BLK SWAP12       (r ags), cnt)     where (ags,cnt) = f os
-    SWAP13          : os -> (BLK SWAP13       (r ags), cnt)     where (ags,cnt) = f os
-    SWAP14          : os -> (BLK SWAP14       (r ags), cnt)     where (ags,cnt) = f os
-    SWAP15          : os -> (BLK SWAP15       (r ags), cnt)     where (ags,cnt) = f os
-    SWAP16          : os -> (BLK SWAP16       (r ags), cnt)     where (ags,cnt) = f os
-    INVALID         : os -> (BLK INVALID      (r ags), cnt)     where (ags,cnt) = f os 
-    o               : os -> (RED o            (r ags), cnt)     where (ags,cnt) = f os 
+    STOP            : os -> (BLK STOP           (r ags), cnt)     where (ags,cnt) = f os
+    CALLDATACOPY    : os -> (BLK CALLDATACOPY   (r ags), cnt)     where (ags,cnt) = f os
+    CODECOPY        : os -> (BLK CODECOPY       (r ags), cnt)     where (ags,cnt) = f os
+    EXTCODECOPY     : os -> (BLK EXTCODECOPY    (r ags), cnt)     where (ags,cnt) = f os
+    RETURNDATACOPY  : os -> (BLK RETURNDATACOPY (r ags), cnt)     where (ags,cnt) = f os
+    POP             : os -> (BLK POP            (r ags), cnt)     where (ags,cnt) = f os
+    MSTORE          : os -> (BLK MSTORE         (r ags), cnt)     where (ags,cnt) = f os
+    MSTORE8         : os -> (BLK MSTORE8        (r ags), cnt)     where (ags,cnt) = f os
+    SSTORE          : os -> (BLK SSTORE         (r ags), cnt)     where (ags,cnt) = f os
+    JUMP            : os -> (BLK JUMP           (r ags), cnt)     where (ags,cnt) = f os
+    JUMPI           : os -> (BLK JUMPI          (r ags), cnt)     where (ags,cnt) = f os
+    JUMPDEST s      : os -> (BLK (JUMPDEST s)   (r ags), cnt)     where (ags,cnt) = f os
+    SWAP1           : os -> (BLK SWAP1          (r ags), cnt)     where (ags,cnt) = f os
+    SWAP2           : os -> (BLK SWAP2          (r ags), cnt)     where (ags,cnt) = f os
+    SWAP3           : os -> (BLK SWAP3          (r ags), cnt)     where (ags,cnt) = f os
+    SWAP4           : os -> (BLK SWAP4          (r ags), cnt)     where (ags,cnt) = f os
+    SWAP5           : os -> (BLK SWAP5          (r ags), cnt)     where (ags,cnt) = f os
+    SWAP6           : os -> (BLK SWAP6          (r ags), cnt)     where (ags,cnt) = f os
+    SWAP7           : os -> (BLK SWAP7          (r ags), cnt)     where (ags,cnt) = f os
+    SWAP8           : os -> (BLK SWAP8          (r ags), cnt)     where (ags,cnt) = f os
+    SWAP9           : os -> (BLK SWAP9          (r ags), cnt)     where (ags,cnt) = f os
+    SWAP10          : os -> (BLK SWAP10         (r ags), cnt)     where (ags,cnt) = f os
+    SWAP11          : os -> (BLK SWAP11         (r ags), cnt)     where (ags,cnt) = f os
+    SWAP12          : os -> (BLK SWAP12         (r ags), cnt)     where (ags,cnt) = f os
+    SWAP13          : os -> (BLK SWAP13         (r ags), cnt)     where (ags,cnt) = f os
+    SWAP14          : os -> (BLK SWAP14         (r ags), cnt)     where (ags,cnt) = f os
+    SWAP15          : os -> (BLK SWAP15         (r ags), cnt)     where (ags,cnt) = f os
+    SWAP16          : os -> (BLK SWAP16         (r ags), cnt)     where (ags,cnt) = f os
+    INVALID         : os -> (BLK INVALID        (r ags), cnt)     where (ags,cnt) = f os 
+    o               : os -> (RED o              (r ags), cnt)     where (ags,cnt) = f os 
 
-
-splitF opcodes = case opcodes of 
-    L : ops         -> let (ret,cont)   = splitT ops in 
-                       let (rest,cont') = splitF cont in (ret:rest, cont') 
+knitF :: [OPCODE] -> ([RBTree OPCODE], [OPCODE]) 
+knitF opcodes = case opcodes of 
+    L : ops         -> let (ret,cont)   = knitT ops in 
+                       let (rest,cont') = knitF cont in (ret:rest, cont') 
     R : ops         -> ([], ops) 
     e : ops         -> error (show e) 
     []              -> ([], []) 
 
-split       = BLK SEQ . rev . fst . splitF  
-parse       = split . paren  
-map_parse   = map parse 
 
-cat []  = []
-cat (BLK SEQ [BLK (JUMPDEST s) []] : BLK SEQ seq : xs ) = BLK SEQ (BLK(JUMPDEST s)[]: seq) : cat xs  
-cat (x:xs) = x : cat xs 
-    
-    
+-- combine [JUMPDEST] and the next block 
+cat         :: [RBTree OPCODE] -> [RBTree OPCODE]  
+cat []                                          = []
+cat(BLK SEQ[BLK(JUMPDEST s)[]]:BLK SEQ seq:xs)  = BLK SEQ(BLK(JUMPDEST s)[]: seq): cat xs  
+cat (x:xs)                                      = x : cat xs 
 
 
-destJUMPI xs = loop xs [] True where 
-    loop [] [a,b] True                      = a 
-    loop [] [a,b] False                     = b 
-    loop [] _     _                         = ""
-    loop (RED (PUSH1 a)as: xs) ret swap     = loop xs (a:ret) swap
-    loop (RED (PUSH2 a)as: xs) ret swap     = loop xs (a:ret) swap
-    loop (RED (PUSH3 a)as: xs) ret swap     = loop xs (a:ret) swap
-    loop (RED (PUSH4 a)as: xs) ret swap     = loop xs (a:ret) swap
-    loop (RED o        as: xs) ret swap     = loop xs (show o:ret) swap
-    loop (BLK SWAP1 _:xs) ret swap          = loop xs ret     (not swap) 
-    loop (x:xs) ret swap                    = loop xs ret     swap
-
-destJUMP xs     = loop xs [] where 
-    loop [] [a]                             = a 
-    loop (RED (PUSH1 a)as: xs) ret          = loop xs (a:ret) 
-    loop (RED (PUSH2 a)as: xs) ret          = loop xs (a:ret) 
-    loop (RED o        as: xs) ret          = loop xs ("FFFFFFFFFFFFFF":ret) 
-    loop (BLK _ _        : xs) ret          = loop xs ret 
+knit        :: [OPCODE] -> RBTree OPCODE 
+knit        = BLK SEQ . rev . fst . knitF . paren   
 
 
-assocDEST dest []     = BLK (UNDEFINED "NOLINK") [] 
-assocDEST dest (x:xs) = case x of 
-    BLK SEQ (BLK (JUMPDEST s)_:_) -> if fromHex s == fromHex dest 
-                                        then x 
-                                        else assocDEST dest xs 
-    _                             -> assocDEST dest xs 
+knits       :: [[OPCODE]] -> [RBTree OPCODE] 
+knits       = cat . map knit
 
-
-
-link [] whole = [] 
-link (BLK JUMPI as : xs) whole  = let dest = destJUMPI as in 
-                                  let tree = [assocDEST dest whole] in 
-                                  let cont = link tree whole in 
-                                  BLK JUMPI (link as whole++ cont) : link xs whole
-link (BLK JUMP as  : xs) whole  = let dest = destJUMP as in 
-                                  let tree = [assocDEST dest whole] in 
-                                  let cont = link tree whole in 
-                                  BLK JUMP (link as whole ++ cont) : link xs whole 
-link (BLK a as : xs) whole      = BLK a (link as whole) : link xs whole
-link (RED a as : xs) whole      = RED a (link as whole) : link xs whole
 
