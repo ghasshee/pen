@@ -4,7 +4,7 @@ import Tree
 import Var
 
 
-data OPCODE = L | R | SEQ | STACKTOP Int | VAR Var
+data OPCODE = L | R | SEQ | STACKTOP Int | VAR Var | PUSH Integer
             | UNDEFINED String
             | INFO      String
             | STOP

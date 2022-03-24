@@ -31,6 +31,7 @@ main = do
     let varRemoved  = fmap (rmVARs . rmSTACKTOPs) dupRemoved
     let swapRemoved = fmap rmSWAPs varRemoved
     let trees'      = fmap unUncle swapRemoved 
+    let evaltree'   = eval $ fmap absPUSH trees'           
     let linked'     = link trees' 
     print "*****************************************************"
     print "***       LET Segment Trees                       ***"
@@ -60,6 +61,10 @@ main = do
     print "***       Decompiled Segment Trees                ***"
     print "*****************************************************"
     print trees' 
+    print "*****************************************************"
+    print "***       Evaluated Trees                         ***"
+    print "*****************************************************"
+    print evaltree' 
 
 
 
