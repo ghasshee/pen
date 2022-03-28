@@ -354,3 +354,23 @@ web3.fromWei(eth.getBalance(eth.coinbase))
 count.inc.sendTransaction(gas)
 count.get.call()
 exit()
+miner.start(1)
+receipt = eth.getTransactionReceipt(instance.transactionHash);
+loadScript("../js/count.js");
+receipt = eth.getTransactionReceipt(instance.transactionHash);
+receipt
+instance
+receipt
+receipt = eth.getTransactionReceipt(instance.transactionHash);
+address = receipt.contractAddress
+count = contract.at(address)
+count.get.call()
+count.inc.sendTransaction(gas)
+count.get.call()
+count.inc.sendTransaction(gas)
+count.get.call()
+miner.start(1)
+count.get.call()
+web3.fromWei(eth.getBalance(eth.coinbase))
+count.get.call()
+:q

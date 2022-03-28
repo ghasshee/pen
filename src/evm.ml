@@ -116,6 +116,7 @@ let str_of_opcode str_of_push = function
   | SHR             -> "SHR"               | RETURN          -> "RETURN"
   | SHL             -> "SHL"               | DELEGATECALL    -> "DELEGATECALL"
   | Comment s       -> "// " ^ s           | SELFDESTRUCT    -> "SELFDESTRUCT"
+  | INVALID         -> "INVALID"
   | JUMPDEST l      -> sprintf "JUMPDEST (label %x)" (Label.lookup_label l)
   | opcode          -> str_of_push opcode
 
@@ -132,7 +133,7 @@ let str_of_push_big = function
   | PUSH20 v        -> "PUSH20 "^ str_of_hex (hex_of_big v 20)
   | PUSH32 v        -> "PUSH32 "^ str_of_hex (hex_of_big v 32)
 
-let str_of_opcode_big = str_of_opcode str_of_push_big
+let str_of_opcode_big  = str_of_opcode str_of_push_big
 
 (*
 let str_of_push_imm = function
@@ -140,7 +141,7 @@ let str_of_push_imm = function
 let str_of_opcode_imm = str_of_opcode str_of_push_imm
 *)
 
-let str_of_opcodes_big p    = S.concat""(L.map(fun op->str_of_opcode_big op^"\n")(rev p))
+let str_of_opcodes_big p    = S.concat""(L.map(fun op -> str_of_opcode_big op^"\n")(rev p))
 let pr_opcodes_big        p = pf "%s"(str_of_opcodes_big p) 
 
 let hex_of_opcode = 

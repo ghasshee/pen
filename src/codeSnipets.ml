@@ -76,14 +76,12 @@ let shiftR bits vm =
     assert (0 <= bits && bits < 256) ; 
     if bits=0 then vm else                                      (*                                         x >> .. *) 
     let vm      =   PUSH (Int bits)                 @>> vm  in  (*                                 bits >> x >> .. *)
-    let vm      =   SWAP1                           @>> vm  in  (*                              x >>    bits >> .. *) 
                     SHR                             @>> vm      (*                               x/(2**bits) >> .. *) 
 
 let shiftL bits vm =
     assert (0 <= bits && bits < 256) ; 
     if bits=0 then vm else                                      (*                                         x >> .. *)
     let vm      =   PUSH (Int bits)                 @>> vm  in  (*                                 bits >> x >> .. *)                   
-    let vm      =   SWAP1                           @>> vm  in  (*                              2**bits >> x >> .. *) 
                     SHL                             @>> vm      (*                               (2**bits)*x >> .. *) 
 
 let incr       n vm =
