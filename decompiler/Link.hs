@@ -31,6 +31,7 @@ destJUMP xs     = loop xs [] where
 
 assocDEST dest []     = BLK (UNDEFINED "NO LINK") [] 
 assocDEST dest (x:xs) = case x of 
+    BLK SEQ (BLK (JUMPDEST"00")_:_) -> BLK (UNDEFINED "RESTART") []
     BLK SEQ (BLK (JUMPDEST s)_:_) -> if fromHex s == fromHex dest 
                                         then x 
                                         else assocDEST dest xs 

@@ -374,3 +374,41 @@ count.get.call()
 web3.fromWei(eth.getBalance(eth.coinbase))
 count.get.call()
 :q
+loadScript("../js/count.js");
+instance
+receipt = eth.getTransactionReceipt(instance.transactionHash);
+miner.start(1)
+instance
+receipt = eth.getTransactionReceipt(instance.transactionHash);
+instance
+receipt = eth.getTransactionReceipt(instance.transactionHash);
+loadScript("../js/count.js");
+instance
+loadScript("../js/count.js");
+instance
+receipt = eth.getTransactionReceipt(instance.transactionHash);
+address = receipt.contractAddress
+count = contract.at(address)
+count.get.call()
+count.inc.sendTransaction(gas)
+count.get.call()
+web3.fromWei(eth.getBalance(eth.coinbase))
+count.get.call()
+count.inc.sendTransaction(gas)
+count.get.call()
+count.inc.sendTransaction(gas)
+count.get.call()
+web3.fromWei(eth.getBalance(eth.coinbase))
+count.get.call()
+:q
+miner.start(1)
+loadScript("../js/count.js");
+instance
+receipt = eth.getTransactionReceipt(instance.transactionHash);
+address = receipt.contractAddress
+count = contract.at(address)
+count.get.call()
+count.inc.sendTransaction(gas)
+count.get.call()
+web3.fromWei(eth.getBalance(eth.coinbase))
+count.get.call()

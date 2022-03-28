@@ -2,7 +2,7 @@
 (* M[0x40]  :=   the address of mem alloc     *) 
 (* MSTORE   :=   x=pop() ; y=pop() ; M[x]=y   *) 
 (* MLOAD    :=   x=pop() ; push M[x]          *) 
-(* CODECOPY  to from len :=  M[to .. to+len-1]=I_b[from .. from+len-1]  *)
+(* CODECOPY  to from len :=  M[to .. to+len-1] = I_b[from .. from+len-1]  *)
 
 open Big_int
 
@@ -512,10 +512,7 @@ type rntime             =   { rn_vm         : vm
                             ; rn_cns_pos    : int ilist  }
 
 let init_rntime lookup_cn cns =
-    let vm      =   empty_vm cns                                in
-    let vm      =   get_PC                              vm      in
-    let vm      =   JUMP                            @>> vm      in
-                            { rn_vm         = vm
+                            { rn_vm         = empty_vm cns 
                             ; rn_cns_pos    = [] }
 
 let append_rntime sto rc (idx,cn)   = (* #DEBUG pe("compiling contract" ^ str_of_int idx); *)
@@ -536,7 +533,7 @@ let mstore_rn_code idx vm =                                         (*          
     let vm      =   malloc                              vm      in  (*                                    alloc(size) >> size >> .. *)
     let vm      =   DUP2                            @>> vm      in  (*                            size >> alloc(size) >> size >> .. *)
     let vm      =   PUSH(CrSize idx)                @>> vm      in  (*                     idx >> size >> alloc(size) >> size >> .. *)
-    let vm      =   DUP3                            @>> vm      in  (*      alloc(size) >> idx >> size >> alloc(size) >> size >> .. *)
+    let vm      =   PUSH(Int 0)                     @>> vm      in  (*                0 >> idx >> size >> alloc(size) >> size >> .. *)
                     CODECOPY                        @>> vm          (*                                    alloc(size) >> size >> .. *)
                                                                     (*                                     codebegin                *)
 let codegen_creation cns idx = (* return vm which contains the program *) 
