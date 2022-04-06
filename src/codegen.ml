@@ -533,7 +533,7 @@ let mstore_rn_code idx vm =                                         (*          
     let vm      =   malloc                              vm      in  (*                                    alloc(size) >> size >> .. *)
     let vm      =   DUP2                            @>> vm      in  (*                            size >> alloc(size) >> size >> .. *)
     let vm      =   PUSH(CrSize idx)                @>> vm      in  (*                     idx >> size >> alloc(size) >> size >> .. *)
-    let vm      =   PUSH(Int 0)                     @>> vm      in  (*                0 >> idx >> size >> alloc(size) >> size >> .. *)
+    let vm      =   DUP3                            @>> vm      in  (*                0 >> idx >> size >> alloc(size) >> size >> .. *)
                     CODECOPY                        @>> vm          (*                                    alloc(size) >> size >> .. *)
                                                                     (*                                     codebegin                *)
 let codegen_creation cns idx = (* return vm which contains the program *) 

@@ -2,9 +2,12 @@ module Asm where
 
 import Tree 
 import Var
+import Term 
 
-
-data OPCODE = L | R | SEQ | STACKTOP Int | VAR Var | PUSH String
+data OPCODE = L | R | SEQ 
+            | STACK Integer | VAR Var 
+            | EXPR Term 
+            | PUSH String 
             | UNDEFINED String
             | INFO      String
             | STOP

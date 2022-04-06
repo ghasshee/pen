@@ -1,4 +1,4 @@
-module VM where
+module Knit where
 
 import Prelude hiding (EQ,LT,GT)
 import Asm
@@ -27,10 +27,10 @@ cut os  = ct os [] where
 -- | Insert Parenthesises (L,R) 
 paren       :: [OPCODE] -> [OPCODE] 
 paren ops   = p ops [0] where 
-    p [] [_]        =                             []
+    p [] [_]        =      []
     p [] [0,n]      =                         R : p [] [n]  
     p [] (0:t:ts)   =                         R : p [] (t-1:ts) 
-    p [] (hd:tl)    =      L : STACKTOP hd  : R : p [] (hd-1:tl) 
+    p [] (hd:tl)    =      L : STACK hd     : R : p [] (hd-1:tl) 
     p os [0,n]      =                         R : p os [n]      
     p os (0:t:ts)   =                         R : p os (t-1:ts) 
     p (o:os)(hd:tl) = let f = p os in case o of 

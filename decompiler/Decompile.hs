@@ -2,11 +2,13 @@ module Main where
 
 
 import Lex
-import Disasm
-import VM
-import Link
-import Let
 import Tree
+import Disasm
+import Knit
+import Let
+import Link
+--import RmVar
+import Hoist
 import Eval
 
 
@@ -20,51 +22,62 @@ main = do
     let progs   = cut $ extract prog 
     mapM print $ progs 
     -- | Decompile
-    let trees       = knits progs
+    let asts       = knits progs
+
     -- | Link JUMPing Segments
-    let linked      = link trees
-    -- | Let Variable Binding 
-    let vartrees    = mapvar linked
-    -- | Show Variable Stack States  
-    let uncletrees  = map uncleVars vartrees 
-    let dupRemoved  = fmap rmDUPs uncletrees 
-    let varRemoved  = fmap (rmVARs . rmSTACKTOPs) dupRemoved
-    let swapRemoved = fmap (rmVARs . rmSWAPs) varRemoved
-    let trees'      = fmap unUncle swapRemoved 
+    -- let linked      = link trees
+    -- let vartrees    = mapvar linked
+    -- let uncletrees  = fmap uncleVars vartrees 
+    -- let linked'     = link trees' 
+    -- print "*****************************************************"
+    -- print "***       Concatenated JUMPing Segments           ***"
+    -- print "*****************************************************"
+    -- print linked
     -- let evaltree'   = eval $ fmap absPUSH trees'           
-    let linked'     = link trees' 
-    print "*****************************************************"
-    print "***       LET Segment Trees                       ***"
-    print "*****************************************************"
-    print vartrees
-    print "*****************************************************"
-    print "***       Decompiled Segment Trees                ***"
-    print "*****************************************************"
-    print trees
-    print "*****************************************************"
-    print "***       Concatenated JUMPing Segments           ***"
-    print "*****************************************************"
-    print linked
-    print "*****************************************************"
-    print "***       Program Trees holding STACK Variables   ***"
-    print "*****************************************************"
-    print uncletrees
-    print "*****************************************************"
-    print "***       DUP Removed                             ***"
-    print "*****************************************************"
-    print $ fmap (fmap fst) varRemoved
-    print "*****************************************************"
-    print "***       Program Trees holding STACK Variables   ***"
-    print "*****************************************************"
-    print $ fmap (fmap fst) swapRemoved
-    print "*****************************************************"
-    print "***       Decompiled Segment Trees                ***"
-    print "*****************************************************"
-    print trees' 
-    --print "*****************************************************"
-    --print "***       Evaluated Trees                         ***"
-    --print "*****************************************************"
-    --print evaltree' 
+
+    -- | locally Variable Bind
+    let vartrees        = fmap local asts 
+    -- | Show Variable Stack States  
+    let uncletrees      = fmap uncleVars    vartrees 
+    let popRemoved      = fmap rmPOPs       uncletrees 
+    let dupRemoved      = fmap rmDUPs       popRemoved 
+    let swapRemoved     = fmap rmSWAPs      dupRemoved
+    let stackRemoved    = fmap rmSTACKs     swapRemoved
+    let varRemoved      = fmap (rmVARs . rmVARs . rmVARs )      stackRemoved
+    let trees           = fmap unUncle      varRemoved 
+
+    let pu t = print $ fmap (fmap fst) t
+    let pr t = print t
+
+    pr asts
+    pr "*****************************************************"
+    pr "***       LET Segment Trees                       ***"
+    pr "*****************************************************"
+    pr vartrees
+    pr "*****************************************************"
+    pr "***       Decompiled Segment Trees                ***"
+    pr "*****************************************************"
+    pu uncletrees
+    pr "*****************************************************"
+    pr "***       POP removed !                           ***"
+    pr "*****************************************************"
+    pu popRemoved  
+    pr "*****************************************************"
+    pr "***       DUPs removed !                          ***"
+    pr "*****************************************************"
+    pu dupRemoved
+    pr "*****************************************************"
+    pr "***       SWAPs removed !                          ***"
+    pr "*****************************************************"
+    pu swapRemoved
+    pr "*****************************************************"
+    pr "***       STACK removed !                         ***"
+    pr "*****************************************************"
+    pu stackRemoved
+    pr "*****************************************************"
+    pr "***       VAR removed !                           ***"
+    pr "*****************************************************"
+    pr trees
 
 
 

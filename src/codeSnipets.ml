@@ -273,8 +273,8 @@ let malloc vm   =                                               (*  STACK       
     let vm      =   MLOAD                           @>> vm  in  (*                                    M[64] >> 64 >> len >> .. *)
     let vm      =   DUP1                            @>> vm  in  (*                           M[64] >> M[64] >> 64 >> len >> .. *)
     let vm      =   SWAP3                           @>> vm  in  (*                           len >> M[64] >> 64 >> M[64] >> .. *)
-    let vm      =   ADD                             @>> vm  in  (*                              M[64+len] >> 64 >> M[64] >> .. *)
-    let vm      =   SWAP1                           @>> vm  in  (*                              64 >> M[64+len] >> M[64] >> .. *)
+    let vm      =   ADD                             @>> vm  in  (*                              M[64]+len >> 64 >> M[64] >> .. *)
+    let vm      =   SWAP1                           @>> vm  in  (*                              64 >> M[64]+len >> M[64] >> .. *)
                     MSTORE                          @>> vm      (*                                                 M[64] >> .. *) 
 
 let get_malloc vm   =                             

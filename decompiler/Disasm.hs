@@ -1,18 +1,16 @@
 module Disasm where 
 
 import Control.Monad
-import Data.List 
 import Prelude hiding (EQ,LT,GT) 
 
 import Asm
 import Hex
-import VM
 
 extract     = map snd
 zeropad n   = replicate n '0'
 len         = length 
 rep         = replicate 
-prLn        = putStrLn 
+pr          = putStrLn 
 
 
 prAsm :: [(Integer,OPCODE)] -> IO ()
@@ -20,9 +18,9 @@ prAsm = loop True where
     loop cr []         = return () 
     loop cr ((n,o):os) = do
         let hex = toHex n
-        prLn $ zeropad (8-len hex) ++ hex ++ ":   " ++ show o
-        if o==INVALID&&cr     then do prLn "// RUNTIME"      ;  loop False os else do   
-        if o==INVALID&&not cr then do prLn "// IPFS+VER INFO";  loop False os else do
+        pr $ zeropad (8-len hex) ++ hex ++ ":   " ++ show o
+        if o==INVALID&&cr     then do pr "// RUNTIME"   ; loop False os else do   
+        if o==INVALID&&not cr then do pr "// IPFS/VER"  ; loop False os else do
         loop cr os 
 
 

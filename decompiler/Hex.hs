@@ -42,6 +42,6 @@ toHexChar 14='E'
 toHexChar 15='F'  
 
 toHex   :: Integer -> String 
-toHex 0 = "00"
+toHex 0 = ""
 toHex n = toHex (div n 16) ++ [toHexChar (rem n 16)]
 
