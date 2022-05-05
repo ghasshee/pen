@@ -213,6 +213,15 @@ knitT opcodes =
     INVALID         : os -> (BLK INVALID        (r ags), cnt)     where (ags,cnt) = f os 
     o               : os -> (RED o              (r ags), cnt)     where (ags,cnt) = f os 
 
+
+mvSTACK ts = mv ts [] where 
+    mv []     s  = s 
+    mv (t:ts) s  = case t of 
+        BLK o os        -> BLK o (mv os []) : mv ts s  
+        RED(STACK n)os  -> mv ts (s ++ [RED(STACK n)(mv os [])])    
+        RED o os        -> RED o (mv os []) : mv ts s 
+    
+
 knitF :: [OPCODE] -> ([RBTree OPCODE], [OPCODE]) 
 knitF opcodes = case opcodes of 
     L : ops         -> let (ret,cont)   = knitT ops in 
@@ -230,7 +239,7 @@ cat (x:xs)                                      = x : cat xs
 
 
 knit        :: [OPCODE] -> RBTree OPCODE 
-knit        = BLK SEQ . rev . fst . knitF . paren   
+knit        = BLK SEQ . mvSTACK . rev . fst . knitF . paren   
 
 
 knits       :: [[OPCODE]] -> [RBTree OPCODE] 
