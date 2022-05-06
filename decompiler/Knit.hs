@@ -179,7 +179,7 @@ paren ops   = p ops [0] where
 -- | 2. Black Tree has a root which does not put new value on STACK
 knitT :: [OPCODE]  -> (RBTree OPCODE, [OPCODE]) 
 knitT opcodes = 
-    let r = rev in 
+    let r = frontRED in 
     let f = knitF in 
     case opcodes of 
     STOP            : os -> (BLK STOP           (r ags), cnt)     where (ags,cnt) = f os
@@ -214,13 +214,12 @@ knitT opcodes =
     o               : os -> (RED o              (r ags), cnt)     where (ags,cnt) = f os 
 
 
-mvSTACK ts = mv ts [] where 
-    mv []     s  = s 
-    mv (t:ts) s  = case t of 
-        BLK o os        -> BLK o (mv os []) : mv ts s  
-        RED(STACK n)os  -> mv ts (s ++ [RED(STACK n)(mv os [])])    
-        RED o os        -> RED o (mv os []) : mv ts s 
-    
+
+frontRED ts = loop ts [] where 
+    loop []            blacks = rev blacks 
+    loop (RED o os:ts) blacks = rev ts ++ blacks ++ [RED o os]   
+    loop (BLK o os:ts) blacks = loop ts (BLK o os : blacks) 
+
 
 knitF :: [OPCODE] -> ([RBTree OPCODE], [OPCODE]) 
 knitF opcodes = case opcodes of 
@@ -239,7 +238,7 @@ cat (x:xs)                                      = x : cat xs
 
 
 knit        :: [OPCODE] -> RBTree OPCODE 
-knit        = BLK SEQ . mvSTACK . rev . fst . knitF . paren   
+knit        = BLK SEQ . rev . fst . knitF . paren   
 
 
 knits       :: [[OPCODE]] -> [RBTree OPCODE] 
