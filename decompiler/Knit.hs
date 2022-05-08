@@ -26,14 +26,14 @@ cut os  = ct os [] where
 
 -- | Insert Parenthesises (L,R) 
 paren       :: [OPCODE] -> [OPCODE] 
-paren ops   = p ops [0] where 
-    p [] [_]        =      []
-    p [] [0,n]      =                         R : p [] [n]  
-    p [] (0:t:ts)   =                         R : p [] (t-1:ts) 
-    p [] (hd:tl)    =      L : STACK hd     : R : p [] (hd-1:tl) 
-    p os [0,n]      =                         R : p os [n]      
-    p os (0:t:ts)   =                         R : p os (t-1:ts) 
-    p (o:os)(hd:tl) = let f = p os in case o of 
+paren ops   = p ops [0] 1 where 
+    p [] [_]      i =      []
+    p [] [0,n]    i =                         R : p [] [n]       i
+    p [] (0:t:ts) i =                         R : p [] (t-1:ts)  i
+    p [] (hd:tl)  i =      L : STACK i      : R : p [] (hd-1:tl) (i+1)
+    p os [0,n]    i =                         R : p os [n]       i 
+    p os (0:t:ts) i =                         R : p os (t-1:ts)  i 
+    p (o:os)(hd:tl) i = let f stack = p os stack i in case o of 
         STOP            -> L : STOP         : R : f (hd:tl)      
         ADD             -> L : ADD              : f (2:hd:tl)         
         MUL             -> L : MUL              : f (2:hd:tl)    

@@ -100,7 +100,6 @@ replaceF a b (BLK(UNIT  o,us)os : ts) = BLK (UNIT                o,us) (replaceF
 rmSTACKs :: UAST -> UAST
 rmSTACKs = fmap rm where
     rm  (LET x (STACK n), uncles) = (LET x (VAR(nth' n uncles)), uncles) where 
-        
         nth' n []     = Arg n 
         nth' 1 (u:us) = u 
         nth' n (u:us) = nth' (n-1) us
