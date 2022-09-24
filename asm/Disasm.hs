@@ -36,10 +36,10 @@ disAsm :: [String] -> [OPCODE]
 disAsm = loop 2 where 
     loop _ []       =   []
     loop 0 ("69":"70":"66":"73":"58":"22": s) =  
-                        INFO "'i' 'p' 'f' 's' 58 22"     : 
+                        INFO "ipfs5822"     : 
                         INFO (concat(take 34 s))         : loop 0 (drop 34 s) 
     loop 0 ("73":"6F":"6C":"63":"43": s)      = 
-                        INFO "'s' 'o' 'l' 'c' 43"        : 
+                        INFO "solc43"        : 
                         INFO (concat(take 3  s))         : loop 0 (drop 3 s)
     loop 0 (o:s)    =   INFO o                           : loop 0 s
     loop n (o:s)    =   case o of 

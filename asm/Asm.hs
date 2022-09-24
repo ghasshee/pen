@@ -35,7 +35,7 @@ main = do
     let l' = map (dropWhile (/= ' ') ) . map (dropWhile isSpace) $ extractAsm l 
     let l'' = map (\s -> read s :: OPCODE) l' 
     let b   = map toByte l''
-    print $ concat b
+    putStrLn $ map toLower $ concat b
 
 toByte  :: OPCODE -> String
 toByte o = case o of 
@@ -101,7 +101,7 @@ toByte o = case o of
            PC                                 ->  "58"
            MSIZE                              ->  "59"
            GAS                                ->  "5A"
-           JUMPDEST ""                        ->  "5B"
+           JUMPDEST _                         ->  "5B"
            PUSH1  v                           ->  "60" ++  v
            PUSH2  v                           ->  "61" ++  v
            PUSH3  v                           ->  "62" ++  v
@@ -182,5 +182,9 @@ toByte o = case o of
            INVALID                            ->  "FE"
            SELFDESTRUCT                       ->  "FF"
            UNDEFINED e                        ->  e   
+           INFO s                             ->  b ++ bs where 
+                b =  concat $ map (toHex . toInteger . ord) cs 
+                (cs, bs) = span (not . isHex) s 
+
            _                                  ->  "" 
 

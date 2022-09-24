@@ -4,4 +4,4 @@ all :
 	ghc Asm -o Asm
 
 clean : 
-	rm Devm *.o *.hi
+	rm Devm Asm *.o *.hi
