@@ -412,3 +412,53 @@ count.inc.sendTransaction(gas)
 count.get.call()
 web3.fromWei(eth.getBalance(eth.coinbase))
 count.get.call()
+miner.start(1)
+loadScript(../solc/count.js)
+loadScript(../solc/count.js);
+loadScript(./../solc/count.js);
+loadScript("./../solc/count.js");
+loadScript(../solc/Count.js);
+loadScript();
+loadScript(/home/ghasshee/Programs/ml/pen/solc/Count.js);
+loadScript(\/home\/ghasshee\/Programs\/ml\/pen\/solc\/Count.js);
+loadScript("/home/ghasshee/Programs/ml/pen/solc/count.js");
+loadScript("/home/ghasshee/Programs/ml/pen/solc/Count.js");
+loadScript("/home/ghasshee/Programs/ml/pen/src/counter.js");
+:q
+loadScript(../js/count.js);
+loadScript("../js/count.js");
+loadScript("../solc/Count.js");
+loadScript("../js/count.js");
+abi
+code
+loadScript("../solc/Count.js");
+abi
+loadScript("../solc/Count.js");
+gas
+receipt = eth.getTransactionReceipt(instnace.transactionHash);
+receipt = eth.getTransactionReceipt(instance.transactionHash);
+address = receipt.contractAddress
+receipt
+instance
+miner.start(1)
+loadScript("../solc/Count.js");
+receipt = eth.getTransactionReceipt(instance.transactionHash);
+receipt
+instance
+receipt
+receipt = eth.getTransactionReceipt(instance.transactionHash);
+receipt
+address = receipt.contractAddress
+count = contract.at(address)
+count.inc.sendTransaction(gas)
+count.get.call()
+count.inc.sendTransaction(gas)
+count.get.call()
+count.inc.sendTransaction(gas)
+count.get.call()
+count.inc.sendTransaction(gas)
+count.get.call()
+count.inc.sendTransaction(gas)
+count.get.call()
+count.inc.sendTransaction(gas)
+count.get.call()

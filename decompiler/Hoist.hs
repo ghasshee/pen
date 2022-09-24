@@ -74,8 +74,8 @@ rmSWAPs tree = rmSWAPT tree tree
 swap :: UAST -> Var -> Var -> UAST -> UAST 
 swap = swapT 
     where 
-    swapT (RED(LET x a',us)ts)           a b tr | x==a        = RED (LET x (replaceO a b b'),us')(replaceF a b ts') where  RED (LET x' b',us')ts' = search tr b 
-    swapT (RED(LET x b',us)ts)           a b tr | x==b        = RED (LET x (replaceO b a a'),us')(replaceF b a ts') where  RED (LET x' a',us')ts' = search tr a 
+    swapT (RED(LET x _,us)ts)            a b tr | x==a        = RED (LET x (replaceO a b vb),us')(replaceF a b ts') where  RED (LET _ vb,us')ts' = search tr b 
+    swapT (RED(LET x _,us)ts)            a b tr | x==b        = RED (LET x (replaceO b a va),us')(replaceF b a ts') where  RED (LET _ va,us')ts' = search tr a 
     swapT (RED t           ts)           a b tr               = RED t             (swapF ts a b tr) 
     swapT (BLK t           ts)           a b tr               = BLK t             (swapF ts a b tr) 
     swapF (BLK(UNIT SWAP1,x:y:_    )_:ts)a b tr | a==x&&b==y  =                    swapF ts a b tr

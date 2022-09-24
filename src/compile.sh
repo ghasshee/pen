@@ -3,6 +3,7 @@
 SRC=`basename $1` 
 SRC=`echo $SRC | sed -e 's/\.pen//g' `
 OUT="../js/$SRC.js"
+HEX="../js/$SRC.hex"
 
 make
 if  [ "$SRC" = "" ]   
@@ -34,6 +35,7 @@ echo "======================================================================"
 echo $ABI
 echo "======================================================================"
 echo $BIN 
+echo "0x$BIN" > $HEX 
 
 echo "var abi      = $ABI;"                                                  > $OUT
 echo "var code     = \"$BIN\";"                                             >> $OUT
@@ -43,6 +45,13 @@ echo "var gas      = {from:eth.accounts[0], gas:1000000};"                  >> $
 echo "var instance = contract.new(object);"                                 >> $OUT
 
 echo "======================================================================"
+    echo ""
+    echo "USAGE : RUN geth with starting a miner; "
+    echo " +---------------------------------------------+"
+    echo "| $ ../eth/geth.sh                              |"
+    echo "| geth> miner.start(1);                         |"
+    echo "| geth> loadScript(../js/counter.js);           |"
+    echo " +---------------------------------------------+"
 echo "JS file generated at: pen/js/$SRC.js"
 echo "code"
 echo "abi" 

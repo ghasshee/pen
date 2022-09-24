@@ -24,35 +24,54 @@ let abi_str_of_ty       = function
 
 
 let prABI_default_mthd   =
-  "{\"type\":\"fallback\",\"inputs\": [],\"outputs\": [],\"payable\": true}"
+"{
+\"inputs\"  : [],
+\"outputs\" : [],
+\"payable\" : true,
+\"type\"    :\"fallback\"
+}"
 
 let prABI_input         = function 
-    TyVar(id,ty) ->  sprintf "{\"name\": \"%s\", \"type\": \"%s\"}" id (abi_str_of_ty ty)
+    TyVar(id,ty) ->  sprintf "{
+\"name\"    : \"%s\", 
+\"type\"    : \"%s\"
+}"  (id) (abi_str_of_ty ty)
 
 let prABI_inputs (args:ty list) : str =
     let strs         = L.map prABI_input args in
     BS.concat "," strs
 
 let prABI_output (ty:ty) : str =
-    sprintf "{\"name\": \"\", \"type\": \"%s\"}"
-                 (abi_str_of_ty ty)
+    sprintf "{
+\"name\"    : \"\", 
+\"type\"    : \"%s\"
+}" (abi_str_of_ty ty)
 
 let prABI_outputs (tys:ty list) : str =
     let strs = L.map prABI_output tys in
     BS.concat "," strs
 
 let prABI_mthd_info (TyMthd(id,args,ret)) = 
-    sprintf "{\"type\":\"function\",\"name\":\"%s\",\"inputs\": [%s],\"outputs\": [%s],\"payable\": true}"
-        id (prABI_inputs args) (prABI_output ret)
+    sprintf "{
+\"inputs\"  : [%s],
+\"name\"    : \"%s\",
+\"outputs\" : [%s],
+\"payable\" : true,
+\"type\"    : \"function\"
+}" (prABI_inputs args) (id) (prABI_output ret)
 
 let prABI_mthd  = function 
     | TmMthd(TyDflt,_)       ->  prABI_default_mthd
     | TmMthd(tyM,_)             ->  prABI_mthd_info tyM
 
 let prABI_cnstrctr (TmCn(id,flds,_)) =
-    sprintf
-        "{\"type\": \"constructor\", \"inputs\":[%s], \"name\": \"%s\", \"outputs\":[], \"payable\": true}"
-        (prABI_inputs (L.filter non_mapping_arg flds)) id
+    sprintf "{
+\"inputs\"  : [%s], 
+\"name\"    : \"%s\", 
+\"outputs\" : [], 
+\"payable\" : true,
+\"type\"    : \"constructor\"
+}" (prABI_inputs (L.filter non_mapping_arg flds)) (id)
 
 let prABI_cntrct seen_cnstrctr (TmCn(id,flds,mthds)) = 
     let strs : str list  =   L.map prABI_mthd mthds in

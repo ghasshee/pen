@@ -10,5 +10,6 @@ contract Counter(
     method u256 get() {
         return _counter then become Counter(_counter)
     }
+
 }
 
