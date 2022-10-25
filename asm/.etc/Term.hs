@@ -9,6 +9,7 @@ data Action = ASSIGN Mem Term
             | SKIP 
             deriving Eq
 
+data NT  =
 data Term       = Num   Integer 
                 | Var   Mem
                 | Plus  Term Term
@@ -16,7 +17,7 @@ data Term       = Num   Integer
                 | Times Term Term 
                 | Exp   Term Term 
                 -- Extension 
-                | Div   Term Term 
+                  | Div   Term Term 
                 | SDiv  Term Term 
                 | Mod   Term Term 
                 | SMod  Term Term 

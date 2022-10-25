@@ -7,9 +7,9 @@ import Opcode
 import Hex
 
 extract     = map snd
-zeropad n   = replicate n '0'
 len         = length 
 rep         = replicate 
+zeropad n   = rep n '0'
 pr          = putStrLn 
 
 
@@ -186,5 +186,4 @@ disAsm = loop 2 where
         "FD"        ->  REVERT                           : loop n s
         "FE"        ->  INVALID                          : loop (n-1) s
         "FF"        ->  SELFDESTRUCT                     : loop n s
-        e           ->  UNDEFINED e                      : loop n s 
 

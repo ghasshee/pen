@@ -1,7 +1,8 @@
 
 all : 
 	ghc Decompile -o Devm 
-	ghc Asm -o Asm
+	ghc Assembler -o Asm
+
 
 clean : 
 	rm Devm Asm *.o *.hi

@@ -1,4 +1,4 @@
-module Main where 
+module Asm where 
 
 import Data.Char
 import Control.Monad
@@ -9,9 +9,6 @@ import Hex
 import Lex
 
 
-dropComments :: [String] -> [String] 
-dropComments [] = [] 
-dropComments l = undefined
 
 extractAsm :: [String] -> [String] 
 extractAsm [] = [] 
@@ -19,23 +16,15 @@ extractAsm (s:l) = case s of
     a:_ | isDigit a     -> s: extractAsm l 
     _                   -> extractAsm l 
 
-isHex :: Char -> Bool
-isHex c = case c of 
-    'A'     -> True 
-    'B'     -> True
-    'C'     -> True
-    'D'     -> True
-    'E'     -> True
-    'F'     -> True
-    _       -> isDigit c
+removeLineNo :: [String] -> [String] 
+removeLineNo = map (dropWhile (/= ' ') . dropWhile isSpace)
 
-main :: IO () 
-main = do 
-    l <- asms 
-    let l' = map (dropWhile (/= ' ') ) . map (dropWhile isSpace) $ extractAsm l 
-    let l'' = map (\s -> read s :: OPCODE) l' 
-    let b   = map toByte l''
-    putStrLn $ map toLower $ concat b
+
+toBytes :: [String] -> String
+toBytes  = map toLower . concat . map toByte . map read . removeLineNo . extractAsm
+
+
+
 
 toByte  :: OPCODE -> String
 toByte o = case o of 
@@ -181,10 +170,8 @@ toByte o = case o of
            REVERT                             ->  "FD"
            INVALID                            ->  "FE"
            SELFDESTRUCT                       ->  "FF"
-           UNDEFINED e                        ->  e   
-           INFO s                             ->  b ++ bs where 
-                b =  concat $ map (toHex . toInteger . ord) cs 
-                (cs, bs) = span (not . isHex) s 
-
-           _                                  ->  "" 
+           INFO s                             ->  hex cs ++ bs 
+                where 
+                    hex      = concat . map (toHex . toInteger . ord) 
+                    (cs, bs) = span (not . isHex) s 
 

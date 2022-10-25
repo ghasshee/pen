@@ -1,28 +1,43 @@
 module Main where 
 
 
-import Lex
-import Tree
+import Lex  (bytes) 
 import Disasm
 import Knit
--- import Eval
+import LTS
 
 
 main = do 
-    -- | Lexer 
+
+    -- +-------+ --
+    -- | Lexer | --
+    -- +-------+ --
     words <- bytes 
-    -- | DisAsm 
+
+
+    -- +---------+ --
+    -- | DisAsm  | --
+    -- +---------+ --
     let prog    = lineNo $ disAsm words 
     prAsm prog
-    -- | Cut Asm 
+
+
+    -- +-----------------+ --
+    -- | Cut into States | --
+    -- +-----------------+ --
     let progs   = cut $ extract prog 
-    mapM print $ progs 
-    -- | Decompile
+    mapM print $ map reverse progs 
+
+
+    -- +-----------+ --
+    -- | Decompile | --
+    -- +-----------+ --
     let asts       = knits progs
-
-    let pr t = print t
-
-    pr asts
+    print asts
 
 
-
+    -- +-----------------+ --
+    -- | Numbering Nodes | --
+    -- +-----------------+ -- 
+    let numbered    = mkNode asts
+    print numbered

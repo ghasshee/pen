@@ -1,5 +1,7 @@
 module Hex where 
 
+import Data.Char (isDigit)
+
 fromhexChar :: Char -> Integer
 fromhexChar '0' = 0
 fromhexChar '1' = 1
@@ -54,4 +56,14 @@ toHex n = toHex (div n 16) ++ [toHexChar (rem n 16)]
 --toBytes :: Int -> Integer -> String 
 --toBytes n 0 = concat $ replicate n "00"
 --toBytes n v | 0<v && v<=256^n = toBytes (n-1) (div v 256) ++ toByte (rem v 256)
+
+isHex :: Char -> Bool
+isHex c = case c of 
+    'A'     -> True 
+    'B'     -> True
+    'C'     -> True
+    'D'     -> True
+    'E'     -> True
+    'F'     -> True
+    _       -> isDigit c
 
