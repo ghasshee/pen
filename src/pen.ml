@@ -28,6 +28,9 @@ let parse_with_error lexbuf =
     | Parser.Error  -> ff stderr "%a: syntax error\n" pr_pos lexbuf  ;exit (-1)
     | e             -> ff stderr "%a: Unknown syntax error\n" pr_pos lexbuf  ; raise e; exit (-1)
 
+
+
+
 let enable_abi              = StdOpt.store_true () 
 let enable_asm              = StdOpt.store_true ()
 

@@ -1,4 +1,5 @@
 {-# LANGUAGE GADTs #-} 
+{-# LANGUAGE FlexibleInstances #-} 
 
 module LTS where
 
@@ -22,7 +23,7 @@ type State          = (Stack, Mapping, Bind, Sto, Mem)
 
 
 data Node           = Q Int deriving (Show, Eq, Read)
-type Edge           = (Node, ACTION, Node) 
+type Edge           = (Node, STMT, Node) 
 type Configuration  = (Node, State)  
 
 
@@ -30,10 +31,14 @@ type Configuration  = (Node, State)
 -- after Knit function 
 -- we should label with Node Number 
 
-mkNode :: [RBTree OPCODE] -> [(Node, RBTree OPCODE)] 
+mkNode :: [STMT] -> [(Node, STMT)] 
 mkNode ts = loop 0 ts where
     loop n [] = [] 
     loop n (t:ts) = (Q n,t) : loop (n+1) ts
 
+instance {-# OVERLAPPING #-} Show [(Node, STMT)] where 
+    show [] = "" 
+    show ((q,x):xs) = "(" ++ show q ++ "):\n" ++ 
+                      show x ++ "\n" ++ show xs 
 
 

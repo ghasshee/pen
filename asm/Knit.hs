@@ -198,6 +198,8 @@ knitT opcodes =
     let f = knitF in 
     case opcodes of 
     STOP            : os -> (BLK STOP           (r ags), cnt)     where (ags,cnt) = f os
+    REVERT          : os -> (BLK REVERT         (r ags), cnt)     where (ags,cnt) = f os
+    RETURN          : os -> (BLK RETURN         (r ags), cnt)     where (ags,cnt) = f os
     CALLDATACOPY    : os -> (BLK CALLDATACOPY   (r ags), cnt)     where (ags,cnt) = f os
     CODECOPY        : os -> (BLK CODECOPY       (r ags), cnt)     where (ags,cnt) = f os
     EXTCODECOPY     : os -> (BLK EXTCODECOPY    (r ags), cnt)     where (ags,cnt) = f os
@@ -254,17 +256,23 @@ knitF opcodes = case opcodes of
 
 
 -- combine [JUMPDEST] and the next block 
-cat         :: [RBTree OPCODE] -> [RBTree OPCODE]  
+--cat         :: [RBTree OPCODE] -> [RBTree OPCODE]  
+--cat []                                          = []
+--cat(BLK SEQ[BLK(JUMPDEST s)[]]:BLK SEQ seq:xs)  = BLK SEQ(BLK(JUMPDEST s)[]: seq): cat xs  
+--cat (x:xs)                                      = x : cat xs 
+cat         :: [[RBTree OPCODE]] -> [[RBTree OPCODE]]  
 cat []                                          = []
-cat(BLK SEQ[BLK(JUMPDEST s)[]]:BLK SEQ seq:xs)  = BLK SEQ(BLK(JUMPDEST s)[]: seq): cat xs  
-cat (x:xs)                                      = x : cat xs 
+cat([BLK(JUMPDEST s)[]] : seq : xs)  = [BLK SEQ (BLK(JUMPDEST s)[] : seq)] : cat xs  
+cat (x:xs)                           = x : cat xs 
 
 
-knit        :: [OPCODE] -> RBTree OPCODE 
-knit        = BLK SEQ . stackArg . rev . fst . knitF . paren   
+--knit        :: [OPCODE] -> RBTree OPCODE 
+--knit        = BLK SEQ . stackArg . rev . fst . knitF . paren   
+knit        :: [OPCODE] -> [RBTree OPCODE] 
+knit        = stackArg . rev . fst . knitF . paren   
 
 
 knits       :: [[OPCODE]] -> [RBTree OPCODE] 
-knits       = cat . map knit
+knits       = concat . cat . map knit
 
 

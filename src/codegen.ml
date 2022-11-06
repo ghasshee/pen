@@ -1,4 +1,3 @@
-
 (* M[0x40]  :=   the address of mem alloc     *) 
 (* MSTORE   :=   x=pop() ; y=pop() ; M[x]=y   *) 
 (* MLOAD    :=   x=pop() ; push M[x]          *) 
@@ -29,7 +28,7 @@ let calldatasize (TyMthd(_,args,_)) =
 (***     1.  DISPATHER               ***)
 (***************************************)
 
-let dispatch_mthd idx le vm m =                                           (*                                           ABCD >> .. *)  
+let dispatch_mthd idx le vm m =                                             (*                                           ABCD >> .. *)  
     let vm      =   DUP1                                    @>> vm      in  (*                                   ABCD >> ABCD >> .. *)
     let vm      =   push_mthd_hash m                            vm      in  (*                              m >> ABCD >> ABCD >> .. *)
     let vm      =   EQ                                      @>> vm      in  (*                             m=ABCD?1:0 >> ABCD >> .. *)
@@ -37,7 +36,7 @@ let dispatch_mthd idx le vm m =                                           (*    
                     JUMPI                                   @>> vm          (* if m=ABCD then GOTO Rntime(m)             ABCD >> .. *)
 
 let dispatch_dflt idx le vm   =
-    let vm      =   PUSH(RnMthdLabel(idx,TyDflt))        @>> vm      in
+    let vm      =   PUSH(RnMthdLabel(idx,TyDflt))           @>> vm      in
                     JUMP                                    @>> vm     
 
 let dispatcher idx (TmCn(_,_,mthds)) le vm = 
@@ -527,16 +526,32 @@ let compile_rntime sto cns   =
 (***      7.   CREATION                ***)
 (*****************************************)
 
+
+let mstore_rn_code idx vm = 
+    let vm      =   push_HP                         @>> vm  in  (*                                           0x40  >> .. *)
+    let vm      =   MLOAD                           @>> vm  in  (*                                         M[0x40] >> .. *) 
+    let vm      =   DUP1                            @>> vm  in  (*                              M[0x40] >> M[0x40] >> .. *)    
+    let vm      =   PUSH(RnSize)                    @>> vm  in  (*                      size >> M[0x40] >> M[0x40] >> .. *)
+    let vm      =   ADD                             @>> vm  in  (*                         M[0x40]+size >> M[0x40] >> .. *)
+    let vm      =   push_HP                         @>> vm  in  (*                 0x40 >> M[0x40]+size >> M[0x40] >> .. *)
+    let vm      =   MSTORE                          @>> vm  in  (*                                         M[0x40] >> .. *)
+    let vm      =   PUSH(RnSize)                    @>> vm  in  (*                               size >> alloc(size) >> size >> .. *)
+    let vm      =   PUSH(CrSize idx)                @>> vm  in  (*                     crsize >> size >> alloc(size) >> size >> .. *)
+    let vm      =   DUP3                            @>> vm  in  (*                0 >> crsize >> size >> alloc(size) >> size >> .. *)
+                    CODECOPY                        @>> vm      (*                                       alloc(size) >> size >> .. *)
+    
+
+(*
 let mstore_rn_code idx vm =                                         (*                                                              .. *)
     let vm      =   PUSH(RnSize)                    @>> vm      in  (*                                                      size >> .. *)
-    let vm      =   DUP1                            @>> vm      in  (*                                              size >> size >> .. *)  
+    let vm      =   PUSH(RnSize)                    @>> vm      in  (*                                              size >> size >> .. *)  
     let vm      =   malloc                              vm      in  (*                                       alloc(size) >> size >> .. *)
-    let vm      =   DUP2                            @>> vm      in  (*                               size >> alloc(size) >> size >> .. *)
+    let vm      =   PUSH(RnSize)                    @>> vm      in  (*                               size >> alloc(size) >> size >> .. *)
     let vm      =   PUSH(CrSize idx)                @>> vm      in  (*                     crsize >> size >> alloc(size) >> size >> .. *)
     let vm      =   DUP3                            @>> vm      in  (*                0 >> crsize >> size >> alloc(size) >> size >> .. *)
                     CODECOPY                        @>> vm          (*                                       alloc(size) >> size >> .. *)
                                                                     (*                                        codebegin                *)
-                                                                    (* CODECOPY to from size *)  
+                                                                    (* CODECOPY to from size *)   *)
 let codegen_creation cns idx = (* return vm which contains the program *) 
     let TmCn(id,_,_) as cn = lookup idx cns in 
     let vm      =   empty_vm cns                                in  (*                                                                          *)

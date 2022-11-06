@@ -5,6 +5,7 @@ import Lex  (bytes)
 import Disasm
 import Knit
 import LTS
+import Term
 
 
 main = do 
@@ -35,9 +36,12 @@ main = do
     let asts       = knits progs
     print asts
 
+    let stmts       = map optree2stmt asts 
+    print stmts 
 
     -- +-----------------+ --
     -- | Numbering Nodes | --
-    -- +-----------------+ -- 
-    let numbered    = mkNode asts
+    -- +-----------------+ --
+
+    let numbered    = mkNode stmts
     print numbered

@@ -269,7 +269,7 @@ let init_malloc vm =                                            (* initialize as
 
 let malloc vm   =                                               (*  STACK                                            len >> .. *)
     let vm      =   push_HP                         @>> vm  in  (*                                             64 >> len >> .. *)
-    let vm      =   DUP1                            @>> vm  in  (*                                       64 >> 64 >> len >> .. *)
+    let vm      =   push_HP                         @>> vm  in  (*                                       64 >> 64 >> len >> .. *)
     let vm      =   MLOAD                           @>> vm  in  (*                                    M[64] >> 64 >> len >> .. *)
     let vm      =   DUP1                            @>> vm  in  (*                           M[64] >> M[64] >> 64 >> len >> .. *)
     let vm      =   SWAP3                           @>> vm  in  (*                           len >> M[64] >> 64 >> M[64] >> .. *)
@@ -354,7 +354,7 @@ let push_loc loc aln ty vm  = match loc with
 
 let reset_AC         vm = 
     let vm      = PUSH (Int 1)                      @>> vm      in  (*                                           1 >> .. *)
-    let vm      = DUP1                              @>> vm      in  (*                                      1 >> 1 >> .. *)
+    let vm      = PUSH (Int 1)                      @>> vm      in  (*                                      1 >> 1 >> .. *)
                   SSTORE                            @>> vm          (* S[1]:=1                                        .. *) 
 
 let if_not_init_AC   vm = 
