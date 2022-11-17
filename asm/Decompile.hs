@@ -26,7 +26,7 @@ main = do
     -- +-----------------+ --
     -- | Cut into States | --
     -- +-----------------+ --
-    let progs   = cut $ extract prog 
+    let progs   = revcut $ extract prog 
     mapM print $ map reverse progs 
 
 

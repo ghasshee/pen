@@ -97,7 +97,7 @@ instance Show EXPR where
         Slt x y         -> show x ++ ">'" ++ show y 
         Sgt x y         -> show x ++ "<'" ++ show y
         Eq x y          -> show x ++ "==" ++ show y 
-        Iszero x        -> show x ++ "==0"
+        Iszero x        -> "(" ++ show x ++ ")==0"
         And x y         -> show x ++ "&" ++ show y 
         Or x y          -> show x ++ "|" ++ show y
         Xor x y         -> show x ++ "(+)" ++ show y

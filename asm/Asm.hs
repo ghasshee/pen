@@ -16,13 +16,12 @@ extractAsm (s:l) = case s of
     a:_ | isDigit a     -> s: extractAsm l 
     _                   -> extractAsm l 
 
-removeLineNo :: [String] -> [String] 
-removeLineNo = map (dropWhile (/= ' ') . dropWhile isSpace)
+rmLineNo :: [String] -> [String] 
+rmLineNo = map (dropWhile (/= ' ') . dropWhile isSpace)
 
 
 toBytes :: [String] -> String
-toBytes  = map toLower . concat . map toByte . map read . removeLineNo . extractAsm
-
+toBytes  = map toLower . concat . map toByte . map read . rmLineNo . extractAsm
 
 
 
