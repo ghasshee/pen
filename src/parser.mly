@@ -115,10 +115,10 @@ tm:
     | IF tm THEN tm SEMI tm                         { fun ctx ->    TmIf($2 ctx, $4 ctx, $6 ctx)                                            ,() }
     | tm COLONEQ tm                                 { fun ctx ->    TmAssign($1 ctx, $3 ctx)                                                ,() }
     | LOG ID  arg_list                              { fun ctx ->    TmLog($2,$3 ctx,None)                                                   ,() }
-    | SELFDESTRUCT tm                               { fun ctx ->    TmSfDstr($2 ctx)                                                     ,() }
+    | SELFDESTRUCT tm                               { fun ctx ->    TmSfDstr($2 ctx)                                                        ,() }
     | tm DOT DEFAULT LPAR RPAR msg                  { fun ctx ->    TmSend($1 ctx,None,[],$6 ctx)                                           ,() }
     | tm DOT ID       arg_list msg                  { fun ctx ->    TmSend($1 ctx,Some $3,$4 ctx,$5 ctx)                                    ,() }
-    | tm LSQBR tm RSQBR                             { fun ctx ->    TmArr($1 ctx,$3 ctx)                                                  ,() }
+    | tm LSQBR tm RSQBR                             { fun ctx ->    TmArr($1 ctx,$3 ctx)                                                    ,() }
     | tm op tm                                      { fun ctx ->    $2 ($1 ctx)($3 ctx)                                                     ,() }
 appTm:
     | pathTm                                        { $1                                                                                        }
@@ -145,9 +145,9 @@ aTm:
     | THIS                                          { fun ctx ->    TmThis                                                                  ,() }
     | ADDRESS LPAR  tm   RPAR                       { fun ctx ->    TmAddr ($3 ctx)                                                         ,() }
     | ID                               { reserved $1; fun ctx ->    (* #DEBUG prBds ctx;pe $1 ; *)
-                                                (           try     TmI(lookup_bruijn_idx $1 ctx,len ctx)                                 ,()  
-                                                with _ ->   try     TmIRec(lookup_rec_idx ($1^"'") ctx)                                   ,() 
-                                                with _ ->   try     TmIStrct(lookup_struct_idx $1 ctx)                                    ,() 
+                                                (           try     TmI(lookup_bruijn_idx $1 ctx,len ctx)                                   ,()  
+                                                with _ ->   try     TmIRec(lookup_rec_idx ($1^"'") ctx)                                     ,() 
+                                                with _ ->   try     TmIStrct(lookup_struct_idx $1 ctx)                                      ,() 
                                                 with _ ->           TmId $1                                                                 ,())}
     | NEW ID  arg_list msg             { reserved $2; fun ctx ->    TmNew($2,$3 ctx,$4 ctx)                                                 ,() }
 call: 

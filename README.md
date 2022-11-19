@@ -32,13 +32,10 @@ $ ./compile.sh ../examples/count.pen
 We can also use the `pen` command like; 
 
 ```
-$ ./pen < ../examples/count.pen
-```
-produces a bytecode. Do not trust the output as the compiler still contains bugs probably.
+$ ./pen       < ../examples/count.pen
+$ ./pen --abi < ../examples/count.pen
+$ ./pen --asm < ../examples/count.pen
 
-
-```
-$ ./pen --abi < ../examples/erc20.pen
 ```
 
 prints ABI.

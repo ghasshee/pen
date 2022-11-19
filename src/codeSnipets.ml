@@ -268,15 +268,27 @@ let init_malloc vm =                                            (* initialize as
     let vm      =   push_HP                         @>> vm  in
                     MSTORE                          @>> vm    
 
-let malloc vm   =                                               (*  STACK                                            len >> .. *)
-    let vm      =   push_HP                         @>> vm  in  (*                                             64 >> len >> .. *)
-    let vm      =   push_HP                         @>> vm  in  (*                                       64 >> 64 >> len >> .. *)
-    let vm      =   MLOAD                           @>> vm  in  (*                                    M[64] >> 64 >> len >> .. *)
-    let vm      =   DUP1                            @>> vm  in  (*                           M[64] >> M[64] >> 64 >> len >> .. *)
-    let vm      =   SWAP3                           @>> vm  in  (*                           len >> M[64] >> 64 >> M[64] >> .. *)
-    let vm      =   ADD                             @>> vm  in  (*                              M[64]+len >> 64 >> M[64] >> .. *)
-    let vm      =   SWAP1                           @>> vm  in  (*                              64 >> M[64]+len >> M[64] >> .. *)
-                    MSTORE                          @>> vm      (*                                                 M[64] >> .. *) 
+
+(* malloc :: [size] -> [malloc(size)]  *)
+let malloc  vm  =                                               (* .. >> size                                                  *)
+    let vm      =   push_HP                         @>> vm  in  (* .. >> size >> 0x40                                          *)
+    let vm      =   MLOAD                           @>> vm  in  (* .. >> size >> M[0x40]                                       *)
+    let vm      =   DUP1                            @>> vm  in  (* .. >> size >> M[0x40] >> M[0x40]                            *)
+    let vm      =   SWAP3                           @>> vm  in  (* .. >> M[0x40] >> M[0x40] >> size                            *)
+    let vm      =   ADD                             @>> vm  in  (* .. >> M[0x40] >> size+M[0x40]                               *)
+    let vm      =   push_HP                         @>> vm  in  (* .. >> M[0x40] >> size+M[0x40] >> 0x40                       *)
+                    MSTORE                          @>> vm      (* .. >> M[0x40]                                               *)  
+
+(* malloc' :: [size] -> [malloc(size), size] *)
+let malloc' vm  =                                               (* .. >> size                                                  *)
+    let vm      =   push_HP                         @>> vm  in  (* .. >> size >> 0x40                                          *)
+    let vm      =   MLOAD                           @>> vm  in  (* .. >> size >> M[0x40]                                       *)
+    let vm      =   DUP1                            @>> vm  in  (* .. >> size >> M[0x40] >> M[0x40]                            *)
+    let vm      =   DUP3                            @>> vm  in  (* .. >> size >> M[0x40] >> M[0x40] >> size                    *)
+    let vm      =   ADD                             @>> vm  in  (* .. >> size >> M[0x40] >> size+M[0x40]                       *)
+    let vm      =   push_HP                         @>> vm  in  (* .. >> size >> M[0x40] >> size+M[0x40] >> 0x40               *)
+                    MSTORE                          @>> vm      (* .. >> size >> M[0x40]                                       *)  
+    
 
 let get_malloc vm   =                             
     let vm      =   push_HP                         @>> vm  in  (*                                                0x40   >> .. *) 
