@@ -57,4 +57,6 @@ prints ABI.
 ```
 
 
+# Decompiler 
 
+pen has another tool which decompiles EVM-bytecode into [Guarded Command](https://en.wikipedia.org/wiki/Guarded_Command_Language)-like Language . 
