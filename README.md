@@ -24,8 +24,7 @@ Then, after installation, type the above and install the all dependencies.
 $ git pull https://www.github.com/ghasshee/pen
 $ cd pen 
 $ cd src
-$ make
-$ ./pen < ../examples/erc20.pen
+$ ./compile.sh ../examples/count.pen
 ```
 
 
@@ -42,9 +41,10 @@ $ ./pen < ../examples/erc20.pen
 
 
 ```
-./pen < ../examples/erc20.pen
+./pen < ../examples/count.pen
 ```
 produces a bytecode. Do not trust the output as the compiler still contains bugs probably.
+
 
 ```
 ./pen --abi < ../examples/erc20.pen
