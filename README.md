@@ -73,3 +73,10 @@ $ ../src/pen < ../examples/count.pen | ./DASM           ## Disassembler
 $ ../src/pen < ../examples/count.pen | ./DASM  | ./ASM  ## Assembler
 ``` 
 
+Of course it can decompile Solidity generated EVM-bytecode . 
+```
+$ ./DEVM < ../solc/Count.hex 
+```
+
+
+

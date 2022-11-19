@@ -16,32 +16,44 @@ main = do
     words <- bytes 
 
 
-    -- +---------+ --
-    -- | DisAsm  | --
-    -- +---------+ --
+    pr ""
+    pr "-- +---------+ --"
+    pr "-- | DisAsm  | --"
+    pr "-- +---------+ --"
+    pr ""
     let prog    = lineNo $ disAsm words 
     prAsm prog
 
 
-    -- +-----------------+ --
-    -- | Cut into States | --
-    -- +-----------------+ --
+    pr ""
+    pr "-- +-----------------+ --"
+    pr "-- | Cut into States | --"
+    pr "-- +-----------------+ --"
+    pr ""
     let progs   = revcut $ extract prog 
     mapM print $ map reverse progs 
 
 
-    -- +-----------+ --
-    -- | Decompile | --
-    -- +-----------+ --
+    pr ""
+    pr "-- +-----------+ --"
+    pr "-- | Decompile | --"
+    pr "-- +-----------+ --"
+    pr ""
     let asts       = knits progs
     print asts
 
+    pr ""
+    pr "-- +-------------+ --"
+    pr "-- |    GCLL     | --"
+    pr "-- +-------------+ --"
+    pr ""
     let stmts       = map optree2stmt asts 
     print stmts 
 
-    -- +-----------------+ --
-    -- | Numbering Nodes | --
-    -- +-----------------+ --
-
+    pr ""
+    pr "-- +-----------------+ --"
+    pr "-- | GCLL with Nodes | --"
+    pr "-- +-----------------+ --"
+    pr ""
     let numbered    = mkNode stmts
     print numbered
