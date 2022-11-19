@@ -44,7 +44,7 @@ and follow the rest of the instruction.
 
 
 Also, 
-We can use the `pen` command like; 
+We can use the `pen` command, like; 
 
 ```
 $ ./pen       < ../examples/count.pen
