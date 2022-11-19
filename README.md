@@ -5,20 +5,22 @@ Pen is a Compiler that compiles the High-Level Language into EVM bytecodes.
 
 ## Build 
 
-pen is written by OCaml Programming Language, 
-whose package manager is OPAM. 
-So you need to install opam first of all.  
+Pen is written by [OCaml](https://ocaml.org/), 
+whose package manager is [OPAM](https://opam.ocaml.org/), which you need to install first of all.  
 
-After opam init, install all dependencies with; 
+After `opam init`, 
+install all dependencies; 
 
-* opam install batteries
-* opam install cryptokit (>= 1.12)
-* opam install hex
-* opam install menhirLib
-* opam install rope
-* opam install rpclib
+```
+$ opam install batteries
+$ opam install cryptokit  ## (>= 1.12)
+$ opam install hex
+$ opam install menhirLib
+$ opam install rope
+$ opam install rpclib
+```
 
-Then, after installation, type the above and install the all dependencies.
+Then, pull this repo from github and compile the comipler !
 
 ```
 $ git pull https://www.github.com/ghasshee/pen
