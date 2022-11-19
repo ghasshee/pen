@@ -28,21 +28,15 @@ $ ./compile.sh ../examples/count.pen
 
 
 
-
 We can also use the `pen` command like; 
 
 ```
 $ ./pen       < ../examples/count.pen
-$ ./pen --abi < ../examples/count.pen
-$ ./pen --asm < ../examples/count.pen
+$ ./pen --abi < ../examples/count.pen   ## shows ABI
+$ ./pen --asm < ../examples/count.pen   ## shows Assembler Code  
 
 ```
 
-prints ABI.
-
-```
-[{"type": "constructor", "inputs":[{"name": "_beneficiary", "type": "address"},{"name": "_bidding_time", "type": "uint256"},{"name": "_highest_bid", "type": "uint256"}], "name": "auction", "outputs":[], "payable": true},{"type":"fallback","inputs": [],"outputs": [],"payable": true}]
-```
 
 
 # Decompiler 
