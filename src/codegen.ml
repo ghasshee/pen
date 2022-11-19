@@ -537,7 +537,7 @@ let mstore_rn_code idx vm =
     let vm      =   MSTORE                          @>> vm  in  (*                                         M[0x40] >> .. *)
     let vm      =   PUSH(RnSize)                    @>> vm  in  (*                               size >> alloc(size) >> size >> .. *)
     let vm      =   PUSH(CrSize idx)                @>> vm  in  (*                     crsize >> size >> alloc(size) >> size >> .. *)
-    let vm      =   DUP3                            @>> vm  in  (*                0 >> crsize >> size >> alloc(size) >> size >> .. *)
+    let vm      =   DUP3                            @>> vm  in  (*          M[0x40] >> crsize >> size >> alloc(size) >> size >> .. *)
                     CODECOPY                        @>> vm      (*                                       alloc(size) >> size >> .. *)
     
 

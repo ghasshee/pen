@@ -156,9 +156,9 @@ let get_PC vm       =
 let _KECCAK1    =   Int 0x00
 let _KECCAK2    =   Int 0x20 
 let _HP         =   Int 0x40         (* HEAP Pointer *) 
-let _HP_MIN     =   Int 0x1000000    (* Initial HEAP Head *) 
+let _HP_MIN     =   Int 0x10000      (* Initial HEAP Head *) 
 let _MSP        =   Int 0x80         (* Memory Stack : Another Stack different from EVM Stack *) 
-let _MS_MIN     =   Int 0x800000
+let _MS_MIN     =   Int 0x8000  
 let _MS_MAX     =   let Int i = _HP_MIN in Int (i-1)  
 let _EP         =   Int 0x60         (* Escaping Variable Record Pointer *) 
 let _EP_MIN     =   Int 0x100

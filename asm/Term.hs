@@ -82,15 +82,15 @@ instance Show EXPR where
         Stk n           -> "Stk[" ++ show n ++ "]" 
         Var s           -> s  
         V v             -> show v 
-        Add x y         -> show x ++ "+" ++ show y 
-        Sub x y         -> show x ++ "-" ++ show y 
-        Mul x y         -> show x ++ "*" ++ show y 
-        Div x y         -> show x ++ "/" ++ show y 
-        Sdiv x y        -> show x ++ "/'" ++ show y   -- Sdiv : Signed Division  
-        Mod x y         -> show x ++ "%" ++ show y 
-        Addmod x y      -> show x ++ "+%"++ show y 
-        Mulmod x y      -> show x ++ "*%"++ show y 
-        Exp x y         -> show x ++ "^" ++ show y 
+        Add    y x      -> show x ++ "+" ++ show y 
+        Sub    y x      -> show x ++ "-" ++ show y 
+        Mul    y x      -> show x ++ "*" ++ show y 
+        Div    y x      -> show x ++ "/" ++ show y 
+        Sdiv   y x      -> show x ++ "/'" ++ show y   -- Sdiv : Signed Division  
+        Mod    y x      -> show x ++ "%" ++ show y 
+        Addmod y x      -> show x ++ "+%"++ show y 
+        Mulmod y x      -> show x ++ "*%"++ show y 
+        Exp    y x      -> show x ++ "^" ++ show y 
         Sigextend x y   -> "sigext " ++ show x ++ " " ++ show y
         Lt x y          -> show x ++ "<" ++ show y 
         Gt x y          -> show x ++ ">" ++ show y 
