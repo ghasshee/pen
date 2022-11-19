@@ -58,6 +58,8 @@ $ ./pen --asm < ../examples/count.pen   ## shows Assembler Code
 
 pen has another tool which decompiles EVM-bytecode into [Guarded Command](https://en.wikipedia.org/wiki/Guarded_Command_Language)-like Language . 
 
+The decompiler is written in Haskell, which you might be familiar with! 
+
 ```
 $ cd asm
 $ make
