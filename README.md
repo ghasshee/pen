@@ -29,16 +29,8 @@ $ ./compile.sh ../examples/count.pen
 
 
 
-## Examples
 
-* [A payment channel](./examples/00h_payment_channel.bbo)
-* [A vault](https://medium.com/@pirapira/implementing-a-vault-in-bamboo-9c08241b6755)
-
-* [An ERC20 contract](./examples/erc20.pen)
-
-
-## Test
-
+We can also use the `pen` command like; 
 
 ```
 ./pen < ../examples/count.pen
