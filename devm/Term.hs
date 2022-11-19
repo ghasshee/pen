@@ -42,8 +42,8 @@ data EXPR   = Ox           String
             | Sdiv      EXPR EXPR
             | Mod       EXPR EXPR
             | Smod      EXPR EXPR
-            | Addmod    EXPR EXPR
-            | Mulmod    EXPR EXPR
+            | Addmod    EXPR EXPR EXPR
+            | Mulmod    EXPR EXPR EXPR
             | Exp       EXPR EXPR
             | Sigextend EXPR EXPR
             | Lt        EXPR EXPR
@@ -88,8 +88,8 @@ instance Show EXPR where
         Div    y x      -> show x ++ "/" ++ show y 
         Sdiv   y x      -> show x ++ "/'" ++ show y   -- Sdiv : Signed Division  
         Mod    y x      -> show x ++ "%" ++ show y 
-        Addmod y x      -> show x ++ "+%"++ show y 
-        Mulmod y x      -> show x ++ "*%"++ show y 
+        Addmod z y x    -> "(" ++ show x ++ "+"++ show y ++ ")%" ++ show z 
+        Mulmod z y x    -> "(" ++ show x ++ "*"++ show y ++ ")%" ++ show z 
         Exp    y x      -> show x ++ "^" ++ show y 
         Sigextend y x   -> "sigext(" ++ show x ++ "," ++ show y ++ ")"
         Lt     y x      -> show x ++ "<" ++ show y 
@@ -301,8 +301,6 @@ optree2expr t = loop t where
             DIV                 -> Div      (loop x)(loop y)
             SDIV                -> Sdiv     (loop x)(loop y)
             MOD                 -> Mod      (loop x)(loop y)
-            ADDMOD              -> Addmod   (loop x)(loop y)
-            MULMOD              -> Mulmod   (loop x)(loop y)
             EXP                 -> Exp      (loop x)(loop y) 
             SIGNEXTEND          -> Sigextend(loop x)(loop y)
             LT                  -> Lt       (loop x)(loop y) 
@@ -318,6 +316,8 @@ optree2expr t = loop t where
             SHR                 -> Shr      (loop x)(loop y) 
             SAR                 -> Sar      (loop x)(loop y) 
         RED o [x,y,z]   -> case o of 
+            ADDMOD              -> Addmod   (loop x)(loop y)(loop z)
+            MULMOD              -> Mulmod   (loop x)(loop y)(loop z)
             CREATE              -> Create   (loop x)(loop y)(loop z)
         RED o [x,y,z,w] -> case o of 
             CREATE2             -> Create2  (loop x)(loop y)(loop z)(loop w)
