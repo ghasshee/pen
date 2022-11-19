@@ -31,7 +31,7 @@ $ ./compile.sh ../examples/count.pen
 ## Deploy a contract on Geth
 
 If you successfully compile it with the above command, 
-    you will find the following instruction on stdIO . 
+    you will find the following instruction which is displayed on STD I/O . 
 
 As mentioned there, please type; 
 
