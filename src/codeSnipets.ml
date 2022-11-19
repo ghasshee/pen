@@ -25,35 +25,35 @@ let error_label = Int 0
 (***     1. ERROR HANDLING                          ***)
 (******************************************************)
 
-let throw vm         = (* the same with solc. *)
+let _THROW vm         = (* the same with solc. *)
     let vm      =   PUSH error_label                @>> vm  in
                     JUMP                            @>> vm 
 
-let throw_if vm     =                                           (*                               cond >> .. *)
+let _THROW_IF vm     =                                          (*                               cond >> .. *)
     let vm      =   PUSH error_label                @>> vm  in  (*                   errlabel >> cond >> .. *)
                     JUMPI                           @>> vm      (* if cond then goto err                 .. *) 
 
-let throw_if_0 vm    =                                          (*                                  i >> .. *)   
+let _THROW_IFN vm    =                                          (*                                  i >> .. *)   
     let vm      =   DUP1                            @>> vm  in  (*                             i >> i >> .. *)
     let vm      =   ISZERO                          @>> vm  in  (*                 i==0 ? 1 : 0  >> i >> .. *)
-                    throw_if                            vm      (*                                  i >> .. *) 
+                    _THROW_IF                           vm      (*                                  i >> .. *) 
       
-let throw_if_NEQ vm   =                                         (*                             a >> b >> .. *) 
+let _THROW_IF_NEQ vm =                                          (*                             a >> b >> .. *) 
     let vm      =   EQ                              @>> vm  in  (*                               a==b >> .. *)
     let vm      =   ISZERO                          @>> vm  in  (*                               a!=b >> .. *)    
-                    throw_if                            vm      (* if a!=b then throw                    .. *) 
+                    _THROW_IF                           vm      (* if a!=b then throw                    .. *) 
 
-let goto    la vm   = 
+let _GOTO    la vm   = 
     let vm      =   PUSH(Label la)                  @>> vm  in 
                     JUMP                            @>> vm 
 
-let if_GOTO la vm   =                                           (* IF stacktop != 0 GOTO label *)
+let _GOTO_IF la vm   =                                           (* IF stacktop != 0 GOTO label *)
     let vm      =   PUSH(Label la)                  @>> vm  in  
                     JUMPI                           @>> vm 
 
-let if_0_GOTO la vm =                                           (* IF stacktop == 0 GOTO label *)
+let _GOTO_IFN la vm =                                           (* IF stacktop == 0 GOTO label *)
     let vm      =   ISZERO                          @>> vm  in 
-                    if_GOTO la                          vm  
+                    _GOTO_IF la                         vm  
 
 let repeat opcode n vm = foldn n ((@>>)opcode) vm
 
@@ -69,39 +69,39 @@ let push_storRange vm (data : imm data) =
     let vm      =   PUSH  data.offst                @>> vm  in
                     SLOAD                           @>> vm 
 
-let dup_nth_from_bottom n vm  =
+let _DUP_N_FRM_BOT n vm  =
                     dup_succ(vm.stack_height - n)   @>> vm 
 
-let shiftR bits vm =
+let _SHR bits vm =
     assert (0 <= bits && bits < 256) ; 
     if bits=0 then vm else                                      (*                                         x >> .. *) 
     let vm      =   PUSH (Int bits)                 @>> vm  in  (*                                 bits >> x >> .. *)
                     SHR                             @>> vm      (*                               x/(2**bits) >> .. *) 
 
-let shiftL bits vm =
+let _SHL bits vm =
     assert (0 <= bits && bits < 256) ; 
     if bits=0 then vm else                                      (*                                         x >> .. *)
     let vm      =   PUSH (Int bits)                 @>> vm  in  (*                                 bits >> x >> .. *)                   
                     SHL                             @>> vm      (*                               (2**bits)*x >> .. *) 
 
-let incr       n vm =
+let _PLUS n   vm =
     let vm      =   PUSH (Int n)                    @>> vm  in
                     ADD                             @>> vm      
 
-let sincr idx  n vm = 
+let _PLUS_S idx n vm = 
     let vm      =   PUSH(Int idx)                   @>> vm  in  (*                                         i >> .. *) 
     let vm      =   SLOAD                           @>> vm  in  (*                                      S[i] >> .. *) 
     let vm      =   DUP1                            @>> vm  in  (*                              S[i] >> S[i] >> .. *) 
-    let vm      =   incr n                              vm  in  (*                            S[i]+1 >> S[i] >> .. *) 
+    let vm      =   _PLUS n                             vm  in  (*                            S[i]+1 >> S[i] >> .. *) 
     let vm      =   PUSH(Int idx)                   @>> vm  in  (*                       i >> S[i]+1 >> S[i] >> .. *) 
                     SSTORE                          @>> vm      (* S[i]:=S[i]+1                         S[i] >> .. *) 
 
-let calldataload data vm =
+let _CALLDATALOAD data vm =
     assert (0 < data.size && data.size <= 32);
     let vm      =   PUSH (Int data.offst)           @>> vm  in
                     CALLDATALOAD                    @>> vm  
 
-let keccak_cat vm =                                             (*                                    a >> b >> .. *) 
+let _KEC_CAT vm =                                             (*                                    a >> b >> .. *) 
     let vm      =   PUSH (Int 0x00)                 @>> vm  in  (*                            0x00 >> a >> b >> .. *)
     let vm      =   MSTORE                          @>> vm  in  (* M[0x00]=a                               b >> .. *)
     let vm      =   PUSH (Int 0x20)                 @>> vm  in  (*                                 0x20 >> b >> .. *)
@@ -115,20 +115,20 @@ let check_NOT_GT bound vm =                                     (*              
     let vm      =   DUP1                            @>> vm  in  (*                                    x >> x >> .. *)
     let vm      =   PUSH bound                      @>> vm  in  (*                           bound >> x >> x >> .. *) 
     let vm      =   LT                              @>> vm  in  (*                          bound<x?1:0 >> x >> .. *) 
-                    throw_if                            vm      (* IF x<bound THEN error                   x >> .. *)
+                    _THROW_IF                           vm      (* IF x<bound THEN error                   x >> .. *)
 
 let check_NOT_LT bound vm =                                     (*                                         x >> .. *)
     let vm      =   DUP1                            @>> vm  in  (*                                    x >> x >> .. *)
     let vm      =   PUSH bound                      @>> vm  in  (*                           bound >> x >> x >> .. *) 
     let vm      =   GT                              @>> vm  in  (*                          bound>x?1:0 >> x >> .. *) 
-                    throw_if                            vm      (* IF x<bound then error                   x >> .. *)
+                    _THROW_IF                           vm      (* IF x<bound then error                   x >> .. *)
 
 
 (******************************************************)
 (***     4. PROGRAM COUNTER on STORAGE              ***)
 (******************************************************)
                 
-let reset_PC vm     =
+let _RESET_PC vm     =
     let vm      =   PUSH StorPC                     @>> vm    in  (*                                       0 >> .. *)
     let vm      =   SLOAD                           @>> vm    in  (*                                    S[0] >> .. *)
     let vm      =   PUSH StorPC                     @>> vm    in  (*                               0 >> S[0] >> .. *)
@@ -269,8 +269,8 @@ let init_malloc vm =                                            (* initialize as
                     MSTORE                          @>> vm    
 
 
-(* malloc :: [size] -> [malloc(size)]  *)
-let malloc  vm  =                                               (* .. >> size                                                  *)
+(* malloc :: (size) -> (maddr)  *)
+let _MALLOC  vm  =                                              (* .. >> size                                                  *)
     let vm      =   push_HP                         @>> vm  in  (* .. >> size >> 0x40                                          *)
     let vm      =   MLOAD                           @>> vm  in  (* .. >> size >> M[0x40]                                       *)
     let vm      =   DUP1                            @>> vm  in  (* .. >> size >> M[0x40] >> M[0x40]                            *)
@@ -279,8 +279,8 @@ let malloc  vm  =                                               (* .. >> size   
     let vm      =   push_HP                         @>> vm  in  (* .. >> M[0x40] >> size+M[0x40] >> 0x40                       *)
                     MSTORE                          @>> vm      (* .. >> M[0x40]                                               *)  
 
-(* malloc' :: [size] -> [malloc(size), size] *)
-let malloc' vm  =                                               (* .. >> size                                                  *)
+(* malloc' : (size) -> (maddr, size) *)
+let _MALLOC' vm  =                                              (* .. >> size                                                  *)
     let vm      =   push_HP                         @>> vm  in  (* .. >> size >> 0x40                                          *)
     let vm      =   MLOAD                           @>> vm  in  (* .. >> size >> M[0x40]                                       *)
     let vm      =   DUP1                            @>> vm  in  (* .. >> size >> M[0x40] >> M[0x40]                            *)
@@ -289,42 +289,41 @@ let malloc' vm  =                                               (* .. >> size   
     let vm      =   push_HP                         @>> vm  in  (* .. >> size >> M[0x40] >> size+M[0x40] >> 0x40               *)
                     MSTORE                          @>> vm      (* .. >> size >> M[0x40]                                       *)  
     
-
-let get_malloc vm   =                             
+(* get_HP : () -> (maddr) *)
+let get_HP vm   =                             
     let vm      =   push_HP                         @>> vm  in  (*                                                0x40   >> .. *) 
                     MLOAD                           @>> vm      (*                                              M[0x40]  >> .. *) 
-      
-let mstore_code vm  =                                           (*                                           idx >> size >> .. *)
-    let vm      =   DUP2                            @>> vm  in  (*                                   size >> idx >> size >> .. *)
-    let vm      =   malloc                              vm  in  (*                            alloc(size) >> idx >> size >> .. *)
-    let vm      =   SWAP1                           @>> vm  in  (*                            idx >> alloc(size) >> size >> .. *)
-    let vm      =   DUP3                            @>> vm  in  (*                    size >> idx >> alloc(size) >> size >> .. *)
-    let vm      =   SWAP1                           @>> vm  in  (*                    idx >> size >> alloc(size) >> size >> .. *)
-    let vm      =   DUP3                            @>> vm  in  (*     alloc(size) >> idx >> size >> alloc(size) >> size >> .. *) 
-                    CODECOPY                        @>> vm      (*                                   alloc(size) >> size >> .. *)  
 
-let mstore_whole_code vm =
+
+let _MSTORE_CODE vm  =                                          (* size >> from                                       *)
+    let vm      =   DUP2                            @>> vm  in  (* size >> from >> size                               *)
+    let vm      =   _MALLOC'                            vm  in  (* size >> from >> size >> alloc(size)                *)
+    let vm      =   SWAP2                           @>> vm  in  (* size >> alloc(size) >> size >> from                *)
+    let vm      =   DUP3                            @>> vm  in  (* size >> alloc(size) >> size >> from >> alloc(size) *)
+                    CODECOPY                        @>> vm      (* size >> alloc(size)                                *)
+                    
+
+let _MSTORE_WHOLECODE vm =
     let vm      =   CODESIZE                        @>> vm  in  (*                                                  size >> .. *)
-    let vm      =   DUP1                            @>> vm  in  (*                                          size >> size >> .. *)
-    let vm      =   malloc                              vm  in  (*                                   alloc(size) >> size >> .. *)
-    let vm      =   DUP2                            @>> vm  in  (*                           size >> alloc(size) >> size >> .. *)
-    let vm      =   PUSH(Int 0)                     @>> vm  in  (*                     0  >> size >> alloc(size) >> size >> .. *)
-    let vm      =   DUP3                            @>> vm  in  (*     alloc(size) >>  0  >> size >> alloc(size) >> size >> .. *)
-                    CODECOPY                        @>> vm      (*       to           from           alloc(size) >> size >> .. *)
+    let vm      =   _MALLOC'                            vm  in  (*                                   alloc(size) >> size >> .. *)
+    let vm      =   PUSH(Int 0)                     @>> vm  in  (*                             0  >> alloc(size) >> size >> .. *)
+    let vm      =   DUP3                            @>> vm  in  (*                    size >>  0  >> alloc(size) >> size >> .. *)
+    let vm      =   SWAP2                           @>> vm  in  (*                    alloc(size) >>  0  >> size >> size >> .. *)
+                    CODECOPY                        @>> vm      (*                                                  size >> .. *)
 
-let push_mthd_hash m vm =
+let _PUSH_MHASH m vm =
     let b       =   Crpt.(big_of_hex $ hash_ty_mthd)m       in  
                     PUSH(Big b)                     @>> vm    
 
-let push_evnt_hash ev vm =
+let _PUSH_EVHASH ev vm =
     let b       =   Crpt.(big_of_hex $ hash_of_evnt)ev      in  
                     PUSH(Big b)                     @>> vm             
 
-let mstore_mthd_hash mthd vm =
+let _MSTORE_MHASH mthd vm =
     let vm      =   PUSH(Int 0x04)                  @>> vm  in  (*                                                     4 >> .. *)
     let vm      =   DUP1                            @>> vm  in  (*                                               4  >> 4 >> .. *)
-    let vm      =   malloc                              vm  in  (*                                         alloc(4) >> 4 >> .. *)
-    let vm      =   push_mthd_hash mthd                 vm  in  (*                                 hash >> alloc(4) >> 4 >> .. *)
+    let vm      =   _MALLOC                             vm  in  (*                                         alloc(4) >> 4 >> .. *)
+    let vm      =   _PUSH_MHASH mthd                    vm  in  (*                                 hash >> alloc(4) >> 4 >> .. *)
     let vm      =   DUP2                            @>> vm  in  (*                     alloc(4) >> hash >> alloc(4) >> 4 >> .. *)
                     MSTORE                          @>> vm      (* M[alloc(4)] := hash                     alloc(4) >> 4 >> .. *)
 
@@ -340,19 +339,19 @@ let mstore_mthd_hash mthd vm =
                 
 type alignment              = L | R
 
-let shift_by_aln aln ty vm  = match aln with 
+let _SHIFT_IF_L aln ty vm  = match aln with 
     | R                     ->  vm
     | L                     ->  let size = size_of_ty ty in
                                 assert (size <= 32) ;
-                                shiftL ((32-size)*8) vm
+                                _SHL ((32-size)*8) vm
 
 let push_loc loc aln ty vm  = match loc with 
     | Code       _          ->  err "push_loc: Code"  
-    | Calldata range        ->  calldataload range      vm
+    | Calldata range        ->  _CALLDATALOAD range     vm
     | Stor     range        ->  let vm = push_storRange vm range in 
-                                shift_by_aln aln ty vm
-    | Stack      n          ->  let vm = dup_nth_from_bottom n vm in 
-                                shift_by_aln aln ty vm
+                                _SHIFT_IF_L aln ty vm
+    | Stack      n          ->  let vm = _DUP_N_FRM_BOT n vm in 
+                                _SHIFT_IF_L aln ty vm
 
 
 
@@ -365,7 +364,7 @@ let push_loc loc aln ty vm  = match loc with
 
 (**   Storage Setup       **)                   
 
-let reset_AC         vm = 
+let _RESET_AC         vm = 
     let vm      = PUSH (Int 1)                      @>> vm      in  (*                                           1 >> .. *)
     let vm      = PUSH (Int 1)                      @>> vm      in  (*                                      1 >> 1 >> .. *)
                   SSTORE                            @>> vm          (* S[1]:=1                                        .. *) 
@@ -374,16 +373,16 @@ let if_not_init_AC   vm =
     let exit    = fresh_label ()                                in  (*                                                .. *) 
     let vm      = PUSH (Int 1)                      @>> vm      in  (*                                          AC >> .. *) 
     let vm      = SLOAD                             @>> vm      in  (*                                       S[AC] >> .. *)
-    let vm      = if_GOTO exit                          vm      in  (* IF S[AC] != 0 GOTO exit                        .. *)
-    let vm      = reset_AC                              vm      in  (* S[AC] := 1                                     .. *) 
+    let vm      = _GOTO_IF exit                         vm      in  (* IF S[AC] != 0 GOTO exit                        .. *)
+    let vm      = _RESET_AC                             vm      in  (* S[AC] := 1                                     .. *) 
                   JUMPDEST exit                     @>> vm          (*                                                .. *)
 
 let salloc_arr vm (a_i:int) =   
     let exit    = fresh_label()                                 in  (*                                                .. *) 
     let vm      = PUSH (Int a_i)                    @>> vm      in  (*                                        a_i  >> .. *)
     let vm      = SLOAD                             @>> vm      in  (*                                      S[a_i] >> .. *) 
-    let vm      = if_GOTO exit                          vm      in  (* IF S[a_i]!=0 GOTO exit                         .. *) 
-    let vm      = sincr 1 1                             vm      in  (*                                     S[AC]++ >> .. *)      
+    let vm      = _GOTO_IF exit                         vm      in  (* IF S[a_i]!=0 GOTO exit                         .. *) 
+    let vm      = _PLUS_S 1 1                           vm      in  (*                                     S[AC]++ >> .. *)      
     let vm      = PUSH (Int a_i)                    @>> vm      in  (*                                a_i >> S[AC] >> .. *)
     let vm      = SSTORE                            @>> vm      in  (* S[a_i] := S[AC]                                .. *)
                   JUMPDEST exit                     @>> vm          (*                                                .. *)
@@ -407,7 +406,7 @@ let salloc_arrs cn vm =
 let check_codesize cnidx vm     =  
     let vm      = PUSH (InitDataSize cnidx)         @>> vm      in  (*                                    datasize >> mem_start >> size >> .. *)
     let vm      = CODESIZE                          @>> vm      in  (*                        codesize >> datasize >> mem_start >> size >> .. *) 
-                  throw_if_NEQ                          vm          (* IF not eq THEN error                                                   *) 
+                  _THROW_IF_NEQ                         vm          (* IF not eq THEN error                                                   *) 
 
 
 
@@ -416,7 +415,7 @@ let mstore_var_args cn vm =                                             (* This 
     let size    = size_of_vars_in_cn cn                         in  (* M[0x40](==M[64]) is increased accordingly                              *)
     let vm      = PUSH (Int size)                   @>> vm      in  (*                                                             size >> .. *)
     let vm      = DUP1                              @>> vm      in  (*                                                     size >> size >> .. *)
-    let vm      = malloc                                vm      in  (*                                              alloc(size) >> size >> .. *)
+    let vm      = _MALLOC                               vm      in  (*                                              alloc(size) >> size >> .. *)
     let vm      = DUP2                              @>> vm      in  (*                                      size >> alloc(size) >> size >> .. *)
     let vm      = DUP1                              @>> vm      in  (*                              size >> size >> alloc(size) >> size >> .. *)
     let vm      = CODESIZE                          @>> vm      in  (*                  codesize >> size >> size >> alloc(size) >> size >> .. *)
@@ -430,7 +429,7 @@ let sstore_var_args cnidx vm   =
     let vm      = PUSH (StorVarBegin cnidx)         @>> vm      in  (*                                          idx >>  alloc(size)   >>   size    >> .. *)
     let vm   = JUMPDEST loop                        @>> vm      in  (*                                          idx >>  alloc(size)   >>   size    >> .. *)
     let vm      = DUP3                              @>> vm      in  (*                                 size >>  idx >>  alloc(size)   >>   size    >> .. *)
-    let vm      = if_0_GOTO exit                        vm      in  (* IF size == 0 GOTO exit                   idx >>  alloc(size)   >>   size    >> .. *)   
+    let vm      = _GOTO_IFN exit                        vm      in  (* IF size == 0 GOTO exit                   idx >>  alloc(size)   >>   size    >> .. *)   
     let vm      = DUP2                              @>> vm      in  (*                            mem_start >>  idx >>  alloc(size)   >>   size    >> .. *) 
     let vm      = MLOAD                             @>> vm      in  (*                         M[mem_start] >>  idx >>  alloc(size)   >>   size    >> .. *)
     let vm      = DUP2                              @>> vm      in  (*                  idx >> M[mem_start] >>  idx >>  alloc(size)   >>   size    >> .. *)
@@ -440,11 +439,11 @@ let sstore_var_args cnidx vm   =
     let vm      = SWAP3                             @>> vm      in  (*                                 size >> 0x20 >>  alloc(size)   >>   idx     >> .. *)
     let vm      = SUB                               @>> vm      in  (*                                   size- 0x20 >>  alloc(size)   >>   idx     >> .. *)
     let vm      = SWAP2                             @>> vm      in  (*                                          idx >>  alloc(size)   >> size-0x20 >> .. *) 
-    let vm      = incr 1                                vm      in  (*                                        idx+1 >>  alloc(size)   >> size-0x20 >> .. *)
+    let vm      = _PLUS 1                               vm      in  (*                                        idx+1 >>  alloc(size)   >> size-0x20 >> .. *)
     let vm      = SWAP1                             @>> vm      in  (*                                    mem_start >>       idx+1    >> size-0x20 >> .. *)
-    let vm      = incr 0x20                             vm      in  (*                               mem_start+0x20 >>       idx+1    >> size-0x20 >> .. *)
+    let vm      = _PLUS 0x20                            vm      in  (*                               mem_start+0x20 >>       idx+1    >> size-0x20 >> .. *)
     let vm      = SWAP1                             @>> vm      in  (*                                        idx+1 >> mem_start+0x20 >> size-0x20 >> .. *)
-    let vm      = goto loop                             vm      in  (*                                        idx+1 >> mem_start+0x20 >> size-0x20 >> .. *)
+    let vm      = _GOTO loop                            vm      in  (*                                        idx+1 >> mem_start+0x20 >> size-0x20 >> .. *)
     let vm   = JUMPDEST exit                        @>> vm      in  (*                                          idx >>   mem_start    >>   size    >> .. *)
                   repeat POP 3                          vm          (*                                                                     .. *)
 

@@ -264,7 +264,8 @@ knit        = rev . fst . knitF . paren
 -- combine [JUMPDEST] and the next block 
 cat         :: [[RBTree OPCODE]] -> [[RBTree OPCODE]]  
 cat []                                          = []
-cat([BLK(JUMPDEST s)[]] : seq : xs)  = [BLK SEQ (BLK(JUMPDEST s)[] : seq)] : cat xs  
+cat ([BLK INVALID _]:xs)                        = cat xs 
+cat ([BLK(JUMPDEST s)_] : seq : xs)  = [BLK SEQ (BLK(JUMPDEST s)[] : seq)] : cat xs  
 cat (x:xs)                           = x : cat xs 
 
 knits       :: [[OPCODE]] -> [RBTree OPCODE] 
