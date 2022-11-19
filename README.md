@@ -32,13 +32,13 @@ $ ./compile.sh ../examples/count.pen
 We can also use the `pen` command like; 
 
 ```
-./pen < ../examples/count.pen
+$ ./pen < ../examples/count.pen
 ```
 produces a bytecode. Do not trust the output as the compiler still contains bugs probably.
 
 
 ```
-./pen --abi < ../examples/erc20.pen
+$ ./pen --abi < ../examples/erc20.pen
 ```
 
 prints ABI.
@@ -51,3 +51,10 @@ prints ABI.
 # Decompiler 
 
 pen has another tool which decompiles EVM-bytecode into [Guarded Command](https://en.wikipedia.org/wiki/Guarded_Command_Language)-like Language . 
+
+```
+$ cd asm
+$ make
+$ ../src/pen < ../examples/count.pen | ./Devm
+``` 
+
