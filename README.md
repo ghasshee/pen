@@ -27,7 +27,8 @@ $ ./compile.sh ../examples/count.pen
 ```
 
 If you successfully compile it with the above command, 
-    you will see the following instruction on stdIO . 
+    you will find the following instruction on stdIO . 
+
 As mentioned there, please type; 
 
 ```
