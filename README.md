@@ -56,7 +56,7 @@ $ ./pen --asm < ../examples/count.pen   ## shows Assembler Code
 
 
 
-# Decompiler 
+# Devm
 
 Pen has another tool which decompiles EVM-bytecode into [Guarded Command](https://en.wikipedia.org/wiki/Guarded_Command_Language)-like Language (GCLL). 
 
