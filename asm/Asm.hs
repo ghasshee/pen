@@ -24,7 +24,6 @@ toBytes :: [String] -> String
 toBytes  = map toLower . concat . map toByte . map read . rmLineNo . extractAsm
 
 
-
 toByte  :: OPCODE -> String
 toByte o = case o of 
            STOP                               ->  "00"
