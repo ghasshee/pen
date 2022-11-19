@@ -1,6 +1,6 @@
 # Pen 
 
-Pen is a Compiler which comiples the High-Level Language into EVM bytecodes. 
+Pen is a Compiler that compiles the High-Level Language into EVM bytecodes. 
 
 
 ## Build 
