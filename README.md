@@ -1,6 +1,6 @@
-# pen 
+# Pen 
 
-pen is a high-level language compiled into EVM bytecodes. 
+Pen is a high-level language compiled into EVM bytecodes. 
 
 
 ## Build 
@@ -58,7 +58,7 @@ $ ./pen --asm < ../examples/count.pen   ## shows Assembler Code
 
 # Decompiler 
 
-pen has another tool which decompiles EVM-bytecode into [Guarded Command](https://en.wikipedia.org/wiki/Guarded_Command_Language)-like Language (GCLL). 
+Pen has another tool which decompiles EVM-bytecode into [Guarded Command](https://en.wikipedia.org/wiki/Guarded_Command_Language)-like Language (GCLL). 
 
 The decompiler is written in Haskell, which you might be familiar with! 
 
