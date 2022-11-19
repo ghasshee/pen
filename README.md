@@ -26,8 +26,19 @@ $ cd pen/src
 $ ./compile.sh ../examples/count.pen
 ```
 
+If you successfully compile it with the above command, 
+    you will see the following instruction on stdIO . 
+As mentioned there, please type; 
+
+```
+$ ../eth/geth.sh 
+```
+
+then enter the password which is NULL String "",  
+and follow the rest of the instruction. 
 
 
+Also, 
 We can also use the `pen` command like; 
 
 ```
@@ -36,6 +47,9 @@ $ ./pen --abi < ../examples/count.pen   ## shows ABI
 $ ./pen --asm < ../examples/count.pen   ## shows Assembler Code  
 
 ```
+
+
+
 
 
 
