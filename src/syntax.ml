@@ -216,7 +216,7 @@ let size_of_ty (* in bytes *)   = function
     | TyU256                    -> 32
     | TyBytes32                 -> 32
     | TyAddr                    -> 20
-    | TyIstc _                -> 20 (* address as word *)
+    | TyIstc _                  -> 20 (* address as word *)
     | TyBool                    -> 32
     | TyRef     _               -> 32
     | TyUnit                    -> err "size_of_ty TyUnit" 
@@ -260,7 +260,7 @@ let count_vars                  = L.length $ (L.filter (not $ is_mapping))
 
 let rec tyWalk onVar c          = let f = onVar in function 
     | TyAbs(tyT1,tyT2)          -> TyAbs(tyWalk f c tyT1,tyWalk f c tyT2) 
-    | TyI(x,n)                -> onVar c x n
+    | TyI(x,n)                  -> onVar c x n
     | tyT                       -> tyT
 
 let rec tmWalk onVar onType c   = let (f,g) = (onVar,onType) in function 

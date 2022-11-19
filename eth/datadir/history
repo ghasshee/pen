@@ -462,3 +462,93 @@ count.inc.sendTransaction(gas)
 count.get.call()
 count.inc.sendTransaction(gas)
 count.get.call()
+miner.start(1)
+loadScript("../js/count.js");
+code
+receipt = eth.getTransactionReceipt(instance.transactionHash);
+address = receipt.contractAddress
+count = contract.at(address)
+count.get.call()
+count.inc.sendTransaction(gas)
+count.get.call()
+eth.getBalance(eth.coinbase);
+eth.getBalance(eth.coinbase)
+eth.getBalance(eth.coinbase).toWei()
+web3.fromWei(eth.getBalance(eth.coinbase))
+eth.getBalance(eth.coinbase).toWei()
+web3.fromWei(eth.getBalance(eth.coinbase))
+count.get.call()
+miner.start(1)
+loadScript("../js/count.js");
+var receipt = eth.getTransactionReceipt(instance.transaction);
+miner.start(1)
+loadScript("../js/count.js");
+var receipt = eth.getTransactionReceipt(instance.transaction);
+abi
+code
+var receipt = eth.getTransactionReceipt(instance.transaction);
+instance
+var receipt = eth.getTransactionReceipt(instance.transaction);
+var receipt = eth.getTransactionReceipt(instance.transactionHash);
+var address = receipt.contractAddress;
+var receipt = eth.getTransactionReceipt(instance.transactionHash);
+var address = receipt.contractAddress;
+address
+count = contract.at(address)
+count.get.call()
+count.inc.sendTransaction(gas)
+count.get.call()
+web3.fromWei(eth.getBalance(eth.coinbase))
+count.get.call()
+abi
+miner.start(1)
+loadScript("../js/count.js");
+receipt = eth.getTransactionReceipt(instance.transactionHash);
+address = receipt.contractAddress
+receipt
+receipt = eth.getTransactionReceipt(instance.transactionHash);
+address = receipt.contractAddress
+count = contract.at(address)
+count.inc.sendTransaction(gas)
+web3.fromWei(eth.getBalance(eth.coinbase))
+count.inc.sendTransaction(gas)
+count.get.call()
+miner.start(1)
+loadScript("../solc/Count.js");
+receipt = eth.getTransactionReceipt(instance.transactionHash);
+address = receipt.contractAddress
+count = contract.at(address)
+count.get.call()
+count.inc.sendTransaction(gas)
+count.get.call()
+count.inc.sendTransaction(gas)
+count.get.call()
+count.inc.sendTransaction(gas)
+count.get.call()
+miner.start(1)
+loadScript("../js/count.js");
+receipt = eth.getTransactionReceipt(instance.transactionHash);
+address = receipt.contractAddress
+count = contract.at(address)
+count.get.call()
+count.inc.sendTransaction(gas)
+count.get.call()
+count.inc.sendTransaction(gas)
+count.get.call()
+gas
+count
+count.get.call()
+miner.start(1)
+loadScript("../js/count.js");
+receipt = eth.getTransactionReceipt(instance.transactionHash);
+address = receipt.contractAddress
+count = contract.at(address)
+count.inc.sendTransaction(gas)
+count.get.call()
+count.inc.sendTransaction(gas)
+count.get.call()
+count.inc.sendTransaction(gas)
+count.get.call()
+count.inc.sendTransaction(gas)
+count.get.call()
+:q

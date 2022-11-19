@@ -91,23 +91,23 @@ instance Show EXPR where
         Addmod y x      -> show x ++ "+%"++ show y 
         Mulmod y x      -> show x ++ "*%"++ show y 
         Exp    y x      -> show x ++ "^" ++ show y 
-        Sigextend x y   -> "sigext " ++ show x ++ " " ++ show y
-        Lt x y          -> show x ++ "<" ++ show y 
-        Gt x y          -> show x ++ ">" ++ show y 
-        Slt x y         -> show x ++ ">'" ++ show y 
-        Sgt x y         -> show x ++ "<'" ++ show y
-        Eq x y          -> show x ++ "==" ++ show y 
-        Iszero x        -> "(" ++ show x ++ ")==0"
-        And x y         -> show x ++ "&" ++ show y 
-        Or x y          -> show x ++ "|" ++ show y
-        Xor x y         -> show x ++ "(+)" ++ show y
-        Not x           -> "~" ++ show x 
-        Byte x n        -> show x ++ "[" ++ show n ++ "]" 
-        Shl x n         -> show x ++ "<<" ++ show n 
-        Shr x n         -> show x ++ ">>" ++ show n
-        Sar x n         -> show x ++ ">>*" ++ show n
-        Keccak x        -> "kec(" ++ show x ++ ")"
-        Balance x       -> "balance(" ++ show x ++ ")"
+        Sigextend y x   -> "sigext(" ++ show x ++ "," ++ show y ++ ")"
+        Lt     y x      -> show x ++ "<" ++ show y 
+        Gt     y x      -> show x ++ ">" ++ show y 
+        Slt    y x      -> show x ++ ">'" ++ show y 
+        Sgt    y x      -> show x ++ "<'" ++ show y
+        Eq     y x      -> show x ++ "==" ++ show y 
+        Iszero   x      -> "(" ++ show x ++ ")==0"
+        And    y x      -> show x ++ "&" ++ show y 
+        Or     y x      -> show x ++ "|" ++ show y
+        Xor    y x      -> show x ++ "(+)" ++ show y
+        Not      x      -> "~" ++ show x 
+        Byte   x n      -> show x ++ "[" ++ show n ++ "]" 
+        Shl    x n      -> show x ++ "<<" ++ show n 
+        Shr    x n      -> show x ++ ">>" ++ show n
+        Sar    x n      -> show x ++ ">>*" ++ show n
+        Keccak   x      -> "kec(" ++ show x ++ ")"
+        Balance  x      -> "balance(" ++ show x ++ ")"
         Extcodesize x   -> "extcodesize(" ++ show x ++ ")" 
         Calldataload x  -> "calldataload(" ++ show x ++ ")"
         Extcodehash x   -> "codehash(" ++ show x ++ ")"
