@@ -61,7 +61,7 @@ $ ./pen --asm < ../examples/count.pen   ## shows Assembler Code
 # DEVM
 
 Pen has another tool which decompiles EVM-bytecode into [Guarded Command](https://en.wikipedia.org/wiki/Guarded_Command_Language)-like Language (GCLL). 
-The decompiler is written in Haskell, which you might be familiar with! 
+The decompiler is written in [Haskell](https://www.haskell.org/), which is purely functional programming language.  
 
 Currently we have 3 analysis tools: DASM, ASM, and, DEVM . 
 
