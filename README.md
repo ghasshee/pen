@@ -26,7 +26,7 @@ $ cd pen/src
 $ ./compile.sh ../examples/count.pen
 ```
 
-## Running Geth and Deploy a contract on geth
+## Deploy a contract on Geth
 
 If you successfully compile it with the above command, 
     you will find the following instruction on stdIO . 
