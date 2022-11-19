@@ -35,7 +35,7 @@ As mentioned there, please type;
 $ ../eth/geth.sh 
 ```
 
-then enter the password which is NULL String "",  
+then enter the password which is Empty String "",  
 and follow the rest of the instruction. 
 
 
