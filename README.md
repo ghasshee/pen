@@ -22,8 +22,7 @@ Then, after installation, type the above and install the all dependencies.
 
 ```
 $ git pull https://www.github.com/ghasshee/pen
-$ cd pen 
-$ cd src
+$ cd pen/src
 $ ./compile.sh ../examples/count.pen
 ```
 
