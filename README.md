@@ -73,7 +73,7 @@ $ ../src/pen < ../examples/count.pen | ./DASM           ## Disassembler
 $ ../src/pen < ../examples/count.pen | ./DASM  | ./ASM  ## Assembler
 ``` 
 
-Of course `DEVM` can decompile [Solidity](https://github.com/ethereum/solidity/) generated EVM-bytecode . 
+Of course `DEVM` can decompile [Solidity](https://github.com/ethereum/solidity/) EVM-bytecode . 
 ```
 $ ./DEVM < ../solc/Count.hex 
 ```
