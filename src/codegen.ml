@@ -69,20 +69,22 @@ and codegen_iszero [arg] aln ly le vm =
                     ISZERO                          @>> vm 
        
 and codegen_keccak256 args   ly le vm =
-    let vm      =   _PUSH_NEXT_MALLOC vm                        in  
-    let vm      =   _MSTORE_MARGS L args          ly le vm      in  
+    let vm      =   get_HP vm                               in  
+    let vm      =   mstore_mthd_args L args       ly le vm      in  
     let vm      =   SWAP1                           @>> vm      in  
                     SHA3                            @>> vm                
 
 and codegen_ECDSArecover args ly le vm = match args with [h;v;r;s] ->  
     let vm      =   PUSH (Int 0x20)                 @>> vm      in  (* 0x20                                          *)
+    let vm      =   DUP1                            @>> vm      in  (* 0x20 >> 0x20                                  *)
     let vm      =   _MALLOC                             vm      in  (* 0x20 >> malloc(0x20)                          *)
     let vm      =   repeat DUP2 2                       vm      in  (* 0x20 >> malloc(0x20) >> 0x20 >> malloc(0x20)  *)
-    let vm      =   _MSTORE_MARGS R args          ly le vm      in  (* 0x20 >> malloc(0x20) >> 0x20 >> malloc(0x20) >> argssize *) 
-    let vm      =   _PUSH_NEXT_MALLOC                   vm      in  (* 0x20 >> malloc(0x20) >> 0x20 >> malloc(0x20) >> argssize >> M[0x40] *) 
-    let vm      =   PUSH (Int 0)                    @>> vm      in  (* 0x20 >> malloc(0x20) >> 0x20 >> malloc(0x20) >> argssize >> M[0x40] >> 0 *)
+    let vm      =   get_HP                              vm      in  (* 0x20 >> malloc(0x20) >> 0x20 >> malloc(0x20) >> M[0x40] *) 
+    let vm      =   mstore_mthd_args R args       ly le vm      in  
+    let vm      =   SWAP1                           @>> vm      in  
+    let vm      =   PUSH (Int 0)                    @>> vm      in  
     let vm      =   PUSH (Int 1)                    @>> vm      in  
-    let vm      =   PUSH (Int 10000)                @>> vm      in  (* 0x20 >> malloc(0x20) >> 0x20 >> malloc(0x20) >> argssize >> M[0x40] >> 0 >> 1 >> 10000 *)
+    let vm      =   PUSH (Int 10000)                @>> vm      in  
     let vm      =   CALL                            @>> vm      in  
     let vm      =   _THROW_IFN vm                               in
     let vm      =   POP                             @>> vm      in  
@@ -118,7 +120,7 @@ and mstore_new_instance id args msg ly le vm  =
     let vm      =   _MSTORE_CODE                            vm      in  (*                                         alloc(size) >> size >> .. *)
     let vm      =   SWAP1                               @>> vm      in  (*                                         size >> alloc(size) >> .. *)
     let vm      =   _MSTORE_WHOLECODE                       vm      in  (*                                wsize >> size >> alloc(size) >> .. *)
-    let vm      =   _MSTORE_MARGS R args              ly le vm      in  (*                   argssize >>  wsize >> size >> alloc(size) >> .. *)
+    let vm      =   mstore_mthd_args R args           ly le vm      in  (*                   argssize >>  wsize >> size >> alloc(size) >> .. *)
     let vm      =   ADD                                 @>> vm      in  (*                       argssize+wsize >> size >> alloc(size) >> .. *)
     let vm      =   ADD                                 @>> vm      in  (*                          argssize+wsize+size >> alloc(size) >> .. *)
                     SWAP1                               @>> vm          (*                                  alloc(size) >>   totalsize >> .. *)
@@ -132,13 +134,13 @@ and codegen_new id args msg ly le vm   =
     let vm      =   SWAP1                               @>> vm      in  (*                             PCbkp >> CreateResult >> .. *)
                     restore_PC                              vm          (*                                      CreateResult >> .. *)
 
-and _KEC_ARR aid aidx ly le vm  =                                     (* kec(a_i) := the seed of array *) 
+and kec_of_arr aid aidx ly le vm  =                                     (* kec(a_i) := the seed of array *) 
     let vm      =   aidx                        @> (R,ly,le,vm)     in  (*                                             index >> .. *)    
     let vm      =   aid                         @> (R,ly,le,vm)     in  (*                                array_loc >> index >> .. *)
                     _KEC_CAT                                vm          (*                            sha3(array_loc++index) >> .. *) 
       
 and codegen_arr a i ly le vm    =                                       (*                                                      .. *)
-    let vm      =   _KEC_ARR a i                      ly le vm      in  (*                                      keccak(a[i]) >> .. *)
+    let vm      =   kec_of_arr a i                    ly le vm      in  (*                                      keccak(a[i]) >> .. *)
                     SLOAD                               @>> vm          (*                                   S[keccak(a[i])] >> .. *) 
 
 and codegen_aid (Stor data) le vm = 
@@ -148,7 +150,7 @@ and codegen_aid (Stor data) le vm =
                     salloc_aid                              vm 
 
 and codegen_secondary_arr a i ly le vm = 
-    let vm      =   _KEC_ARR a i                      ly le vm      in (*                         kec(a_i) >> .. *)
+    let vm      =   kec_of_arr a i                    ly le vm      in (*                         kec(a_i) >> .. *)
     let vm      =   DUP1                                @>> vm      in (*             kec(a_i) >> kec(a_i) >> .. *)
     let vm      =   SLOAD                               @>> vm      in (*          S[kec(a_i)] >> kec(a_i) >> .. *)
                     salloc_aid                              vm 
@@ -237,7 +239,7 @@ and call_and_restore_PC vm =                                            (*  gas-
     let vm      =   SWAP2                               @>> vm      in  (*                                                                              PCbkp >> retsize >> retbegin >> .. *)
                     restore_PC                              vm          (*                                                                                       retsize >> retbegin >> .. *)
 
-and _MLOAD_RET    vm =                                                  (*                                 retsize >> retbegin >> .. *)
+and mload_ret_value vm =                                                (*                                 retsize >> retbegin >> .. *)
     let vm      =   PUSH (Int 32)                       @>> vm      in  (*                           32 >> retsize >> retbegin >> .. *)
     let vm      =   _THROW_IF_NEQ                           vm      in  (* IF 32!=retsize ERROR                       retbegin >> .. *)
                     MLOAD                               @>> vm          (*                                         M[retbegin] >> .. *)
@@ -253,12 +255,13 @@ and codegen_send_cn cn m args msg ly le vm =  (* msg-call to a contract *)
     let vm      =   Comment("BEGINE send to "^id)       @>> vm      in  
     let vm      =   _RESET_PC                               vm      in  (*                                                                                                     PCbkp >> .. *)
     let vm      =   PUSH(Int retsz)                     @>> vm      in  (*                                                                                          retsize >> PCbkp >> .. *)
+    let vm      =   DUP1                                @>> vm      in  (*                                                                               retsize >> retsize >> PCbkp >> .. *)
     let vm      =   _MALLOC                                 vm      in  (*                                                                              retbegin >> retsize >> PCbkp >> .. *)
     let vm      =   repeat DUP2 2                           vm      in  (*                                                       retbegin >> retsize >> retbegin >> retsize >> PCbkp >> .. *)
     let vm      =   mstore_mhash_and_args mhd args    ly le vm      in  (*                               &mhash >> argssize+4 >> retbegin >> retsize >> retbegin >> retsize >> PCbkp >> .. *)
     let vm      =   push_msg_and_gas msg cn           ly le vm      in  (*  gas-3000 >> cnAddr >> msg >> &mhash >> argssize+4 >> retbegin >> retsize >> retbegin >> retsize >> PCbkp >> .. *)
     let vm      =   call_and_restore_PC                     vm      in  (*                                                                                       retsize >> retbegin >> .. *)
-    let vm      =   _MLOAD_RET                              vm      in  (*                                                                                                       ret >> .. *)
+    let vm      =   mload_ret_value                         vm      in  (*                                                                                                       ret >> .. *)
                     Comment("END send to "^id)          @>> vm 
 
 and codegen_send_eoa eoa msg ly le vm =   (* send value to an EOA *) 
@@ -271,14 +274,14 @@ and codegen_send_eoa eoa msg ly le vm =   (* send value to an EOA *)
     let vm      =   POP                                 @>> vm      in  (*                                                              0 >> .. *)
                     Comment("END send to Addr")         @>> vm 
 
-and _SSTORE_TO (TmArr(a,i),_) ly le vm     =                         (*                                  rval >> .. *)
+and sstore_to_lval(TmArr(a,i),_) ly le vm     =                         (*                                  rval >> .. *)
     let vm      =   kec_of_arr a i                    ly le vm      in  (*                      KEC(a^i) >> rval >> .. *)
                     SSTORE                              @>> vm          (* S[KEC(a^i)] := rval                      .. *)
 
 and codegen_assign l r ly le vm = 
     let vm      =   Comment "BEGIN Assignment"          @>> vm      in 
     let vm      =   r                           @> (R,ly,le,vm)     in  (*                                    r >> .. *)
-    let vm      =   _SSTORE_TO l                      ly le vm      in  (* S[KEC(l)] := r                          .. *)  
+    let vm      =   sstore_to_lval l                  ly le vm      in  (* S[KEC(l)] := r                          .. *)  
     let vm      =   Comment "END Assignment"            @>> vm      in 
     le,vm 
 
@@ -293,24 +296,24 @@ and checked_codegen_LAnd l r aln ly le vm =
     let vm      = JUMPDEST la                           @>> vm      in  (*                                                   r >> .. *)
                     repeat ISZERO 2                         vm          (*                                                l&&r >> .. *)  
 
-and _MSTORE_MARGS aln args ly le vm =
+and mstore_mthd_args aln args ly le vm =
     let vm      =   PUSH(Int 0)                         @>> vm      in  (*                                                   0 >> .. *)
-                    foldl (_MSTORE_MARG aln le ly) vm args           (*                                             sumsize >> .. *) 
+                    foldl (mstore_mthd_arg aln le ly) vm args           (*                                             sumsize >> .. *) 
 
-and _MSTORE_MARG aln le ly vm arg  =
+and mstore_mthd_arg aln le ly vm arg  =
     let ty      =   get_ty arg                                      in  
     let i       =   match aln with | L -> size_of_ty ty 
                                    | R -> 32                        in  (*                                                 sum >> .. *)
     let vm      =   PUSH (Int i)                        @>> vm      in  (*                                         size >> sum >> .. *)
-    let vm      =   _MALLOC                                 vm      in  (*                          alloc(size) >> size >> sum >> .. *)
-    let vm      =   arg                       @> (aln,ly,le,vm)     in  (*                   arg >> alloc(size) >> size >> sum >> .. *)
-    let vm      =   SWAP1                               @>> vm      in  (*                   alloc(size) >> arg >> size >> sum >> .. *)
+    let vm      =   arg                       @> (aln,ly,le,vm)     in  (*                                  arg >> size >> sum >> .. *)
+    let vm      =   DUP2                                @>> vm      in  (*                          size >> arg >> size >> sum >> .. *)
+    let vm      =   _MALLOC                                 vm      in  (*                   alloc(size) >> arg >> size >> sum >> .. *)
     let vm      =   MSTORE                              @>> vm      in  (* M[alloc(size)] := arg                   size >> sum >> .. *)
                     ADD                                 @>> vm          (*                                            size+sum >> .. *)
 
 and mstore_mhash_and_args mthd args ly le vm =                          (*                                                        .. *)
     let vm      =   _MSTORE_MHASH    mthd                   vm      in  (*                                         &mhash >> 4 >> .. *)
-    let vm      =   _MSTORE_MARGS R args ly              le vm      in  (*                              argsize >> &mhash >> 4 >> .. *)
+    let vm      =   mstore_mthd_args R args ly           le vm      in  (*                              argsize >> &mhash >> 4 >> .. *)
     let vm      =   SWAP1                               @>> vm      in  (*                              &mhash >> argsize >> 4 >> .. *)
     let vm      =   SWAP2                               @>> vm      in  (*                              4 >> argsize >> &mhash >> .. *)
     let vm      =   ADD                                 @>> vm      in  (*                                 argsize+4 >> &mhash >> .. *)
@@ -449,7 +452,7 @@ and cont_call (TmCall(cn,args),_) sto le vm =
     let vm      =   set_PC idx                              vm      in  (*  S[PC] := rntime_offset_of_cn                                 .. *) 
                     sstore_vars offst idx args       sto le vm          (*  S[l_k]:= argk; .. ; S[l_1]:= arg1                            .. *)
 
-(*       _MSTORE_WORD ty 
+(*       mstore_word ty 
  *
  *     BEFORE           AFTER               
  *
@@ -459,9 +462,10 @@ and cont_call (TmCall(cn,args),_) sto le vm =
  *   |  value  |     |    32   |            
  * --+---------+-- --+---------+--    *)
 
-and _MSTORE_WORD ty vm = assert (size_of_ty ty <= 32) ;                 (*                                   val >> .. *)   (* Here, FUN TYPE is excluded <- Problem #TODO *) 
-    let vm      =   PUSH(Int 0x20)                      @>> vm      in  (*                           0x20 >> val >> .. *)
-    let vm      =   _MALLOC                                 vm      in  (*            alloc(0x20) >> 0x20 >> val >> .. *)
+and mstore_word ty vm = assert (size_of_ty ty <= 32)  ;                 (*                                   val >> .. *)   (* Here, FUN TYPE is excluded <- Problem #TODO *) 
+    let vm      =   PUSH(Int 32)                        @>> vm      in  (*                             32 >> val >> .. *)
+    let vm      =   DUP1                                @>> vm      in  (*                       32 >> 32 >> val >> .. *)
+    let vm      =   _MALLOC                                 vm      in  (*                alloc(32) >> 32 >> val >> .. *)
     let vm      =   SWAP2                               @>> vm      in  (*                val >> 32 >> alloc(32) >> .. *)
     let vm      =   DUP3                                @>> vm      in  (*   alloc(32) >> val >> 32 >> alloc(32) >> .. *)
     let vm      =   MSTORE                              @>> vm      in  (* M[alloc(32)]:=val     32 >> alloc(32) >> .. *)
@@ -469,7 +473,7 @@ and _MSTORE_WORD ty vm = assert (size_of_ty ty <= 32) ;                 (*      
 
 and mstore_tm (tm,ty) aln sto le vm =
     let vm      = (tm,ty)                    @> (aln,sto,le,vm)     in  (*                                    tm >> .. *)
-    let vm      = _MSTORE_WORD ty vm                                in  (* M[alloc(32)]:=tm      alloc(32) >> 32 >> .. *)
+    let vm      = mstore_word ty vm                                 in  (* M[alloc(32)]:=tm      alloc(32) >> 32 >> .. *)
     le,vm
 
 and codegen_return ret cont sto le vm =

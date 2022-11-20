@@ -1,5 +1,0 @@
-contract A () {
-   case(bool f(u8 a)) {
-      return (true) then become A();
-   }
-}

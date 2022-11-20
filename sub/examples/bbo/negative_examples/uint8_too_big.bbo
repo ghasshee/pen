@@ -1,7 +1,0 @@
-contract A ()
-{
-    case(bool f(u8 a))
-    {
-        return a < 300u8 then become A();
-    }
-}

@@ -1,5 +1,0 @@
-contract A () {
-   case (bool f(bool a, bool b)) {
-       return (a && b) then become A();
-   }
-}

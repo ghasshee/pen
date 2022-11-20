@@ -1,7 +1,0 @@
-contract A ()
-{
-	case(bool f(u256 a, u256 b, u256 c))
-	{
-		return a + b < c then become A();
-	}
-}

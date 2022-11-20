@@ -1048,25 +1048,3 @@
 23:51:25.025208 table@remove removed @246
 23:54:15.700253 db@close closing
 23:54:15.700389 db@close done T·137.079µs
-=============== Nov 20, 2022 (JST) ===============
-18:56:05.473750 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
-18:56:05.473866 version@stat F·[0 1] S·1MiB[0B 1MiB] Sc·[0.00 0.01]
-18:56:05.473885 db@open opening
-18:56:05.473945 journal@recovery F·2
-18:56:05.474456 journal@recovery recovering @248
-18:56:05.474662 journal@recovery recovering @296
-18:56:05.478763 memdb@flush created L0@297 N·175 S·3KiB "loc..seq,v1042251":"n:\xf2..ong,v1042255"
-18:56:05.478789 version@stat F·[1 1] S·1MiB[3KiB 1MiB] Sc·[0.25 0.01]
-18:56:05.498095 memdb@flush created L0@299 N·192 S·6KiB "loc..seq,v1044463":"n:\xbf..ong,v1044558"
-18:56:05.498834 version@stat F·[2 1] S·1MiB[10KiB 1MiB] Sc·[0.50 0.01]
-18:56:05.517408 db@janitor F·8 G·3
-18:56:05.517417 db@janitor removing table-293
-18:56:05.517441 db@janitor removing manifest-294
-18:56:05.517458 db@janitor removing table-247
-18:56:05.517490 db@open done T·43.600134ms
-18:56:05.541174 table@compaction L0·2 -> L1·1 S·1MiB Q·1044636
-18:56:05.575438 table@build created L1@301 N·36083 S·1MiB "loc..seq,v1044463":"version,v1"
-18:56:05.575485 version@stat F·[0 1] S·1MiB[0B 1MiB] Sc·[0.00 0.01]
-18:56:05.581951 table@compaction committed F-2 S-3KiB Ke·0 D·161 T·40.744796ms
-18:56:05.582060 table@remove removed @299
-18:56:05.582257 table@remove removed @250
