@@ -321,8 +321,7 @@ let _PUSH_EVHASH ev vm =
 
 let _MSTORE_MHASH mthd vm =
     let vm      =   PUSH(Int 0x04)                  @>> vm  in  (*                                                     4 >> .. *)
-    let vm      =   DUP1                            @>> vm  in  (*                                               4  >> 4 >> .. *)
-    let vm      =   _MALLOC                             vm  in  (*                                         alloc(4) >> 4 >> .. *)
+    let vm      =   _MALLOC'                            vm  in  (*                                         alloc(4) >> 4 >> .. *)
     let vm      =   _PUSH_MHASH mthd                    vm  in  (*                                 hash >> alloc(4) >> 4 >> .. *)
     let vm      =   DUP2                            @>> vm  in  (*                     alloc(4) >> hash >> alloc(4) >> 4 >> .. *)
                     MSTORE                          @>> vm      (* M[alloc(4)] := hash                     alloc(4) >> 4 >> .. *)

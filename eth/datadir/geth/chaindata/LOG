@@ -885,3 +885,39 @@
 23:51:24.910765 db@open done T·31.22512ms
 23:54:15.199030 db@close closing
 23:54:15.199103 db@close done T·71.012µs
+=============== Nov 20, 2022 (JST) ===============
+19:38:01.712077 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+19:38:01.712356 version@stat F·[2 3] S·4MiB[45KiB 4MiB] Sc·[0.50 0.05]
+19:38:01.712386 db@open opening
+19:38:01.712479 journal@recovery F·1
+19:38:01.719822 journal@recovery recovering @213
+19:38:01.724656 memdb@flush created L0@215 N·250 S·21KiB "\x04*\x95..~`\x15,v136235":"\xf4\x98J..\x83\x9c\xd7,v136233"
+19:38:01.731455 version@stat F·[3 3] S·5MiB[66KiB 4MiB] Sc·[0.75 0.05]
+19:38:01.748509 db@janitor F·8 G·0
+19:38:01.748543 db@open done T·36.144098ms
+19:39:00.353618 db@close closing
+19:39:00.353822 db@close done T·201.885µs
+=============== Nov 20, 2022 (JST) ===============
+21:13:12.717434 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+21:13:12.718172 version@stat F·[3 3] S·5MiB[66KiB 4MiB] Sc·[0.75 0.05]
+21:13:12.718193 db@open opening
+21:13:12.718258 journal@recovery F·1
+21:13:12.722304 journal@recovery recovering @216
+21:13:12.726556 memdb@flush created L0@218 N·88 S·13KiB "\x05\xb1[..\xc9\xfc\xc3,v136328":"\xf4\x98J..\x83\x9c\xd7,v136316"
+21:13:12.730399 version@stat F·[4 3] S·5MiB[79KiB 4MiB] Sc·[1.00 0.05]
+21:13:12.744602 db@janitor F·9 G·0
+21:13:12.744625 db@open done T·26.423032ms
+21:13:12.744671 table@compaction L0·4 -> L1·3 S·5MiB Q·136330
+21:13:12.791560 table@build created L1@221 N·44779 S·2MiB "\x00\x0f\xd4..\x99;\xf1,v67777":"h\x00\x00..G'\xe1,v34198"
+21:13:12.836719 table@build created L1@222 N·26987 S·2MiB "h\x00\x00..'\xe1t,v34195":"h\x00\x00..\xf2\xaf\\,v128639"
+21:13:12.860264 table@build created L1@223 N·17393 S·799KiB "h\x00\x00..\xaf\\t,v128636":"\xff\xa1\xd4..F\xb4\xa7,v134433"
+21:13:12.860313 version@stat F·[0 3] S·4MiB[0B 4MiB] Sc·[0.00 0.05]
+21:13:12.866953 table@compaction committed F-4 S-35KiB Ke·0 D·304 T·122.261388ms
+21:13:12.867039 table@remove removed @215
+21:13:12.867069 table@remove removed @212
+21:13:12.867091 table@remove removed @209
+21:13:12.867536 table@remove removed @206
+21:13:12.867723 table@remove removed @207
+21:13:12.867835 table@remove removed @208
+21:14:25.915869 db@close closing
+21:14:25.916061 db@close done T·190.361µs

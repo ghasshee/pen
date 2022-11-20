@@ -305,9 +305,9 @@ and mstore_mthd_arg aln le ly vm arg  =
     let i       =   match aln with | L -> size_of_ty ty 
                                    | R -> 32                        in  (*                                                 sum >> .. *)
     let vm      =   PUSH (Int i)                        @>> vm      in  (*                                         size >> sum >> .. *)
-    let vm      =   arg                       @> (aln,ly,le,vm)     in  (*                                  arg >> size >> sum >> .. *)
-    let vm      =   DUP2                                @>> vm      in  (*                          size >> arg >> size >> sum >> .. *)
-    let vm      =   _MALLOC                                 vm      in  (*                   alloc(size) >> arg >> size >> sum >> .. *)
+    let vm      =   _MALLOC'                                vm      in  (*                          alloc(size) >> size >> sum >> .. *)
+    let vm      =   arg                       @> (aln,ly,le,vm)     in  (*                   arg >> alloc(size) >> size >> sum >> .. *)
+    let vm      =   SWAP1                               @>> vm      in  (*                   alloc(size) >> arg >> size >> sum >> .. *)
     let vm      =   MSTORE                              @>> vm      in  (* M[alloc(size)] := arg                   size >> sum >> .. *)
                     ADD                                 @>> vm          (*                                            size+sum >> .. *)
 
