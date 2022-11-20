@@ -131,7 +131,7 @@ and codegen_new id args msg ly le vm   =
     let vm      =   CREATE                              @>> vm      in  (*                             createResult >> PCbkp >> .. *)
     let vm      =   _THROW_IFN                              vm      in  (*                             createResult >> PCbkp >> .. *)
     let vm      =   SWAP1                               @>> vm      in  (*                             PCbkp >> CreateResult >> .. *)
-                    restore_PC                              vm          (*                                      CreateResult >> .. *)
+                    _RESTORE_PC                              vm          (*                                      CreateResult >> .. *)
 
 and _KEC_ARR aid aidx ly le vm  =                                     (* kec(a_i) := the seed of array *) 
     let vm      =   aidx                        @> (R,ly,le,vm)     in  (*                                             index >> .. *)    
@@ -230,12 +230,12 @@ and push_msg_and_gas msg cn ly le vm =
     let vm      =   GAS                                 @>> vm      in  (*                   gas >> 3000 >> cnAddr >> value >> .. *)
                     SUB                                 @>> vm          (*                      gas-3000 >> cnAddr >> value >> .. *)
 
-and call_and_restore_PC vm =                                            (*  gas-3000 >> cnAddr >> msg >> &mhash >> argssize+4 >> retbegin >> retsize >> retbegin >> retsize >> PCbkp >> .. *)
-    let vm      =   CALL                                @>> vm      in  (*                                                                   success >> retbegin >> retsize >> PCbkp >> .. *)
-    let vm      =   PUSH(Int 0)                         @>> vm      in  (*                                                              0 >> success >> retbegin >> retsize >> PCbkp >> .. *)
-    let vm      =   JUMPI                               @>> vm      in  (*  IF success==0 THEN GOTO 0                                                   retbegin >> retsize >> PCbkp >> .. *)
-    let vm      =   SWAP2                               @>> vm      in  (*                                                                              PCbkp >> retsize >> retbegin >> .. *)
-                    restore_PC                              vm          (*                                                                                       retsize >> retbegin >> .. *)
+and _CALL_RESTOREPC vm =                                            (*  gas-3000 >> cnAddr >> msg >> &mhash >> argsize+4 >> retbegin >> retsz >> retbegin >> retsz >> PCbkp *)
+    let vm      =   CALL                                @>> vm      in  (*                                                                success >> retbegin >> retsz >> PCbkp *)
+    let vm      =   PUSH(Int 0)                         @>> vm      in  (*                                                           0 >> success >> retbegin >> retsz >> PCbkp *)
+    let vm      =   JUMPI                               @>> vm      in  (*  IF success==0 THEN GOTO 0                                                retbegin >> retsz >> PCbkp *)
+    let vm      =   SWAP2                               @>> vm      in  (*                                                                           PCbkp >> retsz >> retbegin *)
+                    _RESTORE_PC                              vm          (*                                                                                    retsz >> retbegin *)
 
 and mload_ret_value vm =                                                (*                                 retsize >> retbegin >> .. *)
     let vm      =   PUSH (Int 32)                       @>> vm      in  (*                           32 >> retsize >> retbegin >> .. *)
@@ -249,36 +249,35 @@ and codegen_send_cn cn m args msg ly le vm =  (* msg-call to a contract *)
     let Some mnm = m                                                in 
     let mhd     =   find_mhead vm callee mnm                        in
     let TyMthd(id,_,rety) = mhd                                     in 
-    let retsz   =   size_of_ty rety                                 in  (*                                                                                                          .. *)
+    let retsz   =   size_of_ty rety                                 in  (*                                                                                                         .. *)
     let vm      =   Comment("BEGINE send to "^id)       @>> vm      in  
-    let vm      =   _RESET_PC                               vm      in  (*                                                                                                 PCbkp >> .. *)
-    let vm      =   PUSH(Int retsz)                     @>> vm      in  (*                                                                                        retsz >> PCbkp >> .. *)
-    let vm      =   _MALLOC                                vm      in  (*                                                                            retbegin >> retsz >> PCbkp >> .. *)
-    let vm      =   repeat DUP2 2                           vm      in  (*                                                       retbegin >> retsz >> retbegin >> retsz >> PCbkp >> .. *)
-    let vm      =   mstore_mhash_and_args mhd args    ly le vm      in  (*                               &mhash >> argssize+4 >> retbegin >> retsz >> retbegin >> retsz >> PCbkp >> .. *)
-    let vm      =   push_msg_and_gas msg cn           ly le vm      in  (*  gas-3000 >> cnAddr >> msg >> &mhash >> argssize+4 >> retbegin >> retsz >> retbegin >> retsz >> PCbkp >> .. *)
-    let vm      =   call_and_restore_PC                     vm      in  (*                                                                                     retsz >> retbegin >> .. *)
-    let vm      =   mload_ret_value                         vm      in  (*                                                                                                   ret >> .. *)
+    let vm      =   _RESET_PC                               vm      in  (*                                                                                                PCbkp >> .. *)
+    let vm      =   PUSH(Int retsz)                     @>> vm      in  (*                                                                                       retsz >> PCbkp >> .. *)
+    let vm      =   _MALLOC                                 vm      in  (*                                                                           retbegin >> retsz >> PCbkp >> .. *)
+    let vm      =   repeat DUP2 2                           vm      in  (*                                                      retbegin >> retsz >> retbegin >> retsz >> PCbkp >> .. *)
+    let vm      =   mstore_mhash_and_args mhd args    ly le vm      in  (*                               &mhash >> argsize+4 >> retbegin >> retsz >> retbegin >> retsz >> PCbkp >> .. *)
+    let vm      =   push_msg_and_gas msg cn           ly le vm      in  (*  gas-3000 >> cnAddr >> msg >> &mhash >> argsize+4 >> retbegin >> retsz >> retbegin >> retsz >> PCbkp >> .. *)
+    let vm      =   _CALL_RESTOREPC                     vm      in  (*                                                                                    retsz >> retbegin >> .. *)
+    let vm      =   mload_ret_value                         vm      in  (*                                                                                                  ret >> .. *)
                     Comment("END send to "^id)          @>> vm 
 
 and codegen_send_eoa eoa msg ly le vm =   (* send value to an EOA *) 
     let vm      =   Comment "BEGINE send to Addr"       @>> vm      in  (*                                                                   .. *) 
     let vm      =   _RESET_PC                               vm      in  (*                                                          PCbkp >> .. *) 
-    let vm      =   PUSH(Int 0)                         @>> vm      in  (*                                                     0 >> PCbkp >> .. *) 
-    let vm      =   repeat DUP1 5                           vm      in  (*                            0 >> 0 >> 0 >> 0 >> 0 >> 0 >> PCbkp >> .. *) 
+    let vm      =   repeat (PUSH(Int 0)) 6                  vm      in  (*                            0 >> 0 >> 0 >> 0 >> 0 >> 0 >> PCbkp >> .. *) 
     let vm      =   push_msg_and_gas msg eoa          ly le vm      in  (* gas-3000 >> addr >> msg >> 0 >> 0 >> 0 >> 0 >> 0 >> 0 >> PCbkp >> .. *) 
-    let vm      =   call_and_restore_PC                     vm      in  (*                                                         0 >> 0 >> .. *)
+    let vm      =   _CALL_RESTOREPC                     vm      in  (*                                                         0 >> 0 >> .. *)
     let vm      =   POP                                 @>> vm      in  (*                                                              0 >> .. *)
                     Comment("END send to Addr")         @>> vm 
 
-and sstore_to_lval(TmArr(a,i),_) ly le vm     =                         (*                                  rval >> .. *)
-    let vm      =   _KEC_ARR a i                    ly le vm      in  (*                      KEC(a^i) >> rval >> .. *)
+and _SSTORE_TO(TmArr(a,i),_) ly le vm     =                             (*                                  rval >> .. *)
+    let vm      =   _KEC_ARR a i                      ly le vm      in  (*                      KEC(a^i) >> rval >> .. *)
                     SSTORE                              @>> vm          (* S[KEC(a^i)] := rval                      .. *)
 
 and codegen_assign l r ly le vm = 
     let vm      =   Comment "BEGIN Assignment"          @>> vm      in 
     let vm      =   r                           @> (R,ly,le,vm)     in  (*                                    r >> .. *)
-    let vm      =   sstore_to_lval l                  ly le vm      in  (* S[KEC(l)] := r                          .. *)  
+    let vm      =   _SSTORE_TO l                      ly le vm      in  (* S[KEC(l)] := r                          .. *)  
     let vm      =   Comment "END Assignment"            @>> vm      in 
     le,vm 
 
@@ -446,7 +445,7 @@ and cont_call (TmCall(cn,args),_) sto le vm =
     let idx     =   lookup_cnidx vm.cns cn                          in 
     let offst   =   (sto.vars idx).offst                            in  
     let vm      =   Comment "Setting Cont"              @>> vm      in 
-    let vm      =   set_PC idx                              vm      in  (*  S[PC] := rntime_offset_of_cn                                 .. *) 
+    let vm      =   _SET_PC idx                              vm      in  (*  S[PC] := rntime_offset_of_cn                                 .. *) 
                     sstore_vars offst idx args       sto le vm          (*  S[l_k]:= argk; .. ; S[l_1]:= arg1                            .. *)
 
 (*       mstore_word ty 
@@ -553,7 +552,7 @@ let codegen_creation cns idx = (* return vm which contains the program *)
     let vm      =   Comment("Begin Creation "^id)   @>> vm      in 
     let vm      =   init_malloc                         vm      in  (* M[0x40] := 0x60                                                          *)
     let vm      =   _SALLOC_ARRS        cn               vm      in  (* S[1]    := #array                i << alloc(argssize) << argssize << ..  *)
-    let vm      =   set_PC            idx               vm      in  (* S[PC]   := rn_cn_offst    (returned body)                                *)
+    let vm      =   _SET_PC            idx               vm      in  (* S[PC]   := rn_cn_offst    (returned body)                                *)
     let vm      =   mstore_rn_code    idx               vm      in  (*                                 alloc(codesize) << codesize << i <<  ..  *)
     let vm      =   RETURN                          @>> vm      in  (* OUTPUT(M[code]) as The BODY code                               i <<  ..  *)
     let vm      =   Comment("End Creation "^id)     @>> vm      in 

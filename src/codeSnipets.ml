@@ -135,11 +135,11 @@ let _RESET_PC vm     =
     let vm      =   DUP1                            @>> vm    in  (*                          0 >> 0 >> S[0] >> .. *)
                     SSTORE                          @>> vm        (* S'[0]=0                            S[0] >> .. *)
 
-let restore_PC vm   =                                             (*                                  bkp_PC >> .. *)
+let _RESTORE_PC vm   =                                             (*                                  bkp_PC >> .. *)
     let vm      =   PUSH StorPC                     @>> vm    in  (*                             0 >> bkp_PC >> .. *)
                     SSTORE                          @>> vm        (* S'[0]=bkp_pc                               .. *)             
 
-let set_PC idx vm   =                                             (*                                            .. *)
+let _SET_PC idx vm   =                                             (*                                            .. *)
     let vm      =   PUSH (RnCnOffset idx)           @>> vm    in  (*                            rn_cn_offset >> .. *) 
     let vm      =   PUSH StorPC                     @>> vm    in  (*                  storPC >> rn_cn_offset >> .. *) 
                     SSTORE                          @>> vm        (* S[storPC] := rn_cn_offset                  .. *) 
