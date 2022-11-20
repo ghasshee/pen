@@ -885,3 +885,31 @@
 23:51:24.910765 db@open done T·31.22512ms
 23:54:15.199030 db@close closing
 23:54:15.199103 db@close done T·71.012µs
+=============== Nov 20, 2022 (JST) ===============
+18:56:05.424053 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+18:56:05.424222 version@stat F·[2 3] S·4MiB[45KiB 4MiB] Sc·[0.50 0.05]
+18:56:05.424239 db@open opening
+18:56:05.424306 journal@recovery F·2
+18:56:05.428670 journal@recovery recovering @213
+18:56:05.429155 journal@recovery recovering @259
+18:56:05.433909 memdb@flush created L0@260 N·250 S·21KiB "\x04*\x95..~`\x15,v136235":"\xf4\x98J..\x83\x9c\xd7,v136233"
+18:56:05.433940 version@stat F·[3 3] S·5MiB[66KiB 4MiB] Sc·[0.75 0.05]
+18:56:05.452018 memdb@flush created L0@262 N·90 S·13KiB "\x12\x93\x8d..2\x11K,v138002":"\xbf\xc4\xea..\x98Ɔ,v138004"
+18:56:05.456454 version@stat F·[4 3] S·5MiB[79KiB 4MiB] Sc·[1.00 0.05]
+18:56:05.460042 db@janitor F·12 G·3
+18:56:05.460064 db@janitor removing table-261
+18:56:05.460439 db@janitor removing manifest-257
+18:56:05.460472 db@janitor removing table-256
+18:56:05.460520 db@open done T·36.274656ms
+18:56:05.460587 table@compaction L0·4 -> L1·3 S·5MiB Q·138005
+18:56:05.517329 table@build created L1@264 N·44783 S·2MiB "\x00\x0f\xd4..\x99;\xf1,v67777":"h\x00\x00..\x85v\xb4,v34207"
+18:56:05.565900 table@build created L1@265 N·26988 S·2MiB "h\x00\x00..v\xb4t,v34204":"h\x00\x00..\x8b|h,v128648"
+18:56:05.591703 table@build created L1@266 N·17387 S·798KiB "h\x00\x00..|ht,v128645":"\xff\xa1\xd4..F\xb4\xa7,v134433"
+18:56:05.591755 version@stat F·[0 3] S·4MiB[0B 4MiB] Sc·[0.00 0.05]
+18:56:05.595709 table@compaction committed F-4 S-35KiB Ke·0 D·307 T·135.078891ms
+18:56:05.595779 table@remove removed @262
+18:56:05.595808 table@remove removed @212
+18:56:05.595835 table@remove removed @209
+18:56:05.596125 table@remove removed @206
+18:56:05.596397 table@remove removed @207
+18:56:05.596516 table@remove removed @208

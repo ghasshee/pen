@@ -564,3 +564,14 @@ count.inc.sendTransaction(gas)
 count.get.call()
 count.inc.sendTransaction(gas)
 count.get.call()
+miner.start(1)
+loadScript("../js/count.js");
+receipt = eth.getTransactionReceipt(instance.transactionHash);
+miner.start(1)
+loadScript("../js/count.js");
+receipt = eth.getTransactionReceipt(instance.transactionHash);
+address = receipt.contractAddress
+count = contract.at(address)
+count.get.call()
+count.inc.sendTransaction(gas)
+count.get.call()
