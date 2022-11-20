@@ -70,7 +70,7 @@ and codegen_iszero [arg] aln ly le vm =
        
 and codegen_keccak256 args   ly le vm =
     let vm      =   get_HP vm                               in  
-    let vm      =   mstore_mthd_args L args       ly le vm      in  
+    let vm      =   _MSTORE_MARGS L args       ly le vm      in  
     let vm      =   SWAP1                           @>> vm      in  
                     SHA3                            @>> vm                
 
@@ -79,7 +79,7 @@ and codegen_ECDSArecover args ly le vm = match args with [h;v;r;s] ->
     let vm      =   _MALLOC                            vm      in  (* 0x20 >> malloc(0x20)                          *)
     let vm      =   repeat DUP2 2                       vm      in  (* 0x20 >> malloc(0x20) >> 0x20 >> malloc(0x20)  *)
     let vm      =   get_HP                              vm      in  (* 0x20 >> malloc(0x20) >> 0x20 >> malloc(0x20) >> M[0x40] *) 
-    let vm      =   mstore_mthd_args R args       ly le vm      in  
+    let vm      =   _MSTORE_MARGS R args       ly le vm      in  
     let vm      =   SWAP1                           @>> vm      in  
     let vm      =   PUSH (Int 0)                    @>> vm      in  
     let vm      =   PUSH (Int 1)                    @>> vm      in  
@@ -119,7 +119,7 @@ and mstore_new_instance id args msg ly le vm  =
     let vm      =   _MSTORE_CODE                            vm      in  (*                                         alloc(size) >> size >> .. *)
     let vm      =   SWAP1                               @>> vm      in  (*                                         size >> alloc(size) >> .. *)
     let vm      =   _MSTORE_WHOLECODE                       vm      in  (*                                wsize >> size >> alloc(size) >> .. *)
-    let vm      =   mstore_mthd_args R args           ly le vm      in  (*                   argssize >>  wsize >> size >> alloc(size) >> .. *)
+    let vm      =   _MSTORE_MARGS R args           ly le vm      in  (*                   argssize >>  wsize >> size >> alloc(size) >> .. *)
     let vm      =   ADD                                 @>> vm      in  (*                       argssize+wsize >> size >> alloc(size) >> .. *)
     let vm      =   ADD                                 @>> vm      in  (*                          argssize+wsize+size >> alloc(size) >> .. *)
                     SWAP1                               @>> vm          (*                                  alloc(size) >>   totalsize >> .. *)
@@ -197,7 +197,7 @@ and codegen_tm ly le vm aln e       = (* #DEBUG pe_tm e; pe(str_of_ctx le); *)
     | TmEQ   (l,r)          ,_              ->   codegen_op EQ  l r                        ly le vm           
     | TmNEQ  (l,r)          ,_              ->   ISZERO  @>>     codegen_op EQ l r         ly le vm
     | TmNOT    e            ,_              ->   ISZERO  @>>               e       @> (aln,ly,le,vm)  
-    | TmLAND (l,r)          ,_              ->   checked_codegen_LAnd l r aln              ly le vm 
+    | TmLAND (l,r)          ,_              ->   codegen_LAnd l r aln                      ly le vm 
     | TmCall(id,args)       ,rety           ->   codegen_pre_call id args rety aln         ly le vm
     | TmSend((e,TyAddr  ),m,ags,msg),_      ->   codegen_send_eoa(e,TyAddr)         msg    ly le vm 
     | TmSend((c,TyIstc n),m,ags,msg),_      ->   codegen_send_cn(c,TyIstc n) m ags  msg    ly le vm 
@@ -223,9 +223,10 @@ and codegen_tm_eff tm aln ly le vm      =   match tm with
     
 and codegen_op op l r ly le vm          =   op @>> l @> (R,ly,le, r @> (R,ly,le,vm))      
             
-and push_msg_and_gas msg cn ly le vm = 
+and _PUSH_MSG_CN msg cn ly le vm = 
     let vm      =   msg                         @> (R,ly,le,vm)     in  (*                                            value >> .. *) 
-    let vm      =   cn                          @> (R,ly,le,vm)     in  (*                                  cnAddr >> value >> .. *)
+                    cn                          @> (R,ly,le,vm)         (*                                  cnAddr >> value >> .. *)
+and _PUSH_GAS  vm =
     let vm      =   PUSH(Int 3000)                      @>> vm      in  (*                          3000 >> cnAddr >> value >> .. *)
     let vm      =   GAS                                 @>> vm      in  (*                   gas >> 3000 >> cnAddr >> value >> .. *)
                     SUB                                 @>> vm          (*                      gas-3000 >> cnAddr >> value >> .. *)
@@ -237,9 +238,9 @@ and _CALL_RESTOREPC vm =                                            (*  gas-3000
     let vm      =   SWAP2                               @>> vm      in  (*                                                                           PCbkp >> retsz >> retbegin *)
                     _RESTORE_PC                              vm          (*                                                                                    retsz >> retbegin *)
 
-and mload_ret_value vm =                                                (*                                 retsize >> retbegin >> .. *)
-    let vm      =   PUSH (Int 32)                       @>> vm      in  (*                           32 >> retsize >> retbegin >> .. *)
-    let vm      =   _THROW_IF_NEQ                           vm      in  (* IF 32!=retsize ERROR                       retbegin >> .. *)
+and _MLOAD_RET vm =                                                     (*                                 retsize >> retbegin >> .. *)
+    let vm      =   PUSH (Int 0x20)                     @>> vm      in  (*                         0x20 >> retsize >> retbegin >> .. *)
+    let vm      =   _THROW_IF_NEQ                           vm      in  (* IF 0x20!=retsize ERROR                     retbegin >> .. *)
                     MLOAD                               @>> vm          (*                                         M[retbegin] >> .. *)
 
 and codegen_send_cn cn m args msg ly le vm =  (* msg-call to a contract *) 
@@ -255,18 +256,20 @@ and codegen_send_cn cn m args msg ly le vm =  (* msg-call to a contract *)
     let vm      =   PUSH(Int retsz)                     @>> vm      in  (*                                                                                       retsz >> PCbkp >> .. *)
     let vm      =   _MALLOC                                 vm      in  (*                                                                           retbegin >> retsz >> PCbkp >> .. *)
     let vm      =   repeat DUP2 2                           vm      in  (*                                                      retbegin >> retsz >> retbegin >> retsz >> PCbkp >> .. *)
-    let vm      =   mstore_mhash_and_args mhd args    ly le vm      in  (*                               &mhash >> argsize+4 >> retbegin >> retsz >> retbegin >> retsz >> PCbkp >> .. *)
-    let vm      =   push_msg_and_gas msg cn           ly le vm      in  (*  gas-3000 >> cnAddr >> msg >> &mhash >> argsize+4 >> retbegin >> retsz >> retbegin >> retsz >> PCbkp >> .. *)
-    let vm      =   _CALL_RESTOREPC                     vm      in  (*                                                                                    retsz >> retbegin >> .. *)
-    let vm      =   mload_ret_value                         vm      in  (*                                                                                                  ret >> .. *)
+    let vm      =   _MSTORE_MHASHMARGS mhd args       ly le vm      in  (*                               &mhash >> argsize+4 >> retbegin >> retsz >> retbegin >> retsz >> PCbkp >> .. *)
+    let vm      =   _PUSH_MSG_CN     msg cn           ly le vm      in  (*              cnAddr >> msg >> &mhash >> argsize+4 >> retbegin >> retsz >> retbegin >> retsz >> PCbkp >> .. *)
+    let vm      =   _PUSH_GAS                               vm      in  (*  gas-3000 >> cnAddr >> msg >> &mhash >> argsize+4 >> retbegin >> retsz >> retbegin >> retsz >> PCbkp >> .. *)
+    let vm      =   _CALL_RESTOREPC                         vm      in  (*                                                                                    retsz >> retbegin >> .. *)
+    let vm      =   _MLOAD_RET                              vm      in  (*                                                                                                  ret >> .. *)
                     Comment("END send to "^id)          @>> vm 
 
 and codegen_send_eoa eoa msg ly le vm =   (* send value to an EOA *) 
     let vm      =   Comment "BEGINE send to Addr"       @>> vm      in  (*                                                                   .. *) 
     let vm      =   _RESET_PC                               vm      in  (*                                                          PCbkp >> .. *) 
     let vm      =   repeat (PUSH(Int 0)) 6                  vm      in  (*                            0 >> 0 >> 0 >> 0 >> 0 >> 0 >> PCbkp >> .. *) 
-    let vm      =   push_msg_and_gas msg eoa          ly le vm      in  (* gas-3000 >> addr >> msg >> 0 >> 0 >> 0 >> 0 >> 0 >> 0 >> PCbkp >> .. *) 
-    let vm      =   _CALL_RESTOREPC                     vm      in  (*                                                         0 >> 0 >> .. *)
+    let vm      =   _PUSH_MSG_CN     msg eoa          ly le vm      in  (*             addr >> msg >> 0 >> 0 >> 0 >> 0 >> 0 >> 0 >> PCbkp >> .. *) 
+    let vm      =   _PUSH_GAS                               vm      in  (* gas-3000 >> addr >> msg >> 0 >> 0 >> 0 >> 0 >> 0 >> 0 >> PCbkp >> .. *) 
+    let vm      =   _CALL_RESTOREPC                         vm      in  (*                                                         0 >> 0 >> .. *)
     let vm      =   POP                                 @>> vm      in  (*                                                              0 >> .. *)
                     Comment("END send to Addr")         @>> vm 
 
@@ -281,7 +284,7 @@ and codegen_assign l r ly le vm =
     let vm      =   Comment "END Assignment"            @>> vm      in 
     le,vm 
 
-and checked_codegen_LAnd l r aln ly le vm = 
+and codegen_LAnd l r aln ly le vm = 
     assert(aln=R);         
     let la      =   fresh_label ()                                  in  (*                                                        .. *)
     let vm      =   l                           @> (R,ly,le,vm)     in  (*                                                   l >> .. *)
@@ -292,24 +295,24 @@ and checked_codegen_LAnd l r aln ly le vm =
     let vm      = JUMPDEST la                           @>> vm      in  (*                                                   r >> .. *)
                     repeat ISZERO 2                         vm          (*                                                l&&r >> .. *)  
 
-and mstore_mthd_args aln args ly le vm =
+and _MSTORE_MARGS aln args ly le vm =
     let vm      =   PUSH(Int 0)                         @>> vm      in  (*                                                   0 >> .. *)
-                    foldl (mstore_mthd_arg aln le ly) vm args           (*                                             sumsize >> .. *) 
+                    foldl (_MSTORE_MARG aln le ly) vm args           (*                                             sumsize >> .. *) 
 
-and mstore_mthd_arg aln le ly vm arg  =
+and _MSTORE_MARG aln le ly vm arg  =
     let ty      =   get_ty arg                                      in  
     let i       =   match aln with | L -> size_of_ty ty 
                                    | R -> 32                        in  (*                                                 sum >> .. *)
     let vm      =   PUSH (Int i)                        @>> vm      in  (*                                         size >> sum >> .. *)
-    let vm      =   _MALLOC                                vm      in  (*                          alloc(size) >> size >> sum >> .. *)
+    let vm      =   _MALLOC                                 vm      in  (*                          alloc(size) >> size >> sum >> .. *)
     let vm      =   arg                       @> (aln,ly,le,vm)     in  (*                   arg >> alloc(size) >> size >> sum >> .. *)
     let vm      =   SWAP1                               @>> vm      in  (*                   alloc(size) >> arg >> size >> sum >> .. *)
     let vm      =   MSTORE                              @>> vm      in  (* M[alloc(size)] := arg                   size >> sum >> .. *)
                     ADD                                 @>> vm          (*                                            size+sum >> .. *)
 
-and mstore_mhash_and_args mthd args ly le vm =                          (*                                                        .. *)
+and _MSTORE_MHASHMARGS mthd args ly le vm =                          (*                                                        .. *)
     let vm      =   _MSTORE_MHASH    mthd                   vm      in  (*                                         &mhash >> 4 >> .. *)
-    let vm      =   mstore_mthd_args R args ly           le vm      in  (*                              argsize >> &mhash >> 4 >> .. *)
+    let vm      =   _MSTORE_MARGS R args              ly le vm      in  (*                              argsize >> &mhash >> 4 >> .. *)
     let vm      =   SWAP1                               @>> vm      in  (*                              &mhash >> argsize >> 4 >> .. *)
     let vm      =   SWAP2                               @>> vm      in  (*                              4 >> argsize >> &mhash >> .. *)
     let vm      =   ADD                                 @>> vm      in  (*                                 argsize+4 >> &mhash >> .. *)
@@ -370,7 +373,7 @@ and codegen_app (TmApp(t1,t2)) ly le vm = match fst t1 with
 and codegen_abs (TmAbs(x,_,t)) ly le vm =   
                     t                           @> (R,ly,le,vm)     
        
-and codegen_idx(TmI(i,n))      ly le vm = 
+and codegen_idx (TmI(i,n))      ly le vm = 
                     lookup_brjidx i le          @> (R,ly,le,vm)       
 
 and codegen_if (TmIf(b,t1,t2))      ly le vm = 
@@ -400,8 +403,8 @@ and codegen_mthd ly cnidx (le,vm) (TmMthd(hd,bd))  =
     le,vm
 
 and codegen_selfdstr tm ly le vm =    
-    let vm      = tm                            @> (R,ly,le,vm)     in
-    let vm      = SELFDESTRUCT                          @>> vm      in
+    let vm      =   tm                          @> (R,ly,le,vm)     in
+    let vm      =   SELFDESTRUCT                        @>> vm      in
     le, vm
 
 and mstore_tms l aln ly le vm = match l with  
