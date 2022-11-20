@@ -1,0 +1,34 @@
+eval.cmo : type.cmi syntax.cmo support.cmi subtype.cmi eval.cmi
+eval.cmx : type.cmx syntax.cmx support.cmx subtype.cmx eval.cmi
+eval.cmi : syntax.cmo support.cmi
+imain.cmo : type.cmi syntax.cmo support.cmi interpreter.cmo eval.cmi
+imain.cmx : type.cmx syntax.cmx support.cmx interpreter.cmx eval.cmx
+interpreter.cmo : type.cmi syntax.cmo support.cmi parser.cmi lexer.cmo \
+    eval.cmi
+interpreter.cmx : type.cmx syntax.cmx support.cmx parser.cmx lexer.cmx \
+    eval.cmx
+lexer.cmo : support.cmi parser.cmi
+lexer.cmx : support.cmx parser.cmx
+main.cmo : type.cmi syntax.cmo support.cmi interpreter.cmo eval.cmi
+main.cmx : type.cmx syntax.cmx support.cmx interpreter.cmx eval.cmx
+match.cmo : syntax.cmo support.cmi
+match.cmx : syntax.cmx support.cmx
+parser.cmo : type.cmi syntax.cmo support.cmi interpreter.cmo eval.cmi \
+    parser.cmi
+parser.cmx : type.cmx syntax.cmx support.cmx interpreter.cmx eval.cmx \
+    parser.cmi
+parser.cmi : syntax.cmo support.cmi eval.cmi
+print.cmo : syntax.cmo support.cmi
+print.cmx : syntax.cmx support.cmx
+subtype.cmo : syntax.cmo support.cmi subtype.cmi
+subtype.cmx : syntax.cmx support.cmx subtype.cmi
+subtype.cmi : syntax.cmo support.cmi
+support.cmo : support.cmi
+support.cmx : support.cmi
+support.cmi :
+syntax.cmo : support.cmi
+syntax.cmx : support.cmx
+syntax_.cmi : support.cmi
+type.cmo : syntax.cmo support.cmi subtype.cmi type.cmi
+type.cmx : syntax.cmx support.cmx subtype.cmx type.cmi
+type.cmi : syntax.cmo support.cmi subtype.cmi

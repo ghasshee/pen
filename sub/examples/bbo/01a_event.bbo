@@ -1,0 +1,9 @@
+event E(u256 indexed a);
+
+contract A ()
+{
+    case(void e(u256 v)) {
+            log E(v);
+            return then become A();
+    }
+}

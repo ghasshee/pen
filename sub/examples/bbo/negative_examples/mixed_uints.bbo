@@ -1,0 +1,7 @@
+contract A ()
+{
+    case(bool f(u256 a))
+    {
+        return a < 5u8 then become A();
+    }
+}

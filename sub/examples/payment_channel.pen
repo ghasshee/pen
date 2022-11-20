@@ -1,0 +1,29 @@
+// based on https://medium.com/@matthewdif/ethereum-payment-channel-in-50-lines-of-code-a94fad2704bc
+
+contract Channel
+( address channelSender
+, address channelRecipient
+, u256 startDate
+, u256 endDate
+, bytes32 => address signatures
+)
+{
+  method () CloseChannel(bytes32 h, u8 v, bytes32 r, bytes32 s, u256 val) {
+    let address signer  = pre_ecdsarecover(h, v, r, s);
+    if ((signer != channelSender) && (signer != channelRecipient)) then abort else  
+    let bytes32 proof   = keccak256(this, val);
+    if (proof != h) then abort else 
+    if (iszero(signatures[proof])) 
+        then    let _ = signatures[proof]     := signer;
+                return then become Channel(channelSender, channelRecipient, startDate, endDate, signatures)
+        else    if (signatures[proof] != signer) 
+                    then    let _ = channelRecipient.default() with val ;  // failure throws.
+                            selfdestruct(channelSender)
+                    else    abort
+  }
+
+  method () ChannelTimeOut() {
+    if (endDate > now(block)) then abort else 
+    selfdestruct(channelSender)
+  }
+}

@@ -1,0 +1,107 @@
+
+contract PreToken   (u256                       totalSupply
+                    ,address => u256            balances
+                    ,address => address => u256 allowances ) {
+    default {
+        let _ = balances[this] := totalSupply;
+        return 
+            then become Token(totalSupply, balances, allowances)
+    }
+}
+
+event Transfer  (visible address _from,  visible address _to,       u256 _amount);
+event Buy       (visible address _buyer, u256 _amount,              u256 _value);
+event Sell      (visible address _buyer, u256 _amount,              u256 _value);
+event Approval  (visible address _owner, visible address _spender,  u256 _value);
+
+contract Token  (u256                       totalSupply
+                ,address => u256            balances
+                ,address => address => u256 allowances )
+{
+    method u256 totalSupply() {
+        return totalSupply 
+            then become Token(totalSupply, balances, allowances)
+    }
+
+    method u256 balanceOf(address a) {
+        return balances[a] 
+            then become Token(totalSupply, balances, allowances)
+    }
+
+    method bool transfer(address _to, u256 _amount) {
+        if (balances[sender(msg)] < _amount) then abort; 
+        if (sender(msg) == _to) then 
+            let _ = log Transfer(sender(msg), sender(msg), _amount);
+            return true then become Token(totalSupply, balances, allowances); 
+        
+        let _ = balances[sender(msg)]   := balances[sender(msg)] - _amount;
+        if (balances[_to] + _amount < balances[_to]) then abort;
+        let _ = balances[_to]           := balances[_to] + _amount;
+        let _ = log Transfer(sender(msg), _to, _amount);
+        return true 
+            then become Token(totalSupply, balances, allowances)
+    }
+
+    method bool approve(address _spender, u256 _amount) {
+        if (balances[sender(msg)] < _amount) then abort;
+        if (sender(msg) == _spender) then abort;
+        let _ = allowances[sender(msg)][_spender] := _amount;
+        let _ = log Approval(sender(msg), _spender, _amount);
+        return true 
+            then become Token(totalSupply, balances, allowances)
+    }
+
+    method u256 allowance(address _owner, address _spender) {
+        return allowances[_owner][_spender] 
+            then become Token(totalSupply, balances, allowances)
+    }
+    
+    method bool transferFrom(address _from, address _to, u256 _amount) {
+        if (balances[_from] < _amount) then abort;
+        if (allowances[_from][sender(msg)] < _amount) then abort;
+        if (_from == _to) then 
+            let _ = log Transfer(_from, _to, _amount);
+            return true 
+                then become Token(totalSupply, balances, allowances); 
+
+        let _ = balances[_from]                 := balances[_from] - _amount;
+        let _ = allowances[_from][sender(msg)]  := allowances[_from][sender(msg)] - _amount;
+        let _ = balances[_to]                   := balances[_to] + _amount;
+        let _ = log Transfer(_from, _to, _amount);
+        return true then become Token(totalSupply, balances, allowances)
+    }
+
+    method bool buy(u256 _amount) {
+        if (balances[this] < _amount) then abort;
+        if (balances[sender(msg)] + _amount < balances[sender(msg)]) then abort;
+
+        let u256 old_eth_balance = balance(this) - value(msg);
+        if (balance(this) * _amount > (balances[this] - _amount) * value(msg)) then  abort;
+
+        let _ = balances[this]          := balances[this] - _amount;
+        let _ = balances[sender(msg)]   := balances[sender(msg)] + _amount;
+
+        let _ = log Buy(sender(msg), _amount, value(msg));
+        return true 
+            then become Token(totalSupply, balances, allowances)
+    }
+
+    method bool sell(u256 _amount, u256 _value) {
+        if balance(this)            < _value            then abort;
+        if balances[sender(msg)]    < _amount           then abort;
+        if balances[this]+_amount   < balances[this]    then abort;
+        if not (iszero(value(msg)))                     then abort;
+
+        let u256 old_eth_balance = balance(this);
+        let u256 new_eth_balance = balance(this)  - _value;
+        let u256 new_amount      = balances[this] + _amount;
+        if new_eth_balance*_amount < new_amount*_value then abort;
+
+        let _ = balances[this]          := new_amount;
+        let _ = balances[sender(msg)]   := balances[sender(msg)] - _amount;
+        let _ = log Sell(sender(msg), _amount, _value);
+        let _ = sender(msg).default() with _value;
+        return true 
+            then become Token(totalSupply, balances, allowances)
+    }
+}

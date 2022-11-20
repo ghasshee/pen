@@ -1,0 +1,20 @@
+contract Counter(
+    u256 _counter
+    ){
+
+    method u256 get() {
+        return _counter then become Counter(_counter)
+    }
+
+    method () inc() {
+        let u256 counter = _counter + 1;
+        return then become Counter(counter)
+    }
+
+    method () reset()  {
+        let u256 counter = 0; 
+        return then become Counter(counter)
+    }
+
+}
+
