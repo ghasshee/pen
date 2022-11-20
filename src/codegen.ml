@@ -524,12 +524,12 @@ let compile_rntime sto cns   =
 
 let mstore_rn_code idx vm = 
     let vm      =   PUSH(RnSize)                    @>> vm  in  (*                                                      size >> .. *)
-    let vm      =   push_HP                         @>> vm  in  (*                                             0x40  >> size >> .. *)
+    let vm      =   PUSH _HP                        @>> vm  in  (*                                             0x40  >> size >> .. *)
     let vm      =   MLOAD                           @>> vm  in  (*                                           M[0x40] >> size >> .. *) 
     let vm      =   DUP1                            @>> vm  in  (*                                M[0x40] >> M[0x40] >> size >> .. *)    
     let vm      =   PUSH(RnSize)                    @>> vm  in  (*                        size >> M[0x40] >> M[0x40] >> size >> .. *)
     let vm      =   ADD                             @>> vm  in  (*                           M[0x40]+size >> M[0x40] >> size >> .. *)
-    let vm      =   push_HP                         @>> vm  in  (*                   0x40 >> M[0x40]+size >> M[0x40] >> size >> .. *)
+    let vm      =   PUSH _HP                        @>> vm  in  (*                   0x40 >> M[0x40]+size >> M[0x40] >> size >> .. *)
     let vm      =   MSTORE                          @>> vm  in  (*                                           M[0x40] >> size >> .. *)
     let vm      =   PUSH(RnSize)                    @>> vm  in  (*                               size >> alloc(size) >> size >> .. *)
     let vm      =   PUSH(CrSize idx)                @>> vm  in  (*                     crsize >> size >> alloc(size) >> size >> .. *)

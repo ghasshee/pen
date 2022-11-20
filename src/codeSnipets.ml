@@ -111,13 +111,13 @@ let _KEC_CAT vm =                                             (*                
                     SHA3                            @>> vm      (*                       sha3(M[0x00..0x3F]) >> .. *)
                                                                 (*                          sha3(a++b)             *)
 
-let check_NOT_GT bound vm =                                     (*                                         x >> .. *)
+let _IS_LE bound vm =                                     (*                                         x >> .. *)
     let vm      =   DUP1                            @>> vm  in  (*                                    x >> x >> .. *)
     let vm      =   PUSH bound                      @>> vm  in  (*                           bound >> x >> x >> .. *) 
     let vm      =   LT                              @>> vm  in  (*                          bound<x?1:0 >> x >> .. *) 
                     _THROW_IF                           vm      (* IF x<bound THEN error                   x >> .. *)
 
-let check_NOT_LT bound vm =                                     (*                                         x >> .. *)
+let _IS_GE bound vm =                                     (*                                         x >> .. *)
     let vm      =   DUP1                            @>> vm  in  (*                                    x >> x >> .. *)
     let vm      =   PUSH bound                      @>> vm  in  (*                           bound >> x >> x >> .. *) 
     let vm      =   GT                              @>> vm  in  (*                          bound>x?1:0 >> x >> .. *) 
@@ -156,94 +156,84 @@ let get_PC vm       =
 let _KECCAK1    =   Int 0x00
 let _KECCAK2    =   Int 0x20 
 let _HP         =   Int 0x40         (* HEAP Pointer *) 
-let _HP_MIN     =   Int 0x10000      (* Initial HEAP Head *) 
-let _HP_MIN     =   Int 0x10000      (* Initial HEAP Head *) 
-let _MSP        =   Int 0x80         (* Memory Stack : Another Stack different from EVM Stack *) 
-let _MS_MIN     =   Int 0x8000  
-let _MS_MAX     =   let Int i = _HP_MIN in Int (i-1)  
 let _EP         =   Int 0x60         (* Escaping Variable Record Pointer *) 
-let _EP_MIN     =   Int 0x100
-let _EP_MAX     =   let Int i = _MS_MIN in Int (i-2)
+let _SP         =   Int 0x80         (* Memory Stack : Another Stack different from EVM Stack *) 
+let _EMIN       =   Int 0x100
+let _SMIN       =   Int 0x8000  
+let _HMIN       =   Int 0x10000      (* Initial HEAP Head *) 
+let _EMAX       =   let Int i = _SMIN in Int (i-2)
+let _SMAX       =   let Int i = _HMIN in Int (i-1)  
 
-
-let push_MSP    =   PUSH _MSP
-let push_EP     =   PUSH _EP 
-let push_MS_MIN =   PUSH _MS_MIN
-let push_MS_MAX =   PUSH _MS_MAX
-let push_EP_MIN =   PUSH _EP_MIN
-let push_EP_MAX =   PUSH _EP_MAX
-let push_HP     =   PUSH _HP
-let push_HP_MIN =   PUSH _HP_MIN
 
 
 let mPUSH_from_STACK vm = 
-    let vm      =   push_MSP                        @>> vm  in  (*                                                         sp >> x >> .. *)
+    let vm      =   PUSH _SP                        @>> vm  in  (*                                                         sp >> x >> .. *)
     let vm      =   MLOAD                           @>> vm  in  (*                                                      M[sp] >> x >> .. *) 
-    let vm      =   check_NOT_GT _MS_MAX                vm  in  (*                                                      M[sp] >> x >> .. *)
+    let vm      =   _IS_LE _SMAX                        vm  in  (*                                                      M[sp] >> x >> .. *)
     let vm      =   DUP1                            @>> vm  in  (*                                             M[sp] >> M[sp] >> x >> .. *)         
     let vm      =   PUSH(Int 0x20)                  @>> vm  in  (*                                    0x20 >>  M[sp] >> M[sp] >> x >> .. *)
     let vm      =   ADD                             @>> vm  in  (*                                        0x20+M[sp] >> M[sp] >> x >> .. *)
-    let vm      =   push_MSP                        @>> vm  in  (*                                  SP >> 0x20+M[sp] >> M[sp] >> x >> .. *)
+    let vm      =   PUSH _SP                        @>> vm  in  (*                                  SP >> 0x20+M[sp] >> M[sp] >> x >> .. *)
     let vm      =   MSTORE                          @>> vm  in  (* M[sp]    := M[sp]+0x20                               M[sp] >> x >> .. *)
                     MSTORE                          @>> vm      (* M[M[sp]] := x                                                      .. *) 
 
 let mPUSH x vm  =   mPUSH_from_STACK ( PUSH x  @>> vm  ) 
 
 let ePUSH vm        =                                           (*                                                   x >> retlabel >> .. *) 
-    let vm      =   push_EP                         @>> vm  in  (*                                             EP >> x >> retlabel >> .. *)
+    let vm      =   PUSH _EP                        @>> vm  in  (*                                             EP >> x >> retlabel >> .. *)
     let vm      =   MLOAD                           @>> vm  in  (*                                          M[EP] >> x >> retlabel >> .. *)
-    let vm      =   check_NOT_GT _EP_MAX                vm  in  (*                                          M[EP] >> x >> retlabel >> .. *)
+    let vm      =   _IS_LE _EMAX                        vm  in  (*                                          M[EP] >> x >> retlabel >> .. *)
     let vm      =   DUP1                            @>> vm  in  (*                                 M[EP] >> M[EP] >> x >> retlabel >> .. *)
     let vm      =   PUSH(Int 0x40)                  @>> vm  in  (*                         0x40 >> M[EP] >> M[EP] >> x >> retlabel >> .. *)
     let vm      =   ADD                             @>> vm  in  (*                            0x40+M[EP] >> M[EP] >> x >> retlabel >> .. *)
-    let vm      =   push_EP                         @>> vm  in  (*                      EP >> 0x40+M[EP] >> M[EP] >> x >> retlabel >> .. *)
+    let vm      =   PUSH _EP                        @>> vm  in  (*                      EP >> 0x40+M[EP] >> M[EP] >> x >> retlabel >> .. *)
     let vm      =   MSTORE                          @>> vm  in  (* M[EP] := M[EP]+0x40                      M[EP] >> x >> retlabel >> .. *)
     let vm      =   SWAP1                           @>> vm  in  (*                                          x >> M[EP] >> retlabel >> .. *)              
     let vm      =   DUP2                            @>> vm  in  (*                                M[EP] >>  x >> M[EP] >> retlabel >> .. *) 
     let vm      =   MSTORE                          @>> vm  in  (* M[M[EP]] := x                                 M[EP] >> retlabel >> .. *)
-    let vm      =   push_EP                         @>> vm  in  (*                                       0x20 >> M[EP] >> retlabel >> .. *)
+    let vm      =   PUSH _EP                        @>> vm  in  (*                                       0x20 >> M[EP] >> retlabel >> .. *)
     let vm      =   ADD                             @>> vm  in  (*                                          0x20+M[EP] >> retlabel >> .. *)
                     MSTORE                          @>> vm      (* M[M[EP]+0x20] := retAddr                                           .. *)
 
 let get_escaped_arg vm =                                        (*                                                                    .. *)
     let vm      =   PUSH (Int 0x40)                 @>> vm  in  (*                                                            0x40 >> .. *)
-    let vm      =   push_EP                         @>> vm  in  (*                                                      EP >> 0x40 >> .. *)
+    let vm      =   PUSH _EP                        @>> vm  in  (*                                                      EP >> 0x40 >> .. *)
     let vm      =   MLOAD                           @>> vm  in  (*                                                   M[EP] >> 0x40 >> .. *)
     let vm      =   SUB                             @>> vm  in  (*                                                      M[EP]-0x40 >> .. *)
                     MLOAD                           @>> vm      (*                                                     escaped_arg >> .. *)
 
 let ePOP vm =                                                   (*                                                                    .. *)  
-    let vm      =   push_EP                         @>> vm  in  (*                                                             EP  >> .. *)
+    let vm      =   PUSH _EP                        @>> vm  in  (*                                                             EP  >> .. *)
     let vm      =   MLOAD                           @>> vm  in  (*                                                           M[EP] >> .. *) 
     let vm      =   PUSH (Int 0x40)                 @>> vm  in  (*                                                   0x40 >> M[EP] >> .. *)
     let vm      =   PUSH (Int 0x20)                 @>> vm  in  (*                                           0x20 >> 0x40 >> M[EP] >> .. *) 
     let vm      =   DUP3                            @>> vm  in  (*                                  M[EP] >> 0x20 >> 0x40 >> M[EP] >> .. *)  
     let vm      =   SUB                             @>> vm  in  (*                                     M[EP]-0x20 >> 0x40 >> M[EP] >> .. *)
-    let vm      =   check_NOT_LT _EP_MIN                vm  in  (*                                     M[EP]-0x20 >> 0x40 >> M[EP] >> .. *)
+    let vm      =   _IS_GE _EMIN                        vm  in  (*                                     M[EP]-0x20 >> 0x40 >> M[EP] >> .. *)
     let vm      =   MLOAD                           @>> vm  in  (*                                        retAddr >> 0x40 >> M[EP] >> .. *)
     let vm      =   SWAP2                           @>> vm  in  (*                                        M[EP] >> 0x40 >> retAddr >> .. *)
     let vm      =   SUB                             @>> vm  in  (*                                           M[EP]-0x40 >> retAddr >> .. *)
-    let vm      =   push_EP                         @>> vm  in  (*                                     EP >> M[EP]-0x40 >> retAddr >> .. *)
+    let vm      =   PUSH _EP                        @>> vm  in  (*                                     EP >> M[EP]-0x40 >> retAddr >> .. *)
                     MSTORE                          @>> vm      (* M[EP] := M[EP]-0x40                                     retAddr >> .. *)
 
 let mPOP_to_STACK vm = 
     let vm      =   PUSH (Int 0x20)                 @>> vm  in  (*                                                            0x20 >> .. *) 
-    let vm      =   push_MSP                        @>> vm  in  (*                                                      sp >> 0x20 >> .. *)
+    let vm      =   PUSH _SP                        @>> vm  in  (*                                                      sp >> 0x20 >> .. *)
     let vm      =   MLOAD                           @>> vm  in  (*                                                   M[sp] >> 0x20 >> .. *) 
-    let vm      =   check_NOT_LT _MS_MIN                vm  in  (*                                                   M[sp] >> 0x20 >> .. *)    
+    let vm      =   _IS_GE _SMIN                        vm  in  (*                                                   M[sp] >> 0x20 >> .. *)    
     let vm      =   SUB                             @>> vm  in  (*                                                      M[sp]-0x20 >> .. *)
     let vm      =   DUP1                            @>> vm  in  (*                                        M[sp]-0x20 >> M[sp]-0x20 >> .. *)
-    let vm      =   push_MSP                        @>> vm  in  (*                                  SP >> M[sp]-0x20 >> M[sp]-0x20 >> .. *) 
+    let vm      =   PUSH _SP                        @>> vm  in  (*                                  SP >> M[sp]-0x20 >> M[sp]-0x20 >> .. *) 
     let vm      =   MSTORE                          @>> vm  in  (* M[sp] := M[sp]-0x20                                  M[sp]-0x20 >> .. *) 
                     MLOAD                           @>> vm      (*                                                   M[M[sp]-0x20] >> .. *)
 
 let mPOP vm =   
     let vm      =   PUSH (Int 0x20)                 @>> vm  in  (*                                                            0x20 >> .. *) 
-    let vm      =   push_MSP                        @>> vm  in  (*                                                     SP  >> 0x20 >> .. *)
+    let vm      =   PUSH _SP                        @>> vm  in  (*                                                     SP  >> 0x20 >> .. *)
     let vm      =   MLOAD                           @>> vm  in  (*                                                   M[SP] >> 0x20 >> .. *) 
-    let vm      =   check_NOT_LT _MS_MIN                vm  in  (*                                                   M[SP] >> 0x20 >> .. *)
+    let vm      =   _IS_GE _SMIN                        vm  in  (*                                                   M[SP] >> 0x20 >> .. *)
     let vm      =   SUB                             @>> vm  in  (*                                                      M[SP]-0x20 >> .. *)
-    let vm      =   push_MSP                        @>> vm  in  (*                                                SP >> M[SP]-0x20 >> .. *) 
+    let vm      =   PUSH _SP                        @>> vm  in  (*                                                SP >> M[SP]-0x20 >> .. *) 
                     MSTORE                          @>> vm      (* M[SP] := M[SP]-0x20                                             >> .. *) 
 
 
@@ -264,31 +254,31 @@ let mPOP vm =
  *      push(a)                                BEFORE MEM                AFTER MEM      *)
 
 let init_malloc vm =                                            (* initialize as M[0x40] := 0x1000000 *)
-    let vm      =   push_HP_MIN                     @>> vm  in
-    let vm      =   push_HP                         @>> vm  in
+    let vm      =   PUSH _HMIN                      @>> vm  in
+    let vm      =   PUSH _HP                        @>> vm  in
                     MSTORE                          @>> vm    
 
 
 
 (* _MALLOC : (size) -> (maddr, size) *)
 let _MALLOC vm  =                                              (* .. >> size                                                  *)
-    let vm      =   push_HP                         @>> vm  in  (* .. >> size >> 0x40                                          *)
+    let vm      =   PUSH _HP                        @>> vm  in  (* .. >> size >> 0x40                                          *)
     let vm      =   MLOAD                           @>> vm  in  (* .. >> size >> M[0x40]                                       *)
     let vm      =   DUP1                            @>> vm  in  (* .. >> size >> M[0x40] >> M[0x40]                            *)
     let vm      =   DUP3                            @>> vm  in  (* .. >> size >> M[0x40] >> M[0x40] >> size                    *)
     let vm      =   ADD                             @>> vm  in  (* .. >> size >> M[0x40] >> size+M[0x40]                       *)
-    let vm      =   push_HP                         @>> vm  in  (* .. >> size >> M[0x40] >> size+M[0x40] >> 0x40               *)
+    let vm      =   PUSH _HP                        @>> vm  in  (* .. >> size >> M[0x40] >> size+M[0x40] >> 0x40               *)
                     MSTORE                          @>> vm      (* .. >> size >> M[0x40]                                       *)  
     
 (* get_HP : () -> (maddr) *)
 let get_HP vm   =                             
-    let vm      =   push_HP                         @>> vm  in  (*                                                0x40   >> .. *) 
+    let vm      =   PUSH _HP                        @>> vm  in  (*                                                0x40   >> .. *) 
                     MLOAD                           @>> vm      (*                                              M[0x40]  >> .. *) 
 
 
 let _MSTORE_CODE vm  =                                          (* size >> from                                       *)
     let vm      =   DUP2                            @>> vm  in  (* size >> from >> size                               *)
-    let vm      =   _MALLOC                            vm  in  (* size >> from >> size >> alloc(size)                *)
+    let vm      =   _MALLOC                             vm  in  (* size >> from >> size >> alloc(size)                *)
     let vm      =   SWAP2                           @>> vm  in  (* size >> alloc(size) >> size >> from                *)
     let vm      =   DUP3                            @>> vm  in  (* size >> alloc(size) >> size >> from >> alloc(size) *)
                     CODECOPY                        @>> vm      (* size >> alloc(size)                                *)
@@ -296,7 +286,7 @@ let _MSTORE_CODE vm  =                                          (* size >> from 
 
 let _MSTORE_WHOLECODE vm =
     let vm      =   CODESIZE                        @>> vm  in  (*                                                  size >> .. *)
-    let vm      =   _MALLOC                            vm  in  (*                                   alloc(size) >> size >> .. *)
+    let vm      =   _MALLOC                             vm  in  (*                                   alloc(size) >> size >> .. *)
     let vm      =   PUSH(Int 0)                     @>> vm  in  (*                             0  >> alloc(size) >> size >> .. *)
     let vm      =   DUP3                            @>> vm  in  (*                    size >>  0  >> alloc(size) >> size >> .. *)
     let vm      =   SWAP2                           @>> vm  in  (*                    alloc(size) >>  0  >> size >> size >> .. *)
@@ -312,7 +302,7 @@ let _PUSH_EVHASH ev vm =
 
 let _MSTORE_MHASH mthd vm =
     let vm      =   PUSH(Int 0x04)                  @>> vm  in  (*                                                     4 >> .. *)
-    let vm      =   _MALLOC                            vm  in  (*                                         alloc(4) >> 4 >> .. *)
+    let vm      =   _MALLOC                             vm  in  (*                                         alloc(4) >> 4 >> .. *)
     let vm      =   _PUSH_MHASH mthd                    vm  in  (*                                 hash >> alloc(4) >> 4 >> .. *)
     let vm      =   DUP2                            @>> vm  in  (*                     alloc(4) >> hash >> alloc(4) >> 4 >> .. *)
                     MSTORE                          @>> vm      (* M[alloc(4)] := hash                     alloc(4) >> 4 >> .. *)
