@@ -133,28 +133,28 @@ and codegen_new id args msg ly le vm   =
     let vm      =   SWAP1                               @>> vm      in  (*                             PCbkp >> CreateResult >> .. *)
                     restore_PC                              vm          (*                                      CreateResult >> .. *)
 
-and kec_of_arr aid aidx ly le vm  =                                     (* kec(a_i) := the seed of array *) 
+and _KEC_ARR aid aidx ly le vm  =                                     (* kec(a_i) := the seed of array *) 
     let vm      =   aidx                        @> (R,ly,le,vm)     in  (*                                             index >> .. *)    
     let vm      =   aid                         @> (R,ly,le,vm)     in  (*                                array_loc >> index >> .. *)
                     _KEC_CAT                                vm          (*                            sha3(array_loc++index) >> .. *) 
       
 and codegen_arr a i ly le vm    =                                       (*                                                      .. *)
-    let vm      =   kec_of_arr a i                    ly le vm      in  (*                                      keccak(a[i]) >> .. *)
+    let vm      =   _KEC_ARR a i                      ly le vm      in  (*                                      keccak(a[i]) >> .. *)
                     SLOAD                               @>> vm          (*                                   S[keccak(a[i])] >> .. *) 
 
 and codegen_aid (Stor data) le vm = 
     let vm      =   PUSH data.offst                     @>> vm      in 
     let vm      =   DUP1                                @>> vm      in 
     let vm      =   SLOAD                               @>> vm      in 
-                    salloc_aid                              vm 
+                    _SALLOC_AID                              vm 
 
 and codegen_secondary_arr a i ly le vm = 
-    let vm      =   kec_of_arr a i                    ly le vm      in (*                         kec(a_i) >> .. *)
+    let vm      =   _KEC_ARR a i                      ly le vm      in (*                         kec(a_i) >> .. *)
     let vm      =   DUP1                                @>> vm      in (*             kec(a_i) >> kec(a_i) >> .. *)
     let vm      =   SLOAD                               @>> vm      in (*          S[kec(a_i)] >> kec(a_i) >> .. *)
-                    salloc_aid                              vm 
+                    _SALLOC_AID                              vm         (*                         new_aid  >> .. *)
 
-and salloc_aid vm = 
+and _SALLOC_AID vm = 
     let exit    =   fresh_label ()                                  in
     let label   =   fresh_label ()                                  in (*                                 S[loc] >> loc >> .. *)
     let vm      =   DUP1                                @>> vm      in (*                       S[loc] >> S[loc] >> loc >> .. *)
@@ -273,7 +273,7 @@ and codegen_send_eoa eoa msg ly le vm =   (* send value to an EOA *)
                     Comment("END send to Addr")         @>> vm 
 
 and sstore_to_lval(TmArr(a,i),_) ly le vm     =                         (*                                  rval >> .. *)
-    let vm      =   kec_of_arr a i                    ly le vm      in  (*                      KEC(a^i) >> rval >> .. *)
+    let vm      =   _KEC_ARR a i                    ly le vm      in  (*                      KEC(a^i) >> rval >> .. *)
                     SSTORE                              @>> vm          (* S[KEC(a^i)] := rval                      .. *)
 
 and codegen_assign l r ly le vm = 
@@ -553,7 +553,7 @@ let codegen_creation cns idx = (* return vm which contains the program *)
     let vm      =   empty_vm cns                                in  (*                                                                          *)
     let vm      =   Comment("Begin Creation "^id)   @>> vm      in 
     let vm      =   init_malloc                         vm      in  (* M[0x40] := 0x60                                                          *)
-    let vm      =   salloc_arrs        cn               vm      in  (* S[1]    := #array                i << alloc(argssize) << argssize << ..  *)
+    let vm      =   _SALLOC_ARRS        cn               vm      in  (* S[1]    := #array                i << alloc(argssize) << argssize << ..  *)
     let vm      =   set_PC            idx               vm      in  (* S[PC]   := rn_cn_offst    (returned body)                                *)
     let vm      =   mstore_rn_code    idx               vm      in  (*                                 alloc(codesize) << codesize << i <<  ..  *)
     let vm      =   RETURN                          @>> vm      in  (* OUTPUT(M[code]) as The BODY code                               i <<  ..  *)

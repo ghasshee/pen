@@ -357,7 +357,7 @@ let if_not_init_AC   vm =
     let vm      = _RESET_AC                             vm      in  (* S[AC] := 1                                     .. *) 
                   JUMPDEST exit                     @>> vm          (*                                                .. *)
 
-let salloc_arr vm (a_i:int) =   
+let _SALLOC_ARR vm (a_i:int) =   
     let exit    = fresh_label()                                 in  (*                                                .. *) 
     let vm      = PUSH (Int a_i)                    @>> vm      in  (*                                        a_i  >> .. *)
     let vm      = SLOAD                             @>> vm      in  (*                                      S[a_i] >> .. *) 
@@ -367,9 +367,9 @@ let salloc_arr vm (a_i:int) =
     let vm      = SSTORE                            @>> vm      in  (* S[a_i] := S[AC]                                .. *)
                   JUMPDEST exit                     @>> vm          (*                                                .. *)
 
-let salloc_arrs cn vm =
+let _SALLOC_ARRS cn vm =
     let vm      = if_not_init_AC                        vm      in   
-                  foldl salloc_arr vm (arr_locs_of_cn cn)
+                  foldl _SALLOC_ARR vm (arr_locs_of_cn cn)
 
 
 
@@ -383,7 +383,7 @@ let salloc_arrs cn vm =
 (*  INITIAL DATA  *) 
 
 
-let check_codesize cnidx vm     =  
+let _CHK_CODESIZE cnidx vm     =  
     let vm      = PUSH (InitDataSize cnidx)         @>> vm      in  (*                                    datasize >> mem_start >> size >> .. *)
     let vm      = CODESIZE                          @>> vm      in  (*                        codesize >> datasize >> mem_start >> size >> .. *) 
                   _THROW_IF_NEQ                         vm          (* IF not eq THEN error                                                   *) 
@@ -391,7 +391,7 @@ let check_codesize cnidx vm     =
 
 
                   
-let mstore_var_args cn vm =                                             (* This copies fieldVars at the end of the bytecode into MEM.             *) 
+let _MSTORE_VARGS cn vm =                                             (* This copies fieldVars at the end of the bytecode into MEM.             *) 
     let size    = size_of_vars_in_cn cn                         in  (* M[0x40](==M[64]) is increased accordingly                              *)
     let vm      = PUSH (Int size)                   @>> vm      in  (*                                                             size >> .. *)
     let vm      = DUP1                              @>> vm      in  (*                                                     size >> size >> .. *)
@@ -403,7 +403,7 @@ let mstore_var_args cn vm =                                             (* This 
     let vm      = DUP3                              @>> vm      in  (*      alloc(size) >> codesize-size >> size >> alloc(size) >> size >> .. *)
                   CODECOPY                          @>> vm          (*          to             from                 alloc(size) >> size >> .. *)
 
-let sstore_var_args cnidx vm   =                               
+let _SSTORE_VARGS cnidx vm   =                               
     let loop    = fresh_label()                                 in
     let exit    = fresh_label()                                 in  (*                                                  alloc(size)   >>   size    >> .. *)  
     let vm      = PUSH (StorVarBegin cnidx)         @>> vm      in  (*                                          idx >>  alloc(size)   >>   size    >> .. *)
