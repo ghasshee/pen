@@ -175,44 +175,43 @@ and _SALLOC_AID vm =
 and (@>) e (aln,ly,le,vm)           = codegen_tm ly le vm aln e 
 and codegen_tm ly le vm aln e       = (* #DEBUG pe_tm e; pe(str_of_ctx le); *)
     match e with 
-    | TmApp(t1,t2)          ,_              ->                  codegen_app     (TmApp(t1,t2))            ly le vm 
-    | TmAbs(x,tyX,t)        ,_              ->                  codegen_abs     (TmAbs(x,tyX,t))          ly le vm 
-    | TmFix(f,n,ty,t)       ,_              ->                  codegen_fix     (TmFix(f,n,ty,t))         ly le vm 
-    | TmI(i,n)              ,_              ->                  codegen_idx     (TmI(i,n))                ly le vm 
-    | TmIStrct(i)           ,_              ->                  codegen_istrct  (TmIStrct(i))             ly le vm 
-    | TmIf(b,t1,t2)         ,_              ->                  codegen_if      (TmIf(b,t1,t2))           ly le vm 
-    | Balanc   e            ,_              ->                  BALANCE     @>>          e          @> (R,ly,le,vm)
-    | EpValue               ,_              ->                  CALLVALUE                                   @>> vm   (* Value (wei) Transferred to the account *) 
-    | TmZero                ,_              ->                  PUSH(Int 0)                                 @>> vm 
-    | EpNow                 ,_              ->                  TIMESTAMP                                   @>> vm 
-    | TmFalse               ,_              ->  assert(aln=R);  PUSH(Int 0)                                 @>> vm  
-    | TmTrue                ,_              ->  assert(aln=R);  PUSH(Int 1)                                 @>> vm 
-    | TmU256   d            ,_              ->  assert(aln=R);  PUSH(Big d)                                 @>> vm  
-    | TmU8     d            ,_              ->  assert(aln=R);  PUSH(Big d)                                 @>> vm  
-    | TmAdd  (l,r)          ,_              ->                  codegen_op ADD l r                        ly le vm             
-    | TmSub  (l,r)          ,_              ->                  codegen_op SUB l r                        ly le vm             
-    | TmMul  (l,r)          ,_              ->                  codegen_op MUL l r                        ly le vm             
-    | TmLT   (l,r)          ,_              ->  assert(aln=R);  codegen_op LT  l r                        ly le vm           
-    | TmGT   (l,r)          ,_              ->  assert(aln=R);  codegen_op GT  l r                        ly le vm           
-    | TmEQ   (l,r)          ,_              ->  assert(aln=R);  codegen_op EQ  l r                        ly le vm           
-    | TmNEQ  (l,r)          ,_              ->  assert(aln=R);  ISZERO  @>>     codegen_op EQ l r         ly le vm
-    | TmNOT    e            ,_              ->  assert(aln=R);  ISZERO  @>>               e       @> (aln,ly,le,vm)  
-    | TmLAND (l,r)          ,_              ->                  checked_codegen_LAnd l r aln              ly le vm 
-    | TmCall(id,args)       ,rety           ->                  codegen_pre_call id args rety aln         ly le vm
-    | TmSend((e,TyAddr  ),m,ags,msg),_      ->  assert(aln=R);  codegen_send_eoa(e,TyAddr)         msg    ly le vm 
-    | TmSend((c,TyIstc n),m,ags,msg),_      ->  assert(aln=R);  codegen_send_cn(c,TyIstc n) m ags  msg    ly le vm 
-    | TmNew(id,args,msg)    ,TyIstc _       ->  assert(aln=R);  codegen_new    id args msg                ly le vm 
-    | TmAddr(c,TyIstc i)    ,TyAddr         ->                  (c,TyIstc i)                      @> (aln,ly,le,vm) 
-    | TmSender              ,TyAddr         ->                  _SHIFT_IF_L  aln TyAddr    (CALLER          @>> vm) 
-    | TmThis                ,_              ->                  _SHIFT_IF_L  aln TyAddr    (ADDRESS         @>> vm) 
-    | TmArr(a,i) (*a[i][j]*),TyMap _        ->  assert(aln=R);  codegen_secondary_arr a i                 ly le vm     
-    | TmArr(ai,j)(*a[i][j]*),      _        ->  assert(aln=R);  codegen_arr ai j                          ly le vm     
-    | TmId id               ,TyMap(a,b)     ->                  codegen_aid (lookup_le id le)                le vm 
-    | TmId id               ,ty             ->                  push_loc (lookup_le id le) aln ty               vm     
-    | TmDeref(ref,tyR)      ,ty             ->  assert(aln=R);  assert(size_of_ty ty<=32 && tyR=TyRef ty); 
-                                                                MLOAD   @>> (ref,tyR)               @> (R,ly,le,vm) 
-    | e                                     ->  let _,vm    =   codegen_tm_eff e              aln         ly le vm  in 
-                                                                PUSH (Int 0)                                @>> vm 
+    | EpValue               ,_              ->   CALLVALUE                                   @>> vm   (* Value (wei) Transferred to the account *) 
+    | TmZero                ,_              ->   PUSH(Int 0)                                 @>> vm 
+    | EpNow                 ,_              ->   TIMESTAMP                                   @>> vm 
+    | TmFalse               ,_              ->   PUSH(Int 0)                                 @>> vm  
+    | TmTrue                ,_              ->   PUSH(Int 1)                                 @>> vm 
+    | TmU256   d            ,_              ->   PUSH(Big d)                                 @>> vm  
+    | TmU8     d            ,_              ->   PUSH(Big d)                                 @>> vm  
+    | Balanc   e            ,_              ->   BALANCE     @>>          e          @> (R,ly,le,vm)
+    | TmApp    _            ,_              ->   codegen_app     (fst e)                   ly le vm 
+    | TmAbs    _            ,_              ->   codegen_abs     (fst e)                   ly le vm 
+    | TmFix    _            ,_              ->   codegen_fix     (fst e)                   ly le vm 
+    | TmI      _            ,_              ->   codegen_idx     (fst e)                   ly le vm 
+    | TmIStrct _            ,_              ->   codegen_istrct  (fst e)                   ly le vm 
+    | TmIf     _            ,_              ->   codegen_if      (fst e)                   ly le vm 
+    | TmAdd  (l,r)          ,_              ->   codegen_op ADD l r                        ly le vm             
+    | TmSub  (l,r)          ,_              ->   codegen_op SUB l r                        ly le vm             
+    | TmMul  (l,r)          ,_              ->   codegen_op MUL l r                        ly le vm             
+    | TmLT   (l,r)          ,_              ->   codegen_op LT  l r                        ly le vm           
+    | TmGT   (l,r)          ,_              ->   codegen_op GT  l r                        ly le vm           
+    | TmEQ   (l,r)          ,_              ->   codegen_op EQ  l r                        ly le vm           
+    | TmNEQ  (l,r)          ,_              ->   ISZERO  @>>     codegen_op EQ l r         ly le vm
+    | TmNOT    e            ,_              ->   ISZERO  @>>               e       @> (aln,ly,le,vm)  
+    | TmLAND (l,r)          ,_              ->   checked_codegen_LAnd l r aln              ly le vm 
+    | TmCall(id,args)       ,rety           ->   codegen_pre_call id args rety aln         ly le vm
+    | TmSend((e,TyAddr  ),m,ags,msg),_      ->   codegen_send_eoa(e,TyAddr)         msg    ly le vm 
+    | TmSend((c,TyIstc n),m,ags,msg),_      ->   codegen_send_cn(c,TyIstc n) m ags  msg    ly le vm 
+    | TmNew(id,args,msg)    ,TyIstc _       ->   codegen_new    id args msg                ly le vm 
+    | TmAddr(c,TyIstc i)    ,TyAddr         ->   (c,TyIstc i)                      @> (aln,ly,le,vm) 
+    | TmSender              ,TyAddr         ->   _SHIFT_IF_L  aln TyAddr    (CALLER          @>> vm) 
+    | TmThis                ,_              ->   _SHIFT_IF_L  aln TyAddr    (ADDRESS         @>> vm) 
+    | TmArr(a,i) (*a[i][j]*),TyMap _        ->   codegen_secondary_arr a i                 ly le vm     
+    | TmArr(ai,j)(*a[i][j]*),      _        ->   codegen_arr ai j                          ly le vm     
+    | TmId id               ,TyMap(a,b)     ->   codegen_aid (lookup_le id le)                le vm 
+    | TmId id               ,ty             ->   push_loc (lookup_le id le) aln ty               vm     
+    | TmDeref(ref,tyR)      ,ty             ->   MLOAD   @>> (ref,tyR)               @> (R,ly,le,vm) 
+    | e                                     ->   let _,vm = codegen_tm_eff e   aln         ly le vm  in 
+                                                                PUSH (Int 0)                 @>> vm 
 
 and codegen_tm_eff tm aln ly le vm      =   match tm with 
     | TmAbort               ,TyErr          ->  le, _THROW                    vm                               

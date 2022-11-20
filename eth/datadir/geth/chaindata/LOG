@@ -958,3 +958,40 @@
 23:17:26.073373 db@open done T·30.049483ms
 23:18:16.608318 db@close closing
 23:18:16.608537 db@close done T·218.159µs
+=============== Nov 20, 2022 (JST) ===============
+23:19:06.719277 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+23:19:06.719552 version@stat F·[3 3] S·5MiB[40KiB 4MiB] Sc·[0.75 0.05]
+23:19:06.719570 db@open opening
+23:19:06.719629 journal@recovery F·1
+23:19:06.723990 journal@recovery recovering @231
+23:19:06.728442 memdb@flush created L0@233 N·94 S·14KiB "\x15P>..H(\x80,v136694":"\xf4\x98J..\x83\x9c\xd7,v136688"
+23:19:06.733295 version@stat F·[4 3] S·5MiB[54KiB 4MiB] Sc·[1.00 0.05]
+23:19:06.747272 db@janitor F·9 G·0
+23:19:06.747303 db@open done T·27.715267ms
+23:19:06.747327 table@compaction L0·4 -> L1·3 S·5MiB Q·136700
+23:19:06.805244 table@build created L1@236 N·44745 S·2MiB "\x00\x0f\xd4..\x99;\xf1,v67777":"h\x00\x00..\x03\xfd-,v33865"
+23:19:06.888239 table@build created L1@237 N·26987 S·2MiB "h\x00\x00..\xfd-t,v33862":"h\x00\x00..Y\xa5],v128306"
+23:19:06.915672 table@build created L1@238 N·17671 S·820KiB "h\x00\x00..\xa5]t,v128303":"\xff\xa1\xd4..F\xb4\xa7,v134433"
+23:19:06.915715 version@stat F·[0 3] S·5MiB[0B 5MiB] Sc·[0.00 0.05]
+23:19:06.919112 table@compaction committed F-4 S-34KiB Ke·0 D·122 T·171.762975ms
+23:19:06.919169 table@remove removed @230
+23:19:06.919194 table@remove removed @227
+23:19:06.919219 table@remove removed @224
+23:19:06.919394 table@remove removed @221
+23:19:06.919574 table@remove removed @222
+23:19:06.919648 table@remove removed @223
+23:21:12.197989 db@close closing
+23:21:12.198065 db@close done T·73.537µs
+=============== Nov 20, 2022 (JST) ===============
+23:46:36.448518 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+23:46:36.448690 version@stat F·[0 3] S·5MiB[0B 5MiB] Sc·[0.00 0.05]
+23:46:36.448718 db@open opening
+23:46:36.448774 journal@recovery F·1
+23:46:36.453174 journal@recovery recovering @234
+23:46:36.457927 memdb@flush created L0@239 N·216 S·19KiB "\x017|..zg\x1d,v136913":"\xf3\x8f\x9f..\xfaR\xd7,v136906"
+23:46:36.471297 version@stat F·[1 3] S·5MiB[19KiB 5MiB] Sc·[0.25 0.05]
+23:46:36.487766 db@janitor F·7 G·1
+23:46:36.487810 db@janitor removing table-233
+23:46:36.487936 db@open done T·39.205605ms
+23:47:14.175609 db@close closing
+23:47:14.175834 db@close done T·214.712µs
