@@ -269,18 +269,9 @@ let init_malloc vm =                                            (* initialize as
                     MSTORE                          @>> vm    
 
 
-(* malloc :: (size) -> (maddr)  *)
-let _MALLOC  vm  =                                              (* .. >> size                                                  *)
-    let vm      =   push_HP                         @>> vm  in  (* .. >> size >> 0x40                                          *)
-    let vm      =   MLOAD                           @>> vm  in  (* .. >> size >> M[0x40]                                       *)
-    let vm      =   DUP1                            @>> vm  in  (* .. >> size >> M[0x40] >> M[0x40]                            *)
-    let vm      =   SWAP3                           @>> vm  in  (* .. >> M[0x40] >> M[0x40] >> size                            *)
-    let vm      =   ADD                             @>> vm  in  (* .. >> M[0x40] >> size+M[0x40]                               *)
-    let vm      =   push_HP                         @>> vm  in  (* .. >> M[0x40] >> size+M[0x40] >> 0x40                       *)
-                    MSTORE                          @>> vm      (* .. >> M[0x40]                                               *)  
 
-(* malloc' : (size) -> (maddr, size) *)
-let _MALLOC' vm  =                                              (* .. >> size                                                  *)
+(* _MALLOC : (size) -> (maddr, size) *)
+let _MALLOC vm  =                                              (* .. >> size                                                  *)
     let vm      =   push_HP                         @>> vm  in  (* .. >> size >> 0x40                                          *)
     let vm      =   MLOAD                           @>> vm  in  (* .. >> size >> M[0x40]                                       *)
     let vm      =   DUP1                            @>> vm  in  (* .. >> size >> M[0x40] >> M[0x40]                            *)
@@ -297,7 +288,7 @@ let get_HP vm   =
 
 let _MSTORE_CODE vm  =                                          (* size >> from                                       *)
     let vm      =   DUP2                            @>> vm  in  (* size >> from >> size                               *)
-    let vm      =   _MALLOC'                            vm  in  (* size >> from >> size >> alloc(size)                *)
+    let vm      =   _MALLOC                            vm  in  (* size >> from >> size >> alloc(size)                *)
     let vm      =   SWAP2                           @>> vm  in  (* size >> alloc(size) >> size >> from                *)
     let vm      =   DUP3                            @>> vm  in  (* size >> alloc(size) >> size >> from >> alloc(size) *)
                     CODECOPY                        @>> vm      (* size >> alloc(size)                                *)
@@ -305,7 +296,7 @@ let _MSTORE_CODE vm  =                                          (* size >> from 
 
 let _MSTORE_WHOLECODE vm =
     let vm      =   CODESIZE                        @>> vm  in  (*                                                  size >> .. *)
-    let vm      =   _MALLOC'                            vm  in  (*                                   alloc(size) >> size >> .. *)
+    let vm      =   _MALLOC                            vm  in  (*                                   alloc(size) >> size >> .. *)
     let vm      =   PUSH(Int 0)                     @>> vm  in  (*                             0  >> alloc(size) >> size >> .. *)
     let vm      =   DUP3                            @>> vm  in  (*                    size >>  0  >> alloc(size) >> size >> .. *)
     let vm      =   SWAP2                           @>> vm  in  (*                    alloc(size) >>  0  >> size >> size >> .. *)
@@ -321,7 +312,7 @@ let _PUSH_EVHASH ev vm =
 
 let _MSTORE_MHASH mthd vm =
     let vm      =   PUSH(Int 0x04)                  @>> vm  in  (*                                                     4 >> .. *)
-    let vm      =   _MALLOC'                            vm  in  (*                                         alloc(4) >> 4 >> .. *)
+    let vm      =   _MALLOC                            vm  in  (*                                         alloc(4) >> 4 >> .. *)
     let vm      =   _PUSH_MHASH mthd                    vm  in  (*                                 hash >> alloc(4) >> 4 >> .. *)
     let vm      =   DUP2                            @>> vm  in  (*                     alloc(4) >> hash >> alloc(4) >> 4 >> .. *)
                     MSTORE                          @>> vm      (* M[alloc(4)] := hash                     alloc(4) >> 4 >> .. *)
