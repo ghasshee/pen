@@ -159,7 +159,7 @@ let _HP         =   Int 0x40         (* HEAP Pointer *)
 let _EP         =   Int 0x60         (* Escaping Variable Record Pointer *) 
 let _SP         =   Int 0x80         (* Memory Stack : Another Stack different from EVM Stack *) 
 let _EMIN       =   Int 0x100
-let _SMIN       =   Int 0x8000  
+let _SMIN       =   Int 0x8000 
 let _HMIN       =   Int 0x10000      (* Initial HEAP Head *) 
 let _EMAX       =   let Int i = _SMIN in Int (i-2)
 let _SMAX       =   let Int i = _HMIN in Int (i-1)  
@@ -270,8 +270,8 @@ let _MALLOC vm  =                                              (* .. >> size    
     let vm      =   PUSH _HP                        @>> vm  in  (* .. >> size >> M[0x40] >> size+M[0x40] >> 0x40               *)
                     MSTORE                          @>> vm      (* .. >> size >> M[0x40]                                       *)  
     
-(* get_HP : () -> (maddr) *)
-let get_HP vm   =                             
+(* _HEAPHEAD : () -> (maddr) *)
+let _HEAPHEAD vm   =                             
     let vm      =   PUSH _HP                        @>> vm  in  (*                                                0x40   >> .. *) 
                     MLOAD                           @>> vm      (*                                              M[0x40]  >> .. *) 
 

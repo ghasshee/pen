@@ -69,17 +69,17 @@ and codegen_iszero [arg] aln ly le vm =
                     ISZERO                          @>> vm 
        
 and codegen_keccak256 args   ly le vm =
-    let vm      =   get_HP vm                               in  
-    let vm      =   _MSTORE_MARGS L args       ly le vm      in  
+    let vm      =   _HEAPHEAD                              vm      in  
+    let vm      =   _MSTORE_MARGS L args          ly le vm      in  
     let vm      =   SWAP1                           @>> vm      in  
                     SHA3                            @>> vm                
 
 and codegen_ECDSArecover args ly le vm = match args with [h;v;r;s] ->  
     let vm      =   PUSH (Int 0x20)                 @>> vm      in  (* 0x20                                          *)
-    let vm      =   _MALLOC                            vm      in  (* 0x20 >> malloc(0x20)                          *)
+    let vm      =   _MALLOC                             vm      in  (* 0x20 >> malloc(0x20)                          *)
     let vm      =   repeat DUP2 2                       vm      in  (* 0x20 >> malloc(0x20) >> 0x20 >> malloc(0x20)  *)
-    let vm      =   get_HP                              vm      in  (* 0x20 >> malloc(0x20) >> 0x20 >> malloc(0x20) >> M[0x40] *) 
-    let vm      =   _MSTORE_MARGS R args       ly le vm      in  
+    let vm      =   _HEAPHEAD                              vm      in  (* 0x20 >> malloc(0x20) >> 0x20 >> malloc(0x20) >> M[0x40] *) 
+    let vm      =   _MSTORE_MARGS R args          ly le vm      in  
     let vm      =   SWAP1                           @>> vm      in  
     let vm      =   PUSH (Int 0)                    @>> vm      in  
     let vm      =   PUSH (Int 1)                    @>> vm      in  
@@ -119,7 +119,7 @@ and mstore_new_instance id args msg ly le vm  =
     let vm      =   _MSTORE_CODE                            vm      in  (*                                         alloc(size) >> size >> .. *)
     let vm      =   SWAP1                               @>> vm      in  (*                                         size >> alloc(size) >> .. *)
     let vm      =   _MSTORE_WHOLECODE                       vm      in  (*                                wsize >> size >> alloc(size) >> .. *)
-    let vm      =   _MSTORE_MARGS R args           ly le vm      in  (*                   argssize >>  wsize >> size >> alloc(size) >> .. *)
+    let vm      =   _MSTORE_MARGS R args              ly le vm      in  (*                   argssize >>  wsize >> size >> alloc(size) >> .. *)
     let vm      =   ADD                                 @>> vm      in  (*                       argssize+wsize >> size >> alloc(size) >> .. *)
     let vm      =   ADD                                 @>> vm      in  (*                          argssize+wsize+size >> alloc(size) >> .. *)
                     SWAP1                               @>> vm          (*                                  alloc(size) >>   totalsize >> .. *)
@@ -131,9 +131,9 @@ and codegen_new id args msg ly le vm   =
     let vm      =   CREATE                              @>> vm      in  (*                             createResult >> PCbkp >> .. *)
     let vm      =   _THROW_IFN                              vm      in  (*                             createResult >> PCbkp >> .. *)
     let vm      =   SWAP1                               @>> vm      in  (*                             PCbkp >> CreateResult >> .. *)
-                    _RESTORE_PC                              vm          (*                                      CreateResult >> .. *)
+                    _RESTORE_PC                             vm          (*                                      CreateResult >> .. *)
 
-and _KEC_ARR aid aidx ly le vm  =                                     (* kec(a_i) := the seed of array *) 
+and _KEC_ARR aid aidx ly le vm  =                                       (* kec(a_i) := the seed of array *) 
     let vm      =   aidx                        @> (R,ly,le,vm)     in  (*                                             index >> .. *)    
     let vm      =   aid                         @> (R,ly,le,vm)     in  (*                                array_loc >> index >> .. *)
                     _KEC_CAT                                vm          (*                            sha3(array_loc++index) >> .. *) 
@@ -146,29 +146,29 @@ and codegen_aid (Stor data) le vm =
     let vm      =   PUSH data.offst                     @>> vm      in 
     let vm      =   DUP1                                @>> vm      in 
     let vm      =   SLOAD                               @>> vm      in 
-                    _SALLOC_AID                              vm 
+                    _SALLOC_AID                             vm 
 
 and codegen_secondary_arr a i ly le vm = 
-    let vm      =   _KEC_ARR a i                      ly le vm      in (*                         kec(a_i) >> .. *)
-    let vm      =   DUP1                                @>> vm      in (*             kec(a_i) >> kec(a_i) >> .. *)
-    let vm      =   SLOAD                               @>> vm      in (*          S[kec(a_i)] >> kec(a_i) >> .. *)
-                    _SALLOC_AID                              vm         (*                         new_aid  >> .. *)
+    let vm      =   _KEC_ARR a i                      ly le vm      in  (*                         kec(a_i) >> .. *)
+    let vm      =   DUP1                                @>> vm      in  (*             kec(a_i) >> kec(a_i) >> .. *)
+    let vm      =   SLOAD                               @>> vm      in  (*          S[kec(a_i)] >> kec(a_i) >> .. *)
+                    _SALLOC_AID                             vm          (*                         new_aid  >> .. *)
 
 and _SALLOC_AID vm = 
     let exit    =   fresh_label ()                                  in
-    let label   =   fresh_label ()                                  in (*                                 S[loc] >> loc >> .. *)
-    let vm      =   DUP1                                @>> vm      in (*                       S[loc] >> S[loc] >> loc >> .. *)
-    let vm      =   _GOTO_IF label                          vm      in (* IF S[loc] != 0 GOTO label       S[loc] >> loc >> .. *) 
-    let vm      =   POP                                 @>> vm      in (*                                           loc >> .. *)
-    let vm      =   _PLUS_S 1 1                             vm      in (*                                S[AC]++ >> loc >> .. *)
-    let vm      =   DUP1                                @>> vm      in (*                     new_aid >> new_aid >> loc >> .. *)         
-    let vm      =   SWAP2                               @>> vm      in (*                     loc >> new_aid >> new_aid >> .. *)
-    let vm      =   SSTORE                              @>> vm      in (* S[loc] := new_aid                     new_aid >> .. *)
-    let vm      =   _GOTO exit                              vm      in (*                                       new_aid >> .. *)
-    let vm      =   JUMPDEST label                      @>> vm      in (*                                 S[loc] >> loc >> .. *)
-    let vm      =   SWAP1                               @>> vm      in (*                                 loc >> S[loc] >> .. *)
-    let vm      =   POP                                 @>> vm      in (*                                        S[loc] >> .. *)
-                    JUMPDEST exit                       @>> vm         (*                                        S[loc] >> .. *)
+    let label   =   fresh_label ()                                  in  (*                                 S[loc] >> loc >> .. *)
+    let vm      =   DUP1                                @>> vm      in  (*                       S[loc] >> S[loc] >> loc >> .. *)
+    let vm      =   _GOTO_IF label                          vm      in  (* IF S[loc] != 0 GOTO label       S[loc] >> loc >> .. *) 
+    let vm      =   POP                                 @>> vm      in  (*                                           loc >> .. *)
+    let vm      =   _PLUS_S 1 1                             vm      in  (*                                S[AC]++ >> loc >> .. *)
+    let vm      =   DUP1                                @>> vm      in  (*                     new_aid >> new_aid >> loc >> .. *)         
+    let vm      =   SWAP2                               @>> vm      in  (*                     loc >> new_aid >> new_aid >> .. *)
+    let vm      =   SSTORE                              @>> vm      in  (* S[loc] := new_aid                     new_aid >> .. *)
+    let vm      =   _GOTO exit                              vm      in  (*                                       new_aid >> .. *)
+    let vm      =   JUMPDEST label                      @>> vm      in  (*                                 S[loc] >> loc >> .. *)
+    let vm      =   SWAP1                               @>> vm      in  (*                                 loc >> S[loc] >> .. *)
+    let vm      =   POP                                 @>> vm      in  (*                                        S[loc] >> .. *)
+                    JUMPDEST exit                       @>> vm          (*                                        S[loc] >> .. *)
 
 (* le is not updated here.  
  * le can only be updated in a variable initialization *)
@@ -223,7 +223,7 @@ and codegen_tm_eff tm aln ly le vm      =   match tm with
     
 and codegen_op op l r ly le vm          =   op @>> l @> (R,ly,le, r @> (R,ly,le,vm))      
             
-and _PUSH_MSG_CN msg cn ly le vm = 
+and _PUSH_MSG_CN msg cn ly le vm        = 
     let vm      =   msg                         @> (R,ly,le,vm)     in  (*                                            value >> .. *) 
                     cn                          @> (R,ly,le,vm)         (*                                  cnAddr >> value >> .. *)
 and _PUSH_GAS  vm =
