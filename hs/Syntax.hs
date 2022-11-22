@@ -28,6 +28,8 @@ data TmTy ty'   =   TYPED (Tm ty') ty'
 data Tm ty'     =   TmAPP       -- TmAPP (A->B) A   ::  B 
                 |   TmABS       -- TmABS (A->B)     ::  A -> B 
                 |   TmFIX       -- TmFIX (A->A)     ::  A  
-                |   TmRET       -- TmRET       
+                |   TmU8        -- TmU8             ::  TyU8 
+                |   TmRET       -- TmRET A  Cont    ::  A ? Cont ?    
+
 
 
