@@ -13,10 +13,12 @@ module L    = List
 (***      Type Equivalence       ***)
 (***********************************)
 
-let tyeqv t0 t1                 =   ( t0 = t1 )  ||  ( match t0, t1 with
-                                | TyErr, _ | _, TyErr -> true
-                                | TyAdr, TyIsc _    -> true
-                                | _     , _             -> false ) 
+let tyeqv t0 t1                 =   ( t0 = t1 )  ||  
+                                    (   match t0, t1 with
+                                        |   TyErr, _ 
+                                        |   _    , TyErr            -> true
+                                        |   TyAdr, TyIsc _          -> true
+                                        |   _    ,  _               -> false ) 
 
 let assert_tyeqv l r            =   let tyl = get_ty l in
                                     let tyr = get_ty r in 
@@ -93,49 +95,49 @@ and  type_tm  cns cname ctx tm  = (* #DEBUG pe("type_tm: " ^ str_of_tm tm ); *)
     | TmI(i,n)                      ->  begin match ctx with 
                                         | BdFrm lctx :: _   ->  let BdTy(id,ty) = L.nth lctx i          in
                                                                 TmI(i,n)      , tyShift(i+1)ty  
-                                        | _ :: ctx          ->  tm    -|?  (ctx,cns,cname)         
+                                        | _ :: ctx          ->  tm      -|?  (ctx,cns,cname)         
                                         | _                 ->  err "|- TmI : ??"                       end 
     | TmIRec(i(*, rig #TODO*) )     ->  begin match ctx with 
                                         | BdFrm lctx :: _   ->  let BdTy(id,ty) = L.nth lctx i          in 
                                                                 TmIRec(i)     , tyShift(i+1)ty  
-                                        | _ :: ctx          ->  tm    -|?  (ctx,cns,cname)         
+                                        | _ :: ctx          ->  tm      -|?  (ctx,cns,cname)         
                                         | _                 ->  err "|- TmIRec : ??"                    end 
     | TmIStrct(i)                   ->  begin match ctx with 
                                         | BdFrm lctx :: _   ->  let BdTy(id,ty) = L.nth lctx i          in 
                                                                 TmIStrct(i)   , tyShift(i+1)ty  
-                                        | _ :: ctx          ->  tm    -|?  (ctx,cns,cname)         
+                                        | _ :: ctx          ->  tm      -|?  (ctx,cns,cname)         
                                         | _                 ->  err "|- TmIStrct : ??"                  end 
-    | TmIf(b,t1,t2)                 ->  let b,tyB           =   b       -|?  (ctx,cns,cname)             in 
-                                        let t1,t2           =   (t1,t2) -|?? (ctx,cns,cname)             in 
+    | TmIf(b,t1,t2)                 ->  let b,tyB           =   b       -|?  (ctx,cns,cname)            in 
+                                        let t1,t2           =   (t1,t2) -|?? (ctx,cns,cname)            in 
                                         assert(tyeqv tyB TyBool); 
                                         TmIf((b,tyB),t1,t2) ,   get_ty t1 
     | TmSend(cn,Some m,args,msg)    ->  let msg             =   msg     -|?  (ctx,cns,cname)            in
                                         let cn              =   cn      -|?  (ctx,cns,cname)            in
-                                        let args            =   args    -|???(ctx,cns,cname)             in
+                                        let args            =   args    -|???(ctx,cns,cname)            in
                                         ( match find_tyMthd m (L.map get_ty (typeof_cns cns)) with 
                                         | TyMthd(_,_,TyUnit)->  TmSend(cn,Some m,args,msg), TyRef TyUnit
                                         | TyMthd(_,_,r)     ->  TmDeref(TmSend(cn,Some m,args,msg),r),r)   (* #TODO this line should migrate to eval.ml *) 
     | TmSend(cn,None,args,msg)      ->  TmSend(cn -|?(ctx,cns,cname),None,[], msg -|?(ctx,cns,cname)), TyUnit 
     | TmId     s                    ->  id_lookup_ty ctx s
-    | TmRet(r,c)                 ->  type_return  cns cname ctx  r c 
+    | TmRet(r,c)                    ->  type_return  cns cname ctx  r c 
     | TmCall(id,args)               ->  type_call    cns cname ctx (TmCall(id,args))          
     | TmNew(id,args,msg)            ->  type_new     cns cname ctx id args msg    
-    | TmLog(nm,args,_)              ->  let tyArgs          =   args   -|???  (ctx,cns,cname)             in
+    | TmLog(nm,args,_)              ->  let tyArgs          =   args    -|???  (ctx,cns,cname)          in
                                         let TyEv(id,tyev)   =   lookup_evnt nm ctx                      in
                                         let tys             =   tys_of_vars(args_of_ev_args tyev)       in
                                         assert(typechecks tys tyArgs) ;
                                         TmLog(nm,tyArgs,Some(TyEv(id,tyev))), TyUnit   
-    | TmArr(a,i)                    ->  let a,TyMap(k,v)    =   a     -|?  (ctx,cns,cname)             in
-                                        let i,ty            =   i     -|?  (ctx,cns,cname)             in 
+    | TmArr(a,i)                    ->  let a,TyMap(k,v)    =   a       -|?  (ctx,cns,cname)            in
+                                        let i,ty            =   i       -|?  (ctx,cns,cname)            in 
                                         assert (tyeqv k ty) ; 
                                         TmArr((a,TyMap(k,v)),(i,ty)) , v   
-    | Balanc      e                 ->  let e,ty            =   e       -|?  (ctx,cns,cname)             in
+    | Balanc      e                 ->  let e,ty            =   e       -|?  (ctx,cns,cname)            in
                                         assert (tyeqv TyAdr ty) ; 
                                         Balanc(e,ty)        ,   TyU256
-    | TmLAND (l, r)                 ->  let l,r             =   (l,r)   -|?? (ctx,cns,cname)             in
+    | TmLAND (l, r)                 ->  let l,r             =   (l,r)   -|?? (ctx,cns,cname)            in
                                         assert (tyeqv TyBool (get_ty r)); 
                                         TmLAND(l,r)         ,   TyBool
-    | TmNOT  e                      ->  let e,ty            =   e       -|?  (ctx,cns,cname)             in
+    | TmNOT  e                      ->  let e,ty            =   e       -|?  (ctx,cns,cname)            in
                                         assert (tyeqv TyBool ty) ; 
                                         TmNOT(e,ty)         ,   TyBool
     | TmLT (l, r)                   ->  let l,r = (l,r)  -|?? (ctx,cns,cname) in TmLT (l,r)  , TyBool 

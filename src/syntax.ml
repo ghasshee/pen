@@ -15,11 +15,11 @@ type ty           (* atomic *)  =   TyErr
                   (* atomic *)  |   TyU256      (* 256 bits *) 
                   (* atomic *)  |   TyU8        (*   8 bits *) 
                   (* atomic *)  |   TyBytes32   (* 256 bits *) 
-                  (* atomic *)  |   TyAdr      (* 160 bits *) 
+                  (* atomic *)  |   TyAdr       (* 160 bits *) 
                   (* atomic *)  |   TyBool 
                   (* atomic *)  |   TyTuple     of ty list
                   (* atomic *)  |   TyMap       of ty * ty 
-                  (* atomic *)  |   TyIsc    of str                       
+                  (* atomic *)  |   TyIsc       of str                       
  (* TyMthd(id,args,ret)     *)  |   TyMthd      of str * ty list * ty        
                                 |   TyDflt
                                 |   TyRef       of ty 
@@ -46,7 +46,7 @@ and  'ty tmty                   =   'ty tm  *  'ty
 and  'ty tm                     =   
                                 |   TmRef       of 'ty tmty
                                 |   TmDeref     of 'ty tmty
-                                |   TmAsgn    of 'ty tmty * 'ty tmty 
+                                |   TmAsgn      of 'ty tmty * 'ty tmty 
                                 |   TmLoc       of int 
                                 |   TmApp       of 'ty tmty * 'ty tmty  
                                 |   TmAbs       of str * ty * 'ty tmty
@@ -56,7 +56,7 @@ and  'ty tm                     =
                                 |   TmIStrct    of int 
                                 |   TmId        of str
                                 |   TmIf        of 'ty tmty * 'ty tmty * 'ty tmty 
-(* TmRet(ret,cont)        *) |   TmRet    of 'ty tmty * 'ty tmty  
+(* TmRet(ret,cont)           *) |   TmRet       of 'ty tmty * 'ty tmty  
 (* TmArr(id,idx)             *) |   TmArr       of 'ty tmty * 'ty tmty      
 (* TmSend(cn,mname,args,msg) *) |   TmSend      of 'ty tmty * str option * 'ty tmty list * 'ty tmty
 (* TmCall(cnname, args)      *) |   TmCall      of str * 'ty tmty list       
@@ -141,7 +141,7 @@ let rec str_of_ty               =  function
     | TyTuple            _      ->  "tuple" 
     | TyMap(a,b)                ->  "mapping ("^str_of_ty a^" => "^str_of_ty b^")" 
     | TyCn(id,_,_)              ->  "ContractArchType " ^ id
-    | TyIsc     s              ->  "ContractInstanceType " ^ s
+    | TyIsc     s               ->  "ContractInstanceType " ^ s
     | TyMthd(id,_,_)            ->  "method " ^ id 
     | TyDflt                    ->  "default" 
     | TyAbs(a,b)                ->  str_of_ty a ^ "→" ^ str_of_ty b
@@ -170,11 +170,11 @@ let rec str_of_tm  e            =  match fst e with
     | TmArr(id,idx)             -> str_of_tm id ^ "[" ^ str_of_tm idx ^ "]" 
     | TmCall(id,args)           -> "TmCall(" ^ id ^ ")" 
     | TmAbort                   -> "abort" 
-    | TmRet(r,_)             -> "return " ^ str_of_tm r 
+    | TmRet(r,_)                -> "return " ^ str_of_tm r 
     | TmLog(_,_,_)              -> "log"
     | TmNew         _           -> "new"
     | TmSfDstr   _              -> "selfdestruct"
-    | TmAsgn(l,r)             -> "assignment" 
+    | TmAsgn(l,r)               -> "assignment" 
     | TmThis                    -> "this"
     | EpNow                     -> "now"
     | TmSender                  -> "sender"
