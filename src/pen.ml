@@ -47,43 +47,45 @@ let ()      =
     Psr.add optparser ~long_names:["abi"] ~help:"print ABI" enable_abi ; 
     Psr.add optparser ~long_names:["asm"] ~help:"print Assembly Code" enable_asm ; 
     let files                       = Psr.parse_argv optparser                          in
-    if files<>[] then e"Pass the contents to stdin.\n" else
-    let abi       : bool            = (Some true = enable_abi.Option.option_get ())     in
-    let asm       : bool            = (Some true = enable_asm.Option.option_get ())     in
-    if asm then pe"----- compilation start -----" ; 
+    if files<>[] then e"Pass the contents to stdin.\n"; 
+    let Some enableABI = enable_abi.Option.option_get ()     in
+    let Some enableASM = enable_asm.Option.option_get ()     in
+
+
+    if enableASM then pe"----- compilation start -----" ; 
     let lexbuf                      = Lexing.from_channel stdin                         in
-    if asm then pe"-------- lexing done --------" ; 
+    if enableASM then pe"-------- lexing done --------" ; 
     let asts : unit toplevel list   = parse_with_error lexbuf                           in
-    if asm then pe"--------- parse done --------" ; 
+    if enableASM then pe"--------- parse done --------" ; 
     let i_asts                      = to_ilist asts                                     in
-    if asm then pe"-------- indexed ASTs -------" ; 
+    if enableASM then pe"-------- indexed ASTs -------" ; 
     let i_ty_asts                   = Type.type_tops i_asts                             in
-    if asm then pe"--------- typed -------------" ;
+    if enableASM then pe"--------- typed -------------" ;
     let i_ty_opt_asts               = Eval.eval i_ty_asts                               in 
-    if asm then pe"--------- evaluated ---------" ; 
+    if enableASM then pe"--------- evaluated ---------" ; 
     let cns                         = filter_map (function TmEv e -> None 
                                                          | cn     -> Some cn) i_ty_opt_asts in
-    if asm then pe"------ extract cntrcts ------" ; 
+    if enableASM then pe"------ extract cntrcts ------" ; 
     match cns with
     | []  ->  ()
     | _   ->   
     let crs      : creation ilist   = init_crs cns                      in          
-    if asm then pe"---- creation codes built ----"; 
+    if enableASM then pe"---- creation codes built ----"; 
     let cr_infos                    = cr_infos_of_crs crs               in          
-    if asm then pe"---- creation infos built ----";
+    if enableASM then pe"---- creation infos built ----";
     let sto                         = LI.init_storage cr_infos          in          
-    if asm then pe"---- storage layout built ----";
+    if enableASM then pe"---- storage layout built ----";
     let rn       : rntime           = compile_rntime sto cns            in          
-    if asm then pe"---- contrct layout built ----";
+    if enableASM then pe"---- contrct layout built ----";
     let itycn                       = L.hd cns                          in 
     let idx                         = fst itycn                         in 
     let bytecode : big Evm.program  = compose_bytecode crs rn idx       in 
-    if asm then pe"----- bytecode composed ------"; 
-    if  abi                                                                                               
+    if enableASM then pe"----- bytecode composed ------"; 
+    if enableABI                                                                                                
         then Abi.prABI i_ty_opt_asts                                                                          
-        else if asm 
+        else if enableASM 
             then Evm.prLn_encoded bytecode 
-            else Evm.pr_encoded bytecode
+            else Evm.pr_encoded   bytecode
 (*                                                                                            *)
 (*       +----------------------+                                                             *)
 (*       |         IO           |                                                             *)

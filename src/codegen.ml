@@ -175,57 +175,56 @@ and _SALLOC_AID vm =
 and (@>) e (aln,ly,le,vm)           = codegen_tm ly le vm aln e 
 and codegen_tm ly le vm aln e       = (* #DEBUG pe_tm e; pe(str_of_ctx le); *)
     match e with 
-    | EpValue               ,_              ->   CALLVALUE                                   @>> vm   (* Value (wei) Transferred to the account *) 
-    | TmZero                ,_              ->   PUSH(Int 0)                                 @>> vm 
-    | EpNow                 ,_              ->   TIMESTAMP                                   @>> vm 
-    | TmFalse               ,_              ->   PUSH(Int 0)                                 @>> vm  
-    | TmTrue                ,_              ->   PUSH(Int 1)                                 @>> vm 
-    | TmU256   d            ,_              ->   PUSH(Big d)                                 @>> vm  
-    | TmU8     d            ,_              ->   PUSH(Big d)                                 @>> vm  
-    | Balanc   e            ,_              ->   BALANCE     @>>          e          @> (R,ly,le,vm)
-    | TmApp    _            ,_              ->   codegen_app     (fst e)                   ly le vm 
-    | TmAbs    _            ,_              ->   codegen_abs     (fst e)                   ly le vm 
-    | TmFix    _            ,_              ->   codegen_fix     (fst e)                   ly le vm 
-    | TmI      _            ,_              ->   codegen_idx     (fst e)                   ly le vm 
-    | TmIStrct _            ,_              ->   codegen_istrct  (fst e)                   ly le vm 
-    | TmIf     _            ,_              ->   codegen_if      (fst e)                   ly le vm 
-    | TmAdd  (l,r)          ,_              ->   codegen_op ADD l r                        ly le vm             
-    | TmSub  (l,r)          ,_              ->   codegen_op SUB l r                        ly le vm             
-    | TmMul  (l,r)          ,_              ->   codegen_op MUL l r                        ly le vm             
-    | TmLT   (l,r)          ,_              ->   codegen_op LT  l r                        ly le vm           
-    | TmGT   (l,r)          ,_              ->   codegen_op GT  l r                        ly le vm           
-    | TmEQ   (l,r)          ,_              ->   codegen_op EQ  l r                        ly le vm           
-    | TmNEQ  (l,r)          ,_              ->   ISZERO  @>>     codegen_op EQ l r         ly le vm
-    | TmNOT    e            ,_              ->   ISZERO  @>>               e       @> (aln,ly,le,vm)  
-    | TmLAND (l,r)          ,_              ->   codegen_LAnd l r aln                      ly le vm 
-    | TmCall(id,args)       ,rety           ->   codegen_pre_call id args rety aln         ly le vm
-    | TmSend((e,TyAddr  ),m,ags,msg),_      ->   codegen_send_eoa(e,TyAddr)         msg    ly le vm 
-    | TmSend((c,TyIstc n),m,ags,msg),_      ->   codegen_send_cn(c,TyIstc n) m ags  msg    ly le vm 
-    | TmNew(id,args,msg)    ,TyIstc _       ->   codegen_new    id args msg                ly le vm 
-    | TmAddr(c,TyIstc i)    ,TyAddr         ->   (c,TyIstc i)                      @> (aln,ly,le,vm) 
-    | TmSender              ,TyAddr         ->   _SHIFT_IF_L  aln TyAddr    (CALLER          @>> vm) 
-    | TmThis                ,_              ->   _SHIFT_IF_L  aln TyAddr    (ADDRESS         @>> vm) 
-    | TmArr(a,i) (*a[i][j]*),TyMap _        ->   codegen_secondary_arr a i                 ly le vm     
-    | TmArr(ai,j)(*a[i][j]*),      _        ->   codegen_arr ai j                          ly le vm     
-    | TmId id               ,TyMap(a,b)     ->   codegen_aid (lookup_le id le)                le vm 
-    | TmId id               ,ty             ->   push_loc (lookup_le id le) aln ty               vm     
-    | TmDeref(ref,tyR)      ,ty             ->   MLOAD   @>> (ref,tyR)               @> (R,ly,le,vm) 
-    | e                                     ->   let _,vm = codegen_tm_eff e   aln         ly le vm  in 
+    | EpValue               ,_          ->   CALLVALUE                                   @>> vm   (* Value (wei) Transferred to the account *) 
+    | TmZero                ,_          ->   PUSH (Int 0)                                @>> vm 
+    | EpNow                 ,_          ->   TIMESTAMP                                   @>> vm 
+    | TmFalse               ,_          ->   PUSH (Int 0)                                @>> vm  
+    | TmTrue                ,_          ->   PUSH (Int 1)                                @>> vm 
+    | TmU256   d            ,_          ->   PUSH (Big d)                                @>> vm  
+    | TmU8     d            ,_          ->   PUSH (Big d)                                @>> vm  
+    | Balanc   e            ,_          ->   BALANCE     @>>          e          @> (R,ly,le,vm)
+    | TmApp    _            ,_          ->   codegen_app     (fst e)                   ly le vm 
+    | TmAbs    _            ,_          ->   codegen_abs     (fst e)                   ly le vm 
+    | TmFix    _            ,_          ->   codegen_fix     (fst e)                   ly le vm 
+    | TmI      _            ,_          ->   codegen_idx     (fst e)                   ly le vm 
+    | TmIStrct _            ,_          ->   codegen_istrct  (fst e)                   ly le vm 
+    | TmIf     _            ,_          ->   codegen_if      (fst e)                   ly le vm 
+    | TmAdd  (l,r)          ,_          ->   codegen_op ADD l r                        ly le vm             
+    | TmSub  (l,r)          ,_          ->   codegen_op SUB l r                        ly le vm             
+    | TmMul  (l,r)          ,_          ->   codegen_op MUL l r                        ly le vm             
+    | TmLT   (l,r)          ,_          ->   codegen_op LT  l r                        ly le vm           
+    | TmGT   (l,r)          ,_          ->   codegen_op GT  l r                        ly le vm           
+    | TmEQ   (l,r)          ,_          ->   codegen_op EQ  l r                        ly le vm           
+    | TmNEQ  (l,r)          ,_          ->   ISZERO  @>>     codegen_op EQ l r         ly le vm
+    | TmNOT    e            ,_          ->   ISZERO  @>>               e       @> (aln,ly,le,vm)  
+    | TmLAND (l,r)          ,_          ->   codegen_LAnd l r aln                      ly le vm 
+    | TmCall(id,args)       ,rety       ->   codegen_pre_call id args rety aln         ly le vm
+    | TmSend((e,TyAdr  ),m,ags,msg),_   ->   codegen_send_eoa(e,TyAdr)         msg    ly le vm 
+    | TmSend((c,TyIsc n),m,ags,msg),_   ->   codegen_send_cn(c,TyIsc n) m ags  msg    ly le vm 
+    | TmNew(id,args,msg)    ,TyIsc _    ->   codegen_new    id args msg                ly le vm 
+    | TmAddr(c,TyIsc i)     ,TyAdr      ->   (c,TyIsc i)                      @> (aln,ly,le,vm) 
+    | TmSender              ,TyAdr      ->   _SHIFT_IF_L  aln TyAdr    (CALLER          @>> vm) 
+    | TmThis                ,_          ->   _SHIFT_IF_L  aln TyAdr    (ADDRESS         @>> vm) 
+    | TmArr(a,i) (*a[i][j]*),TyMap _    ->   codegen_secondary_arr a i                 ly le vm     
+    | TmArr(ai,j)(*a[i][j]*),      _    ->   codegen_arr ai j                          ly le vm     
+    | TmId id               ,TyMap _    ->   codegen_aid (lookup_le id le)                le vm 
+    | TmId id               ,ty         ->   push_loc (lookup_le id le) aln ty               vm     
+    | TmDeref(ref,tyR)      ,ty         ->   MLOAD   @>> (ref,tyR)               @> (R,ly,le,vm) 
+    | e                                 ->   let _,vm = codegen_tm_eff e   aln         ly le vm  in 
                                                                 PUSH (Int 0)                 @>> vm 
 
-and codegen_tm_eff tm aln ly le vm      =   match tm with 
-    | TmAbort               ,TyErr          ->  le, _THROW                    vm                               
-    | TmLog(id,args,Some ev),TyUnit         ->  codegen_log id args ev  ly le vm     
-    | TmSfDstr tm           ,TyUnit         ->  codegen_selfdstr  tm    ly le vm 
-    | TmAssign(l,r)         ,TyUnit         ->  codegen_assign l r      ly le vm  
-    | TmReturn(ret,cont)    ,_              ->  codegen_return ret cont ly le vm    
-    | e                                     ->  pf "codegen_tm: %s " (str_of_tm e); raise Not_found
+and codegen_tm_eff tm aln ly le vm  =   match tm with 
+    | TmAbort               ,TyErr      ->  le, _THROW                    vm                               
+    | TmLog(id,args,Some ev),TyUnit     ->  codegen_log id args ev  ly le vm     
+    | TmSfDstr tm           ,TyUnit     ->  codegen_selfdstr  tm    ly le vm 
+    | TmAsgn(l,r)         ,TyUnit     ->  codegen_assign l r      ly le vm  
+    | TmRet(ret,cont)    ,_          ->  codegen_return ret cont ly le vm    
+    | e                                 ->  pf "codegen_tm: %s " (str_of_tm e); raise Not_found
     
-and codegen_op op l r ly le vm          =   op @>> l @> (R,ly,le, r @> (R,ly,le,vm))      
+and codegen_op op l r ly le vm      =   op @>> l @> (R,ly,le, r @> (R,ly,le,vm))      
             
-and _PUSH_MSG_CN msg cn ly le vm        = 
-    let vm      =   msg                         @> (R,ly,le,vm)     in  (*                                            value >> .. *) 
-                    cn                          @> (R,ly,le,vm)         (*                                  cnAddr >> value >> .. *)
+and _PUSH    expr ly le vm          =   expr    @> (R,ly,le,vm)         (*                                            value >> .. *) 
+
 and _PUSH_GAS  vm =
     let vm      =   PUSH(Int 3000)                      @>> vm      in  (*                          3000 >> cnAddr >> value >> .. *)
     let vm      =   GAS                                 @>> vm      in  (*                   gas >> 3000 >> cnAddr >> value >> .. *)
@@ -244,44 +243,47 @@ and _MLOAD_RET vm =                                                     (*      
                     MLOAD                               @>> vm          (*                                         M[retbegin] >> .. *)
 
 and codegen_send_cn cn m args msg ly le vm =  (* msg-call to a contract *) 
-    let TyIstc cnm = snd cn                                         in  
+    let TyIsc cnm = snd cn                                         in  
     let cnidx   =   lookup_cnidx vm.cns cnm                         in 
     let callee  =   lookup cnidx vm.cns                             in
     let Some mnm = m                                                in 
     let mhd     =   find_mhead vm callee mnm                        in
     let TyMthd(id,_,rety) = mhd                                     in 
-    let retsz   =   size_of_ty rety                                 in  (*                                                                                                     *)
+    let retsz   =   size_of_ty rety                                 in  
+
     let vm      =   Comment("BEGINE send to "^id)       @>> vm      in  
     let vm      =   _RESET_PC                               vm      in  (*                                                                                               PCbkp *)
     let vm      =   PUSH(Int retsz)                     @>> vm      in  (*                                                                                      retsz >> PCbkp *)
     let vm      =   _MALLOC                                 vm      in  (*                                                                          retbegin >> retsz >> PCbkp *)
     let vm      =   repeat DUP2 2                           vm      in  (*                                                     retbegin >> retsz >> retbegin >> retsz >> PCbkp *)
     let vm      =   _MSTORE_MHASHMARGS mhd args       ly le vm      in  (*                              &mhash >> argsize+4 >> retbegin >> retsz >> retbegin >> retsz >> PCbkp *)
-    let vm      =   _PUSH_MSG_CN     msg cn           ly le vm      in  (*             cnAddr >> msg >> &mhash >> argsize+4 >> retbegin >> retsz >> retbegin >> retsz >> PCbkp *)
+    let vm      =   _PUSH msg                         ly le vm      in  (*                       msg >> &mhash >> argsize+4 >> retbegin >> retsz >> retbegin >> retsz >> PCbkp *)
+    let vm      =   _PUSH cn                          ly le vm      in  (*             cnAddr >> msg >> &mhash >> argsize+4 >> retbegin >> retsz >> retbegin >> retsz >> PCbkp *)
     let vm      =   _PUSH_GAS                               vm      in  (* gas-3000 >> cnAddr >> msg >> &mhash >> argsize+4 >> retbegin >> retsz >> retbegin >> retsz >> PCbkp *)
     let vm      =   _CALL_RESTOREPC                         vm      in  (*                                                                                   retsz >> retbegin *)
     let vm      =   _MLOAD_RET                              vm      in  (*                                                                                                 ret *)
                     Comment("END send to "^id)          @>> vm 
 
 and codegen_send_eoa eoa msg ly le vm =   (* send value to an EOA *) 
-    let vm      =   Comment "BEGINE send to Addr"       @>> vm      in  (*                                                                   .. *) 
+    let vm      =   Comment "BEGINE send to EOA"        @>> vm      in  (*                                                                   .. *) 
     let vm      =   _RESET_PC                               vm      in  (*                                                          PCbkp >> .. *) 
     let vm      =   repeat (PUSH(Int 0)) 6                  vm      in  (*                            0 >> 0 >> 0 >> 0 >> 0 >> 0 >> PCbkp >> .. *) 
-    let vm      =   _PUSH_MSG_CN     msg eoa          ly le vm      in  (*             addr >> msg >> 0 >> 0 >> 0 >> 0 >> 0 >> 0 >> PCbkp >> .. *) 
+    let vm      =   _PUSH msg                         ly le vm      in  (*             addr >> msg >> 0 >> 0 >> 0 >> 0 >> 0 >> 0 >> PCbkp >> .. *) 
+    let vm      =   _PUSH eoa                         ly le vm      in  (*             addr >> msg >> 0 >> 0 >> 0 >> 0 >> 0 >> 0 >> PCbkp >> .. *) 
     let vm      =   _PUSH_GAS                               vm      in  (* gas-3000 >> addr >> msg >> 0 >> 0 >> 0 >> 0 >> 0 >> 0 >> PCbkp >> .. *) 
     let vm      =   _CALL_RESTOREPC                         vm      in  (*                                                         0 >> 0 >> .. *)
     let vm      =   POP                                 @>> vm      in  (*                                                              0 >> .. *)
-                    Comment("END send to Addr")         @>> vm 
+                    Comment "END send to EOA"           @>> vm 
 
 and _SSTORE_TO(TmArr(a,i),_) ly le vm     =                             (*                                  rval >> .. *)
     let vm      =   _KEC_ARR a i                      ly le vm      in  (*                      KEC(a^i) >> rval >> .. *)
                     SSTORE                              @>> vm          (* S[KEC(a^i)] := rval                      .. *)
 
 and codegen_assign l r ly le vm = 
-    let vm      =   Comment "BEGIN Assignment"          @>> vm      in 
+    let vm      =   Comment "BEGIN Assign"              @>> vm      in 
     let vm      =   r                           @> (R,ly,le,vm)     in  (*                                    r >> .. *)
     let vm      =   _SSTORE_TO l                      ly le vm      in  (* S[KEC(l)] := r                          .. *)  
-    let vm      =   Comment "END Assignment"            @>> vm      in 
+    let vm      =   Comment "END Assign"                @>> vm      in 
     le,vm 
 
 and codegen_LAnd l r aln ly le vm = 
@@ -335,7 +337,7 @@ and escape_ARG arg retlabel a       ly le vm =
 and codegen_app_rec(TmApp((TmIRec i,_),arg)) a ly le vm = 
     let vm      =   Comment "BEGIN APP-REC"             @>> vm      in
     let retaddr =   fresh_label ()                                  in 
-    let start   =   lookup_recursion_param le                       in 
+    let start   =   lookup_rec_param le                             in 
     let vm      =   escape_ARG arg retaddr          a ly le vm      in 
     let vm      =   _GOTO start                             vm      in 
     let vm      =   JUMPDEST retaddr                    @>> vm      in       
@@ -344,8 +346,8 @@ and codegen_app_rec(TmApp((TmIRec i,_),arg)) a ly le vm =
 and codegen_fix(TmFix(phi,n,ty,tm)) ly le vm = 
     let vm      =   Comment "BEGIN FIX"                 @>> vm      in 
     let start   =   fresh_label ()                                  in 
-    (* #DEBUG pf "! add_recursion_param(label%d)\n" start;     *)
-    let le      =   add_recursion_param le start                    in
+    (* #DEBUG pf "! add_rec_param(label%d)\n" start;     *)
+    let le      =   add_rec_param le start                    in
     let vm      =   JUMPDEST start                      @>> vm      in 
     let vm      =   tm                          @> (R,ly,le,vm)     in  (*                               tm >> .. *)
     let vm      =   ePOP                                    vm      in  (*                    retAddr >> tm >> .. *) 

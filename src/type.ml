@@ -15,7 +15,7 @@ module L    = List
 
 let tyeqv t0 t1                 =   ( t0 = t1 )  ||  ( match t0, t1 with
                                 | TyErr, _ | _, TyErr -> true
-                                | TyAddr, TyIstc _    -> true
+                                | TyAdr, TyIsc _    -> true
                                 | _     , _             -> false ) 
 
 let assert_tyeqv l r            =   let tyl = get_ty l in
@@ -53,13 +53,13 @@ let cn_has_name       nm        =   function _,TyCn(id,_,_) -> id=nm    | _ -> e
 let is_known_cn tycns nm        =   BL.exists (cn_has_name nm) tycns
 
 let rec is_known_ty tycns       =   function 
-    | TyBytes32 | TyAddr            ->  true
+    | TyBytes32 | TyAdr            ->  true
     | TyU256 | TyU8 | TyBool        ->  true
     | TyUnit | TyErr                ->  true
     | TyTuple l                     ->  BL.for_all (is_known_ty tycns) l
     | TyRef l                       ->  is_known_ty tycns l
     | TyMap(a,b)                    ->  is_known_ty tycns a && is_known_ty tycns b
-    | TyIstc cn                   ->  is_known_cn tycns cn
+    | TyIsc cn                   ->  is_known_cn tycns cn
 
 let arg_has_known_ty tycns      =   function 
     | TyVar(_,ty)                  ->  is_known_ty tycns ty 
@@ -117,7 +117,7 @@ and  type_tm  cns cname ctx tm  = (* #DEBUG pe("type_tm: " ^ str_of_tm tm ); *)
                                         | TyMthd(_,_,r)     ->  TmDeref(TmSend(cn,Some m,args,msg),r),r)   (* #TODO this line should migrate to eval.ml *) 
     | TmSend(cn,None,args,msg)      ->  TmSend(cn -|?(ctx,cns,cname),None,[], msg -|?(ctx,cns,cname)), TyUnit 
     | TmId     s                    ->  id_lookup_ty ctx s
-    | TmReturn(r,c)                 ->  type_return  cns cname ctx  r c 
+    | TmRet(r,c)                 ->  type_return  cns cname ctx  r c 
     | TmCall(id,args)               ->  type_call    cns cname ctx (TmCall(id,args))          
     | TmNew(id,args,msg)            ->  type_new     cns cname ctx id args msg    
     | TmLog(nm,args,_)              ->  let tyArgs          =   args   -|???  (ctx,cns,cname)             in
@@ -130,7 +130,7 @@ and  type_tm  cns cname ctx tm  = (* #DEBUG pe("type_tm: " ^ str_of_tm tm ); *)
                                         assert (tyeqv k ty) ; 
                                         TmArr((a,TyMap(k,v)),(i,ty)) , v   
     | Balanc      e                 ->  let e,ty            =   e       -|?  (ctx,cns,cname)             in
-                                        assert (tyeqv TyAddr ty) ; 
+                                        assert (tyeqv TyAdr ty) ; 
                                         Balanc(e,ty)        ,   TyU256
     | TmLAND (l, r)                 ->  let l,r             =   (l,r)   -|?? (ctx,cns,cname)             in
                                         assert (tyeqv TyBool (get_ty r)); 
@@ -146,21 +146,21 @@ and  type_tm  cns cname ctx tm  = (* #DEBUG pe("type_tm: " ^ str_of_tm tm ); *)
     | TmSub(l, r)                   ->  let l,r = (l,r)  -|?? (ctx,cns,cname) in TmSub(l,r)  , get_ty l
     | TmAdd(l, r)                   ->  let l,r = (l,r)  -|?? (ctx,cns,cname) in TmAdd(l,r)  , get_ty l 
     | TmSfDstr    e                 ->  TmSfDstr   (e    -|?  (ctx,cns,cname))              , TyUnit           
-    | TmAddr      e                 ->  TmAddr     (e    -|?  (ctx,cns,cname))              , TyAddr  
+    | TmAddr      e                 ->  TmAddr     (e    -|?  (ctx,cns,cname))              , TyAdr  
     | TmU256      d                 ->  TmU256      d                                       , TyU256
     | TmU8        d                 ->  TmU8        d                                       , TyU8
     | TmAbort                       ->  TmAbort                                             , TyErr
     | TmUnit                        ->  TmUnit                                              , TyUnit    
     | TmTrue                        ->  TmTrue                                              , TyBool
     | TmFalse                       ->  TmFalse                                             , TyBool
-    | TmSender                      ->  TmSender                                            , TyAddr
+    | TmSender                      ->  TmSender                                            , TyAdr
     | EpNow                         ->  EpNow                                               , TyU256
-    | TmThis                        ->  TmThis                                              , TyIstc cname
+    | TmThis                        ->  TmThis                                              , TyIsc cname
     | EpValue                       ->  EpValue                                             , TyU256
-    | TmAssign((TmArr(a,i),_),r)    ->  let a,TyMap(k,v)    =   a       -|?  (ctx,cns,cname)             in  
+    | TmAsgn((TmArr(a,i),_),r)    ->  let a,TyMap(k,v)    =   a       -|?  (ctx,cns,cname)             in  
                                         let i               =   i       -|?  (ctx,cns,cname)             in 
                                         let r               =   r       -|?  (ctx,cns,cname)             in 
-                                        TmAssign((TmArr((a,TyMap(k,v)),i),TyRef v),r)     , TyUnit 
+                                        TmAsgn((TmArr((a,TyMap(k,v)),i),TyRef v),r)     , TyUnit 
 
 and type_binop_arg cns cname ctx l r = 
     let l               =   l       -|?  (ctx,cns,cname)     in 
@@ -171,19 +171,19 @@ and type_binop_arg cns cname ctx l r =
 and type_new cns cname ctx id args msg =
     let msg             =   msg     -|?  (ctx,cns,cname)     in
     let args            =   args    -|???(ctx,cns,cname)     in
-    TmNew(id,args,msg)  ,   TyIstc id 
+    TmNew(id,args,msg)  ,   TyIsc id 
 
 and type_return cns cname ctx ret cont=
     let ret             =   ret     -|?  (ctx,cns,cname)     in
     let cont            =   cont    -|?  (ctx,cns,cname)     in
-    let rety            =   lookup_retTy ctx in 
+    let rety            =   lookup_rety ctx in 
     assert (tyeqv rety (get_ty ret)); 
-    TmReturn(ret,cont)  ,   rety
+    TmRet(ret,cont)  ,   rety
 
 and check_call_arg_types tycns  =   function 
     | "pre_ecdsarecover"            ->  (=) [TyBytes32;TyU8;TyBytes32;TyBytes32]
     | "keccak256"                   ->  konst true
-    | "iszero"                      ->  fun x ->  x=[TyBytes32]||x=[TyU8]||x=[TyU256]||x=[TyBool]||x=[TyAddr]
+    | "iszero"                      ->  fun x ->  x=[TyBytes32]||x=[TyU8]||x=[TyU256]||x=[TyBool]||x=[TyAdr]
     | name                          ->  let cnidx               = lookup_idx (tycn_has_name name) tycns in
                                         let TyCn(_,tyargs,_)    = lookup cnidx tycns                    in 
                                         (=) tyargs 
@@ -197,7 +197,7 @@ and type_call cns cname ctx (TmCall(id,args)) =
     check_args_match (typeof_cns cns) args (Some id) ; 
     let rety        = match id with
         | "value" when true         ->  TyU256 (* check the arg is 'msg' *) 
-        | "pre_ecdsarecover"        ->  TyAddr
+        | "pre_ecdsarecover"        ->  TyAdr
         | "keccak256"               ->  TyBytes32
         | "iszero"                  ->  begin match args with
             | [arg]                     ->  TyBool
@@ -216,10 +216,10 @@ and typechecks tys actual       =   L.for_all2 (fun ty (_,a)-> ty=a) tys actual
 
 let type_mthd_head cns         =   function 
     | TyDflt                     ->  TyDflt
-    | TyMthd(id,argTys,retTy)       ->  assert (BL.for_all (arg_has_known_ty (typeof_cns cns)) argTys) ; 
-                                        (* #DEBUG  pe("is_known_ty: " ^ str_of_ty retTy);  *)
-                                        assert (is_known_ty (typeof_cns cns) retTy) ;
-                                        TyMthd(id,argTys,retTy)
+    | TyMthd(id,argTys,rety)       ->  assert (BL.for_all (arg_has_known_ty (typeof_cns cns)) argTys) ; 
+                                        (* #DEBUG  pe("is_known_ty: " ^ str_of_ty rety);  *)
+                                        assert (is_known_ty (typeof_cns cns) rety) ;
+                                        TyMthd(id,argTys,rety)
 
 let rettypeof_mthd = function 
     | TyMthd(_,_,rety)      -> rety
@@ -229,7 +229,7 @@ let type_mthd cns cn_name ctx (TmMthd(head,body)) =
     let rety        =   rettypeof_mthd head             in
     let argTys      =   argTys_of_mthd head             in
     let binds       =   binds_of_tys argTys             in
-    let ctx'        =   add_retTy ctx rety              in
+    let ctx'        =   add_rety ctx rety              in
     let ctx''       =   add_local ctx' binds            in
     TmMthd(type_mthd_head cns head, type_tm cns cn_name ctx'' body)
 

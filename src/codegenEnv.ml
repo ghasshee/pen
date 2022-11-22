@@ -64,8 +64,8 @@ and tm_become  e                    =   match fst e with
     | TmNew(id,args,msg)            ->  tms_become args @ tm_become msg
     | TmSend(cn,_,args,msg)         ->  tm_become cn @ tms_become args @ tm_become msg
     | TmLog(_,l,_)                  ->  tms_become l
-    | TmAssign((TmArr(id,idx),_),r) ->  tm_become idx @ tm_become r
-    | TmReturn(ret,cont)            ->  tm_become ret @ tm_become cont @ (match cnname_of_ret_cont cont with
+    | TmAsgn((TmArr(id,idx),_),r) ->  tm_become idx @ tm_become r
+    | TmRet(ret,cont)            ->  tm_become ret @ tm_become cont @ (match cnname_of_ret_cont cont with
                                                                      | Some name     -> [name]
                                                                      | None          -> [] )
                                 

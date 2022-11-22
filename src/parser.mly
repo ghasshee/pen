@@ -73,11 +73,11 @@ ty:
     | UINT256                                       { TyU256                                                                                    }
     | UINT8                                         { TyU8                                                                                      }
     | BYTES32                                       { TyBytes32                                                                                 }
-    | ADDRESS                                       { TyAddr                                                                                    }
+    | ADDRESS                                       { TyAdr                                                                                    }
     | BOOL                                          { TyBool                                                                                    }
     | ty DARROW ty                                  { TyMap($1,$3)                                                                              }
     | ty ARROW ty                                   { TyAbs($1,$3)                                                                              } 
-    | ID                                            { TyIstc $1                                                                               }
+    | ID                                            { TyIsc $1                                                                               }
 
 
 ret: 
@@ -98,22 +98,22 @@ ret:
 tm: 
     | appTm                                         { $1                                                                                        } 
     (*| ty ID EQ tm SEMI             { reserved $2; fun ctx -> SmDecl($1,$2,$4 ctx)         ,ctx                                                }*)
-    | LET ty ID EQ tm IN tm                         { fun ctx ->    TmApp((TmAbs($3,$2,$7(add_bruijn_idx ctx $3)),()),$5 ctx)               ,() } 
-    | LET ty ID EQ tm SEMI tm                       { fun ctx ->    TmApp((TmAbs($3,$2,$7(add_bruijn_idx ctx $3)),()),$5 ctx)               ,() } 
-    | LET UNIT EQ tm IN tm                          { fun ctx ->    TmApp((TmAbs("_",TyUnit,$6(add_bruijn_idx ctx "_")),()),$4 ctx)         ,() } 
-    | LET UNIT EQ tm SEMI tm                        { fun ctx ->    TmApp((TmAbs("_",TyUnit,$6(add_bruijn_idx ctx "_")),()),$4 ctx)         ,() } 
+    | LET ty ID EQ tm IN tm                         { fun ctx ->    TmApp((TmAbs($3,$2,$7(add_brj_idx ctx $3)),()),$5 ctx)               ,() } 
+    | LET ty ID EQ tm SEMI tm                       { fun ctx ->    TmApp((TmAbs($3,$2,$7(add_brj_idx ctx $3)),()),$5 ctx)               ,() } 
+    | LET UNIT EQ tm IN tm                          { fun ctx ->    TmApp((TmAbs("_",TyUnit,$6(add_brj_idx ctx "_")),()),$4 ctx)         ,() } 
+    | LET UNIT EQ tm SEMI tm                        { fun ctx ->    TmApp((TmAbs("_",TyUnit,$6(add_brj_idx ctx "_")),()),$4 ctx)         ,() } 
     | LET REC ID ID COLON ty EQ tm IN tm            { fun ctx ->    let ctx' = add_rec_idx ctx ($3^"'")                         in 
                                                                     let ctx''= add_struct_idx ctx' $4                           in 
-                                                                    let ctx  = add_bruijn_idx ctx  $3                           in 
+                                                                    let ctx  = add_brj_idx ctx  $3                           in 
                                                                     TmApp((TmAbs($3,$6,$10 ctx),()),(TmFix(($3^"'"),$4,$6,$8 ctx''),()))    ,() }  
     | LET REC ID ID COLON ty EQ tm SEMI tm          { fun ctx ->    let ctx' = add_rec_idx ctx ($3^"'")                         in 
                                                                     let ctx''= add_struct_idx ctx' $4                           in 
-                                                                    let ctx  = add_bruijn_idx ctx  $3                           in 
+                                                                    let ctx  = add_brj_idx ctx  $3                           in 
                                                                     TmApp((TmAbs($3,$6,$10 ctx),()),(TmFix(($3^"'"),$4,$6,$8 ctx''),()))    ,() }  
-    | LAM ID COLON ty ARROW tm                      { fun ctx ->    TmAbs($2, $4, $6(add_bruijn_idx ctx $2))                                ,() } 
+    | LAM ID COLON ty ARROW tm                      { fun ctx ->    TmAbs($2, $4, $6(add_brj_idx ctx $2))                                ,() } 
     | IF tm THEN tm ELSE tm                         { fun ctx ->    TmIf($2 ctx, $4 ctx, $6 ctx)                                            ,() }
     | IF tm THEN tm SEMI tm                         { fun ctx ->    TmIf($2 ctx, $4 ctx, $6 ctx)                                            ,() }
-    | tm COLONEQ tm                                 { fun ctx ->    TmAssign($1 ctx, $3 ctx)                                                ,() }
+    | tm COLONEQ tm                                 { fun ctx ->    TmAsgn($1 ctx, $3 ctx)                                                ,() }
     | LOG ID  arg_list                              { fun ctx ->    TmLog($2,$3 ctx,None)                                                   ,() }
     | SELFDESTRUCT tm                               { fun ctx ->    TmSfDstr($2 ctx)                                                        ,() }
     | tm DOT DEFAULT LPAR RPAR msg                  { fun ctx ->    TmSend($1 ctx,None,[],$6 ctx)                                           ,() }
@@ -131,7 +131,7 @@ pathTm:
     | aTm                                           { $1                                                                                        }
 aTm:
     | LPAR tm RPAR                                  { $2                                                                                        }
-    | RETURN ret THEN BECOME call                   { fun ctx ->    TmReturn($2 ctx,$5 ctx)                                                 ,() }
+    | RETURN ret THEN BECOME call                   { fun ctx ->    TmRet($2 ctx,$5 ctx)                                                 ,() }
     | ABORT                                         { fun ctx ->    TmAbort                                                                 ,() } 
     | TRUE                                          { fun ctx ->    TmTrue                                                                  ,() }
     | FALSE                                         { fun ctx ->    TmFalse                                                                 ,() }

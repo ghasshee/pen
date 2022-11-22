@@ -17,7 +17,7 @@ let abi_str_of_ty       = function
     | TyU256                    ->  "uint256" 
     | TyU8                      ->  "uint8"   
     | TyBytes32                 ->  "bytes32" 
-    | TyAddr                    ->  "address"
+    | TyAdr                    ->  "address"
     | TyBool                    ->  "bool"
     | TyUnit                    ->  "void"
     | e                         ->  err (str_of_ty e)

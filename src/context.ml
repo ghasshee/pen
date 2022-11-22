@@ -25,51 +25,13 @@ type context                    = bind list
                                 | BdRec     of label   (* BdRec(start) *) 
                                 | BdRecName of str
                                 | BdStruct  of str 
-                            
+
+
+(*****************************)
+(***   EMPTY CONTEXT       ***)
+(*****************************)
+
 let empty_ctx                   =   [] 
-let add_empty_ctx ctx           =   BdFrm[] :: ctx
-let add_empty_brj ctx           =   BdBrj[] :: ctx
-
-let rec lookup_bruijn_idx nm    =   function 
-    | []                        ->  (*eprintf"Context: bruijn idx for %s not found\n" nm;*) raise Not_found
-    | BdName x :: xs            ->  if x=nm then 0 else 1+(lookup_bruijn_idx nm xs) 
-    | _ :: xs                   ->  1 + lookup_bruijn_idx nm xs 
-
-let add_bruijn_idx ctx x        =   BdName x :: ctx 
-
-let rec lookup_rec_idx nm       =   function 
-    | []                        ->  raise Not_found
-    | BdRecName x :: xs         ->  if x=nm then 0 else 1+(lookup_rec_idx nm xs) 
-    | _ :: xs                   ->  1 + lookup_rec_idx nm xs 
-
-let add_rec_idx ctx x           =   BdRecName x :: ctx 
-
-let rec lookup_struct_idx nm    =   function 
-    | []                        ->  raise Not_found
-    | BdStruct x :: xs          ->  if x=nm then 0 else 1+(lookup_struct_idx nm xs)
-    | _ :: xs                   ->  1 + lookup_struct_idx nm xs 
-
-let add_struct_idx ctx x        =   BdStruct x :: ctx 
-
-let rec lookup_recursion_param  =   function 
-    | []                        ->  pe"lookup_recursion_param: lookup failed"; raise Not_found
-    | (BdRec(start))::rest      ->  start 
-    | _ :: rest                 ->  lookup_recursion_param rest 
-
-let add_recursion_param ctx start=  BdRec(start) :: ctx
-
-let lookup_id_local   nm        =   find_by (function BdTy(id,ty)when id=nm -> ty          | _ -> raise Not_found) 
-let lookup_id         nm        =   find_by (function BdFrm ctx -> lookup_id_local nm ctx  | _ -> raise Not_found)
-let lookup_evnt       nm        =   find_by (function BdEv(id,l) when id=nm -> TyEv(id,l)  | _ -> raise Not_found)
-let lookup_retTy                =   find_by (function BdRet ty -> ty                       | _ -> raise Not_found) 
-let lookup_ll key               =   find_by (function BdLoc(s,loc) when key=s -> loc       | _ -> raise Not_found)
-let lookup_le key               =   find_by (function BdFrm ctx -> lookup_ll key ctx       | _ -> raise Not_found)
-
-let rec lookup_brjidx_local idx =   function 
-    | []                        ->  raise Not_found
-    | BdI(tm)::rest when idx=0  ->  tm 
-    | _::rest                   ->  lookup_brjidx_local (idx-1) rest
-let lookup_brjidx       idx     =   find_by (function BdBrj ctx -> lookup_brjidx_local idx ctx| _ -> raise Not_found)
 
 
 let bind_of_ty                  =   function 
@@ -77,19 +39,72 @@ let bind_of_ty                  =   function
     | TyVar(id,ty)              ->  BdTy(id,ty)
 let binds_of_tys                =   L.map bind_of_ty
 
-let add_local ctx local         =   BdFrm   local :: ctx 
-let add_retTy ctx retTy         =   BdRet retTy :: ctx 
-let add_evnts ctx evs           =   foldl (fun xs x -> (L.cons $ bind_of_ty) x xs) ctx evs  
+
+(*****************************)
+(***   ADD CONTEXT         ***)
+(*****************************)
+let add_empty_ctx  ctx          =   BdFrm []    :: ctx
+let add_empty_brj  ctx          =   BdBrj []    :: ctx
+let add_brj_idx ctx x           =   BdName    x :: ctx 
+let add_rec_idx    ctx x        =   BdRecName x :: ctx 
+let add_struct_idx ctx x        =   BdStruct  x :: ctx 
+let add_rec_param  ctx start    =   BdRec start :: ctx
+let add_local      ctx local    =   BdFrm local :: ctx 
+let add_rety       ctx rety     =   BdRet rety  :: ctx 
+let add_evnts      ctx evs      =   foldl (fun xs x -> (L.cons $ bind_of_ty) x xs) ctx evs  
+
+let rec add_brjidx ctx tm       =   match ctx with 
+    | []                        ->  err "add_brjidx: no current scope" 
+    | BdBrj local :: rest       ->  BdBrj (BdI(tm)::local) :: rest
+    | x           :: rest       ->  x :: add_brjidx rest tm 
+
+
+(*****************************)
+(***   LOOKUP CONTEXT      ***)
+(*****************************)
+
+let rec lookup_bruijn_idx nm    =   function 
+    | []                        ->  (*eprintf"Context: bruijn idx for %s not found\n" nm;*) raise Not_found
+    | BdName x    :: xs         ->  if x=nm then 0 else 1+(lookup_bruijn_idx nm xs) 
+    | _           :: xs         ->  1 + lookup_bruijn_idx nm xs 
+
+let rec lookup_rec_idx nm       =   function 
+    | []                        ->  raise Not_found
+    | BdRecName x :: xs         ->  if x=nm then 0 else 1+(lookup_rec_idx nm xs) 
+    | _           :: xs         ->  1 + lookup_rec_idx nm xs 
+
+let rec lookup_struct_idx nm    =   function 
+    | []                        ->  raise Not_found
+    | BdStruct x  :: xs         ->  if x=nm then 0 else 1+(lookup_struct_idx nm xs)
+    | _           :: xs         ->  1 + lookup_struct_idx nm xs 
+
+let rec lookup_rec_param        =   function 
+    | []                        ->  pe"lookup_rec_param: lookup failed"; raise Not_found
+    | BdRec start :: xs         ->  start 
+    | _           :: xs         ->  lookup_rec_param xs   
+
+let rec lookup_brj_local idx    =   function 
+    | []                        ->  raise Not_found
+    | BdI(tm)::rest when idx=0  ->  tm 
+    | _::rest                   ->  lookup_brj_local (idx-1) rest
+
+let lookup_brjidx     idx       =   find_by (function BdBrj ctx -> lookup_brj_local idx ctx| _ -> raise Not_found)
+let lookup_id_local   nm        =   find_by (function BdTy(id,ty)when id=nm -> ty          | _ -> raise Not_found) 
+let lookup_id         nm        =   find_by (function BdFrm ctx -> lookup_id_local nm ctx  | _ -> raise Not_found)
+let lookup_evnt       nm        =   find_by (function BdEv(id,l) when id=nm -> TyEv(id,l)  | _ -> raise Not_found)
+let lookup_rety                 =   find_by (function BdRet ty  -> ty                      | _ -> raise Not_found) 
+let lookup_ll key               =   find_by (function BdLoc(s,loc) when key=s -> loc       | _ -> raise Not_found)
+let lookup_le key               =   find_by (function BdFrm ctx -> lookup_ll key ctx       | _ -> raise Not_found)
+
+
+
+
+
 
 let rec (@@) (id,ty)            =   function   
     | []                        ->  err "add_var: no current scope" 
     | BdFrm local:: rest        ->  BdFrm (BdTy(id,ty)::local) :: rest 
     | x :: rest                 ->  x ::  ((id,ty) @@ rest)
-
-let rec add_brjidx ctx tm       =   match ctx with 
-    | []                        ->  err "add_brjidx: no current scope" 
-    | BdBrj local:: rest        ->  BdBrj (BdI(tm)::local) :: rest
-    | x :: rest                 ->  x :: add_brjidx rest tm 
 
 (****************************************************)
 (***          arg locations of mthd               ***)

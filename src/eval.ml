@@ -32,12 +32,12 @@ and eval1 ctx store t = let p str = pr str;pr_tm ctx t; pn() in match t with
     | TmRef(fi,t)                       ->  p"E-REF         : "; let t',s'= eval1 ctx store t in TmRef(fi,t'),s'
     | TmDeref(fi,TmLoc(_,l))            ->  p"E-DEREFLOC    : "; (lookuploc store l,store)
     | TmDeref(fi,t)                     ->  p"E-DEREF       : "; let t',s'= eval1 ctx store t in TmDeref(fi,t'),s'
-    | TmAssign(fi,TmLoc(_,l),v)when isval ctx v 
+    | TmAsgn(fi,TmLoc(_,l),v)when isval ctx v 
                                         ->  p"E-ASSIGN      : "; let s'=updatestore store l v in TmUnit(fi),s'
-    | TmAssign(fi,v1,v2)when isval ctx v1 && isval ctx v2 
+    | TmAsgn(fi,v1,v2)when isval ctx v1 && isval ctx v2 
                                         ->  p"E-ASSIGN      : "; raise NoRuleApplies
-    | TmAssign(fi,v,t)when isval ctx v  ->  p"E-ASSIGN1     : "; let t',s'=eval1 ctx store t in TmAssign(fi,v,t'),s'
-    | TmAssign(fi,t1,t2)                ->  p"E-ASSIGN2     : "; let t1',s'=eval1 ctx store t1 in TmAssign(fi,t1',t2),s'
+    | TmAsgn(fi,v,t)when isval ctx v  ->  p"E-ASSIGN1     : "; let t',s'=eval1 ctx store t in TmAsgn(fi,v,t'),s'
+    | TmAsgn(fi,t1,t2)                ->  p"E-ASSIGN2     : "; let t1',s'=eval1 ctx store t1 in TmAsgn(fi,t1',t2),s'
     | TmFix(fi,TmAbs(_,_,_,t2))         ->  p"E-FIXBETA     : "; tmSubstTop t t2,store
     | TmFix(fi,v) when isval ctx v      ->  p"E-FIXBETA     : "; raise NoRuleApplies 
     | TmFix(fi,t)                       ->  p"E-FIX         : "; let t',s'=eval1 ctx store t in TmFix(fi,t'),s' 
