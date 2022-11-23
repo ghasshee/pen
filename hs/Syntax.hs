@@ -29,7 +29,15 @@ data Tm ty'     =   TmAPP       -- TmAPP (A->B) A   ::  B
                 |   TmABS       -- TmABS (A->B)     ::  A -> B 
                 |   TmFIX       -- TmFIX (A->A)     ::  A  
                 |   TmU8        -- TmU8             ::  TyU8 
-                |   TmRET       -- TmRET A  Cont    ::  A ? Cont ?    
+                |   TmRET       -- TmRET (A->Cont)->Cont  ::  A ? Cont ?    
 
 
 
+
+{-- 
+ -  f :  ([A] -> Cont) -> Cont
+ -  f (\[]   -> stop             ) 
+ -    (\x:xs -> x == 1 then end)   
+ -
+ -
+ - --}
