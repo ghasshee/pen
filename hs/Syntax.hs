@@ -1,5 +1,9 @@
 module Syntax where 
 
+import GCLL 
+import Cont
+import Effect
+
 type ID     =   String
 
 data Ty     =   TyERR 
@@ -14,30 +18,30 @@ data Ty     =   TyERR
             |   TyMTHD  ID [Ty] Ty
             |   TyDFLT
             |   TyREF   Ty
+            deriving (Show, Eq, Read) 
 
 
-
-
-data Top ty'    =   CN ID [Ty] (Mthd ty') 
+data Top        =   CN ID [Ty] [Mthd] 
                 |   EV Ty  
 
-data Mthd ty'   =   MT Ty (TmTy ty')
-
-data TmTy ty'   =   TYPED (Tm ty') ty' 
-
-data Tm ty'     =   TmAPP       -- TmAPP (A->B) A   ::  B 
-                |   TmABS       -- TmABS (A->B)     ::  A -> B 
-                |   TmFIX       -- TmFIX (A->A)     ::  A  
-                |   TmU8        -- TmU8             ::  TyU8 
-                |   TmRET       -- TmRET (A->Cont)->Cont  ::  A ? Cont ?    
+data Mthd       =   MT ID Ty (K Tm) 
 
 
+data Tm         =   TmAPP Tm Tm             -- TmAPP (A->B) A   ::  B 
+                |   TmABS ID Ty Tm          -- TmABS (A->B)     ::  A -> B 
+                |   TmVAR ID 
+                |   TmFIX ID ID Ty Tm       -- TmFIX (A->A)     ::  A  
+                |   TmU8 Int                -- TmU8             ::  TyU8 
+                |   TmU256 Integer
+                |   TmI Int Int        
+                |   TmIREC Int    
+                |   TmISTR Int    
+                |   TmIF Tm Tm Tm
+                deriving (Show, Eq, Read) 
 
 
-{-- 
- -  f :  ([A] -> Cont) -> Cont
- -  f (\[]   -> stop             ) 
- -    (\x:xs -> x == 1 then end)   
- -
- -
- - --}
+
+typeof (TmU256 _) = TyU256
+typeof _          = undefined 
+
+
