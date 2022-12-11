@@ -1,0 +1,154 @@
+parser java: 
+
+{
+
+import Data.Char
+
+type ID = String
+type Str = String 
+type Name = [ID] 
+
+
+data Lit    = LInt Integer 
+            | LLong Integer
+            | LChar Char
+            | LStr  Str
+            | LBool Bool
+
+data Expr   = ELit Lit
+            | EID ID 
+            | EPrefix Str Expr 
+            | EPostfix Str Expr 
+            | EBin Str Expr Expr
+            | ESel Expr Expr
+            | EIstc Expr DeclTy 
+            | ENewCl [ID] [Expr] (Maybe [Decl]) 
+            | ENewAr DeclTy [Expr] Int
+            | ENewArInit DeclTy Int [Init] 
+            | ECall Expr [Expr] 
+            | EArr  Expr (Maybe Expr) 
+            | ECast DeclTy Expr
+            | ECond Expr Expr Expr 
+            | EThis 
+            | ESuper
+            | EDotCl Expr
+            | EVoidCl
+
+
+data Mdfr   = MPub
+            | MProtect
+            | MPrivate
+            | MStatic
+            | MAbs
+            | MFinal
+            | MNative
+            | MSync
+            | MTrans
+            | MVolat
+            | MStrict
+
+data DeclTy = DTyByte
+            | DTyShort
+            | DTyChar
+            | DTyInt
+            | DTyLong
+            | DTyBool
+            | DTyName [ID]
+            | DTyArr DeclTy Int
+
+type Declr  = (ID, Int, Maybe ID) 
+
+data Decl   = DSimp  [Mdfr] DeclTy           [Declr] 
+            | DMthd  [Mdfr] (Maybe DeclTy) ID [Param] Int [Name] (Maybe [Stmt])
+            | DCons  [Mdfr]                ID [Param]     [Name]        [Stmt] 
+            | DClass [Mdfr] ID (Maybe DeclTy) [DeclTy] [Decl] 
+            | DIntf  [Mdfr] ID [DeclTy] [Decl] 
+            | DBlock Bool [Stmt] 
+
+type Param  = (Bool, DeclTy, ID, Int) 
+
+data Init   = IExpr Expr
+            | IList [Init] 
+
+data Switch = SwCase Expr [Stmt] 
+            | SwDflt      [Stmt] 
+
+data For    =  FExpr [Expr]
+            |  FDecl Bool DeclTy [Decl] 
+
+data Stmt   = SLabel ID Stmt
+            | SCase Expr Stmt
+            | SDflt      Stmt
+            | SDecl Decl
+            | SExpr Expr
+            | SBlock [Stmt] 
+            | SIf Expr Stmt (Maybe Stmt) 
+            | SSwitch Expr [Switch] 
+            | SWhile Expr Stmt
+            | SDo Stmt Expr
+            | SFor For (MaybeExpr) [Expr] Stmt
+            | STry [Stmt] [Catch] (Maybe [Stmt])
+            | SSync Expr [Stmt] 
+            | SContinue Expr [Stmt]
+            | SBreak (Maybe ID)
+            | SReturn (Meybe Expr)
+            | SThrow Expr
+            | SNull
+
+type Catch = (Param, [Stmt]) 
+
+type Import = (Name, Bool) 
+
+type CompUnit = (Maybe Name, [Import], [Decl]) 
+
+
+
+keywords = [] 
+
+} 
+
+
+
+
+Line :: Char    =   '\n' 
+Input :: Char   =   !Line c:Char -> c
+
+Sp :: {()}      =   Space* -> {()}
+Space :: {()}   =   White -> {()}
+                /   Comment -> {()}
+
+White :: Char   =   ' '
+                /   '\t'
+                /   '\f' 
+                /   Line
+
+Comment :: {()} =   Comm
+                /   LnComm
+
+Comm    :: {()} =   "/*" (!"*/" c:Char -> c)* "*/"  -> {()} 
+LnComm  :: {()} =   "//" (!Line c:Char -> c)* Line  -> {()}
+
+ID  :: ID       =   !Kwd !BoolLit !NullLit s:Word   -> s
+
+Kwd :: String   =   s:Word  &{s `elem` keywords}    -> s
+
+Word :: String  =   c:Letter cs:LetterDigit* Sp     -> { c:cs }
+
+Letter :: Char  =   c:Char &{isAlpha c}             -> c
+                /   '_'
+                /   '$' 
+
+LetterDigit :: Char 
+                =   c:Char &{isAlphaNum c}          -> c
+                /   '_'
+                /   '$' 
+
+Sym :: String   =   s:SymChars Sp                   -> s 
+
+SymChars :: String 
+                =   ">>>=" 
+                /   ">>="   /   "<<="   /   ">>>"
+                /   ">>"    /   "<<"    
+                /   "+="    /   "-=" 
+
+

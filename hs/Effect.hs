@@ -5,7 +5,7 @@ import GCLL
 
 -- Monad K adds effects to the Tm 
 data K a        = K  a 
-                | Kons STMT (K a)   
+                | Kons STMT (K a)   deriving (Show, Eq, Read)
 
 instance Functor K where 
     fmap        = undefined 
@@ -20,4 +20,15 @@ instance Monad K where
 instance PCRMonad K where 
     reflect m   = C (\k -> k =<< m) 
     reify (C k) = k return 
+
+
+splitK :: K a -> ([STMT], a) 
+splitK (K a)        = ([], a) 
+splitK (Kons s k)   = (s:ss, a) 
+    where
+        (ss, a) = splitK k 
+
+bindK :: [STMT] -> a -> K a 
+bindK []     a      = K a 
+bindK (s:ss) a      = Kons s (bindK ss a) 
 

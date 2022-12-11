@@ -13,11 +13,13 @@ data Ty     =   TyERR
             |   TyB32   -- 256 bits 
             |   TyADR   -- 160 bits
             |   TyBOOL
+            |   TyPROD  [Ty] 
             |   TyABS   Ty Ty 
             |   TyMAP   Ty Ty 
             |   TyMTHD  ID [Ty] Ty
             |   TyDFLT
             |   TyREF   Ty
+            |   TyVAR   ID Ty 
             deriving (Show, Eq, Read) 
 
 
@@ -27,16 +29,17 @@ data Top        =   CN ID [Ty] [Mthd]
 data Mthd       =   MT ID Ty (K Tm) 
 
 
-data Tm         =   TmAPP Tm Tm             -- TmAPP (A->B) A   ::  B 
-                |   TmABS ID Ty Tm          -- TmABS (A->B)     ::  A -> B 
+data Tm         =   TmAPP (K Tm) (K Tm)     -- TmAPP (A->B) A   ::  B 
+                |   TmABS ID Ty (K Tm)      -- TmABS (A->B)     ::  A -> B 
                 |   TmVAR ID 
-                |   TmFIX ID ID Ty Tm       -- TmFIX (A->A)     ::  A  
+                |   TmPROD [K Tm] 
+                |   TmFIX ID ID Ty (K Tm)   -- TmFIX (A->A)     ::  A  
                 |   TmU8 Int                -- TmU8             ::  TyU8 
                 |   TmU256 Integer
                 |   TmI Int Int        
                 |   TmIREC Int    
                 |   TmISTR Int    
-                |   TmIF Tm Tm Tm
+                |   TmIF (K Tm) (K Tm) (K Tm)
                 deriving (Show, Eq, Read) 
 
 
