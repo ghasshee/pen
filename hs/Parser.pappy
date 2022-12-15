@@ -3,12 +3,13 @@ parser Parser:
 
 { 
 
+import Effect
 import Syntax
 
-keywords    =   [
-                , "contract"
+keywords    =   [ "contract"
                 , "method"   
                 , "string" 
+                , "bool" 
                 , "u8"    
                 , "u256"
                 , "i8" 
@@ -26,8 +27,9 @@ keywords    =   [
 
 top TopLevel 
 
-Ln      :: Char     = '\n'  
 
+----------- LEXER ------------
+Ln      :: Char     = '\n'  
 
 Digit   :: Int      = c:Char   &{isDigit c}     -> { digitToInt c       }
 Digits  :: Integer  = v:Digits d:Digit          -> { v * 10+toInteger d } 
@@ -42,7 +44,7 @@ HexDigits:: Integer = v:HexDigits d:HexDigit    -> { v * 16+toInteger d }
 Sp       :: {()}    = Space*                    -> {()}
 Space    :: {()}    = White                     -> {()}
                     / Comment                   -> {()} 
-White    :: Char    = ' ' / '\t' / '\f' / Ln    -> {()} 
+White    :: Char    = ' ' / '\t' / '\f' / Ln 
 Comment  :: {()}    = Comm 
                     / LnComm 
 Comm     :: {()}    = "{--" (!"--}" c:Char -> c)* "--}" -> {()} 
@@ -79,43 +81,52 @@ SymChar  :: String  = "+" / "*" / "-" / "/"
 Bool     :: Tm      = "true":Word                   -> { TmTRUE         } 
                     / "false":Word                  -> { TmFALSE        } 
 
+
+--------- PARSER ------------
+
 TopLevel :: {[Top]} = Sp t:Top Sp ts:TopLevel !Char -> { t:ts           }  
 
 Top :: Top          = "contract":Word id:ID ps:Params
                         "{":Sym ms:Mthds "}":Sym    -> { CN id ps ms    }  
-                    / "event":Word id:ID ps:Params  -> { EV id ps       } 
+                    / "event":Word p:PTy            -> { EV    p        } 
 
-Params :: {[Ty]}    = "(":Sym ps:PTys  ")":Sym      -> { ps } 
-                    / "(":Sym          ")":Sym      -> { [] }  
-PTys    :: {[Ty]}   = p:PTy ",":Sym   ps:PTys       -> { p:ps } 
-                    / p:PTy                         -> { [p]  } 
-PTy     :: {Ty}     = ty:Ty id:ID                   -> { TyVAR id ty }  
+Params :: {[Ty]}    = "(":Sym ps:PTys  ")":Sym      -> { ps             } 
+                    / "(":Sym          ")":Sym      -> { []             }  
+PTys    :: {[Ty]}   = p:PTy ",":Sym   ps:PTys       -> { p:ps           } 
+                    / p:PTy                         -> { [p]            } 
+PTy     :: {Ty}     = ty:Ty id:ID                   -> { TyVAR id ty    }  
 
-Tys    :: {[Ty]}    = t:Ty ",":Sym   ts:Tys         -> { t:ts } 
-                    / t:Ty                          -> { [t]  } 
-Ty     :: { Ty }    = t:PrimTy Sp                   -> { t         }
-                    / a:Ty "->":Sym b:Ty            -> { TyABS a b } 
-                    / "(" ts:Tys ")"                -> { TyPROD ts } 
-PrimTy :: { Ty }    = "Bool":Word                   -> { TyBOOL     } 
+Tys    :: {[Ty]}    = t:Ty ",":Sym   ts:Tys         -> { t:ts           } 
+                    / t:Ty                          -> { [t]            } 
+
+Ty     :: { Ty }    = t:PrimTy Sp                   -> { t              }
+                    / a:Ty "->":Sym b:Ty            -> { TyABS a b      } 
+                    / "(" ts:Tys ")"                -> { TyPROD ts      } 
+
+PrimTy :: { Ty }    = "bool":Word                   -> { TyBOOL         } 
+                    / "u8":Word                     -> { TyU8           } 
+                    / "u256":Word                   -> { TyU256         } 
+                    / "i8":Word                     -> { TyI8           } 
+                    / "i256":Word                   -> { TyI256         } 
 
 
 
-Assign :: String    = ":=":Sym                      -> { ":=" }
-                    / "=":Sym                       -> { "="  } 
+Assign :: String    = ":=":Sym                      -> { ":="           }
+                    / "=":Sym                       -> { "="            } 
 
 
-Mthds  :: {[Mthd]}    = m:Mthd ms:Mthds               -> { m:ms           }
+Mthds  :: {[Mthd]}    = m:Mthd ms:Mthds             -> { m:ms           }
 Mthd   :: {Mthd  }    = "method":Word id:ID ty:Ty 
                         "{":Sym k:KTm "}":Sym       -> { MT id ty k     }  
 
 KTm     :: { K Tm } = k:AppKTm                      -> { k              } 
 
 AppKTm  :: { K Tm } = k:PathKTm                     -> { k              } 
-                    / k1:AppKTm k2:PathKTm          -> { bindK(s1++s2)(TmApp(K t1)(K t2))
-                                                                where 
-                                                                    (t1,s1) = splitK k1 
-                                                                    (t2,s2) = splitK k2 }
-PathKTm :: { K Tm } = k:AKTm                         -> { k              } 
+                    / k1:AppKTm k2:PathKTm          -> { 
+                                                         let (s1,t1) = splitK k1 in 
+                                                         let (s2,t2) = splitK k2 in 
+                                                         bindK(s1++s2)(TmAPP(K t1)(K t2)) }
+PathKTm :: { K Tm } = k:AKTm                        -> { k              } 
 AKTm    :: { K Tm } = "(":Sym k:KTm ")"             -> { k              } 
 
 

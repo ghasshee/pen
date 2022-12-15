@@ -4,10 +4,29 @@
 .PHONY: clean pappy
 
 pappy: 
-	./compile.sh
-	Pappy/pappy ./Parser.pappy
+	cd Pappy && make 
+	ln -s Pappy/Pos.hs ./
+	ln -s Pappy/Parse.hs ./
+	Pappy/pappy Parser.pappy
+	Pappy/pappy Calc.pappy
+	
+	ghc Parser
+
 
 clean: 
 	rm Pappy/*.hi Pappy/*.o
+	rm *.hi *.o Parser.hs
+	rm Calc.hs
+	unlink Pos.hs
+	unlink Parse.hs
 
 
+# 
+# .DEFAULT_GOAL := all
+# .PHONY: ${MAKECMDGOALS}
+# $(filter-out all,${MAKECMDGOALS}) all: .forward-all ; @:
+# .forward-all:
+#         ${MAKE} -C build ${MAKECMDGOALS}
+# # Never try to remake this makefile.
+# ${MAKEFILE_LIST}: ;
+# .SUFFIXES:

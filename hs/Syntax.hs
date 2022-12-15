@@ -1,7 +1,7 @@
 module Syntax where 
 
 import GCLL 
-import Cont
+--import Cont
 import Effect
 
 type ID     =   String
@@ -10,6 +10,8 @@ data Ty     =   TyERR
             |   TyUnit
             |   TyU256  -- 256 bits
             |   TyU8    --   8 bits
+            |   TyI256  -- 256 bits
+            |   TyI8    --   8 bits
             |   TyB32   -- 256 bits 
             |   TyADR   -- 160 bits
             |   TyBOOL
@@ -36,6 +38,8 @@ data Tm         =   TmAPP (K Tm) (K Tm)     -- TmAPP (A->B) A   ::  B
                 |   TmFIX ID ID Ty (K Tm)   -- TmFIX (A->A)     ::  A  
                 |   TmU8 Int                -- TmU8             ::  TyU8 
                 |   TmU256 Integer
+                |   TmTRUE
+                |   TmFALSE
                 |   TmI Int Int        
                 |   TmIREC Int    
                 |   TmISTR Int    
