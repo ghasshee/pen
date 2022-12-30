@@ -62,9 +62,23 @@ Init     :: Char    = c:Char    &{isAlpha c}    -> c
 Rest     :: Char    = c:Char    &{isAlphaNum c} -> c
                     / '_'
 
+EVENT    :: {()}    = "event" Sp                -> {}
+CONTRACT :: {()}    = "contract" Sp             -> {} 
+METHOD   :: {()}    = "method" Sp               -> {} 
+ARROW    :: {()}    = "->" Sp                   -> {} 
+DARROW   :: {()}    = "=>" Sp                   -> {} 
+LPAREN   :: {()}    = "("  Sp                   -> {}
+RPAREN   :: {()}    = ")"  Sp                   -> {}
+LBRACE   :: {()}    = "{"  Sp                   -> {}
+RBRACE   :: {()}    = "}"  Sp                   -> {}
+LSQUARE  :: {()}    = "["  Sp                   -> {}
+RSQUARE  :: {()}    = "]"  Sp                   -> {}
+COLON    :: {()}    = ":"  Sp                   -> {} 
+COLONEQ  :: {()}    = ":=" Sp                   -> {} 
+COMMA    :: {()}    = ","  Sp                   -> {} 
 
-Arrow    :: String  = "->" Sp                    -> {} 
-Sym      :: String  = s:SymChar Sp               -> s 
+
+Sym      :: String  = s:SymChar Sp              -> s 
 SymChar  :: String  = "+" / "*" / "-" / "/" 
                     / "&" / "|" / "^" / "%" / "$" / "@" / "!" / "?"
                     / "++" / "--" / "**" / "//" 
@@ -75,8 +89,6 @@ SymChar  :: String  = "+" / "*" / "-" / "/"
                     / ">>=" / "=<<" / ">>>" / "<<<" 
                     / "." / ".." / "..." / "...." 
                     / "," 
-                    / "->" / "=>"
-                    / ":" 
 
 
 Bool     :: Tm      = "true":Word                   -> { TmTRUE         } 
@@ -88,40 +100,38 @@ Bool     :: Tm      = "true":Word                   -> { TmTRUE         }
 TopLevel :: {[Top]} = Sp t:Top Sp ts:TopLevel !Char -> { t:ts           }  
                     / t:Top                         -> { [t]            } 
 
-Top :: Top          = "contract":Word id:ID ps:Params
-                        "{":Sym ms:Mthds "}":Sym    -> { CN id ps ms    }  
-                    / "event":Word p:PTy            -> { EV    p        } 
+Top :: Top          = CONTRACT id:ID ps:Params
+                        LBRACE ms:Mthds RBRACE      -> { CN id ps ms    }  
+                    / EVENT  p:PTy                  -> { EV    p        } 
 
-Params :: {[Ty]}    = "(":Sym ps:PTys  ")":Sym      -> { ps             } 
-                    / "(":Sym          ")":Sym      -> { []             }  
+Params :: {[Ty]}    = LPAREN  ps:PTys  RPAREN       -> { ps             } 
+                    / LPAREN           RPAREN       -> { []             }  
 
-PTys    :: {[Ty]}   = p:PTy ",":Sym   ps:PTys       -> { p:ps           } 
+PTys    :: {[Ty]}   = p:PTy  COMMA  ps:PTys         -> { p:ps           } 
                     / p:PTy                         -> { [p]            } 
 
-PTy     :: {Ty}     = id:ID ":":Sym ty:Ty           -> { TyVAR id ty    }  
+PTy     :: {Ty}     = id:ID  COLON  ty:Ty           -> { TyVAR id ty    }  
 
-Tys    :: {[Ty]}    = t:Ty ",":Sym   ts:Tys         -> { t:ts           } 
+Tys    :: {[Ty]}    = t:Ty   COMMA  ts:Tys          -> { t:ts           } 
                     / t:Ty                          -> { [t]            } 
 
 Ty     :: { Ty }    = t:PrimTy Sp                   -> { t              }
-                    / a:Ty "->":Sym b:Ty            -> { TyABS a b      } 
-                    / "(" ts:Tys ")"                -> { TyPROD ts      } 
+                    / a:Ty  ARROW  b:Ty             -> { TyABS a b      } 
+                    / LPAREN t:Ty COMMA s:Tys RPAREN-> { TyPROD (t:s)   } 
 
 PrimTy :: { Ty }    = "bool":Word                   -> { TyBOOL         } 
                     /   "u8":Word                   -> { TyU8           } 
                     / "u256":Word                   -> { TyU256         } 
                     /   "i8":Word                   -> { TyI8           } 
                     / "i256":Word                   -> { TyI256         } 
+                    / LPAREN t:Ty RPAREN            -> { t              } 
 
-
-
-Assign :: String      = ":=":Sym                    -> { ":="           }
 
 
 Mthds  :: {[Mthd]}    = m:Mthd ms:Mthds             -> { m:ms           }
                       /                             -> { []             }
-Mthd   :: { Mthd }    = "method":Word id:ID ps:Params  Arrow  ret:Ty 
-                        "{":Sym k:KTm "}":Sym       -> { MT id ret ps k }  
+Mthd   :: { Mthd }    = METHOD id:ID ps:Params ARROW ret:Ty 
+                        LBRACE  k:KTm RBRACE        -> { MT id ret ps k }  
 
 KTm     :: { K Tm } = k:AppKTm                      -> { k              } 
 
