@@ -63,7 +63,7 @@ Rest     :: Char    = c:Char    &{isAlphaNum c} -> c
                     / '_'
 
 
-
+Arrow    :: String  = "->" Sp                    -> {} 
 Sym      :: String  = s:SymChar Sp               -> s 
 SymChar  :: String  = "+" / "*" / "-" / "/" 
                     / "&" / "|" / "^" / "%" / "$" / "@" / "!" / "?"
@@ -75,7 +75,8 @@ SymChar  :: String  = "+" / "*" / "-" / "/"
                     / ">>=" / "=<<" / ">>>" / "<<<" 
                     / "." / ".." / "..." / "...." 
                     / "," 
-                    / "->" 
+                    / "->" / "=>"
+                    / ":" 
 
 
 Bool     :: Tm      = "true":Word                   -> { TmTRUE         } 
@@ -85,6 +86,7 @@ Bool     :: Tm      = "true":Word                   -> { TmTRUE         }
 --------- PARSER ------------
 
 TopLevel :: {[Top]} = Sp t:Top Sp ts:TopLevel !Char -> { t:ts           }  
+                    / t:Top                         -> { [t]            } 
 
 Top :: Top          = "contract":Word id:ID ps:Params
                         "{":Sym ms:Mthds "}":Sym    -> { CN id ps ms    }  
@@ -92,9 +94,11 @@ Top :: Top          = "contract":Word id:ID ps:Params
 
 Params :: {[Ty]}    = "(":Sym ps:PTys  ")":Sym      -> { ps             } 
                     / "(":Sym          ")":Sym      -> { []             }  
+
 PTys    :: {[Ty]}   = p:PTy ",":Sym   ps:PTys       -> { p:ps           } 
                     / p:PTy                         -> { [p]            } 
-PTy     :: {Ty}     = ty:Ty id:ID                   -> { TyVAR id ty    }  
+
+PTy     :: {Ty}     = id:ID ":":Sym ty:Ty           -> { TyVAR id ty    }  
 
 Tys    :: {[Ty]}    = t:Ty ",":Sym   ts:Tys         -> { t:ts           } 
                     / t:Ty                          -> { [t]            } 
@@ -104,20 +108,20 @@ Ty     :: { Ty }    = t:PrimTy Sp                   -> { t              }
                     / "(" ts:Tys ")"                -> { TyPROD ts      } 
 
 PrimTy :: { Ty }    = "bool":Word                   -> { TyBOOL         } 
-                    / "u8":Word                     -> { TyU8           } 
+                    /   "u8":Word                   -> { TyU8           } 
                     / "u256":Word                   -> { TyU256         } 
-                    / "i8":Word                     -> { TyI8           } 
+                    /   "i8":Word                   -> { TyI8           } 
                     / "i256":Word                   -> { TyI256         } 
 
 
 
-Assign :: String    = ":=":Sym                      -> { ":="           }
-                    / "=":Sym                       -> { "="            } 
+Assign :: String      = ":=":Sym                    -> { ":="           }
 
 
 Mthds  :: {[Mthd]}    = m:Mthd ms:Mthds             -> { m:ms           }
-Mthd   :: {Mthd  }    = "method":Word id:ID ty:Ty 
-                        "{":Sym k:KTm "}":Sym       -> { MT id ty k     }  
+                      /                             -> { []             }
+Mthd   :: { Mthd }    = "method":Word id:ID ps:Params  Arrow  ret:Ty 
+                        "{":Sym k:KTm "}":Sym       -> { MT id ret ps k }  
 
 KTm     :: { K Tm } = k:AppKTm                      -> { k              } 
 
@@ -128,6 +132,15 @@ AppKTm  :: { K Tm } = k:PathKTm                     -> { k              }
                                                          bindK(s1++s2)(TmAPP(K t1)(K t2)) }
 PathKTm :: { K Tm } = k:AKTm                        -> { k              } 
 AKTm    :: { K Tm } = "(":Sym k:KTm ")"             -> { k              } 
+                    / "return":Word k:KTm           -> { k              } 
+                    / b:Bool                        -> { pure b         } 
 
 
+{ 
 
+parse :: String -> [Top] 
+parse str = case parserTopLevel (parserParse "" str) of 
+    Parsed v _ _ -> v 
+    NoParse e -> error (show e) 
+
+}

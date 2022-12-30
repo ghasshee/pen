@@ -27,9 +27,10 @@ data Ty     =   TyERR
 
 data Top        =   CN ID [Ty] [Mthd] 
                 |   EV Ty  
+                deriving (Show, Eq, Read)
 
-data Mthd       =   MT ID Ty (K Tm) 
-
+data Mthd       =   MT ID Ty [Ty] (K Tm) 
+                deriving (Show, Eq, Read) 
 
 data Tm         =   TmAPP (K Tm) (K Tm)     -- TmAPP (A->B) A   ::  B 
                 |   TmABS ID Ty (K Tm)      -- TmABS (A->B)     ::  A -> B 
@@ -45,7 +46,6 @@ data Tm         =   TmAPP (K Tm) (K Tm)     -- TmAPP (A->B) A   ::  B
                 |   TmISTR Int    
                 |   TmIF (K Tm) (K Tm) (K Tm)
                 deriving (Show, Eq, Read) 
-
 
 
 typeof (TmU256 _) = TyU256

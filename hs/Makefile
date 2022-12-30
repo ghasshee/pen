@@ -10,7 +10,7 @@ pappy:
 	Pappy/pappy Parser.pappy
 	Pappy/pappy Calc.pappy
 	
-	ghc Parser
+	ghc Pen
 
 
 clean: 
