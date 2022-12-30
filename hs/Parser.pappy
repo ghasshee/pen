@@ -62,9 +62,16 @@ Init     :: Char    = c:Char    &{isAlpha c}    -> c
 Rest     :: Char    = c:Char    &{isAlphaNum c} -> c
                     / '_'
 
-EVENT    :: {()}    = "event" Sp                -> {}
-CONTRACT :: {()}    = "contract" Sp             -> {} 
-METHOD   :: {()}    = "method" Sp               -> {} 
+EVENT    :: {()}    = "event"       Sp          -> {}
+CONTRACT :: {()}    = "contract"    Sp          -> {} 
+METHOD   :: {()}    = "method"      Sp          -> {} 
+RETURN   :: {()}    = "return"      Sp          -> {}
+IF       :: {()}    = "if"          Sp          -> {} 
+THEN     :: {()}    = "then"        Sp          -> {} 
+ELSE     :: {()}    = "else"        Sp          -> {} 
+TRUE     :: {()}    = "true"        Sp          -> {}
+FALSE    :: {()}    = "false"       Sp          -> {} 
+
 ARROW    :: {()}    = "->" Sp                   -> {} 
 DARROW   :: {()}    = "=>" Sp                   -> {} 
 LPAREN   :: {()}    = "("  Sp                   -> {}
@@ -76,6 +83,7 @@ RSQUARE  :: {()}    = "]"  Sp                   -> {}
 COLON    :: {()}    = ":"  Sp                   -> {} 
 COLONEQ  :: {()}    = ":=" Sp                   -> {} 
 COMMA    :: {()}    = ","  Sp                   -> {} 
+DOT      :: {()}    = "."  Sp                   -> {} 
 
 
 Sym      :: String  = s:SymChar Sp              -> s 
@@ -87,12 +95,8 @@ SymChar  :: String  = "+" / "*" / "-" / "/"
                     / "[" / "]" / "{" / "}" / "(" / ")" 
                     / "<" / ">" / "<=" / ">=" / "<<" / ">>" 
                     / ">>=" / "=<<" / ">>>" / "<<<" 
-                    / "." / ".." / "..." / "...." 
-                    / "," 
+                    / ".." / "..." / "...." 
 
-
-Bool     :: Tm      = "true":Word                   -> { TmTRUE         } 
-                    / "false":Word                  -> { TmFALSE        } 
 
 
 --------- PARSER ------------
@@ -141,9 +145,13 @@ AppKTm  :: { K Tm } = k:PathKTm                     -> { k              }
                                                          let (s2,t2) = splitK k2 in 
                                                          bindK(s1++s2)(TmAPP(K t1)(K t2)) }
 PathKTm :: { K Tm } = k:AKTm                        -> { k              } 
-AKTm    :: { K Tm } = "(":Sym k:KTm ")"             -> { k              } 
-                    / "return":Word k:KTm           -> { k              } 
+AKTm    :: { K Tm } = LPAREN k:KTm RPAREN           -> { k              } 
+                    / RETURN k:KTm                  -> { k              } 
                     / b:Bool                        -> { pure b         } 
+
+
+Bool     :: Tm      = TRUE                          -> { TmTRUE         } 
+                    / FALSE                         -> { TmFALSE        } 
 
 
 { 
