@@ -66,11 +66,27 @@ EVENT    :: {()}    = "event"       Sp          -> {}
 CONTRACT :: {()}    = "contract"    Sp          -> {} 
 METHOD   :: {()}    = "method"      Sp          -> {} 
 RETURN   :: {()}    = "return"      Sp          -> {}
+BECOME   :: {()}    = "become"      Sp          -> {}
 IF       :: {()}    = "if"          Sp          -> {} 
 THEN     :: {()}    = "then"        Sp          -> {} 
 ELSE     :: {()}    = "else"        Sp          -> {} 
 TRUE     :: {()}    = "true"        Sp          -> {}
 FALSE    :: {()}    = "false"       Sp          -> {} 
+LET      :: {()}    = "let"         Sp          -> {} 
+WITH     :: {()}    = "with"        Sp          -> {} 
+CASE     :: {()}    = "case"        Sp          -> {} 
+NEW      :: {()}    = "new"         Sp          -> {} 
+CALL     :: {()}    = "call"        Sp          -> {} 
+SENDER   :: {()}    = "sender"      Sp          -> {} 
+MSG      :: {()}    = "message"     Sp          -> {} 
+VALUE    :: {()}    = "value"       Sp          -> {} 
+BALANCE  :: {()}    = "balance"     Sp          -> {} 
+DSTRCT   :: {()}    = "destruct"    Sp          -> {} 
+THIS     :: {()}    = "this"        Sp          -> {} 
+NOW      :: {()}    = "now"         Sp          -> {} 
+UNIT     :: {()}    = "()"          Sp          -> {} 
+LOG      :: {()}    = "log"         Sp          -> {} 
+KECCAK   :: {()}    = "keccak"      Sp          -> {} 
 
 ARROW    :: {()}    = "->" Sp                   -> {} 
 DARROW   :: {()}    = "=>" Sp                   -> {} 
@@ -147,7 +163,11 @@ AppKTm  :: { K Tm } = k:PathKTm                     -> { k              }
 PathKTm :: { K Tm } = k:AKTm                        -> { k              } 
 AKTm    :: { K Tm } = LPAREN k:KTm RPAREN           -> { k              } 
                     / RETURN k:KTm                  -> { k              } 
+                    / n:Num                         -> { pure n         }  
                     / b:Bool                        -> { pure b         } 
+
+
+Num      :: Tm      = n:Digits Sp                   -> { TmU256 n       } 
 
 
 Bool     :: Tm      = TRUE                          -> { TmTRUE         } 
