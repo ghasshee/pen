@@ -41,10 +41,14 @@ data Tm         =   TmAPP (K Tm) (K Tm)     -- TmAPP (A->B) A   ::  B
                 |   TmU256 Integer
                 |   TmTRUE
                 |   TmFALSE
+                |   TmNOT (K Tm) 
                 |   TmI Int Int        
                 |   TmIREC Int    
                 |   TmISTR Int    
                 |   TmIF (K Tm) (K Tm) (K Tm)
+                |   TmAMOUNT                -- EVM VALUE
+                |   TmTHIS 
+                |   TmSENDER 
                 deriving (Show, Eq, Read) 
 
 

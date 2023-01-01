@@ -21,6 +21,7 @@ keywords    =   [ "contract"
                 , "let"
                 , "letrec" 
                 , "fix" 
+                , "amount" 
                 ]
 
 } 
@@ -59,6 +60,7 @@ Word     :: String  = c:Init cs:Rest* Sp        -> { c:cs }
 
 Init     :: Char    = c:Char    &{isAlpha c}    -> c
                     / '_'
+
 Rest     :: Char    = c:Char    &{isAlphaNum c} -> c
                     / '_'
 
@@ -79,7 +81,7 @@ NEW      :: {()}    = "new"         Sp          -> {}
 CALL     :: {()}    = "call"        Sp          -> {} 
 SENDER   :: {()}    = "sender"      Sp          -> {} 
 MSG      :: {()}    = "message"     Sp          -> {} 
-VALUE    :: {()}    = "value"       Sp          -> {} 
+AMOUNT   :: {()}    = "amount"      Sp          -> {} 
 BALANCE  :: {()}    = "balance"     Sp          -> {} 
 DSTRCT   :: {()}    = "destruct"    Sp          -> {} 
 THIS     :: {()}    = "this"        Sp          -> {} 
@@ -100,6 +102,7 @@ COLON    :: {()}    = ":"  Sp                   -> {}
 COLONEQ  :: {()}    = ":=" Sp                   -> {} 
 COMMA    :: {()}    = ","  Sp                   -> {} 
 DOT      :: {()}    = "."  Sp                   -> {} 
+NOT      :: {()}    = "~"  Sp                   -> {}
 
 
 Sym      :: String  = s:SymChar Sp              -> s 
@@ -156,6 +159,8 @@ Mthd   :: { Mthd }    = METHOD id:ID ps:Params ARROW ret:Ty
 KTm     :: { K Tm } = k:AppKTm                      -> { k              } 
 
 AppKTm  :: { K Tm } = k:PathKTm                     -> { k              } 
+                    / NOT k:PathKTm                 -> { let (s,t) = splitK k in 
+                                                         bindK s (TmNOT (K t))  } 
                     / k1:AppKTm k2:PathKTm          -> { 
                                                          let (s1,t1) = splitK k1 in 
                                                          let (s2,t2) = splitK k2 in 
@@ -165,10 +170,12 @@ AKTm    :: { K Tm } = LPAREN k:KTm RPAREN           -> { k              }
                     / RETURN k:KTm                  -> { k              } 
                     / n:Num                         -> { pure n         }  
                     / b:Bool                        -> { pure b         } 
+                    / AMOUNT                        -> { pure TmAMOUNT  } 
+                    / THIS                          -> { pure TmTHIS    } 
+                    / SENDER                        -> { pure TmSENDER  } 
 
 
 Num      :: Tm      = n:Digits Sp                   -> { TmU256 n       } 
-
 
 Bool     :: Tm      = TRUE                          -> { TmTRUE         } 
                     / FALSE                         -> { TmFALSE        } 

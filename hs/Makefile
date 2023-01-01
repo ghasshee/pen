@@ -16,7 +16,7 @@ pappy:
 clean: 
 	rm Pappy/*.hi Pappy/*.o
 	rm *.hi *.o Parser.hs
-	rm Calc.hs
+	rm Calc.hs Pos.hs Parse.hs
 	unlink Pos.hs
 	unlink Parse.hs
 
