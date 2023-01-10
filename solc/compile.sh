@@ -1,6 +1,6 @@
 #!/bin/sh
 
-NAME=Count
+NAME=Fac
 SRC=$NAME.sol
 JS=$NAME.js
 

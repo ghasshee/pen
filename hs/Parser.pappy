@@ -3,8 +3,13 @@ parser Parser:
 
 { 
 
-import Effect
-import Syntax
+--import Effect
+--import Syntax
+
+import GCLL
+import Type
+import Term
+import AST 
 
 keywords    =   [ "contract"
                 , "method"   
@@ -125,7 +130,7 @@ TopLevel :: {[Top]} = Sp t:Top Sp ts:TopLevel !Char -> { t:ts           }
 
 Top :: Top          = CONTRACT id:ID ps:Params
                         LBRACE ms:Mthds RBRACE      -> { CN id ps ms    }  
-                    / EVENT  p:PTy                  -> { EV    p        } 
+                    / EVENT  id:ID ty:Ty            -> { EV id ty       } 
 
 Params :: {[Ty]}    = LPAREN  ps:PTys  RPAREN       -> { ps             } 
                     / LPAREN           RPAREN       -> { []             }  
@@ -154,17 +159,18 @@ PrimTy :: { Ty }    = "bool":Word                   -> { TyBOOL         }
 Mthds  :: {[Mthd]}    = m:Mthd ms:Mthds             -> { m:ms           }
                       /                             -> { []             }
 Mthd   :: { Mthd }    = METHOD id:ID ps:Params ARROW ret:Ty 
-                        LBRACE  k:KTm RBRACE        -> { MT id ret ps k }  
+                        LBRACE  bd:Body RBRACE      -> { MT id ret ps k }  
 
+Body    :: { BODY }   = 
 KTm     :: { K Tm } = k:AppKTm                      -> { k              } 
 
 AppKTm  :: { K Tm } = k:PathKTm                     -> { k              } 
                     / NOT k:PathKTm                 -> { let (s,t) = splitK k in 
-                                                         bindK s (TmNOT (K t))  } 
+                                                         s >: TmNOT (K t)   } 
                     / k1:AppKTm k2:PathKTm          -> { 
                                                          let (s1,t1) = splitK k1 in 
                                                          let (s2,t2) = splitK k2 in 
-                                                         bindK(s1++s2)(TmAPP(K t1)(K t2)) }
+                                                         s1++s2 >: TmAPP(K t1)(K t2) }
 PathKTm :: { K Tm } = k:AKTm                        -> { k              } 
 AKTm    :: { K Tm } = LPAREN k:KTm RPAREN           -> { k              } 
                     / RETURN k:KTm                  -> { k              } 

@@ -703,3 +703,37 @@ count.inc.sendTransaction(gas)
 count.get.call()
 count.inc.sendTransaction(gas)
 count.get.call()
+miner.start(1)
+loadScript("../*/Fac.js");
+loadScript("../solc/Fac.js");
+receipt = eth.getTransactionReceipt(instance.transactionHash);
+address = receipt.contractAddress
+fac = contract.at(address)
+fac.get.call()
+miner.start(1)
+loadScript("../solc/Fac.js");
+receipt = eth.getTransactionReceipt(instance.transactionHash);
+address = receipt.contractAddress
+fac = contract.at(address)
+fac.get.call()
+miner.start(1)
+loadScript("../solc/Fac.js");
+receipt = eth.getTransactionReceipt(instance.transactionHash);
+address = receipt.contractAddress
+fac = contract.at(address)
+fac.get.call()
+count.fac.sendTransaction(gas,3)
+fac.fac.sendTransaction(gas,3)
+fac.fac.sendTransaction(gas)
+fac.fac.sendTransaction(3,gas)
+fac.fac.call(3,gas)
+fac.fac.call(3)
+fac.fac.call(10)
+fac.fac.call(11)
+fac.fac.call(13)
+fac.fac.call(14)
+fac.fac.call(15)
+fac.fac.call(16)
+fac.fac.call(20)
+fac.fac.call(21)
+fac.fac.call(23)

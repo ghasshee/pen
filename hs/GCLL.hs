@@ -128,8 +128,13 @@ instance Show EXPR where
                             show a ++ "," ++ show b ++ "," ++ show c ++ "," ++ show d ++ 
                             "," ++ show e ++ "," ++ show f ++ "," ++ show g ++ ")"
 
-
-
+-- State Change Opcodes
+--
+-- Call 
+-- Callcode
+-- Delegatecall 
+-- Staticcall
+-- Create
 
 
 data STMT   = Stop

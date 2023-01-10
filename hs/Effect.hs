@@ -32,3 +32,22 @@ bindK :: [STMT] -> a -> K a
 bindK []     a      = K a 
 bindK (s:ss) a      = Kons s (bindK ss a) 
 
+(<--) = splitK
+(>:)  = bindK  
+
+infix 1 >: 
+
+{--
+data E a    = E a [STMT] deriving (Show, Eq, Read) 
+
+instance Functor E where 
+    fmap    = undefined 
+instance Applicative E where 
+    pure    = return  
+    (<*>)   = undefined 
+instance Monad E where 
+    return a        = E a []
+    (E a ss) >>= f  = E a' (ss ++ ss') where
+        E a' ss' = f a
+--}
+
