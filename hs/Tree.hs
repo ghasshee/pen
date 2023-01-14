@@ -2,17 +2,17 @@ module Tree where
 
 import Comonad
 
-data Tree a'    = Node a' [Tree a']     deriving Eq
+data Tree a'    = Node a' [Tree a']     deriving (Eq,Read)
 
 data RBTree a'  = RED a' [RBTree a'] 
-                | BLK a' [RBTree a']    deriving Eq 
+                | BLK a' [RBTree a']    deriving (Eq,Read) 
 
 
-data ROOT a'    = RT Int [RBLTree a'] deriving (Show, Eq) 
+data ROOT a'    = RT Int [RBLTree a'] deriving (Show, Eq, Read) 
 
 data RBLTree a' = RD  a' [RBLTree a'] 
                 | BK  a' [RBLTree a'] 
-                | LN     (ROOT   a')  deriving Eq  
+                | LN     (ROOT   a')  deriving (Eq,Read)  
 
 instance Show a' => Show (RBLTree a') where 
     show  s  = "\n" ++ showT "    " s

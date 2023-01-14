@@ -22,5 +22,6 @@ data Ty     =   TyERR
             |   TyAMOUNT        -- type of Wei i.e. Ether
             |   TyINCR  Integer -- the balance of the account is increased 
             |   TyDECR  Integer -- the balance of the account is decreased 
+            |   Untyped 
             deriving (Show, Eq, Read) 
 

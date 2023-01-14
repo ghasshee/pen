@@ -9,6 +9,7 @@ parser Parser:
 import GCLL
 import Type
 import Term
+import Tree
 import AST 
 
 keywords    =   [ "contract"
@@ -103,6 +104,7 @@ LBRACE   :: {()}    = "{"  Sp                   -> {}
 RBRACE   :: {()}    = "}"  Sp                   -> {}
 LSQUARE  :: {()}    = "["  Sp                   -> {}
 RSQUARE  :: {()}    = "]"  Sp                   -> {}
+SEMI     :: {()}    = ";"  Sp                   -> {}
 COLON    :: {()}    = ":"  Sp                   -> {} 
 COLONEQ  :: {()}    = ":=" Sp                   -> {} 
 COMMA    :: {()}    = ","  Sp                   -> {} 
@@ -132,13 +134,13 @@ Top :: Top          = CONTRACT id:ID ps:Params
                         LBRACE ms:Mthds RBRACE      -> { CN id ps ms    }  
                     / EVENT  id:ID ty:Ty            -> { EV id ty       } 
 
-Params :: {[Ty]}    = LPAREN  ps:PTys  RPAREN       -> { ps             } 
+Params :: {[Param]}    = LPAREN  ps:PTys  RPAREN       -> { ps             } 
                     / LPAREN           RPAREN       -> { []             }  
 
-PTys    :: {[Ty]}   = p:PTy  COMMA  ps:PTys         -> { p:ps           } 
+PTys    :: {[Param]}   = p:PTy  COMMA  ps:PTys         -> { p:ps           } 
                     / p:PTy                         -> { [p]            } 
 
-PTy     :: {Ty}     = id:ID  COLON  ty:Ty           -> { TyVAR id ty    }  
+PTy     :: {Param}     = id:ID  COLON  ty:Ty           -> { (id,ty)    }  
 
 Tys    :: {[Ty]}    = t:Ty   COMMA  ts:Tys          -> { t:ts           } 
                     / t:Ty                          -> { [t]            } 
@@ -156,30 +158,38 @@ PrimTy :: { Ty }    = "bool":Word                   -> { TyBOOL         }
 
 
 
-Mthds  :: {[Mthd]}    = m:Mthd ms:Mthds             -> { m:ms           }
-                      /                             -> { []             }
-Mthd   :: { Mthd }    = METHOD id:ID ps:Params ARROW ret:Ty 
-                        LBRACE  bd:Body RBRACE      -> { MT id ret ps k }  
+Mthds   :: {[Mthd]} = m:Mthd ms:Mthds               -> { m:ms           }
+                    /                               -> { []             }
+Mthd    :: { Mthd } = METHOD id:ID ps:Params ARROW r:Ty 
+                      LBRACE bd:Body RBRACE         -> { MT id ps r bd}  
 
-Body    :: { BODY }   = 
-KTm     :: { K Tm } = k:AppKTm                      -> { k              } 
+Body    :: { BODY } = ds:Decls tm:Tm                -> { BODY ds tm     } 
+Decls   :: {[Decl]} = d:Decl SEMI ds:Decls          -> { d:ds           }      
+Decl    :: { Decl } = LET id:ID ps:LetParams COLONEQ t:Tm -> { LET id ps t    } 
 
-AppKTm  :: { K Tm } = k:PathKTm                     -> { k              } 
-                    / NOT k:PathKTm                 -> { let (s,t) = splitK k in 
-                                                         s >: TmNOT (K t)   } 
-                    / k1:AppKTm k2:PathKTm          -> { 
-                                                         let (s1,t1) = splitK k1 in 
-                                                         let (s2,t2) = splitK k2 in 
-                                                         s1++s2 >: TmAPP(K t1)(K t2) }
-PathKTm :: { K Tm } = k:AKTm                        -> { k              } 
-AKTm    :: { K Tm } = LPAREN k:KTm RPAREN           -> { k              } 
-                    / RETURN k:KTm                  -> { k              } 
-                    / n:Num                         -> { pure n         }  
-                    / b:Bool                        -> { pure b         } 
-                    / AMOUNT                        -> { pure TmAMOUNT  } 
-                    / THIS                          -> { pure TmTHIS    } 
-                    / SENDER                        -> { pure TmSENDER  } 
+LetParams :: {[Param]}  
+                    =                               -> { []             } 
+                    / p:LetParam ps:LetParams       -> { p:ps           } 
+                    
+LetParam :: {Param} = LPAREN id:ID COLON ty:Ty RPAREN   -> { (id,ty)        }
+                    / id:ID                             -> { (id,Untyped)   } 
 
+
+
+Tm      :: { AST }  = t:AppTm                       -> { t              } 
+
+AppTm   :: { AST }  = t:PathTm                      -> { t              } 
+                    / NOT t:PathTm                  -> { RED TmNOT [t]     } 
+                    / t1:AppTm t2:PathTm            -> { RED TmAPP [t1,t2] } 
+
+PathTm  :: { AST }  = t:ATm                         -> { t              } 
+ATm     :: { AST }  = LPAREN t:Tm RPAREN            -> { t              } 
+                    / RETURN t:Tm                   -> { t              } 
+                    / n:Num                         -> { RED n []       }  
+                    / b:Bool                        -> { RED b []       } 
+                    / AMOUNT                        -> { RED TmAMOUNT[] } 
+                    / THIS                          -> { RED TmTHIS []  } 
+                    / SENDER                        -> { RED TmSENDER[] } 
 
 Num      :: Tm      = n:Digits Sp                   -> { TmU256 n       } 
 

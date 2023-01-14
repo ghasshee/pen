@@ -6,19 +6,20 @@ import Term
 import Tree
     
 
-data AST    = RBTree Tm 
+type AST    = RBTree Tm 
 
 type Param  = (ID,Ty) 
 
 data Decl   = LET ID [Param] AST
+            deriving (Show, Eq, Read)  
 
 data BODY   = BODY [Decl] AST 
             deriving (Show, Eq, Read) 
 
-data Mthd   = MT ID Ty BODY 
+data Mthd   = MT ID [Param] Ty BODY 
             deriving (Show, Eq, Read) 
 
-data Top    = CN ID [Ty] [Mthd] 
+data Top    = CN ID [Param] [Mthd] 
             | EV ID Ty 
             deriving (Show, Eq, Read) 
 
