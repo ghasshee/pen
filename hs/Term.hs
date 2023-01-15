@@ -21,6 +21,7 @@ data Tm     = TmAPP             -- 2 args
             | TmTHIS            -- 0 THIS CONTRACT ADDRESS
             | TmSENDER          -- 0 SENDER 
             | TmCALL            -- 3 (4) args { to , value , input (, gascap) } 
+            | TmRET 
             | TmBOP String      
             | TmUOP String    
 

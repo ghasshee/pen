@@ -4,21 +4,24 @@
 .PHONY: clean pappy
 
 pappy: 
-	cd Pappy && make 
-	ln -s Pappy/Pos.hs ./
-	ln -s Pappy/Parse.hs ./
-	Pappy/pappy Parser.pappy
-	Pappy/pappy Calc.pappy
+	#cd Pappy && make 
+	#ln -s Pappy/Pos.hs ./
+	#ln -s Pappy/Parse.hs ./
+	#Pappy/pappy Parser.pappy
+	
+	alex Lexer.x 	# generates Lexer.hs 
+	happy Parser.y 
 	
 	ghc Pen
 
 
 clean: 
-	rm Pappy/*.hi Pappy/*.o
+	#rm Pappy/*.hi Pappy/*.o
 	rm *.hi *.o Parser.hs
-	rm Calc.hs Pos.hs Parse.hs
-	unlink Pos.hs
-	unlink Parse.hs
+	rm Lexer.hs 
+	#rm -rf Pos.hs Parse.hs
+	#unlink Pos.hs
+	#unlink Parse.hs
 
 
 # 

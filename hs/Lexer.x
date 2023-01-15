@@ -1,0 +1,116 @@
+{ 
+module Lexer where 
+
+
+import Prelude hiding (lex, EQ, LT, GT) 
+
+} 
+
+%wrapper "basic" 
+
+$non0   = [1-9] 
+$digit  = [0-9] 
+$space  = [\ \t] 
+$letter = [a-zA-Z] 
+$hex    = [0-9A-Fa-f] 
+
+$symbol = [\$\#\@\!\%\^\&\\\*\(\)\+\-\:\:\=\/\>\<\.\,] 
+
+@any    = [$digit $space $letter $symbol]*     
+
+@id     = [\_ $letter]* $letter+  
+
+token :-
+    $white+     ; 
+    true        { \s -> TRUE            } 
+    false       { \s -> FALSE           } 
+    let         { \s -> LET'            } 
+    $digit+     { \s -> NUM (read s)    } 
+    \-$digit+   { \s -> NUM (read s)    } 
+    0x$hex+     { \s -> NUM (read s)    } 
+    event       { \s -> EVENT           }
+    contract    { \s -> CONTRACT        } 
+    method      { \s -> METHOD          }
+    return      { \s -> RETURN          }
+    become      { \s -> BECOME          }
+    if          { \s -> IF              }
+    then        { \s -> THEN            }
+    else        { \s -> ELSE            }
+    i256        { \s -> I256            }
+    u256        { \s -> U256            }
+    i8          { \s -> I8              }
+    u8          { \s -> U8              }
+    bool        { \s -> BOOL            }
+    case        { \s -> CASE            }
+    new         { \s -> NEW             }
+    call        { \s -> CALL            }
+    sender      { \s -> SENDER          }
+    send        { \s -> SEND            }
+    message     { \s -> MSG             }
+    amount      { \s -> AMOUNT          }
+    balance     { \s -> BALANCE         }
+    destruct    { \s -> DESTRUCT        }
+    this        { \s -> THIS            }
+    now         { \s -> NOW             }
+    "()"        { \s -> UNIT            }
+    log         { \s -> LOG             }
+    keccak      { \s -> KECCAK          }
+    "->"        { \s -> ARROW           }
+    "=>"        { \s -> DARROW          }
+    "("         { \s -> LPAREN          }
+    ")"         { \s -> RPAREN          }
+    "{"         { \s -> LBRACE          } 
+    "}"         { \s -> RBRACE          } 
+    "["         { \s -> LSQUARE         } 
+    "]"         { \s -> RSQUARE         } 
+    ";"         { \s -> SEMI            } 
+    ":"         { \s -> COLON           } 
+    ":="        { \s -> COLONEQ         } 
+    ","         { \s -> COMMA           } 
+    "."         { \s -> DOT             } 
+    "~"         { \s -> NOT             } 
+    "="         { \s -> EQ              } 
+    "<"         { \s -> LT              } 
+    ">"         { \s -> GT              } 
+    "<="        { \s -> LE              } 
+    ">="        { \s -> GE              } 
+    "--" @any   { \s -> COMMENT s       } 
+    @id         { \s -> ID s            } 
+{ 
+
+data Token  
+            = COMMENT String 
+            | TRUE
+            | FALSE 
+            | NUM Integer 
+            | LET' 
+            | EVENT 
+            | CONTRACT 
+            | METHOD
+            | RETURN 
+            | BECOME 
+            | IF | THEN | ELSE 
+            | U8 | I8 | U256 | I256 
+            | BOOL
+            | LT | GT | EQ | LE | GE 
+            | CASE 
+            | NEW 
+            | CALL 
+            | SENDER | SEND 
+            | MSG
+            | AMOUNT | BALANCE 
+            | DESTRUCT | THIS | UNIT | LOG | KECCAK | NOW 
+            | ARROW | DARROW 
+            | LPAREN | RPAREN 
+            | LBRACE | RBRACE | LSQUARE | RSQUARE 
+            | SEMI | COLON | COLONEQ 
+            | COMMA | DOT | NOT 
+            | ID String 
+            deriving (Show, Eq, Read) 
+
+lex = alexScanTokens 
+
+} 
+
+
+    

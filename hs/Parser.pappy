@@ -30,6 +30,8 @@ keywords    =   [ "contract"
                 , "amount" 
                 ]
 
+mapTy ty = map (\id -> (id,ty)) 
+
 } 
 
 top TopLevel 
@@ -61,6 +63,13 @@ LnComm   :: {()}    = "--"  (!Ln    c:Char -> c)* Ln    -> {()}
 Kwd      :: String  = s:Word    &{ s `elem` keywords }  -> s 
 
 ID       :: String  = !Kwd !Bool  s:Word        -> s 
+IDs      :: {[String]}
+                    =                           -> { [] }
+                    / i:ID is:IDs               -> { i:is }
+
+Any      :: String  = c:Char cs:Any &{c /= '{' || c /= '}' || c /= ';' }  -> { c:cs } 
+                    /                           -> { []   } 
+
 
 Word     :: String  = c:Init cs:Rest* Sp        -> { c:cs }
 
@@ -80,6 +89,7 @@ THEN     :: {()}    = "then"        Sp          -> {}
 ELSE     :: {()}    = "else"        Sp          -> {} 
 TRUE     :: {()}    = "true"        Sp          -> {}
 FALSE    :: {()}    = "false"       Sp          -> {} 
+I256     :: {()}    = "i256"        Sp          -> {}
 LET      :: {()}    = "let"         Sp          -> {} 
 WITH     :: {()}    = "with"        Sp          -> {} 
 CASE     :: {()}    = "case"        Sp          -> {} 
@@ -111,6 +121,10 @@ COMMA    :: {()}    = ","  Sp                   -> {}
 DOT      :: {()}    = "."  Sp                   -> {} 
 NOT      :: {()}    = "~"  Sp                   -> {}
 
+BOOL     :: {()}    = "bool"        Sp          -> {}
+U8       :: {()}    = "u8"          Sp          -> {}
+U256     :: {()}    = "u256"        Sp          -> {}
+I8       :: {()}    = "i8"          Sp          -> {}
 
 Sym      :: String  = s:SymChar Sp              -> s 
 SymChar  :: String  = "+" / "*" / "-" / "/" 
@@ -134,46 +148,51 @@ Top :: Top          = CONTRACT id:ID ps:Params
                         LBRACE ms:Mthds RBRACE      -> { CN id ps ms    }  
                     / EVENT  id:ID ty:Ty            -> { EV id ty       } 
 
-Params :: {[Param]}    = LPAREN  ps:PTys  RPAREN       -> { ps             } 
-                    / LPAREN           RPAREN       -> { []             }  
+Params :: {[Param]} = LPAREN           RPAREN       -> { []             }  
+                    / LPAREN  ps:PTys  RPAREN       -> { ps             } 
 
-PTys    :: {[Param]}   = p:PTy  COMMA  ps:PTys         -> { p:ps           } 
+PTys   :: {[Param]} = p:PTy  COMMA  ps:PTys         -> { p:ps           } 
                     / p:PTy                         -> { [p]            } 
 
-PTy     :: {Param}     = id:ID  COLON  ty:Ty           -> { (id,ty)    }  
+PTy     :: {Param}  = id:ID  COLON  ty:Ty           -> { (id,ty)        }  
 
 Tys    :: {[Ty]}    = t:Ty   COMMA  ts:Tys          -> { t:ts           } 
                     / t:Ty                          -> { [t]            } 
 
-Ty     :: { Ty }    = t:PrimTy Sp                   -> { t              }
+Ty     :: { Ty }    = t:ATy                         -> { t              }
                     / a:Ty  ARROW  b:Ty             -> { TyABS a b      } 
                     / LPAREN t:Ty COMMA s:Tys RPAREN-> { TyPROD (t:s)   } 
 
-PrimTy :: { Ty }    = "bool":Word                   -> { TyBOOL         } 
-                    /   "u8":Word                   -> { TyU8           } 
-                    / "u256":Word                   -> { TyU256         } 
-                    /   "i8":Word                   -> { TyI8           } 
-                    / "i256":Word                   -> { TyI256         } 
+ATy     :: { Ty }   = BOOL                          -> { TyBOOL         } 
+                    / U8                            -> { TyU8           } 
+                    / U256                          -> { TyU256         } 
+                    / I8                            -> { TyI8           } 
+                    / I256                          -> { TyI256         } 
                     / LPAREN t:Ty RPAREN            -> { t              } 
 
 
 
-Mthds   :: {[Mthd]} = m:Mthd ms:Mthds               -> { m:ms           }
+Mthds   :: {[Mthd]} 
+                    = m:Mthd ms:Mthds               -> { m:ms           }
                     /                               -> { []             }
 Mthd    :: { Mthd } = METHOD id:ID ps:Params ARROW r:Ty 
                       LBRACE bd:Body RBRACE         -> { MT id ps r bd}  
 
-Body    :: { BODY } = ds:Decls tm:Tm                -> { BODY ds tm     } 
-Decls   :: {[Decl]} = d:Decl SEMI ds:Decls          -> { d:ds           }      
+Body    :: { BODY } = tm:Tm                         -> { BODY [] tm     } 
+                    / ds:Decls  tm:Tm               -> { BODY ds tm     } 
+Decls   :: {[Decl]} 
+                    = d:Decl SEMI ds:Decls          -> { d:ds           }      
+                    /                               -> { []             } 
 Decl    :: { Decl } = LET id:ID ps:LetParams COLONEQ t:Tm -> { LET id ps t    } 
+                    / !LET Any                      -> { error "Decl Expected" } 
 
 LetParams :: {[Param]}  
-                    =                               -> { []             } 
-                    / p:LetParam ps:LetParams       -> { p:ps           } 
+                    = p:LetParam ps:LetParams       -> { p ++ ps        } 
+                    /                               -> { []             } 
                     
-LetParam :: {Param} = LPAREN id:ID COLON ty:Ty RPAREN   -> { (id,ty)        }
-                    / id:ID                             -> { (id,Untyped)   } 
-
+LetParam :: {[Param]} 
+                    = LPAREN is:IDs COLON ty:Ty RPAREN  -> { mapTy ty is }
+                    / id:ID                             -> { [(id,Untyped)] }
 
 
 Tm      :: { AST }  = t:AppTm                       -> { t              } 
