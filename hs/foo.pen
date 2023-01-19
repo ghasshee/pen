@@ -1,0 +1,6 @@
+contract counter (counter:u256) {
+    method reset (x:u8) : u8 :=     { 1 > 0 }  
+        let counter = 0             { 1 = 0 } ; 
+        return 0 
+} 
+        

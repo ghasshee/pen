@@ -1,0 +1,15 @@
+contract counter {
+    
+    counter : u256  
+
+    method inc () -> () :=          { counter >= 0 } 
+        let counter = counter + 1   { counter > 0  } 
+    
+    method get () -> u256 :=        { counter >= 0 } 
+        counter                     { counter > 0  } 
+
+    method reset () -> () :=        { counter >= 0 }  
+        let counter = 0             { counter = 0  }
+
+} 
+        

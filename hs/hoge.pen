@@ -1,0 +1,17 @@
+contract counter  {
+
+    counter : u8 ; 
+
+    method inc (x:u8) : u8 :=       { 1 > 0 } 
+        let counter = 1             { 1 > 0 } ; 
+        return 0                  
+    
+    method get (x:u8) : u256 :=     { 1 > 0 } 
+        1                           { 1 > 0 } 
+
+    method reset (x:u8) : u8 :=     { 1 > 0 }  
+        let counter = 0             { 1 = 0 } ; 
+        return 0                    { true  }
+
+} 
+        

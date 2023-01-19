@@ -13,7 +13,7 @@ $digit  = [0-9]
 $space  = [\ \t] 
 $letter = [a-zA-Z] 
 $hex    = [0-9A-Fa-f] 
-
+$nl     = [\n] 
 $symbol = [\$\#\@\!\%\^\&\\\*\(\)\+\-\:\:\=\/\>\<\.\,] 
 
 @any    = [$digit $space $letter $symbol]*     
@@ -22,6 +22,7 @@ $symbol = [\$\#\@\!\%\^\&\\\*\(\)\+\-\:\:\=\/\>\<\.\,]
 
 token :-
     $white+     ; 
+    $nl+        ; 
     true        { \s -> TRUE            } 
     false       { \s -> FALSE           } 
     let         { \s -> LET'            } 
@@ -76,6 +77,14 @@ token :-
     ">="        { \s -> GE              } 
     "--" @any   { \s -> COMMENT s       } 
     @id         { \s -> ID s            } 
+    A           { \s -> A'              } 
+    E           { \s -> E'              } 
+    F           { \s -> F'              } 
+    G           { \s -> G'              } 
+    X           { \s -> X'              } 
+    U           { \s -> U'              } 
+    '/\'        { \s -> AND'            } 
+    '\/'        { \s -> OR'             } 
 { 
 
 data Token  
@@ -106,6 +115,7 @@ data Token
             | SEMI | COLON | COLONEQ 
             | COMMA | DOT | NOT 
             | ID String 
+            | A' | E' | F' | G' | X' | U' | AND' | OR' 
             deriving (Show, Eq, Read) 
 
 lex = alexScanTokens 

@@ -5,10 +5,13 @@ import Lexer
 import Prelude hiding (lex, EQ, LT, GT) 
 
 import GCLL
+import Predicate 
 import Tree
 import Type
 import Term
 import AST
+import PsrCtx
+
 
 
 } 
@@ -68,6 +71,14 @@ import AST
     '<'         { LT                } 
     comment     { COMMENT $$        } 
     id          { ID $$             } 
+    E           { E'                } 
+    A           { A'                } 
+    X           { X'                } 
+    F           { F'                } 
+    G           { G'                } 
+    U           { U'                } 
+    and         { AND'              } 
+    or          { OR'               } 
 
 
 %right ':=' 
@@ -77,21 +88,39 @@ import AST
 %% 
 
 TopLevel 
-    : Top TopLevel                      { $1 : $2           } 
+    : Contract TopLevel                 { $1 : $2           } 
     |                                   { []                }
 
-Top         
-    : contract id Params '{' Mthds '}'  { CN $2 $3 $5       } 
-    | event    id Ty                    { EV $2 $3          } 
+Contract         
+    : contract id '{' Top '}'           { CN $2 (fst ($4 emptyCtx))     } 
+
+Top : StoVars   Top                     { \ctx  ->  let (svs, ctx')     = $1 ctx    in
+                                                    let (top, ctx'')    = $2 ctx'   in 
+                                                    (svs ++ top        , ctx'')           } 
+    | Mthd      Top                     { \ctx ->   ($1 ctx : fst($2 ctx) , ctx)        }
+    |                                   { \ctx ->   ([],               ctx  )           } 
+
+Mthd 
+    : method id Params ':' Ty ':=' 
+      Predicate Body Predicate          { \ctx -> 
+                                            let (params,ctx') = $3 ctx  in 
+                                            let (body,ctx'')  = $8 ctx' in 
+                                            MT $2 params $5 ($7 ctx'') body ($9 ctx'')  }
+
+StoVars
+    : IDs ':' Ty ';'                    { \ctx ->   mapStoTy $3 $1 ctx                  } 
 
 Params  
-    : Param Params                      { $1 ++ $2          }  
-    |                                   { []                } 
+    : Param Params                      { \ctx -> 
+                                            let (param,ctx')   = $1 ctx in 
+                                            let (params,ctx'') = $2 ctx' in 
+                                            (param ++ params , ctx'')           } 
+    |                                   { \ctx -> ([],ctx)                      } 
+
 
 Param 
-    : '(' IDs ':' Ty ')'                { mapTy $4 $2       }  
-    | id 
-    { [($1, Untyped)]   } 
+    : '(' IDs ':' Ty ')'                { \ctx -> mapParamTy $4       $2  ctx         }  
+    | id                                { \ctx -> mapParamTy Untyped [$1] ctx         } 
 
 IDs : id IDs                            { $1 : $2           } 
     |                                   { []                }   
@@ -110,49 +139,84 @@ ATy : bool                              { TyBOOL            }
     | i256                              { TyI256            } 
     | '(' Ty ')'                        { $2                } 
 
-Mthds 
-    : Mthd Mthds                        { $1 : $2           } 
-    |                                   { []                } 
-
-Mthd 
-    : method id Params ':' Ty ':=' Body { MT $2 $3 $5 $7    } 
 
 Body 
-    : Tm                                { BODY [] $1        } 
-    | Decls Tm                          { BODY $1 $2        } 
+    : Tm                                { \ctx -> 
+                                            let (tm, ctx')   = $1 ctx in 
+                                            (BODY []    tm, ctx' )                  } 
+    | Decls Tm                          { \ctx -> 
+                                            let (decls,ctx') = $1 ctx  in 
+                                            let (tm,  ctx'') = $2 ctx' in
+                                            (BODY decls tm, ctx'')                  } 
 
 Decls 
-    : Decl ';' Decls                    { $1 : $3           } 
-    |                                   { []                } 
+    : Decl ';' Decls                    { \ctx -> 
+                                            let (decl, ctx')    = $1 ctx in 
+                                            let (decls, ctx'')  = $3 ctx' in 
+                                            (decl:decls, ctx'')                 } 
+    |                                   { \ctx -> ([], ctx)                     } 
 
 Decl 
-    : let id Params '=' Tm              { LET $2 $3 $5      } 
+    : let id Params '=' Tm Predicate    { \ctx -> 
+                                            let (params, ctx') = $3 ctx in 
+                                            let (tm, ctx'')    = $5 ctx' in 
+                                            (LET $2 params tm ($6 ctx''), ctx'')    }
+
+Predicate 
+    : '{' Formulae '}'                  { \ctx -> Just ($2 ctx)                 } 
+    |                                   { \ctx -> Nothing                       } 
+
+Formulae
+    : AFormulae                         { \ctx -> $1 ctx                        } 
+    | AFormulae and  AFormulae          { \ctx -> FAnd ($1 ctx) ($3 ctx)        } 
+    | '~' AFormulae                     { \ctx -> FNot ($2 ctx)                 } 
+    | E PathFormulae                    { \ctx -> E    ($2 ctx)                 } 
+    | A PathFormulae                    { \ctx -> A    ($2 ctx)                 } 
+
+PathFormulae
+    : X AFormulae                       { \ctx -> X     ($2 ctx)                } 
+    | F AFormulae                       { \ctx -> F     ($2 ctx)                } 
+    | G AFormulae                       { \ctx -> G     ($2 ctx)                } 
+    | AFormulae U AFormulae             { \ctx -> Union ($1 ctx) ($3 ctx)       } 
+
+AFormulae   
+    : '(' Formulae ')'                  { $2                                            } 
+    | Tm '=' Tm                         { \ctx -> FAtomic(AEq(fst($1 ctx))(fst($3 ctx)))}
+    | Tm '<' Tm                         { \ctx -> FAtomic(ALt(fst($1 ctx))(fst($3 ctx)))}
+    | Tm '>' Tm                         { \ctx -> FAtomic(AGt(fst($1 ctx))(fst($3 ctx)))}
+    | true                              { \ctx -> FTrue                                 } 
 
 
-
-Tm  : AppTm                             { $1                } 
+Tm  : AppTm                             { $1                                } 
 
 AppTm 
-    : PathTm                            { $1                } 
-    | '~' PathTm                        { RED TmNOT [$2]    } 
-    | AppTm PathTm                      { RED TmAPP [$1,$2] } 
+    : PathTm                            { $1                                } 
+    | '~' PathTm                        { \ctx -> 
+                                            let (t,ctx') = $2 ctx in 
+                                            (RED TmNOT [t], ctx')           } 
+    | AppTm PathTm                      { \ctx -> 
+                                            let (t1,ctx') = $1 ctx in 
+                                            let (t2,ctx'') = $2 ctx' in 
+                                            (RED TmAPP [t1,t2], ctx'')      } 
 
 PathTm 
-    : ATm                               { $1                } 
+    : ATm                               { $1                                } 
 
-ATm : '(' Tm ')'                        { $2                } 
-    | return Tm                         { RED TmRET [$2]    } 
-    | Num                               { RED $1    []      } 
-    | Bool                              { RED $1    []      } 
-    | amount                            { RED TmAMOUNT []   } 
-    | this                              { RED TmTHIS []     } 
-    | sender                            { RED TmSENDER []   } 
+ATm : '(' Tm ')'                        { $2                                } 
+    | return Tm                         { \ctx -> 
+                                            let (tm,ctx') = $2 ctx in 
+                                            (RED TmRET [tm],ctx')            } 
+    | Num                               { \ctx -> (RED $1 [], ctx)          } 
+    | Bool                              { \ctx -> (RED $1 [], ctx)          } 
+    | amount                            { \ctx -> (RED TmAMOUNT [], ctx)    } 
+    | this                              { \ctx -> (RED TmTHIS   [], ctx)    } 
+    | sender                            { \ctx -> (RED TmSENDER [], ctx)    } 
 
-Num : num                               { TmU256 $1         } 
+Num : num                               { TmU256 $1                 } 
 
 Bool
-    : true                              { TmTRUE            } 
-    | false                             { TmFALSE           } 
+    : true                              { TmTRUE                    } 
+    | false                             { TmFALSE                   } 
 
 
 
@@ -161,10 +225,7 @@ Bool
 
 {
 
-mapTy ty = map (\i -> (i,ty)) 
-
 parseError :: [Token] -> a 
 parseError t = error $ show t 
 
-
-}
+} 

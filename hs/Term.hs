@@ -1,11 +1,13 @@
 module Term where 
 
+import Tree
 import Type
 import GCLL 
 
 data Tm     = TmAPP             -- 2 args 
             | TmABS ID Ty       -- 1 arg
-            | TmVAR ID          -- 0
+            | TmVAR Int Int     -- 0
+            | TmSTO Integer     -- 0 Storage Variable  
             | TmPROD            -- n 
             | TmFIX ID ID Ty    -- 1
             | TmU8 Int          -- 0
@@ -25,9 +27,10 @@ data Tm     = TmAPP             -- 2 args
             | TmBOP String      
             | TmUOP String    
 
-            | E STMT
+            | Eff STMT
             deriving (Show, Eq, Read) 
 
+type AST    = RBTree Tm 
 
 
 

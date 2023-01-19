@@ -8,9 +8,21 @@ import Type
 import Term
 import Lexer
 import Parser
+import TypingRule
+import PG
 
+import System.IO 
+import System.Environment 
+import Data.Char
 
 
 main = do 
-    return () 
+    args <- getArgs 
+    let (file:_) = args
+    contents <- readFile file 
+
+    let ast = parse . lex $ contents
+    print ast
+
+
     
