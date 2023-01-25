@@ -1,6 +1,7 @@
 module PsrCtx where 
 
 import Type 
+import Term
 import AST
 
 type PsrVar = (String,Ty)
@@ -13,8 +14,8 @@ emptyCtx :: PsrCtx
 emptyCtx = ([],[]) 
 
 addCtx :: WhichCtx -> ID -> Ty -> PsrCtx -> PsrCtx
-addCtx Sto i ty (stovars,psrvars) = (stovars,(i,ty):psrvars)
-addCtx Psr i ty (stovars,psrvars) = ((i,ty):stovars,psrvars) 
+addCtx Psr i ty (stovars,psrvars) = (stovars,(i,ty):psrvars)
+addCtx Sto i ty (stovars,psrvars) = ((i,ty):stovars,psrvars) 
 
 
 -- contract foo {
@@ -33,3 +34,7 @@ mapParamTy ty []     ctx  = ([], ctx)
 mapParamTy ty (i:is) ctx  = ((i,ty):params, ctx'') 
     where  ctx'             = addCtx Psr i ty ctx 
            (params, ctx'')  = mapParamTy ty is ctx' 
+
+
+
+

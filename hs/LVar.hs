@@ -1,7 +1,7 @@
-module LVar where 
+module LVal where 
 
 
-data LVar 
+data LVal 
             = LS            -- Storage Variable 
             | LV            -- Variable 
             | LA            -- array 

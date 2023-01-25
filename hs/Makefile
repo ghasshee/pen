@@ -19,6 +19,7 @@ clean:
 	#rm Pappy/*.hi Pappy/*.o
 	rm *.hi *.o Parser.hs
 	rm Lexer.hs 
+	rm Pen
 	#rm -rf Pos.hs Parse.hs
 	#unlink Pos.hs
 	#unlink Parse.hs

@@ -5,12 +5,13 @@ import Type
 import Term
 import Tree
 import Predicate 
+import Datatype
     
 
 
-type Param  = (ID,Ty) 
 
-data Decl   = LET ID [Param] AST (Maybe STFormulae)
+data Decl   = LET  ID [Param] AST (Maybe STFormulae)
+            | DATA ID [ID] [DCONSTR] 
             deriving (Show, Eq, Read)  
 
 data BODY   = BODY [Decl] AST 
