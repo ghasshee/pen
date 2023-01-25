@@ -2,7 +2,7 @@
 module Parser where 
 
 import Lexer 
-import Prelude hiding (lex, EQ, LT, GT) 
+import Prelude hiding (lookup, lex, EQ, LT, GT) 
 
 import GCLL
 import Predicate 
@@ -105,7 +105,7 @@ Mthd
       Predicate Body Predicate          { \ctx -> 
                                             let (params,ctx') = $3 ctx  in 
                                             let (body,ctx'')  = $8 ctx' in 
-                                            MT $2 params $5 ($7 ctx'') body ($9 ctx'')  }
+                                            MT $2 $5 params ($7 ctx'') body ($9 ctx'')  }
 
 StoVars
     : IDs ':' Ty ';'                    { \ctx ->   mapStoTy $3 $1 ctx                  } 
@@ -211,6 +211,7 @@ ATm : '(' Tm ')'                        { $2                                }
     | amount                            { \ctx -> (RED TmAMOUNT [], ctx)    } 
     | this                              { \ctx -> (RED TmTHIS   [], ctx)    } 
     | sender                            { \ctx -> (RED TmSENDER [], ctx)    } 
+    | id                                { \ctx -> (RED (lookup $1 ctx) [], ctx) } 
 
 Num : num                               { TmU256 $1                 } 
 

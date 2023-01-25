@@ -17,9 +17,9 @@ data Decl   = LET  ID [Param] AST (Maybe STFormulae)
 data BODY   = BODY [Decl] AST 
             deriving (Show, Eq, Read) 
 
-data TOP    = MT ID [Param] Ty (Maybe STFormulae) BODY (Maybe STFormulae)  
-            | EV ID Ty 
+data TOP    = MT ID Ty [Param] (Maybe STFormulae) BODY (Maybe STFormulae)  
             | SV ID Ty  -- Storage Variables 
+            | EV ID Ty 
             deriving (Show, Eq, Read) 
 
 data CONTRACT 
