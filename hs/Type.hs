@@ -3,7 +3,7 @@ module Type where
 
 type ID     = String
 data Ty     =   TyERR 
-            |   TyUnit
+            |   TyUNIT
             |   TyU256  -- 256 bits
             |   TyU8    --   8 bits
             |   TyI256  -- 256 bits

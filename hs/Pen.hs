@@ -8,8 +8,9 @@ import Type
 import Term
 import Lexer
 import Parser
-import TypingRule
+import Typing
 import PG
+import Decl2Term
 
 import System.IO 
 import System.Environment 
@@ -22,7 +23,12 @@ main = do
     contents <- readFile file 
 
     let ast = parse . lex $ contents
+    let tm  = map transpileCN ast 
+
+
     print ast
+    print "--------------" 
+    print tm 
 
 
     

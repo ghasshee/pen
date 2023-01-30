@@ -69,6 +69,8 @@ import PsrCtx
     '~'         { NOT               } 
     '>'         { GT                } 
     '<'         { LT                } 
+    '>='        { GE                } 
+    '<='        { LE                } 
     comment     { COMMENT $$        } 
     id          { ID $$             } 
     E           { E'                } 
@@ -137,6 +139,7 @@ ATy : bool                              { TyBOOL            }
     | i8                                { TyI8              } 
     | u256                              { TyU256            } 
     | i256                              { TyI256            } 
+    | '()'                              { TyUNIT            } 
     | '(' Ty ')'                        { $2                } 
 
 
@@ -150,17 +153,17 @@ Body
                                             (BODY decls tm, ctx'')                  } 
 
 Decls 
-    : Decl ';' Decls                    { \ctx -> 
+    : Decl     Decls                    { \ctx -> 
                                             let (decl, ctx')    = $1 ctx in 
-                                            let (decls, ctx'')  = $3 ctx' in 
+                                            let (decls, ctx'')  = $2 ctx' in 
                                             (decl:decls, ctx'')                 } 
     |                                   { \ctx -> ([], ctx)                     } 
 
 Decl 
-    : let id Params '=' Tm Predicate    { \ctx -> 
+    : let id Params '=' Tm ';' Predicate { \ctx -> 
                                             let (params, ctx') = $3 ctx in 
                                             let (tm, ctx'')    = $5 ctx' in 
-                                            (LET $2 params tm ($6 ctx''), ctx'')    }
+                                            (LET $2 params tm ($7 ctx''), ctx'')    }
 
 Predicate 
     : '{' Formulae '}'                  { \ctx -> Just ($2 ctx)                 } 
@@ -184,6 +187,8 @@ AFormulae
     | Tm '=' Tm                         { \ctx -> FAtomic(AEq(fst($1 ctx))(fst($3 ctx)))}
     | Tm '<' Tm                         { \ctx -> FAtomic(ALt(fst($1 ctx))(fst($3 ctx)))}
     | Tm '>' Tm                         { \ctx -> FAtomic(AGt(fst($1 ctx))(fst($3 ctx)))}
+    | Tm '<=' Tm                        { \ctx -> FAtomic(ALe(fst($1 ctx))(fst($3 ctx)))}
+    | Tm '>=' Tm                        { \ctx -> FAtomic(AGe(fst($1 ctx))(fst($3 ctx)))}
     | true                              { \ctx -> FTrue                                 } 
 
 

@@ -34,9 +34,13 @@ instance Show PathFormulae where
 data Atomic     = AEq AST AST
                 | AGt AST AST
                 | ALt AST AST 
+                | AGe AST AST 
+                | ALe AST AST 
                 deriving (Eq, Read) 
                 
 instance Show Atomic where 
     show (AEq a b   )   = show a ++ "==" ++ show b
     show (AGt a b   )   = show a ++ ">"  ++ show b 
     show (ALt a b   )   = show a ++ "<"  ++ show b 
+    show (AGe a b   )   = show a ++ ">=" ++ show b 
+    show (ALe a b   )   = show a ++ "<=" ++ show b 

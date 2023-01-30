@@ -1,14 +1,16 @@
-module Term where 
+module Typing where 
 
+import GCLL
+import Type 
+import Term 
 import Tree
-import Type
-import GCLL 
 
 
 
-type Bind   = (ID, Ty) 
-type Param  = (ID, Ty) 
-
+ 
+typeof (BLK _ _) = Untyped
+typeof (RED _ _) = Untyped
+{--
 data Tm     = TmAPP                 -- 2 args 
             | TmABS ID Ty           -- 1 arg
             | TmVAR Int             -- 0
@@ -42,8 +44,7 @@ data Tm     = TmAPP                 -- 2 args
 
             | Eff STMT
             deriving (Show, Eq, Read) 
-
-type AST    = RBTree Tm 
+--} 
 
 
 
