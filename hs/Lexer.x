@@ -71,10 +71,16 @@ token :-
     "."         { \s -> DOT             } 
     "~"         { \s -> NOT             } 
     "="         { \s -> EQ              } 
+    "!="        { \s -> NEQ             } 
     "<"         { \s -> LT              } 
     ">"         { \s -> GT              } 
     "<="        { \s -> LE              } 
     ">="        { \s -> GE              } 
+    "+"         { \s -> PLUS            } 
+    "-"         { \s -> MINUS           } 
+    "*"         { \s -> MULT            } 
+    "/"         { \s -> DIV             } 
+    "%"         { \s -> MOD             } 
     "--" @any   { \s -> COMMENT s       } 
     @id         { \s -> ID s            } 
     A           { \s -> A'              } 
@@ -101,7 +107,9 @@ data Token
             | IF | THEN | ELSE 
             | U8 | I8 | U256 | I256 
             | BOOL
-            | LT | GT | EQ | LE | GE 
+            | LT | GT | LE | GE 
+            | EQ | NEQ 
+            | PLUS |MINUS | MULT | DIV | MOD 
             | CASE 
             | NEW 
             | CALL 

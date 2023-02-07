@@ -4,15 +4,17 @@ contract counter {
     unusedvar : u256 ; 
 
     method inc : () :=              { counter >= 0 } 
-        let counter = counter ;     { counter > 0  }  
+        let counter = counter + 1 ; { counter > 0  }  
         counter 
     
     method get : u256 :=            { counter >= 0 } 
         counter                     { counter > 0  } 
 
     method reset : () :=            { counter >= 0 }  
-        let counter = 0 ;           { counter = 0  }  
-        counter 
+        let x = 0; 
+        let id x = x; 
+        let counter = id x ;        { counter = 0  }  
+        if x != 0 then 0 else counter  
 
 } 
         

@@ -71,6 +71,12 @@ import PsrCtx
     '<'         { LT                } 
     '>='        { GE                } 
     '<='        { LE                } 
+    '!='        { NEQ               } 
+    '+'         { PLUS              } 
+    '-'         { MINUS             } 
+    '*'         { MULT              } 
+    '/'         { DIV               } 
+    '%'         { MOD               } 
     comment     { COMMENT $$        } 
     id          { ID $$             } 
     E           { E'                } 
@@ -161,9 +167,24 @@ Decls
 
 Decl 
     : let id Params '=' Tm ';' Predicate { \ctx -> 
-                                            let (params, ctx') = $3 ctx in 
-                                            let (tm, ctx'')    = $5 ctx' in 
-                                            (LET $2 params tm ($7 ctx''), ctx'')    }
+                                            case lookup' $2 ctx of 
+                                            Just (TmSTO n)  -> 
+                                                let id'  = '\'':$2 in 
+                                                let ctx' = addCtx STO $2 ctx in 
+                                                let ctx'''' = addCtx STO id' ctx in 
+                                                let ([], ctx'') = $3 ctx' in 
+                                                let (tm, ctx''')    = $5 ctx'''' in 
+                                                (SLET $2 tm ($7 ctx'''), ctx')
+                                            _               -> 
+                                                let ctx' = addCtx VAR $2 ctx in 
+                                                let (params, ctx'') = $3 ctx' in 
+                                                case params of 
+                                                []          -> 
+                                                    let (tm, ctx''')   = $5 ctx''  in 
+                                                    (LET  $2 tm ($7 ctx'''), ctx') 
+                                                _           -> 
+                                                    let (tm, ctx''')   = $5 ctx''  in 
+                                                    (FLET $2 params tm ($7 ctx'''), ctx') } 
 
 Predicate 
     : '{' Formulae '}'                  { \ctx -> Just ($2 ctx)                 } 
@@ -192,7 +213,29 @@ AFormulae
     | true                              { \ctx -> FTrue                                 } 
 
 
+BOp : '='                               { "="   } 
+    | '!='                              { "!="  } 
+    | '<'                               { "<"   } 
+    | '>'                               { ">"   } 
+    | '<='                              { "<="  } 
+    | '>='                              { ">="  } 
+    | '+'                               { "+"   } 
+    | '-'                               { "-"   } 
+    | '*'                               { "*"   } 
+    | '/'                               { "/"   } 
+    | '%'                               { "%"   } 
+
 Tm  : AppTm                             { $1                                } 
+    | if Tm then Tm else Tm             { \ctx -> 
+                                            let (b,ctx') = $2 ctx in 
+                                            let (t1,ctx'') = $4 ctx' in 
+                                            let (t2,ctx''') = $6 ctx'' in 
+                                            (RED TmIF [b,t1,t2], ctx''') } 
+    | Tm BOp Tm                         { \ctx -> 
+                                            let (t1,ctx') = $1 ctx in 
+                                            let (t2,ctx'') = $3 ctx' in 
+                                            (RED (TmBOP $2) [t1,t2], ctx'') } 
+
 
 AppTm 
     : PathTm                            { $1                                } 

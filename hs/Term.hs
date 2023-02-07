@@ -34,11 +34,12 @@ data Tm     = TmAPP                 -- 2 args
             -- Declarations 
             | TmLET  ID Ty          -- 2 assignment 
             | TmSLET ID Ty          -- 2 storage assignment 
-            | TmFUN  ID Ty [Param]  -- 2 Function Declaration 
+            | TmFLET ID Ty [Param]  -- 2 Function Declaration 
             | TmMT   ID Ty [Param]  -- 2 Method   Declaration 
             | TmCN   ID 
             -- Unit Operations
-            | TmSEND
+            | TmSEND                -- 
+
 
             | Eff STMT
             deriving (Show, Eq, Read) 

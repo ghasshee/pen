@@ -10,7 +10,9 @@ import Datatype
 
 
 
-data Decl   = LET  ID [Param] AST (Maybe STFormulae)
+data Decl   = FLET ID [Param] AST (Maybe STFormulae)
+            |  LET ID         AST (Maybe STFormulae) 
+            | SLET ID         AST (Maybe STFormulae) 
             | DATA ID [ID] [DCONSTR] 
             deriving (Show, Eq, Read)  
 
