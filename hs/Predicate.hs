@@ -2,8 +2,10 @@ module  Predicate where
 
 import Term 
 
+type Formulae = STFormulae 
+
 data STFormulae = FTrue
-                | FAtomic Atomic 
+                | FAtom AFormulae 
                 | FAnd STFormulae STFormulae
                 | FNot STFormulae 
                 | E PathFormulae 
@@ -11,7 +13,7 @@ data STFormulae = FTrue
                 deriving (Eq, Read) 
 
 instance Show STFormulae where 
-    show (FAtomic a )   = show a 
+    show (FAtom   a )   = show a 
     show (FTrue     )   = "⊤"   
     show (FAnd a b  )   = show a ++ "∧" ++ show b
     show (FNot a    )   = "¬" ++ show a 
@@ -31,16 +33,18 @@ instance Show PathFormulae where
     show (G a       )   = "G(" ++ show a ++ ")" 
     show (Union a b )   = show a ++ "∪" ++ show b
 
-data Atomic     = AEq AST AST
+data AFormulae  = AEq AST AST
                 | AGt AST AST
                 | ALt AST AST 
                 | AGe AST AST 
                 | ALe AST AST 
                 deriving (Eq, Read) 
                 
-instance Show Atomic where 
+instance Show AFormulae where 
     show (AEq a b   )   = show a ++ "==" ++ show b
     show (AGt a b   )   = show a ++ ">"  ++ show b 
     show (ALt a b   )   = show a ++ "<"  ++ show b 
     show (AGe a b   )   = show a ++ ">=" ++ show b 
     show (ALe a b   )   = show a ++ "<=" ++ show b 
+
+

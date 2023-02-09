@@ -205,11 +205,11 @@ PathFormulae
 
 AFormulae   
     : '(' Formulae ')'                  { $2                                            } 
-    | Tm '=' Tm                         { \ctx -> FAtomic(AEq(fst($1 ctx))(fst($3 ctx)))}
-    | Tm '<' Tm                         { \ctx -> FAtomic(ALt(fst($1 ctx))(fst($3 ctx)))}
-    | Tm '>' Tm                         { \ctx -> FAtomic(AGt(fst($1 ctx))(fst($3 ctx)))}
-    | Tm '<=' Tm                        { \ctx -> FAtomic(ALe(fst($1 ctx))(fst($3 ctx)))}
-    | Tm '>=' Tm                        { \ctx -> FAtomic(AGe(fst($1 ctx))(fst($3 ctx)))}
+    | Tm '=' Tm                         { \ctx -> FAtom(AEq(fst($1 ctx))(fst($3 ctx)))}
+    | Tm '<' Tm                         { \ctx -> FAtom(ALt(fst($1 ctx))(fst($3 ctx)))}
+    | Tm '>' Tm                         { \ctx -> FAtom(AGt(fst($1 ctx))(fst($3 ctx)))}
+    | Tm '<=' Tm                        { \ctx -> FAtom(ALe(fst($1 ctx))(fst($3 ctx)))}
+    | Tm '>=' Tm                        { \ctx -> FAtom(AGe(fst($1 ctx))(fst($3 ctx)))}
     | true                              { \ctx -> FTrue                                 } 
 
 
