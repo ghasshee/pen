@@ -4,7 +4,9 @@ import Term
 
 type Formulae = STFormulae 
 
+-- state formulae 
 data STFormulae = FTrue
+                | FARROW STFormulae STFormulae 
                 | FAtom AFormulae 
                 | FAnd STFormulae STFormulae
                 | FNot STFormulae 
@@ -20,6 +22,8 @@ instance Show STFormulae where
     show (E pa      )   = "E(" ++ show pa ++ ")"
     show (A pa      )   = "A(" ++ show pa ++ ")" 
 
+
+-- path formulae 
 data PathFormulae 
                 = X STFormulae
                 | F STFormulae
@@ -33,6 +37,7 @@ instance Show PathFormulae where
     show (G a       )   = "G(" ++ show a ++ ")" 
     show (Union a b )   = show a ++ "∪" ++ show b
 
+-- atomic formulae 
 data AFormulae  = AEq AST AST
                 | AGt AST AST
                 | ALt AST AST 
@@ -41,10 +46,10 @@ data AFormulae  = AEq AST AST
                 deriving (Eq, Read) 
                 
 instance Show AFormulae where 
-    show (AEq a b   )   = show a ++ "==" ++ show b
-    show (AGt a b   )   = show a ++ ">"  ++ show b 
-    show (ALt a b   )   = show a ++ "<"  ++ show b 
-    show (AGe a b   )   = show a ++ ">=" ++ show b 
-    show (ALe a b   )   = show a ++ "<=" ++ show b 
+    show (AEq a b   )   = show' a ++ "==" ++ show' b
+    show (AGt a b   )   = show' a ++ ">"  ++ show' b 
+    show (ALt a b   )   = show' a ++ "<"  ++ show' b 
+    show (AGe a b   )   = show' a ++ ">=" ++ show' b 
+    show (ALe a b   )   = show' a ++ "<=" ++ show' b 
 
 

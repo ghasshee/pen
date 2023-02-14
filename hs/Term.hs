@@ -47,6 +47,17 @@ data Tm     = TmAPP                 -- 2 args
 type AST    = RBTree Tm 
 
 
+show' :: AST -> String 
+show' (RED (TmSTO i) _ )        = "S[" ++ show i ++ "]"  
+show' (RED (TmVAR i) _ )        = "X" ++ show i  
+show' (RED (TmU256 i) _)        = show i 
+show' (RED a [])                = show a 
+show' (RED (TmABS x ty) [a])    = "\\" ++ x ++ "." ++ show' a 
+show' (RED (TmBOP o) [a,b])     = show' a ++ o ++ show' b 
+show' (RED (TmUOP o) [a])       = o ++ show' a
+show' (RED TmIF     [a,b,c])    = "if" ++ show' a ++ "then" ++ show' b ++ "else" ++ show' c
+show' (RED TmCALL   [a,b,c])    = "call(" ++ show' a ++ ", " ++ show' b ++ ", " ++ show' c ++ ")" 
+show' a                         = show a 
 
 -- RETURN Type 
 --  if you want to return Function type,

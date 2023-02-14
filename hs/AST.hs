@@ -18,13 +18,14 @@ data Decl   = FLET ID [Param] AST (Maybe Formulae)
             deriving (Eq, Read)  
 
 instance Show Decl where 
-    show (FLET i ps t p) = "FLET " ++ i ++ " " ++ show ps ++ " := " ++ show t ++ show p ++ " in \n" 
-    show (SLET i    t p) = "SLET " ++ i ++ " "            ++ " := " ++ show t ++ show p ++ " in \n" 
-    show ( LET i    t p) = " LET " ++ i ++ " "            ++ " := " ++ show t ++ show p ++ " in \n" 
-    show (DATA i is c)   = "DATA " ++ i ++ " " ++ show is ++ " := " ++ show c  
+    show (FLET i ps t p) = "FLET " ++ i ++ " " ++ show ps ++ " := " ++ show t ++ show p ++ " IN \n" 
+    show (SLET i    t p) = "SLET " ++ i ++ " "            ++ " := " ++ show t ++ show p ++ " IN \n" 
+    show ( LET i    t p) = " LET " ++ i ++ " "            ++ " := " ++ show t ++ show p ++ " IN \n" 
+    show (DATA i is c)   = "DATA " ++ i ++ " " ++ show is ++ " := " ++ show c           ++ " IN \n" 
 
 data BODY   = BODY [Decl] AST 
             deriving (Eq, Read, Show) 
+
 
 
 data TOP    = MT ID Ty [Param] (Maybe Formulae) BODY (Maybe Formulae)  

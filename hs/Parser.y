@@ -79,12 +79,15 @@ import PsrCtx
     '%'         { MOD               } 
     comment     { COMMENT $$        } 
     id          { ID $$             } 
-    E           { E'                } 
-    A           { A'                } 
-    X           { X'                } 
-    F           { F'                } 
-    G           { G'                } 
-    U           { U'                } 
+    E           { POSSIBLY          } 
+    A           { NECESSARILY       } 
+    X           { NEXT              } 
+    F           { FUTURELY          } 
+    G           { GLOBALLY          } 
+    U           { UNTIL             } 
+    always      { ALWAYS            } 
+    never       { NEVER             } 
+    by          { BY                } 
     and         { AND'              } 
     or          { OR'               } 
 
@@ -191,25 +194,32 @@ Predicate
     |                                   { \ctx -> Nothing                       } 
 
 Formulae
-    : AFormulae                         { \ctx -> $1 ctx                        } 
-    | AFormulae and  AFormulae          { \ctx -> FAnd ($1 ctx) ($3 ctx)        } 
-    | '~' AFormulae                     { \ctx -> FNot ($2 ctx)                 } 
+    : '~' AFormulae                     { \ctx -> FNot ($2 ctx)                 } 
     | E PathFormulae                    { \ctx -> E    ($2 ctx)                 } 
     | A PathFormulae                    { \ctx -> A    ($2 ctx)                 } 
+    | always Formulae                   { \ctx -> A (G ($2 ctx))                } 
+    | AppFormulae                       { $1 } 
+
+AppFormulae 
+    : Formulae and  Formulae            { \ctx -> FAnd ($1 ctx) ($3 ctx)        } 
+    | TFormulae                         { \ctx -> $1 ctx                        } 
 
 PathFormulae
-    : X AFormulae                       { \ctx -> X     ($2 ctx)                } 
-    | F AFormulae                       { \ctx -> F     ($2 ctx)                } 
-    | G AFormulae                       { \ctx -> G     ($2 ctx)                } 
-    | AFormulae U AFormulae             { \ctx -> Union ($1 ctx) ($3 ctx)       } 
+    : X Formulae                        { \ctx -> X     ($2 ctx)                } 
+    | F Formulae                        { \ctx -> F     ($2 ctx)                } 
+    | G Formulae                        { \ctx -> G     ($2 ctx)                } 
+    | Formulae U Formulae               { \ctx -> Union ($1 ctx) ($3 ctx)       } 
 
-AFormulae   
-    : '(' Formulae ')'                  { $2                                            } 
-    | Tm '=' Tm                         { \ctx -> FAtom(AEq(fst($1 ctx))(fst($3 ctx)))}
+TFormulae 
+    : Tm '=' Tm                         { \ctx -> FAtom(AEq(fst($1 ctx))(fst($3 ctx)))}
     | Tm '<' Tm                         { \ctx -> FAtom(ALt(fst($1 ctx))(fst($3 ctx)))}
     | Tm '>' Tm                         { \ctx -> FAtom(AGt(fst($1 ctx))(fst($3 ctx)))}
     | Tm '<=' Tm                        { \ctx -> FAtom(ALe(fst($1 ctx))(fst($3 ctx)))}
     | Tm '>=' Tm                        { \ctx -> FAtom(AGe(fst($1 ctx))(fst($3 ctx)))}
+    | AFormulae                         { $1 } 
+
+AFormulae   
+    : '(' Formulae ')'                  { $2                                            } 
     | true                              { \ctx -> FTrue                                 } 
 
 

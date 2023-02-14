@@ -56,6 +56,17 @@ token :-
     "()"        { \s -> UNIT            }
     log         { \s -> LOG             }
     keccak      { \s -> KECCAK          }
+    until       { \s -> UNTIL           } 
+    exists      { \s -> EXISTS                  } 
+    forall      { \s -> FORALL                  } 
+    next        { \s -> NEXT        -- X        } 
+    futurely    { \s -> FUTURELY    -- F        } 
+    globally    { \s -> GLOBALLY    -- G        } 
+    always      { \s -> ALWAYS      -- AG       } 
+    never       { \s -> NEVER       -- not EF   } 
+    possibly    { \s -> POSSIBLY    -- E        } 
+    necessarily { \s -> NECESSARILY -- A        }
+    by          { \s -> BY          -- ( F p ) U ( F q )} 
     "->"        { \s -> ARROW           }
     "=>"        { \s -> DARROW          }
     "("         { \s -> LPAREN          }
@@ -91,10 +102,15 @@ token :-
     U           { \s -> U'              } 
     '/\'        { \s -> AND'            } 
     '\/'        { \s -> OR'             } 
+    
 { 
 
 data Token  
             = COMMENT String 
+            | EXISTS | FORALL
+            | NEXT | FUTURELY | GLOBALLY | UNTIL  
+            | POSSIBLY | NECESSARILY 
+            | ALWAYS | NEVER | BY 
             | TRUE
             | FALSE 
             | NUM Integer 
