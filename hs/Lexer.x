@@ -26,8 +26,7 @@ token :-
     true        { \s -> TRUE            } 
     false       { \s -> FALSE           } 
     let         { \s -> LET'            } 
-    $digit+     { \s -> NUM (read s)    } 
-    \-$digit+   { \s -> NUM (read s)    } 
+    $digit+     { \s -> NUM (read s)    }  
     0x$hex+     { \s -> NUM (read s)    } 
     event       { \s -> EVENT           }
     contract    { \s -> CONTRACT        } 

@@ -235,8 +235,7 @@ BOp : '='                               { "="   }
     | '/'                               { "/"   } 
     | '%'                               { "%"   } 
 
-Tm  : AppTm                             { $1                                } 
-    | if Tm then Tm else Tm             { \ctx -> 
+Tm  : if Tm then Tm else Tm             { \ctx -> 
                                             let (b,ctx') = $2 ctx in 
                                             let (t1,ctx'') = $4 ctx' in 
                                             let (t2,ctx''') = $6 ctx'' in 
@@ -245,6 +244,7 @@ Tm  : AppTm                             { $1                                }
                                             let (t1,ctx') = $1 ctx in 
                                             let (t2,ctx'') = $3 ctx' in 
                                             (RED (TmBOP $2) [t1,t2], ctx'') } 
+    | AppTm                             { $1                                } 
 
 
 AppTm 
@@ -252,6 +252,10 @@ AppTm
     | '~' PathTm                        { \ctx -> 
                                             let (t,ctx') = $2 ctx in 
                                             (RED TmNOT [t], ctx')           } 
+    | '-' PathTm                        { \ctx -> 
+                                            let (t,ctx') = $2 ctx in 
+                                            (RED (TmUOP "-") [t], ctx')           } 
+
     | AppTm PathTm                      { \ctx -> 
                                             let (t1,ctx') = $1 ctx in 
                                             let (t2,ctx'') = $2 ctx' in 
