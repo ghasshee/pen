@@ -11,9 +11,9 @@ import Datatype
 
 
 
-data Decl   = FLET ID [Param] AST (Maybe Formulae)
-            |  LET ID         AST (Maybe Formulae) 
-            | SLET ID         AST (Maybe Formulae) 
+data Decl   = FLET ID [Param] Term (Maybe Formulae)
+            |  LET ID         Term (Maybe Formulae) 
+            | SLET ID         Term (Maybe Formulae) 
             | DATA ID [ID] [DCONSTR] 
             deriving (Eq, Read)  
 
@@ -23,12 +23,11 @@ instance Show Decl where
     show ( LET i    t p) = " LET " ++ i ++ " "            ++ " := " ++ show t ++ show p ++ " IN \n" 
     show (DATA i is c)   = "DATA " ++ i ++ " " ++ show is ++ " := " ++ show c           ++ " IN \n" 
 
-data BODY   = BODY [Decl] AST 
+data BODY   = BODY (Maybe Formulae) [Decl] Term (Maybe Formulae) 
             deriving (Eq, Read, Show) 
 
 
-
-data TOP    = MT ID Ty [Param] (Maybe Formulae) BODY (Maybe Formulae)  
+data TOP    = MT ID Ty [Param] BODY   
             | SV ID Ty  -- Storage Variables 
             | EV ID Ty 
             deriving (Show, Eq, Read) 

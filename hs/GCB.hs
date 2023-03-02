@@ -14,7 +14,7 @@ data D  = DVar Int
         | DSeq D D 
         | DProc String [Int] Int C  -- Name Args Ret Body
 
-data C  = CDecl D C 
+data C  = CBlk D C 
         | CAsgn Int A
         | CSkip 
         | CSeq C C 
@@ -28,4 +28,10 @@ data GC = GCond B C
 
 type A  = EXPR 
 type B  = EXPR 
+
+type NewNode    = Int
+type NewVar     = Int 
+type NewSto     = Int 
+
+
 

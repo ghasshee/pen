@@ -81,6 +81,7 @@ token :-
     "."         { \s -> DOT             } 
     "~"         { \s -> NOT             } 
     "="         { \s -> EQ              } 
+    "=="        { \s -> EQEQ            } 
     "!="        { \s -> NEQ             } 
     "<"         { \s -> LT              } 
     ">"         { \s -> GT              } 
@@ -123,7 +124,7 @@ data Token
             | U8 | I8 | U256 | I256 
             | BOOL
             | LT | GT | LE | GE 
-            | EQ | NEQ 
+            | EQ | NEQ | EQEQ
             | PLUS |MINUS | MULT | DIV | MOD 
             | CASE 
             | NEW 

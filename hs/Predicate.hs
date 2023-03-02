@@ -38,11 +38,11 @@ instance Show PathFormulae where
     show (Union a b )   = show a ++ "∪" ++ show b
 
 -- atomic formulae 
-data AFormulae  = AEq AST AST
-                | AGt AST AST
-                | ALt AST AST 
-                | AGe AST AST 
-                | ALe AST AST 
+data AFormulae  = AEq Term Term
+                | AGt Term Term
+                | ALt Term Term 
+                | AGe Term Term 
+                | ALe Term Term 
                 deriving (Eq, Read) 
                 
 instance Show AFormulae where 

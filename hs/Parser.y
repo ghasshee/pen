@@ -71,6 +71,7 @@ import PsrCtx
     '<'         { LT                } 
     '>='        { GE                } 
     '<='        { LE                } 
+    '=='        { EQEQ              } 
     '!='        { NEQ               } 
     '+'         { PLUS              } 
     '-'         { MINUS             } 
@@ -112,11 +113,9 @@ Top : StoVars   Top                     { \ctx  ->  let (svs, ctx')     = $1 ctx
     |                                   { \ctx ->   ([],               ctx  )           } 
 
 Mthd 
-    : method id Params ':' Ty ':=' 
-      Predicate Body Predicate          { \ctx -> 
+    : method id Params ':' Ty ':=' Body { \ctx -> 
                                             let (params,ctx') = $3 ctx  in 
-                                            let (body,ctx'')  = $8 ctx' in 
-                                            MT $2 $5 params ($7 ctx'') body ($9 ctx'')  }
+                                            MT $2 $5 params ($7 ctx')  }
 
 StoVars
     : IDs ':' Ty ';'                    { \ctx ->   mapStoTy $3 $1 ctx                  } 
@@ -153,13 +152,13 @@ ATy : bool                              { TyBOOL            }
 
 
 Body 
-    : Tm                                { \ctx -> 
-                                            let (tm, ctx')   = $1 ctx in 
-                                            (BODY []    tm, ctx' )                  } 
-    | Decls Tm                          { \ctx -> 
-                                            let (decls,ctx') = $1 ctx  in 
-                                            let (tm,  ctx'') = $2 ctx' in
-                                            (BODY decls tm, ctx'')                  } 
+    : Predicate Tm Predicate            { \ctx -> 
+                                            let (tm, ctx')   = $2 ctx in 
+                                            BODY ($1 ctx') [] tm ($3 ctx')                   } 
+    | Predicate Decls Tm Predicate      { \ctx -> 
+                                            let (decls,ctx') = $2 ctx  in 
+                                            let (tm,  ctx'') = $3 ctx' in
+                                            BODY ($1 ctx'') decls tm ($4 ctx'')               } 
 
 Decls 
     : Decl     Decls                    { \ctx -> 
@@ -211,7 +210,7 @@ PathFormulae
     | Formulae U Formulae               { \ctx -> Union ($1 ctx) ($3 ctx)       } 
 
 TFormulae 
-    : Tm '=' Tm                         { \ctx -> FAtom(AEq(fst($1 ctx))(fst($3 ctx)))}
+    : Tm '==' Tm                         { \ctx -> FAtom(AEq(fst($1 ctx))(fst($3 ctx)))}
     | Tm '<' Tm                         { \ctx -> FAtom(ALt(fst($1 ctx))(fst($3 ctx)))}
     | Tm '>' Tm                         { \ctx -> FAtom(AGt(fst($1 ctx))(fst($3 ctx)))}
     | Tm '<=' Tm                        { \ctx -> FAtom(ALe(fst($1 ctx))(fst($3 ctx)))}
@@ -223,7 +222,7 @@ AFormulae
     | true                              { \ctx -> FTrue                                 } 
 
 
-BOp : '='                               { "="   } 
+BOp : '=='                              { "=="  } 
     | '!='                              { "!="  } 
     | '<'                               { "<"   } 
     | '>'                               { ">"   } 
