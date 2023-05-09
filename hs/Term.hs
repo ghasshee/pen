@@ -38,7 +38,8 @@ data Tm     = TmAPP                 -- 2 args
             | TmMT   ID Ty [Param]  -- 2 Method   Declaration 
             | TmCN   ID 
             -- Unit Operations
-            | TmSEND                -- 
+            | TmSEND                -- really sending amount
+            | TmTRANSFER            -- just change the balance table contracts have
 
 
             | Eff STMT

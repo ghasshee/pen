@@ -44,8 +44,10 @@ toHexChar 14='E'
 toHexChar 15='F'  
 
 toHex   :: Integer -> String 
-toHex 0 = ""
-toHex n = toHex (div n 16) ++ [toHexChar (rem n 16)]
+toHex 0 = "0"
+toHex n = loop n where 
+    loop 0 = ""
+    loop n = loop (div n 16) ++ [toHexChar (rem n 16)]
 
 
 --toByte  :: Integer -> String

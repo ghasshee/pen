@@ -5,6 +5,7 @@ import Prelude hiding (lex, EQ, LT, GT)
 import Tree
 import GCLL
 import Type
+import AST
 import Term
 import Lexer
 import Parser
@@ -22,13 +23,21 @@ main = do
     let (file:_) = args
     contents <- readFile file 
 
-    let ast = parse . lex $ contents
+    let ast :: [CONTRACT] 
+        ast = parse . lex $ contents
     let tm  = map transpileCN ast 
 
+    let pgs = map mkPG ast
 
+
+    print "------ Abstract Syntax Tree -------"
     print ast
-    print "--------------" 
-    print tm 
+--    print "------- transpiled into Functional Term -------" 
+--    print tm 
+    print "------ Program Graph -------" 
+    print pgs 
+
+
 
 
     

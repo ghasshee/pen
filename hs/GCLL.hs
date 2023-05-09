@@ -78,7 +78,7 @@ instance Show EXPR where
         M  e            -> "M[" ++ show e ++ "]"
         S  e            -> "S[" ++ show e ++ "]"
         Stk n           -> "Stk[" ++ show n ++ "]" 
-        Var s           -> s  
+        Var s           -> "X" ++ s  
         V v             -> show v 
         Add    y x      -> show x ++ "+" ++ show y 
         Sub    y x      -> show x ++ "-" ++ show y 
