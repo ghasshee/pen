@@ -11,6 +11,7 @@ import AST
 import Hex
 
 
+fst3 (x,y,z) = x 
 
 data Var  = X Int deriving (Show, Eq, Read) 
 data Sto  = S Int deriving (Show, Eq, Read) 
@@ -19,6 +20,7 @@ data Node = Q Int
                 deriving (Show, Eq, Read) 
 
 data Action     = AcStop 
+                | AcDispatch String 
                 | AcRevert EXPR EXPR
                 | AcReturn EXPR EXPR
                 | AcPop 
@@ -59,27 +61,42 @@ type FunCtx = [(ArgNum, InitNode, LastNode)]
 type Config = (InitNode, LastNode, NewNode, NewSto, NewVar, FunCtx) 
 type Edges  = ([Edge], Config) 
 
+
+-- Initialization 
 initialConfig = (Qi, Qt, 0, 0, 0, [])
-
-
 mkPG cn = pgCN cn initialConfig  
 
+
+
+-------------------------
+--    Program Graph    --  
+-------------------------
+
+-- CN -> pg 
 pgCN :: CONTRACT -> Config -> Edges
 pgCN (CN id tops) config = pgTOPs tops config
 
+
+-- [TOP] -> pg 
 pgTOPs :: [TOP] -> Config -> Edges 
-pgTOPs []           cfg     =   ([], cfg)
-pgTOPs (top:tops)   cfg     =   let (es, cfg' ) = pgTOP  top  cfg in 
-                                let (ess,cfg'') = pgTOPs tops cfg' in 
-                                (es ++ ess, cfg'') 
+pgTOPs []           cfg             =   ([], cfg)
+pgTOPs (top:tops)   cfg             =   let (es, cfg' ) = pgTOP  top  cfg in 
+                                        let (ess,cfg'') = pgTOPs tops cfg' in 
+                                        (es ++ ess, cfg'') 
     
+-- TOP -> pg     
 pgTOP :: TOP -> Config -> Edges
-pgTOP (MT id ty ps bd) cfg          =   let (es,cfg') = pgParams ps cfg in 
-                                        let (es',cfg'') = pgBODY bd cfg' in 
-                                        (es++es', cfg'') 
+pgTOP (MT id ty ps bd) (i,t,q,s,v,ctx) = 
+    let (e,(_,_,q',s',v',ctx')) = pgMT (MT id ty ps bd) (Q q,Q(q+1),q+2,s,v,ctx) in 
+    (e++[(i,AcDispatch id, Q q),(Q(q+1),AcSkip, t)], (i,t,q',s',v',ctx')) 
 pgTOP (SV id ty) (i,t,q,s,v,ctx)    =   ([(i, AcSto s, Q q)], (Q q, t, q+1,s+1,v,ctx))   
 pgTOP (EV id ty) (i,t,q,s,v,ctx)    =   undefined 
 
+
+
+pgMT (MT id ty ps bd) cfg           =   let (es ,cfg' )     = pgParams ps cfg   in 
+                                        let (es',cfg'')     = pgBODY   bd cfg'  in 
+                                        (es++es', cfg'') 
 
 pgParams :: [Param] -> Config -> Edges
 pgParams []     cfg                 =   ([], cfg)
@@ -90,6 +107,8 @@ pgParams (p:ps) cfg                 =   (es ++ ess, cfg'')
 pgParam :: Param -> Config -> Edges
 pgParam (id,ty) (i,t,q,s,v,ctx)     =   ([(i, AcVar v, Q q)], (Q q, t, q+1,s,v+1,ctx))
 
+
+-- BODY -> pg 
 pgBODY :: BODY -> Config -> Edges 
 pgBODY (BODY _ ds tm _) cnf         =   (es++es', cnf'') 
                                 where   (es,  cnf' ) = pgDecls ds cnf  
@@ -97,9 +116,9 @@ pgBODY (BODY _ ds tm _) cnf         =   (es++es', cnf'')
 
 pgDecls :: [Decl] -> Config -> Edges 
 pgDecls [] cnf = ([],cnf)
-pgDecls (d:ds) cnf                  =   (es++ess, cnf'') 
-                                where   (es,  cnf' )    = pgDecl  d  cnf
-                                        (ess, cnf'')    = pgDecls ds cnf'
+pgDecls (d:ds) (i,t,q,s,v,ctx) =   (es++ess, cnf'') 
+                                where   (es, (i',t',q',s',v',ctx')) = pgDecl  d  (i,Q q,q+1,s,v,ctx) 
+                                        (ess, cnf'')              = pgDecls ds (Q q,t,q',s',v',ctx') 
 
 higherParams []             = [] 
 higherParams ((id,ty):xs)   = (id,degreeOfFun ty):higherParams xs
@@ -119,34 +138,39 @@ pgFuns (f:fs) cfg   =   (es++ess,cfg'')
 
 pgFun :: (ID,ArgLen) -> Config -> Edges 
 pgFun (id,arglen) (i,t,q,s,v,ctx) = 
-    if arglen == 0 
-        then    ([], (i,t,q,s,v, ctx ++ [(0,Qe,Qe)])) 
-        else 
-                let (q0,q1) = (Q  q   , Q (q+1)) in 
-                let (qn,qx) = (Q (q+2), Q (q+3)) in 
-                let cfg     = (qn,qx,(q+4),s,v,(arglen,qn,qx):ctx) in 
-                ([(i, AcSkip, q0),(q1, AcSkip, t)], cfg)  
+                let (qn,qx) = (Q  q   , Q (q+1)) in 
+                ([], (qn,qx,q+2,s,v,(arglen,qn,qx):ctx))   
 
+
+removectx n []     = error "contex cannot be removed" 
+removectx 0 ctx    = ctx 
+removectx n (c:cs) = removectx (n-1) cs  
+
+-- Decl -> pg  
 pgDecl :: Decl -> Config -> Edges 
-pgDecl (FLET id ps tm _) (i,t,q,s,v,ctx) = 
-    let arglen      = length ps in 
-    let fparams     = higherParams ps in 
-    let funs        = (id, arglen) : fparams in  
-    let (es,cfg)    = pgFuns funs (i,t,q,s,v,ctx) in 
-    let (es',cfg')  = pgTerm tm cfg in 
-    (es++es',cfg) 
-pgDecl ( LET id    tm tm') (i,t,q,s,v,ctx) = pgDecl (FLET id [] tm tm') (i,t,q,s,v,ctx) 
-pgDecl (SLET id    tm _) (i,t,q,s,v,ctx)   = ([], (i,t,q,s,v,ctx) )
+pgDecl (FLET id ps tm _  ) (i,t,q,s,v,ctx) = 
+    let arglen      = length ps                     in 
+    let fparams     = higherParams ps               in 
+    let funs        = (id, arglen) : fparams        in  
+    let (es,(_,_,q',s',v',ctx'))            = pgFuns funs (i,t,q,s,v,ctx)       in 
+    let (_,qn,qx)   = case searchFun 0 ctx' of 
+                            Just x -> x 
+                            Nothing -> error "function not found"  in 
+    let (es',(_,_,q'',s'',v'',ctx''))       = pgTerm tm   (qn,qx,q',s',v',ctx') in 
+    let ctx''' = removectx arglen ctx'' in 
+    (es++es',(i,t,q'',s'',v'',ctx''')) 
+pgDecl ( LET id    tm fm ) (i,t,q,s,v,ctx)  = pgDecl (FLET id [] tm fm) (i,t,q,s,v,ctx) 
+pgDecl (SLET id    tm _  ) (i,t,q,s,v,ctx)  = ([], (i,t,q,s,v,ctx) )
 -- here, tm cannot always be AExp a 
 -- so this cannot be translated into " x := a "  
 -- it should be like 
 -- pg(tm ; x := retvalue) ; 
-pgDecl (DATA id is ds  ) (i,t,q,s,v,ctx) = undefined 
+pgDecl (DATA id is ds    ) (i,t,q,s,v,ctx)  = undefined 
 
-fst3 (x,y,z) = x 
 
 pgArgs :: [Term] -> Config -> [Int] -> Int -> Edges 
 pgArgs []       cfg             ns                 k = ([],cfg) 
+pgArgs [tm]                 (i,t,q,s,v,ctx) (0:ns) k = pgTerm tm (i,t,q,s,v,ctx) 
 pgArgs (tm:tms)             (i,t,q,s,v,ctx) (0:ns) k = 
     let (e,(_,_,q',s',v',ctx'))         = pgTerm tm  (i,Q q,q+1,s,v,ctx)  in 
     let (econt,(_,_,q'',s'',v'',ctx'')) = pgArgs tms (Q q,t,q',s',v',ctx') ns (k+1) in 
@@ -161,31 +185,36 @@ pgArgs (tm:tms)             (i,t,q,s,v,ctx) (n:ns) k =
     (e ++ econt, (i,t,q'',s'',v'',ctx''))
 
 
+--
+--pgReturnTerm :: Term -> Config -> Edges 
+--pgReturnTerm tm (i,t,q,s,v,ctx)     = 
+--    let (e,ctx')                    = pgTerm tm (i,t,q,s,v,ctx) in 
+--    undefined 
+
+
 pgTermApp :: Term -> Config -> [Term] -> Edges 
 pgTermApp (RED TmAPP [RED(TmVAR n)[],t2]) (i,t,q,s,v,ctx) cont = 
     let Just (argnum,qn,qx)         = searchFun n ctx in 
     let eenter                      = [(i     , AcEnter     , Q q     )] in 
-    let argnums                     = map fst3 ctx in 
+    let argnums                     = reverse $ map fst3 ctx in 
     let (econt,(_,_,q',s',v',ctx')) = pgArgs(t2:cont)(Q q,Q(q+1),q+2,s,v,ctx)argnums 1 in
     let erecord                     = [(Q(q+1), AcRecord i t, qn      )] in 
     let echeck                      = [(qx    , AcCheck  i t, Q q'    )] in 
-    let eexit                       = [(Q q'  , AcExit      , Q (q'+1))] in 
-    (eenter ++ econt ++ erecord ++ echeck ++ eexit, (i,t,q'+2,s',v',ctx'))  
+    let eexit                       = [(Q q'  , AcExit      , t)] in 
+    (eenter ++ econt ++ erecord ++ echeck ++ eexit, (i,t,q'+1,s',v',ctx'))  
 pgTermApp (RED TmAPP [t1,t2]) cfg cont = pgTermApp t1 cfg (t2:cont) 
 
 
 pgTerm :: Term -> Config -> Edges 
-pgTerm (RED TmAPP [t1,t2]) cfg  = pgTermApp (RED TmAPP [t1,t2]) cfg []
+pgTerm (RED TmAPP [t1,t2]) cfg              = pgTermApp (RED TmAPP [t1,t2]) cfg []
 pgTerm (RED TmIF [b,t1,t2]) (i,t,q,s,v,ctx) = 
     let (eb,(_,_,q' ,s' ,v' ,ctx' ))    = pgCond b  (i, Q q,q+2  ,s  ,v  ,ctx  ) in 
     let (e1,(_,_,q'',s'',v'',ctx''))    = pgTerm t1 (Q q   ,t,q' ,s' ,v' ,ctx' ) in 
     let (e2,cfg)                        = pgTerm t2 (Q(q+1),t,q'',s'',v'',ctx'') in 
     let eelse                           = [(i, AcSkip, Q(q+1))] in 
     (eb++e1++e2++eelse, cfg)  
-pgTerm (RED (TmU256 n) []) (i,t,q,s,v,ctx) = 
-    ([(i, AcPush (Ox (toHex n)), t)], (i,t,q,s,v,ctx)) 
-pgTerm (RED (TmVAR n) []) (i,t,q,s,v,ctx) = 
-    ([(i, AcPush (Var (show n)), t)], (i,t,q,s,v,ctx))
+pgTerm (RED (TmU256 n) []) (i,t,q,s,v,ctx)  = ([(i, AcPush (Ox (toHex n)), t)], (i,t,q,s,v,ctx)) 
+pgTerm (RED (TmVAR  n) []) (i,t,q,s,v,ctx)  = ([(i, AcPush (Var (show n)), t)], (i,t,q,s,v,ctx))
 pgTerm (RED (TmBOP o) [t1,t2]) (i,t,q,s,v,ctx) = 
     let (e1,(_,_,q',s',v',ctx'))        = pgTerm t1 (i,Q q,q+1,s,v,ctx) in 
     let (e2,cfg)                        = pgTerm t2 (Q q,Q q',q'+1,s',v',ctx') in 
