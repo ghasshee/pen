@@ -12,6 +12,7 @@ import Parser
 import Typing
 import PG
 import Decl2Term
+import Matrix 
 
 import System.IO 
 import System.Environment 
@@ -29,6 +30,8 @@ main = do
 
     let pgs = map mkPG ast
 
+    let mat = map genMat pgs
+
 
     print "------ Abstract Syntax Tree -------"
     print ast
@@ -36,6 +39,10 @@ main = do
 --    print tm 
     print "------ Program Graph -------" 
     print pgs 
+    
+
+    print "------ Matrix Representation ----" 
+    print mat
 
 
 

@@ -9,45 +9,18 @@ import Term
 import Tree
 import AST
 import Hex
+import Action  
 
+import Data.Tuple.Extra (fst3) 
 
-fst3 (x,y,z) = x 
+--------------------------
+--- DATA DEFINITION    ---
+--------------------------
 
-data Var  = X Int deriving (Show, Eq, Read) 
-data Sto  = S Int deriving (Show, Eq, Read) 
-data Node = Q Int 
-          | Qi | Qt | Qe
-                deriving (Show, Eq, Read) 
-
-data Action     = AcStop 
-                | AcDispatch String 
-                | AcRevert EXPR EXPR
-                | AcReturn EXPR EXPR
-                | AcPop 
-                | AcPush EXPR
-                | AcSwap Int 
-                | AcDup  Int 
-                | AcBop  String 
-                | AcCalldatacopy EXPR EXPR EXPR 
-                | AcCodecopy EXPR EXPR EXPR
-                | AcExtcodecopy 
-                -- | AcSeq [Action] 
-                | AcSkip                -- correspond to GOTO 
-                | AcAssgin Var EXPR
-                | AcBool   EXPR         -- correspond to IFGOTO
-                | AcElse                -- Does this  
-                | AcEnter               -- make empty frame 
-                | AcExit                -- Return stacktop, remove frame, push stacktop
-                | AcVar Int
-                | AcSto Int
-                | AcArray Var Int
-                | AcRecord Node Node    -- 
-                | AcCheck Node Node 
-                deriving (Show, Eq, Read) 
-                
-
-
+-- PROGRAM GRAPH 
 type Edge = (Node, Action, Node) 
+
+-- CONFIGURE 
 type NewNode    = Int
 type NewSto     = Int 
 type NewVar     = Int
@@ -59,12 +32,16 @@ data Bind   = FunBind (ArgNum, InitNode, LastNode)
             deriving (Show, Eq, Read) 
 type FunCtx = [(ArgNum, InitNode, LastNode)] 
 type Config = (InitNode, LastNode, NewNode, NewSto, NewVar, FunCtx) 
+
 type Edges  = ([Edge], Config) 
 
 
 -- Initialization 
-initialConfig = (Qi, Qt, 0, 0, 0, [])
+initialConfig = (Qi, Qt, 1, 0, 0, [])
 mkPG cn = pgCN cn initialConfig  
+
+
+
 
 
 
@@ -116,6 +93,9 @@ pgBODY (BODY _ ds tm _) cnf         =   (es++es', cnf'')
 
 pgDecls :: [Decl] -> Config -> Edges 
 pgDecls [] cnf = ([],cnf)
+pgDecls (FLET id ps tm fm:ds) (i,t,q,s,v,ctx) = (es++ess,cnf'') 
+                                where   (es, (i',t',q',s',v',ctx')) = pgDecl (FLET id ps tm fm) (i,t,q,s,v,ctx) 
+                                        (ess, cnf'')                = pgDecls ds (i,t,q',s',v',ctx') 
 pgDecls (d:ds) (i,t,q,s,v,ctx) =   (es++ess, cnf'') 
                                 where   (es, (i',t',q',s',v',ctx')) = pgDecl  d  (i,Q q,q+1,s,v,ctx) 
                                         (ess, cnf'')              = pgDecls ds (Q q,t,q',s',v',ctx') 
@@ -153,13 +133,13 @@ pgDecl (FLET id ps tm _  ) (i,t,q,s,v,ctx) =
     let fparams     = higherParams ps               in 
     let funs        = (id, arglen) : fparams        in  
     let (es,(_,_,q',s',v',ctx'))            = pgFuns funs (i,t,q,s,v,ctx)       in 
-    let (_,qn,qx)   = case searchFun 0 ctx' of 
+    let (_,qn,qx)   = case searchFun 1 ctx' of 
                             Just x -> x 
-                            Nothing -> error "function not found"  in 
+                            Nothing -> error $ show ctx' ++ "function not found"  in 
     let (es',(_,_,q'',s'',v'',ctx''))       = pgTerm tm   (qn,qx,q',s',v',ctx') in 
-    let ctx''' = removectx arglen ctx'' in 
+    let ctx''' = removectx (arglen - length fparams) ctx'' in 
     (es++es',(i,t,q'',s'',v'',ctx''')) 
-pgDecl ( LET id    tm fm ) (i,t,q,s,v,ctx)  = pgDecl (FLET id [] tm fm) (i,t,q,s,v,ctx) 
+pgDecl ( LET id    tm fm ) (i,t,q,s,v,ctx)  = pgTerm tm (i,t,q,s,v,ctx) 
 pgDecl (SLET id    tm _  ) (i,t,q,s,v,ctx)  = ([], (i,t,q,s,v,ctx) )
 -- here, tm cannot always be AExp a 
 -- so this cannot be translated into " x := a "  
@@ -172,7 +152,7 @@ pgArgs :: [Term] -> Config -> [Int] -> Int -> Edges
 pgArgs []       cfg             ns                 k = ([],cfg) 
 pgArgs [tm]                 (i,t,q,s,v,ctx) (0:ns) k = pgTerm tm (i,t,q,s,v,ctx) 
 pgArgs (tm:tms)             (i,t,q,s,v,ctx) (0:ns) k = 
-    let (e,(_,_,q',s',v',ctx'))         = pgTerm tm  (i,Q q,q+1,s,v,ctx)  in 
+    let (e,(_,_,q',s',v',ctx'))         = pgTerm tm  (i,Q q,q+1,s,v,ctx)            in 
     let (econt,(_,_,q'',s'',v'',ctx'')) = pgArgs tms (Q q,t,q',s',v',ctx') ns (k+1) in 
     (e ++ econt, (i,t,q'',s'',v'',ctx'')) 
 pgArgs (RED(TmVAR j)[]:tms) (i,t,q,s,v,ctx) (n:ns) k = pgArgs tms (i,t,q,s,v,ctx) ns (k+1)  
@@ -196,13 +176,13 @@ pgTermApp :: Term -> Config -> [Term] -> Edges
 pgTermApp (RED TmAPP [RED(TmVAR n)[],t2]) (i,t,q,s,v,ctx) cont = 
     let Just (argnum,qn,qx)         = searchFun n ctx in 
     let eenter                      = [(i     , AcEnter     , Q q     )] in 
-    let argnums                     = reverse $ map fst3 ctx in 
+    let argnums                     = map fst3 ctx in 
     let (econt,(_,_,q',s',v',ctx')) = pgArgs(t2:cont)(Q q,Q(q+1),q+2,s,v,ctx)argnums 1 in
     let erecord                     = [(Q(q+1), AcRecord i t, qn      )] in 
     let echeck                      = [(qx    , AcCheck  i t, Q q'    )] in 
     let eexit                       = [(Q q'  , AcExit      , t)] in 
     (eenter ++ econt ++ erecord ++ echeck ++ eexit, (i,t,q'+1,s',v',ctx'))  
-pgTermApp (RED TmAPP [t1,t2]) cfg cont = pgTermApp t1 cfg (t2:cont) 
+pgTermApp (RED TmAPP [t1,t2]) cfg cont  = pgTermApp t1 cfg (t2:cont) 
 
 
 pgTerm :: Term -> Config -> Edges 
@@ -236,12 +216,12 @@ pgCond (RED (TmBOP op) [t1,t2]) (i,t,q,s,v,ctx) =
         t2' = tm2exp ctx t2 
 
 pgBOP "!=" x y = Not (Eq x y)  
-pgBOP "==" x y = Eq x y
+pgBOP "==" x y = Eq  x y
 pgBOP "*"  x y = Mul x y
 pgBOP "-"  x y = Sub x y
 pgBOP "+"  x y = Add x y
-pgBOP "<"  x y = Lt x y
-pgBOP ">"  x y = Gt x y 
+pgBOP "<"  x y = Lt  x y
+pgBOP ">"  x y = Gt  x y 
 
 tm2exp ctx (RED (TmVAR n) [])  = Var (show n)  
 tm2exp ctx (RED (TmU256 n) []) = Ox (toHex n)
