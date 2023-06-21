@@ -6,7 +6,6 @@ Pen is a Compiler that compiles the High-Level Language into EVM bytecodes.
 
 
 
-
 ## Old Project (deprecated bamboo modification and its History) 
 
 Original motivation of Pen compiler starts with modification of bamboo. 
@@ -79,6 +78,10 @@ $ ./pen --asm < ../examples/count.pen   ## shows Assembler Code
 
 
 
+
+
+
+
 ## New Project (Written from Sctratch in Haskell) 
 
 
@@ -91,7 +94,8 @@ In developping, we use a lot Haskell's "Show Instance" for visibility of analysi
 
 ### Build 
 
-You might need Haskell compiler's and some libraries. 
+You might need Haskell compiler  and some libraries. 
+
 Goto `pen/hs/` directory and then type `make` and push enter key. 
 
 
@@ -112,6 +116,12 @@ The above command might analyze the pen source code and show the resulting progr
 ### Deploying a contract 
 
 Currently Not Supported 
+
+
+
+
+
+
 
 
 # DEVM
