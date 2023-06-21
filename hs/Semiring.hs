@@ -4,16 +4,18 @@ module Semiring where
 import Data.Monoid 
 
 infixl 1 <.> 
-(<.>) :: Monoid m => m -> m -> m 
-(<.>) = mappend 
-
-one :: Monoid m => m
-one = mempty 
+-- (<.>) :: Monoid m => m -> m -> m 
+-- (<.>) = mappend 
+-- 
+-- one :: Monoid m => m
+-- one = mempty 
 
 
 class Monoid m => Semiring m where 
-    zero :: m 
+    zro :: m 
     (<+>) :: m -> m -> m 
+    (<.>) :: m -> m -> m 
+    one :: m 
 
 
 
@@ -24,8 +26,9 @@ data OR a       = NULL
 
 instance Show a => Show (OR a) where 
     show (NULL      )   = "0" 
-    show (LI [a]    )   = show [a]
-    show (OR a b    )   = show a ++ "|" ++ show b 
+    show (LI l      )   = show l
+    show (OR a b    )   = show a ++ "  |  " ++ show b 
+    
 
 instance Semigroup (OR a) where 
     LI l <> LI m                = LI (l <> m)
@@ -41,9 +44,23 @@ instance Monoid (OR a) where
     mappend o (OR t s)          = OR (mappend o t) (mappend o s) 
 
 instance Semiring (OR a) where 
-    zero    = NULL 
-    a <+> b = OR a b 
+    zro             = NULL 
+    one             = mempty 
+    NULL  <+> a     = a 
+    a     <+> NULL  = a 
+    LI [] <+> a     = a 
+    a     <+> LI [] = a 
+    a     <+> b     = OR a b 
+    NULL  <.> a     = NULL 
+    a     <.> NULL  = NULL 
+    LI [] <.> a     = a 
+    a     <.> LI [] = a 
+    a     <.> b     = mappend a b 
 
+
+sumS :: Semiring a => [a] -> a 
+sumS []     = zro 
+sumS (x:xs) = x <+> sumS xs 
 
 
 

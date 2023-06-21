@@ -32,6 +32,8 @@ main = do
 
     let mat = map genMat pgs
 
+    let ss  = map success mat 
+
 
     print "------ Abstract Syntax Tree -------"
     print ast
@@ -43,6 +45,12 @@ main = do
 
     print "------ Matrix Representation ----" 
     print mat
+
+
+    print "------ Success Pathes ------"
+    --mapM ( putStr . showListLn ) ss 
+    print ss
+
 
 
 
