@@ -85,7 +85,7 @@ $ ./pen --asm < ../examples/count.pen   ## shows Assembler Code
 ## New Project (Written from Sctratch in Haskell) 
 
 
-Deploying the heavily-modified old project's compiling EVM bytecode into blockchain, we should check the specification and we should run some tests, and 
+Deploying the heavily-modified old project's compiling EVM bytecode into blockchain, we should have checked the specification and we should run some tests, and 
 then we must modify the compiler, but the old architecture turned out too untidy to modify, finally. 
 
 We started new compiler from scratch in Haskell. Haskell is a purely functional programming language. 
