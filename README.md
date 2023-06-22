@@ -85,8 +85,8 @@ $ ./pen --asm < ../examples/count.pen   ## shows Assembler Code
 ## New Project (Written from Sctratch in Haskell) 
 
 
-Deploying the heavily-modified old project's compiling EVM bytecode into blockchain, we should have checked the specification and we should run some tests, and 
-then we must modify the compiler, but the old architecture turned out too untidy to modify, finally. 
+Deploying the heavily-modified old project's compiling EVM bytecode into blockchain, we should have checked the specification and run some tests, and 
+then we must have modified the compiler, but the old architecture turned out too untidy to modify, finally. 
 
 We started new compiler from scratch in Haskell. Haskell is a purely functional programming language. 
 Haskell is more expensive than OCaml in writing codes. You know, OCaml is a nice language because Coq Proof Assistant and its transpiler (Extraction Mechanism) gives us more formality than Haskell's code. However, Haskell gives us a lot of useful or visibly nice interpreter. 
