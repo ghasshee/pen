@@ -7,6 +7,7 @@ import Mat hiding (getRow)
 import Action
 import Semiring
 import PG
+import GCLL hiding (M) 
 
 
 -- matrix :: Int -> Int  -> ( (Int,Int) -> a ) -> Matrix a  
@@ -92,9 +93,10 @@ analyze a = loop a a where
 getRow :: Int -> Matrix a -> [a] 
 getRow i a@(M n m _ _ _ _) = if i <= 0 || n < i 
                                 then error $ "getRow: " ++ show i ++ "matrix size exceed"  
-                                else [ a ! (i+1, k) | k <- [0..m-1] ]  
+                                else [ a ! (i+1, k) | k <- [1..m] ]  
 
 
+-- returns [(the next node number, elem)]  
 getNonZeroElems :: (Semiring a, Eq a) => [a] -> [(Int,a)] 
 getNonZeroElems l   =   loop l where 
     loop []         = [] 
@@ -104,17 +106,27 @@ getNonZeroElems l   =   loop l where
             i = length l - length xs - 1
 
 
-getBifurcationFrom :: (Semiring a, Eq a) => Int {-- Node Number --} -> Matrix a -> Maybe (Int,[a])  
-getBifurcationFrom i a@(M n m _ _ _ _) 
-    | i < 0         =   error "getBifurcation: Node Number cannot be Negative Value"
-    | i >= n        =   Nothing
-    | otherwise     =   let l' = getNonZeroElems (getRow i a) in 
-    case length l' of 
-        2   -> Just (i, map snd l') 
-        1   -> let [(i', x)] = l' in getBifurcationFrom i' a 
+getBifurcationFrom :: (Semiring a, Eq a, Show a) => Int {-- Node Number --} -> Matrix a -> Maybe (Int,[(Int,a)])  
+getBifurcationFrom i a@(M n m _ _ _ _)  
+        | i < 0         =   error "getBifurcation: Node Number cannot be Negative Value"
+        | i >= n        =   Nothing
+        | otherwise     =   let l' = getNonZeroElems (getRow (i+1) a) in 
+                            case length l' of 
         0   -> Nothing
-        _   -> error "getBifurcation: Trifurcation occured" 
+        1   -> let [(i', x)] = l' in getBifurcationFrom i' a 
+        _   -> Just (i, l') 
+        --_   -> error $ "getBifurcation: Trifurcation occured: line " ++ show i ++ " : " ++ show l'
             
+
+getBifurcationsFrom :: (Semiring a, Eq a, Show a) => Int -> Matrix a -> [(Int,a)] -> [(Int,a)]  
+getBifurcationsFrom i a@(M n m _ _ _ _) l =
+    case getBifurcationFrom i a of 
+        Nothing         ->  [] 
+        Just (j,l')     ->  let nodes = map fst l' in 
+                            let ls    = map (\k -> getBifurcationsFrom k a (l++l')) nodes in 
+                            l' ++ concat ls 
     
 
+
+detectLoop = undefined 
 

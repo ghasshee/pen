@@ -38,6 +38,8 @@ type Edges  = ([Edge], Config)
 
 -- Initialization 
 initialConfig = (Qi, Qt, 1, 0, 0, [])
+
+mkPG :: CONTRACT -> Edges
 mkPG cn = pgCN cn initialConfig  
 
 

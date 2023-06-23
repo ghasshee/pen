@@ -13,6 +13,9 @@ import Typing
 import PG
 import Decl2Term
 import Matrix 
+import Mat
+import Action 
+import Semiring 
 
 import System.IO 
 import System.Environment 
@@ -26,13 +29,19 @@ main = do
 
     let ast :: [CONTRACT] 
         ast = parse . lex $ contents
-    let tm  = map transpileCN ast 
 
-    let pgs = map mkPG ast
+    let tm  :: [Term] 
+        tm  = map transpileCN ast 
 
-    let mat = map genMat pgs
+    let pgs :: [Edges] 
+        pgs = map mkPG ast
 
-    let ss  = map success mat 
+    let mats :: [Matrix (OR Action)] 
+        mats = map genMat pgs
+
+    let bifurs = map (getBifurcationFrom 0) mats
+
+    let ss  = map success mats 
 
 
     print "------ Abstract Syntax Tree -------"
@@ -44,12 +53,16 @@ main = do
     
 
     print "------ Matrix Representation ----" 
-    print mat
+    print mats
 
 
     print "------ Success Pathes ------"
     --mapM ( putStr . showListLn ) ss 
     print ss
+
+
+    print "------ First Bifurcation -----" 
+    print bifurs
 
 
 
