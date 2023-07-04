@@ -55,7 +55,6 @@ mkPG cn = pgCN cn initialConfig
 pgCN :: CONTRACT -> Config -> Edges
 pgCN (CN id tops) config = pgTOPs tops config
 
-
 -- [TOP] -> pg 
 pgTOPs :: [TOP] -> Config -> Edges 
 pgTOPs []           cfg             =   ([], cfg)
@@ -71,8 +70,7 @@ pgTOP (MT id ty ps bd) (i,t,q,s,v,ctx) =
 pgTOP (SV id ty) (i,t,q,s,v,ctx)    =   ([(i, AcSto s, Q q)], (Q q, t, q+1,s+1,v,ctx))   
 pgTOP (EV id ty) (i,t,q,s,v,ctx)    =   undefined 
 
-
-
+pgMT :: TOP -> Config -> Edges
 pgMT (MT id ty ps bd) cfg           =   let (es ,cfg' )     = pgParams ps cfg   in 
                                         let (es',cfg'')     = pgBODY   bd cfg'  in 
                                         (es++es', cfg'') 
@@ -85,7 +83,6 @@ pgParams (p:ps) cfg                 =   (es ++ ess, cfg'')
 
 pgParam :: Param -> Config -> Edges
 pgParam (id,ty) (i,t,q,s,v,ctx)     =   ([(i, AcVar v, Q q)], (Q q, t, q+1,s,v+1,ctx))
-
 
 -- BODY -> pg 
 pgBODY :: BODY -> Config -> Edges 
@@ -104,7 +101,6 @@ pgDecls (d:ds) (i,t,q,s,v,ctx) =   (es++ess, cnf'')
 
 higherParams []             = [] 
 higherParams ((id,ty):xs)   = (id,degreeOfFun ty):higherParams xs
-
 
 degreeOfFun :: Ty -> Int
 degreeOfFun (TyABS tyA tyB) = max (degreeOfFun tyA) (degreeOfFun tyB) + 1 
@@ -167,12 +163,6 @@ pgArgs (tm:tms)             (i,t,q,s,v,ctx) (n:ns) k =
     (e ++ econt, (i,t,q'',s'',v'',ctx''))
 
 
---
---pgReturnTerm :: Term -> Config -> Edges 
---pgReturnTerm tm (i,t,q,s,v,ctx)     = 
---    let (e,ctx')                    = pgTerm tm (i,t,q,s,v,ctx) in 
---    undefined 
-
 
 pgTermApp :: Term -> Config -> [Term] -> Edges 
 pgTermApp (RED TmAPP [RED(TmVAR n)[],t2]) (i,t,q,s,v,ctx) cont = 
@@ -225,16 +215,9 @@ pgBOP "+"  x y = Add x y
 pgBOP "<"  x y = Lt  x y
 pgBOP ">"  x y = Gt  x y 
 
-tm2exp ctx (RED (TmVAR n) [])  = Var (show n)  
-tm2exp ctx (RED (TmU256 n) []) = Ox (toHex n)
 
---
---pgTerm (RED TmIF [b,t1,t2]) cfg = 
---    let (es,cfg')   = pgTerm b cfg in 
---    let (es',cfg'') = pgTerm t1 cfg' in 
---    let (es'',cfg''')   = pgTerm t2 cfg'' in 
---    (es++es'++es'', cfg'') 
---pgTerm (RED (TmBOP "==") [t1,t2]) (i,t,q,s,v,ctx) = 
---    let (e1,(i',t',q',s',v',ctx'))   = pgTerm t1 (i,Q q,q+1,s,v,ctx) in 
---    let (e2,(i'',t'',q'',s'',v'',ctx'')) = pgTerm t2 (Q q,Q(q'+1),q'+1,s',v',ctx') in 
+tm2exp :: a -> Term -> EXPR 
+tm2exp ctx (RED (TmVAR  n) [])  =   Var (show n)  
+tm2exp ctx (RED (TmU256 n) [])  =   Ox (toHex n)
+
     

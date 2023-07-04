@@ -67,4 +67,7 @@ instance Show Action where
     show (AcCheck  (Q i)(Q j)   ) = "CK" ++ show i ++ "/" ++ show j
 
 
+data Transition = Tr (Int,Action,Int) deriving (Eq) 
 
+instance Show Transition where 
+    show (Tr (i,a,j))         = show i ++ "=" ++ show a ++ "=>" ++ show j 

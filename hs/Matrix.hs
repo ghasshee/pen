@@ -16,13 +16,14 @@ import GCLL hiding (M)
 genSize :: Edges -> (Int {--Rows--} , Int {--Cols--} )  
 genSize (e, (i,t,q,s,v,ctx)) = (q+1,q+1)
 
-genFun :: Edges -> (Int,Int) -> OR Action 
+genFun :: Edges -> (Int,Int) -> OR Transition
 genFun (e, (_,_,q,s,v,ctx))  (i,j) = 
     let matsize = q in 
     case searchEdge e i j matsize of 
-        Nothing             -> zro 
-        Just a              -> LI [a] 
+        Nothing             -> ZR 
+        Just a              -> SQ [Tr(i,a,j)] 
 
+searchEdge :: [Edge] -> Int -> Int -> Int -> Maybe Action 
 searchEdge []               i j sz                  = Nothing 
 searchEdge ((Qi, a,Qt ):es) 0 j sz | j==sz          = Just a 
 searchEdge ((Qi, a,Q n):es) 0 j sz | j==n           = Just a
@@ -31,8 +32,8 @@ searchEdge ((Q n,a,Q m):es) i j sz | i==n&&j==m     = Just a
 searchEdge (e          :es) i j sz                  = searchEdge es i j sz
 
 
-genMat :: Edges -> Matrix (OR Action) 
-genMat edges = matrix i j gen 
+genMat :: Edges -> Matrix (OR Transition) 
+genMat edges = matrix i j gen
     where   gen   = genFun edges 
             (i,j) = genSize edges 
 
@@ -43,26 +44,29 @@ star :: (Semiring a,Eq a) => Matrix a -> Matrix a
 star a = loop a a where 
     loop a an = if an == mult a an then an else loop a (mult a an)
 
-finstar :: (Semiring a) => Int -> Matrix a -> Matrix a 
-finstar k a = loop k where 
-    loop 1 = a 
-    loop n = mult a (loop (n-1))
-    
--- extract Success Path 
---success a@(M i j _ _ _ _) = star a ! (1,j) 
-success a@(M i j _ _ _ _) = finstar 100 a ! (1,j-1) 
---success a@(M i j _ _ _ _) = [ mul a ! (1,k) | k <- [1..j] ]  
+success a@(M i j _ _ _ _) = a ! (1,j-1) 
 
 showListLn []     = ""
 showListLn (x:xs) = show x ++ "\n" ++ showListLn xs 
 
+diag a@(M n m _ _ _ _) = [ a ! (i,i) | i <- [1 .. n] ]   
 
+removeTrsFrom a (OR t t')               = removeTrsFrom (removeTrsFrom a t) t' 
+removeTrsFrom a (SQ [])                 = a 
+removeTrsFrom a (SQ (Tr(i,ac,j):xs))    = removeTrsFrom (setElem ZR (i,j) a) (SQ xs)
+removeTrsFrom a ZR                      = a 
 
+removeLoops an a = 
+    let d       = diag an in 
+    let trs     = foldl (\xs x -> if x == ZR then xs else x:xs) [] d in 
+    let a'      = foldl (\xs x -> removeTrsFrom xs x) a trs in 
+    a' 
 
-
-
-
-
+star' a@(M n _ _ _ _ _) = loop a a n [] where 
+    loop a an limit ans  
+        | elem (mult a an) ans          = an
+        | otherwise                     = loop a' (mult a' an) (limit-1) (an:ans) where 
+            a' = removeLoops an a 
 
 
 
@@ -71,62 +75,11 @@ showListLn (x:xs) = show x ++ "\n" ++ showListLn xs
 -------------------------------
 
 
+type LoopEntranceNode = Int
 
-diag a@(M n m _ _ _ _) = [ a ! (i,i) | i <- [0 .. n-1] ]   
+data Path a     = Path Int Int a 
+                | Loop Int LoopEntranceNode a 
+                | None 
+                
 
-hasLoop :: (Semiring a, Eq a) => Matrix a -> Bool 
-hasLoop a = foldl (\xs x -> x == zro && xs) True (diag a) 
-
-loopsAt :: (Semiring a, Eq a) => Matrix a -> Maybe Int
-loopsAt a@(M n m _ _ _ _) = loop (diag a) where 
-    loop []     = Nothing 
-    loop (d:ds) = if d /= zro then Just (n - length (d:ds)) else loop ds 
-
-
-analyze a = loop a a where 
-    loop a an = case loopsAt an of 
-        Nothing -> loop a (mult a an) 
-        Just i  -> undefined
-
-
--- get nth Row of Matrix  i = 1, .. ,n 
-getRow :: Int -> Matrix a -> [a] 
-getRow i a@(M n m _ _ _ _) = if i <= 0 || n < i 
-                                then error $ "getRow: " ++ show i ++ "matrix size exceed"  
-                                else [ a ! (i+1, k) | k <- [1..m] ]  
-
-
--- returns [(the next node number, elem)]  
-getNonZeroElems :: (Semiring a, Eq a) => [a] -> [(Int,a)] 
-getNonZeroElems l   =   loop l where 
-    loop []         = [] 
-    loop (x:xs) 
-        | x == zro  = loop xs 
-        | otherwise = (i,x) : loop xs where 
-            i = length l - length xs - 1
-
-
-getBifurcationFrom :: (Semiring a, Eq a, Show a) => Int {-- Node Number --} -> Matrix a -> Maybe (Int,[(Int,a)])  
-getBifurcationFrom i a@(M n m _ _ _ _)  
-        | i < 0         =   error "getBifurcation: Node Number cannot be Negative Value"
-        | i >= n        =   Nothing
-        | otherwise     =   let l' = getNonZeroElems (getRow (i+1) a) in 
-                            case length l' of 
-        0   -> Nothing
-        1   -> let [(i', x)] = l' in getBifurcationFrom i' a 
-        _   -> Just (i, l') 
-        --_   -> error $ "getBifurcation: Trifurcation occured: line " ++ show i ++ " : " ++ show l'
-            
-
-getBifurcationsFrom :: (Semiring a, Eq a, Show a) => Int -> Matrix a -> [(Int,a)] -> [(Int,a)]  
-getBifurcationsFrom i a@(M n m _ _ _ _) l =
-    case getBifurcationFrom i a of 
-        Nothing         ->  [] 
-        Just (j,l')     ->  let nodes = map fst l' in 
-                            let ls    = map (\k -> getBifurcationsFrom k a (l++l')) nodes in 
-                            l' ++ concat ls 
-    
-
-
-detectLoop = undefined 
-
+getPaths = undefined 
