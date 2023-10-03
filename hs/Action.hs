@@ -71,3 +71,7 @@ data Transition = Tr (Int,Action,Int) deriving (Eq)
 
 instance Show Transition where 
     show (Tr (i,a,j))         = show i ++ "=" ++ show a ++ "=>" ++ show j 
+
+
+tr2ac :: Transition -> Action
+tr2ac (Tr (_,a,_)) = a 

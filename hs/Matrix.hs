@@ -69,6 +69,8 @@ star' a@(M n _ _ _ _ _) = loop a a n [] where
             a' = removeLoops an a 
 
 
+convert :: Matrix (OR Transition) -> Matrix (OR Action) 
+convert = fmap (fmap tr2ac) 
 
 -------------------------------
 ----  Graph Loop Analysis  ----

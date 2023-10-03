@@ -58,6 +58,10 @@ instance Semiring (OR a) where
     a     <.> SQ [] = a 
     a     <.> b     = mappend a b 
 
+instance Functor OR where 
+    fmap f ZR       = ZR
+    fmap f (SQ l)   = SQ (fmap f l) 
+    fmap f (OR a b) = OR (fmap f a) (fmap f b) 
 
 sumS :: Semiring a => [a] -> a 
 sumS []     = zro 
