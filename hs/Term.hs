@@ -3,7 +3,7 @@ module Term where
 import Tree
 import Type
 import GCLL 
-
+import Data
 
 
 type Bind   = (ID, Ty) 
@@ -15,6 +15,7 @@ data Tm     = TmAPP                 -- 2 args
             | TmSTO Int             -- 0 Storage Variable  
             | TmPROD                -- n 
             | TmFIX ID ID Ty        -- 1
+            | TmDATA Data
             | TmU8 Int              -- 0
             | TmU256 Integer        -- 0
             | TmTRUE                -- 0
@@ -52,6 +53,7 @@ show' :: Term -> String
 show' (RED (TmSTO  i)   _   )   = "S[" ++ show i ++ "]"  
 show' (RED (TmVAR  i)   _   )   = "X" ++ show i  
 show' (RED (TmU256 i)   _   )   = show i 
+show' (RED (TmDATA d)   _   )   = show d 
 show' (RED  a           []  )   = show a 
 show' (RED (TmABS x ty) [a])    = "\\" ++ x ++ "." ++ show' a 
 show' (RED (TmBOP o)    [a,b])  = show' a ++ o ++ show' b 

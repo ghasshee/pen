@@ -3,7 +3,7 @@ module Opcode where
 import Data.Char 
 
 import Tree 
-import Var
+--import Var
 --import Term 
 
 data OPCODE = L | R 

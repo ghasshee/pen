@@ -8,6 +8,7 @@ import GCLL
 import Predicate 
 import Tree
 import Type
+import Data
 import Term
 import AST
 import PsrCtx
@@ -274,7 +275,11 @@ ATm : '(' Tm ')'                        { $2                                }
     | sender                            { \ctx -> (RED TmSENDER [], ctx)    } 
     | id                                { \ctx -> (RED (lookup $1 ctx) [], ctx) } 
 
-Num : num                               { TmU256 $1                 } 
+Numm : num                               { TmU256 $1                 } 
+Num : num                               { let f n = case n of 
+                                                        0 -> DZero 
+                                                        _ -> DSucc (f (n-1)) in 
+                                                    TmDATA (f $1)                 } 
 
 Bool
     : true                              { TmTRUE                    } 
