@@ -198,7 +198,7 @@ subsetconstruction_aatmt (Init trs) =
     [Br _ tr]           -> (Init [tr]) 
 
 
-subsetconstruction a = (subsetconstruction_aatmt . automata2aatmt) a 
+subsetconstruction a = (uniq_a . aatmt2automata . subsetconstruction_aatmt . automata2aatmt) a 
 
 eg :: AAtmt Int Char
 eg = Init [Tr (Non,1) [Br 'a' (Tr (Non,1)[]), Br 'a' (Tr (Trm,2) [Br 'a' (Tr (Trm,2)[])])]] 
