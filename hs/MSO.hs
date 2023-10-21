@@ -16,7 +16,7 @@ data Any a  = Except [a]
             | Select [a] 
 
 instance Show a => Show (Any a) where 
-    show (Select [])  = "∅"
+    show (Select [])  = "ε"
     show (Except [])  = "*"
     show (Select l )  = "{" ++ showList l ++ "}" 
     show (Except l)   = "*\\{" ++ showList l ++ "}" 
@@ -156,19 +156,19 @@ convert m =
                 [(Q 1,(any  ,[A_F i]),Q 1)
                 ,(Q 1,(jst a,[T_F i]),Q 2)
                 ,(Q 2,(any  ,[A_F i]),Q 2)]
-                (Q 1) [Q 2] 
+                [Q 1] [Q 2] 
         loop (Suc k (F i) (F j)) = 
             A [Q 1, Q 2, Q 3] [] 
                 [(Q 1,(any,[A_F i,A_F j]),Q 1)
                 ,(Q 1,(any,[T_F i,F_F j]),Q 2)
                 ,(Q 2,(any,[F_F i,T_F j]),Q 3)
                 ,(Q 3,(any,[A_F i,A_F j]),Q 3)] 
-                (Q 1) [Q 3] 
+                [Q 1] [Q 3] 
         loop (Elem (F i) (S j)) = 
             A [Q 1, Q 2] [] 
                 [(Q 1,(any,[A_F i,A_S j]),Q 1)
                 ,(Q 1,(any,[T_F i,T_S j]),Q 1)
-                ,(Q 2,(any,[A_F i,A_S j]),Q 2)] (Q 1) [Q 2]
+                ,(Q 2,(any,[A_F i,A_S j]),Q 2)] [Q 1] [Q 2]
         loop (Not m)    = 
             A qs as trs i (setminus qs t) where 
                 A qs as trs i t = loop m 
@@ -180,9 +180,9 @@ convert m =
                 [(P(p,p'),(a ,l ),P(q,q')) | (p,(a,l),q) <- trs, (p',(a',l'),q') <- trs', a <= a', l <= l' ] ++
                 [(P(p,p'),(a',l'),P(q,q')) | (p,(a,l),q) <- trs, (p',(a',l'),q') <- trs', a'<= a , l'<= l  ]
                 )
-                (P(i,i')) [P(t1,t2) | t1 <- t , t2 <- t'] where 
-                    A qs  as  trs  i  t  = loop m1 
-                    A qs' as' trs' i' t' = loop m2
+                [P(i,i')] [P(t1,t2) | t1 <- t , t2 <- t'] where 
+                    A qs  as  trs  [i ] t  = loop m1 
+                    A qs' as' trs' [i'] t' = loop m2
         loop (Ex1 (F k) m)  = 
             let A qs as trs i t = loop m in 
             A qs as (rmVar1 (F k) trs) i t 
@@ -211,6 +211,7 @@ rmVar2 (S i) ((q,(a,vs),q'):trs)   = (q,(a, loop i vs),q') : rmVar2 (S i) trs
 
 -- e.g. 
 
-eg = Ex1 (F 1) (Or (Lab 'a' (F 1)) (Lab 'b' (F 1)) )  
-a  = convert eg
+egMSO = Ex1 (F 1) (Or (Lab 'a' (F 1)) (Lab 'b' (F 1)) )  
+a  = convert egMSO
 eg'= runAutomata a [(jst 'a',[])]
+

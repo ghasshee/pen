@@ -2,18 +2,27 @@ module Set where
 
 
 
+uniq :: Eq a => [a] -> [a] 
+uniq [] = [] 
+uniq (a:as) = if a `elem` as then uniq as else a : uniq as 
+
+
 
 removeset :: Eq a =>  [a] -> a -> [a] 
 removeset [] x              = [] 
 removeset (a:as) x | x==a   = as 
 removeset (a:as) x          = a : removeset as x
 
-setminus :: Eq a => [a] -> [a] -> [a] 
+setminus  :: Eq a => [a] -> [a] -> [a] 
 setminus l1 []      = l1 
 setminus l1 (x:xs)  = setminus (removeset l1 x) xs  
 
-addset :: Eq a => a -> [a] -> [a] 
+addset    :: Eq a =>  a  -> [a] -> [a] 
 addset x l              =   if x `elem` l then l else x : l 
+
+setplus   :: Eq a => [a] -> [a] -> [a] 
+setplus  l1 []      = l1
+setplus  l1 (x:xs)  = setplus  (addset    x l1) xs 
 
 infixr 1 >>
 (>>)  :: Eq a => a -> [a] -> [a] 
