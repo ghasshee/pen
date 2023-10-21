@@ -169,6 +169,8 @@ foldaf g h d c []               = c
 foldaf g h d c (Br a atr:xs)    = h a (foldat g h d c atr) (foldaf g h d c xs) 
 
 
+-- || SUBSET CONSTRUCTION || -- 
+
 bandt (Tr (t,q) [] )           _ False      = Tr (t,[q]) []
 bandt (Tr (t,q) [] )        atmt True       = 
     bandt (Tr (t,q) (get_1_step_from q atmt)) atmt False
