@@ -1,7 +1,9 @@
+{-# LANGUAGE IncoherentInstances #-} 
 module Automata where 
 
 
 import Set
+import Data.List (sort)
 import Semiring 
 import Prelude hiding ((>>)) 
 
@@ -9,7 +11,21 @@ import Prelude hiding ((>>))
 
 data Node s = Q s                 
             | P (Node s,Node s) 
-            | L [Node s]     deriving (Eq) 
+            | L [Node s]  
+            deriving (Eq,Ord) 
+
+
+instance {-# Overlapping #-} Ord s => Eq (Node [s]) where 
+    Q xs     == Q ys     = sort xs == sort ys
+    
+
+instance Num s => Num (Node s) where 
+    fromInteger i = Q (fromInteger i) 
+    Q i + Q j     = Q (i + j) 
+    Q i * Q j     = Q (i*j) 
+    negate (Q i)  = Q (negate i) 
+    signum (Q i)  = Q (signum i) 
+    abs (Q i )    = Q (abs i) 
 
 instance Show s => Show (Node s) where 
     show (Q s) = "Q" ++ show s 
@@ -33,13 +49,13 @@ valid (A qs as tr i t) = case tr of
 
 runAutomata :: (Ord a, Eq s) => Automata s a -> [a] -> Bool 
 runAutomata (A qs as tr i t) w = case i of 
-    _       -> error "Non Deterministric Automata" 
     [init]  -> run (A qs as tr [init] t) init w  where     
         run (A qs as tr init terminals) curr []     = curr `elem` terminals 
         run (A qs as tr init terminals) curr (c:w)  = case searchTransition curr c tr of 
             []              -> False 
             [(_,_,q)]       -> run (A qs as tr init terminals) q w 
             _               -> error "Non Deterministic Automata" 
+    _       -> error "Non Deterministics Automata"
 
 
 searchTransition :: (Ord a, Eq s) => Node s -> a -> [Edge s a] -> [Edge s a] 
@@ -50,68 +66,133 @@ searchTransition curr a (tr:trs)                                =            sea
 
 -- || Operations on automata || -- 
 
-union :: (Eq s, Ord a) => Automata s a -> Automata s a -> Automata s a 
+
+-- || Disjoint Union || -- 
+
+new_node_other_than :: (Eq s, Num s) => [Node s] -> Node s  
+new_node_other_than qs = loop qs 0 where 
+    loop qs n = if Q n `elem` qs then loop qs (n+1) else Q n  
+
+new_nodes :: (Eq s, Num s) => [Node s] -> [Node s] -> [Node s] 
+new_nodes qs1 qs2 = loop qs1 qs2 [] where 
+    loop qs1 []     qs2' = qs2' 
+    loop qs1 (q:qs) qs2' = loop qs1 qs (new_node_other_than (qs1 ++ qs2') : qs2')  
+
+new_node_mapping :: (Eq s, Num s) => [Node s] -> [Node s] -> [(Node s,Node s)] 
+new_node_mapping qs1 qs2 = zip qs2 qs2' where 
+    qs2' = new_nodes qs1 qs2
+
+one_map_apply_edges :: (Eq s, Num s, Ord a) => (Node s, Node s) -> [Edge s a] -> [Edge s a] 
+one_map_apply_edges (p,p') []            = [] 
+one_map_apply_edges (p,p') ((q,a,q'):es) =
+    if p == q 
+        then if p == q' 
+            then (p',a,p') : one_map_apply_edges (p,p') es
+            else (p',a,q') : one_map_apply_edges (p,p') es
+        else if p == q' 
+            then (q ,a,p') : one_map_apply_edges (p,p') es 
+            else (q ,a,q') : one_map_apply_edges (p,p') es 
+
+map_apply_edges :: (Eq s, Num s, Ord a) => [(Node s,Node s)] -> [Edge s a] -> [Edge s a] 
+map_apply_edges []       es = es 
+map_apply_edges (m:maps) es = map_apply_edges maps (one_map_apply_edges m es)
+
+one_map_apply_nodes (p,p') []       = []
+one_map_apply_nodes (p,p') (q:qs)   = if p==q 
+            then p': one_map_apply_nodes (p,p') qs
+            else q : one_map_apply_nodes (p,p') qs 
+
+map_apply_nodes []       qs = qs 
+map_apply_nodes (m:maps) qs = map_apply_nodes maps (one_map_apply_nodes m qs) 
+
+disjointUnionNodes :: (Num s, Eq s) => [Node s] -> [Node s] -> [Node s] 
+disjointUnionNodes qs1 qs2 = qs1 ++ new_nodes qs1 qs2 
+
+disjointUnionEdges :: (Num s,Eq s,Ord a) => [Edge s a] -> [Edge s a] -> [Node s] -> [Node s] -> [Edge s a] 
+disjointUnionEdges tr1 tr2 qs1 qs2 = 
+    let map  = new_node_mapping qs1 qs2 in 
+    let tr2' = map_apply_edges map tr2 in 
+    tr1 ++ tr2' 
+    
+
+union :: (Eq s, Ord a, Num s) => Automata s a -> Automata s a -> Automata s a 
 union (A qs1 as1 tr1 i1 t1) (A qs2 as2 tr2 i2 t2) = A qs as tr i t where 
-    qs = setplus qs1 qs2
-    as = setplus as1 as2
-    tr = setplus tr1 tr2
-    i  = setplus i1 i2 
-    t  = setplus t1 t2 
+    map = new_node_mapping qs1 qs2 
+    qs  = disjointUnionNodes qs1 qs2
+    as  = setplus as1 as2
+    tr  = disjointUnionEdges tr1 tr2 qs1 qs2
+    i   = setplus i1 (map_apply_nodes map i2)
+    t   = setplus t1 (map_apply_nodes map t2) 
 
 
 
+-- || subsets Node || -- 
 
--- || || 
+subset2node :: [Node s] -> Node [s]
+subset2node qs = loop qs [] where 
+    loop []       node = Q node
+    loop (Q i:qs) node = loop qs (node++ [i])  
 
-searchTransitionsFromNode :: (Ord a, Eq s) => Node s -> [Edge s a] -> [Edge s a]
-searchTransitionsFromNode q trs = loop q [] trs where 
-    loop q as []                                = as 
-    loop q as ((p,a,p'):trs) | q==p             = (p,a,p') : loop q as trs 
-    loop q as (tr:trs)                          = loop q as trs
-
-
-thrd (_,_,a) = a 
-
-nextNodes :: (Ord a, Eq s) => Node s -> [Edge s a] -> [Node s] 
-nextNodes q trs = uniq $ map thrd $ searchTransitionsFromNode q trs 
+mkSubsetNodes :: Ord s => [Node s] -> [Node [s]] 
+mkSubsetNodes nodes = map subset2node $  map sort $ subsets nodes  
 
 
-mkSubsets :: (Ord a, Eq s) => [Edge s a] -> [(a,[Node s])]  
-mkSubsets trs = loop trs [] where
-    loop [] subsets             = subsets
-    loop ((_,a,q):trs) subsets  = add (a,q) subsets where 
-        add (a,q) []                        = [(a,[q])] 
-        add (a,q) ((a',qs):ss) | a <= a'    = (a ,q>>qs):ss  
-        add (a,q) ((a',qs):ss) | a >= a'    = (a',q>>qs):ss  
-        add (a,q) ((a',qs):ss)              = add (a,q) ss
+-- || Subset Construction || -- 
 
--- || Subset Construction || 
+filter_transition a         = filter (\(q,a',q') -> a==a')  
 
-mkSubsetNode :: Eq s => [Node s] -> Node [s] 
-mkSubsetNode [] = Q [] 
-mkSubsetNode (Q i:qs) = Q (i:qs') where 
-    Q qs' = mkSubsetNode qs
+filter_transition_domain q  = filter (\(p,a ,p') -> q == p ) 
 
-subsetConstruction :: (Ord a, Eq s) => Automata s a -> Automata [s] a
-subsetConstruction (A qs as trs is ts) = undefined 
-    where 
-        loop q trs = 
-            let aqs = searchTransitionsFromNode q trs in 
-            let aqss = mkSubsets aqs in 
-            let aQs = map (\(a,qs) -> (a,mkSubsetNode qs)) aqss in 
-            undefined 
-        i = undefined 
-        init  = Q [i]  
-        terminals = undefined 
-        nodes = undefined  
-        alphas = undefined 
-        trans = undefined 
+transitionsfrom :: (Ord a, Eq s) => [Node s] -> a -> [Edge s a] -> [Edge s a]   
+transitionsfrom qs a es = loop qs a es' where 
+    es' = filter_transition a es
+    loop []     a _  = [] 
+    loop (q:qs) a es = filter_transition_domain q es ++ loop qs a es
+
+alltransitionsfrom []     es = []
+alltransitionsfrom (q:qs) es = filter_transition_domain q es ++ alltransitionsfrom qs es 
+
+bindtransitions :: (Ord s, Ord a) => [Edge s a] -> Maybe (Edge [s] a)
+bindtransitions trs = 
+    let (qs,as,qs') = unzip3 trs in 
+    case uniq as of 
+    []  -> Nothing 
+    [a] -> Just (subset2node (sort qs) , a, subset2node (sort qs'))  
+
+remove_maybe [] = []
+remove_maybe (Just a:xs) = a:remove_maybe xs
+remove_maybe (Nothing:xs) = remove_maybe xs
+
+subset_construction (A qs as trs is ts) = 
+    let qss  = sort $ map sort $ subsets qs in 
+    let qs'  = map subset2node qss in 
+    let trs' = uniq $ remove_maybe [ bindtransitions (transitionsfrom q a trs) | a <- as, q <- qss ] in  
+    let is'  = [subset2node $ sort is] in 
+    let ts'  = map subset2node $ map sort $ loop ts qss where 
+        loop [] qss     = [] 
+        loop (t:ts) qss = filter (t `elem`) qss ++ loop ts qss in 
+    A qs' as trs' is' ts' 
 
 -- || Trim || 
 
-trim = undefined 
-    
 
+
+
+trim = undefined 
+
+accessible is edges = loop is [] where 
+    loop [] ret = ret
+    loop qs ret = 
+        let es  = alltransitionsfrom qs edges in 
+        let qs' = map third3 es in 
+        let ret' = uniq $ es ++ ret in 
+        if ret == ret' then ret else loop qs' (es++ret) 
+
+accessible' (A qs as trs is ts) = 
+    let trs' = accessible is trs in 
+    A qs as trs' is ts 
+
+third3 (_,_,c) = c
 
 
 -- || Example    || 
@@ -154,13 +235,17 @@ data AAtmt s a      = Init [ATree s a]
                         deriving (Eq, Show) 
 
 instance (Show s, Show a) => Show (ATree s a) where 
-    show s = "\n" ++ showT "    " s where 
-      showT s (Tr (Trm,q) brs)  = s++"+- ||Q" ++ show q ++ "||\n" ++ showF("    "++s)brs
-      showT s (Tr (Non,q) brs)  = s++"+-- |Q" ++ show q ++ "| \n" ++ showF("    "++s)brs
-      showF s []                = ""
-      showF s [Br a atr]        = s++ "+--" ++ show a ++ "\n" ++ showT(s++ "   ")atr
-      showF s (Br a atr:rest)   = s++ "+--" ++ show a ++ "\n" ++ showT(s++ "|  ")atr
-                                        ++ showF s rest 
+    show s = "\n" ++ showT "" s where 
+      showT s (Tr (Trm,q) brs)  =   s ++ "+- ||Q" ++ show q ++ "||\n" 
+                                    ++ showF(s++"    ")brs
+      showT s (Tr (Non,q) brs)  =   s++ "+-- |Q" ++ show q ++ "| \n" 
+                                    ++ showF(s++"    ")brs
+      showF s []                =   ""
+      showF s [Br a atr]        =   s ++ "+--" ++ show a ++ "\n" 
+                                    ++ showT(s++ "    ")atr
+      showF s (Br a atr:rest)   =   s ++ "+--" ++ show a ++ "\n" 
+                                    ++ showT(s++ "|   ")atr
+                                    ++ showF s rest 
 
 {-- foldat :: (q -> br -> tr) -> (a -> tr -> br -> br) -> br -> br -> ATree s a -> tr --}
 foldat g h d c (Tr q [])        = g q d 
@@ -169,25 +254,37 @@ foldaf g h d c []               = c
 foldaf g h d c (Br a atr:xs)    = h a (foldat g h d c atr) (foldaf g h d c xs) 
 
 
+
+
 -- || SUBSET CONSTRUCTION || -- 
 
-bandt (Tr (t,q) [] )           _ False      = Tr (t,[q]) []
-bandt (Tr (t,q) [] )        atmt True       = 
-    bandt (Tr (t,q) (get_1_step_from q atmt)) atmt False
-bandt (Tr (t,q) brs)          atmt tm       = Tr (t,[q]) (bandf brs atmt tm) 
-bandf []                      atmt tm       = [] 
-bandf (Br a tr : rest)        atmt tm       = br_a' : bandf rest' atmt tm where 
-    (br_a', rest') = srch a tr rest (Br a (bandt tr atmt tm)) [] 
-    srch a tr []             br ret           = (br , ret)
-    srch a tr (Br a' tr':brs)br ret | a==a'   = srch a tr brs(bind br(Br a' tr'))ret 
-    srch a tr (r:brs)        br ret           = srch a tr brs br (r:ret)  
-    bind(Br a(Tr(t,qs)brss))(Br _(Tr(t',q')brs)) 
-        = Br a (Tr(t/\t',q':qs) (brss++bandf brs atmt tm)) 
+data Switch = Go | Stop 
 
+
+bandt (Tr (t,q) [] )       _ Stop  = Tr (t,[q]) []
+bandt (Tr (t,q) [] )    atmt Go    = bandt (Tr (t,q) (get_1_step_from q atmt)) atmt Stop
+bandt (Tr (t,q) brs)    atmt sw    = Tr (t,[q]) (bandf brs atmt sw) 
+
+bandf []                _    _     = [] 
+bandf (Br a tr : brs)  atmt sw     = br_a' : bandf brs' atmt sw
+    where 
+        (br_a', brs') = srch a tr brs (Br a (bandt tr atmt sw)) [] 
+
+        srch a tr []             br ret           = (br , ret)
+        srch a tr (Br a' tr':brs)br ret | a==a'   = srch a tr brs(bind br(Br a' tr'))ret 
+        srch a tr (br'      :brs)br ret           = srch a tr brs br (br':ret)  
+
+        bind (Br a(Tr(t,qs)brss))(Br _(Tr(t',q')brs)) 
+            = Br a (Tr(t/\t',q':qs) (brss++bandf brs atmt sw)) 
+
+
+
+
+nullify_tr (Tr s _) = Tr s []  
+nullify_br (Br a t) = Br a (nullify_tr t) 
 
 get_1_step_from node [] = [] 
-get_1_step_from node (Br a (Tr (t,q) brs) : rest) | node == q =
-    map (\(Br a (Tr s _)) -> Br a (Tr s [])) brs 
+get_1_step_from node (Br a (Tr (t,q) brs) : rest) | node == q = map nullify_br brs 
 get_1_step_from node (Br a (Tr (t,q) brs) : rest) = 
     case get_1_step_from node brs of 
         []              -> get_1_step_from node rest
@@ -196,7 +293,7 @@ get_1_step_from node (Br a (Tr (t,q) brs) : rest) =
         
 subsetconstruction_aatmt (Init trs) = 
     let brs = map (\tr -> Br '_' tr) trs in 
-    case bandf brs brs True of 
+    case bandf brs brs Go of 
     [Br _ tr]           -> (Init [tr]) 
 
 
@@ -205,12 +302,36 @@ subsetconstruction a = (uniq_a . aatmt2automata . subsetconstruction_aatmt . aut
 eg :: AAtmt Int Char
 eg = Init [Tr (Non,1) [Br 'a' (Tr (Non,1)[]), Br 'a' (Tr (Trm,2) [Br 'a' (Tr (Trm,2)[])])]] 
 
-eg_loop :: AAtmt Int String
-eg_loop = let loop = Tr (Non,1) [Br "a" loop] in 
+eg_loop :: AAtmt Int Char
+eg_loop = let loop = Tr (Non,1) [Br 'a' loop] in 
           Init [loop] 
 
+cut_infinite_tree (Init trs) = 
+    let brs = map (\tr -> Br '_' tr) trs in 
+    loopf brs [] where 
+        loopt (Tr s [] ) mem    = (Tr s [], mem)
+        loopt (Tr s brs) mem    = if (Tr s brs) `elem` mem 
+                                        then (Tr s [], mem) 
+                                        else 
+                                            if mem == mem' then (Tr s [],mem)  else 
+                                                (Tr s (loopf brs mem'),mem') where 
+                                            mem' = Tr s brs >> mem
+        loopf []            mem = [] 
+        loopf (Br a(Tr s b):brs) mem = if mem == (Tr s b >> mem)  
+            then Br a (Tr s[]) : loopf brs mem 
+            else Br a tr' : loopf brs mem' where 
+                (tr', mem') = loopt (Tr s b) mem 
+        
 
-aatmt2automata :: (Eq s, Ord a) => AAtmt s a -> Automata s a 
+-- || " Automata <-> ATree Automata " conversion || -- 
+
+searchTransitionsFromNode :: (Ord a, Eq s) => Node s -> [Edge s a] -> [Edge s a]
+searchTransitionsFromNode q trs = loop q [] trs where 
+    loop q as []                                = as 
+    loop q as ((p,a,p'):trs) | q==p             = (p,a,p') : loop q as trs 
+    loop q as (tr:trs)                          = loop q as trs
+
+aatmt2automata :: (Eq s, Num s, Ord a) => AAtmt s a -> Automata s a 
 aatmt2automata (Init []) = A [] [] [] [] []
 aatmt2automata (Init (a:as)) = union (atree2automata a) (aatmt2automata (Init as))
 
@@ -265,3 +386,13 @@ automata2atree (A qs as trs [Q i] ts) =
                 loop2 node rest trs (Br a (Tr node' (loop q trs ts)):l) 
                 
 uniq_a (A qs as trs is ts) = A (uniq qs) (uniq as) (uniq trs) (uniq is) (uniq ts)
+
+instance (Num s) => Num [s] where 
+    fromInteger i = [fromInteger i]   
+    [i] + [j]     = [i+j] 
+    _   +  _      = undefined 
+    _   *  _      = undefined 
+    abs _         = undefined 
+    negate _      = undefined 
+    signum _      = undefined 
+    

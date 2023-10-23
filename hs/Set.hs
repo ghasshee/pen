@@ -1,12 +1,25 @@
 module Set where 
 
+import Data.List 
 
+
+mkset l = (sort . uniq) l 
+
+
+-- || generate SET from LIST || -- 
 
 uniq :: Eq a => [a] -> [a] 
 uniq [] = [] 
 uniq (a:as) = if a `elem` as then uniq as else a : uniq as 
 
 
+-- || generate all SUBSETS || -- 
+
+subsets [] = [[]] 
+subsets (x:xs) = subsets xs ++ map (x:) (subsets xs)
+
+
+-- ||  +  &  -   operations on sets || -- 
 
 removeset :: Eq a =>  [a] -> a -> [a] 
 removeset [] x              = [] 
