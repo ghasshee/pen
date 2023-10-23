@@ -1,6 +1,6 @@
 module Set where 
 
-import Data.List 
+import Data.List (sort) 
 
 
 mkset l = (sort . uniq) l 
@@ -18,6 +18,10 @@ uniq (a:as) = if a `elem` as then uniq as else a : uniq as
 subsets [] = [[]] 
 subsets (x:xs) = subsets xs ++ map (x:) (subsets xs)
 
+-- || Logical Operations || --
+
+intersect [] bs = [] 
+intersect (a:as) bs = if a `elem` bs then a : intersect as bs else intersect as bs 
 
 -- ||  +  &  -   operations on sets || -- 
 

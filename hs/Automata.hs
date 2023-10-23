@@ -15,8 +15,8 @@ data Node s = Q s
             deriving (Eq,Ord) 
 
 
-instance {-# Overlapping #-} Ord s => Eq (Node [s]) where 
-    Q xs     == Q ys     = sort xs == sort ys
+-- instance {-# Overlapping #-} Ord s => Eq (Node [s]) where 
+--     Q xs     == Q ys     = sort xs == sort ys
     
 
 instance Num s => Num (Node s) where 
@@ -168,7 +168,7 @@ subset_construction (A qs as trs is ts) =
     let qs'  = map subset2node qss in 
     let trs' = uniq $ remove_maybe [ bindtransitions (transitionsfrom q a trs) | a <- as, q <- qss ] in  
     let is'  = [subset2node $ sort is] in 
-    let ts'  = map subset2node $ map sort $ loop ts qss where 
+    let ts'  = uniq $ map subset2node $ map sort $ loop ts qss where 
         loop [] qss     = [] 
         loop (t:ts) qss = filter (t `elem`) qss ++ loop ts qss in 
     A qs' as trs' is' ts' 
@@ -181,16 +181,15 @@ subset_construction (A qs as trs is ts) =
 trim = undefined 
 
 accessible is edges = loop is [] where 
-    loop [] ret = ret
     loop qs ret = 
         let es  = alltransitionsfrom qs edges in 
         let qs' = map third3 es in 
         let ret' = uniq $ es ++ ret in 
-        if ret == ret' then ret else loop qs' (es++ret) 
+        if ret == ret' then (qs',ret) else loop qs' (es++ret) 
 
 accessible' (A qs as trs is ts) = 
-    let trs' = accessible is trs in 
-    A qs as trs' is ts 
+    let (qs',trs') = accessible is trs in 
+    A qs' as trs' is (intersect ts qs')
 
 third3 (_,_,c) = c
 
