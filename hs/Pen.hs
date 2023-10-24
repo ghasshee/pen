@@ -13,10 +13,11 @@ import Parser
 import Typing
 import PG
 import Decl2Term
-import Matrix 
 import Mat
+import MatRep
 import Action 
 import Semiring 
+import OR
 
 import System.IO 
 import System.Environment 
@@ -26,7 +27,7 @@ printDiag a@(M n _ _ _ _ _) = loop a a n where
     loop a an n = do 
         print $ show n ++ ": " 
         print $ diag an 
-        let a'  = removeLoops an a 
+        let a'  = rmLoops an a 
         let an' = mult a' an 
         if n /= 0 then loop a' an' (n-1) else return ()  
 
@@ -36,7 +37,7 @@ printStar a@(M n _ _ _ _ _) = loop a a n where
         print $ convert an 
         print "success path: " 
         print $ success an  
-        let a'  = removeLoops an a 
+        let a'  = rmLoops an a 
         let an' = mult a an 
         let s   = success an' 
         if n /= 1 then loop a' an' (n-1) else return () 

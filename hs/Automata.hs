@@ -3,40 +3,23 @@ module Automata where
 
 
 import Set
+import Node
 import Data.List (sort)
 import Semiring 
 import Prelude hiding ((>>)) 
 
--- || Ddfinition || 
 
-data Node s = Q s                 
-            | P (Node s,Node s) 
-            | L [Node s]  
-            deriving (Eq,Ord) 
+-- || Definition || -- 
 
-
--- instance {-# Overlapping #-} Ord s => Eq (Node [s]) where 
---     Q xs     == Q ys     = sort xs == sort ys
-    
-
-instance Num s => Num (Node s) where 
-    fromInteger i = Q (fromInteger i) 
-    Q i + Q j     = Q (i + j) 
-    Q i * Q j     = Q (i*j) 
-    negate (Q i)  = Q (negate i) 
-    signum (Q i)  = Q (signum i) 
-    abs (Q i )    = Q (abs i) 
-
-instance Show s => Show (Node s) where 
-    show (Q s) = "Q" ++ show s 
-    show (P p) = show p 
-    show (L l) = show l 
-type Edge s a = (Node s,a,Node s) 
-data Automata s a = A [Node s] [a] [Edge s a] [Node s] [Node s]     deriving (Eq,Show) 
+data    Automata s a = 
+            A   [Node s] [a] [Edge s a] [Node s] [Node s]     
+            --  Nodes  Alphabets Edges Initials Terminals
+            deriving (Eq,Show) 
 
 
 
--- || Validity   || 
+
+-- || Validity of Automata || --  
 
 valid :: (Eq s, Eq a) => Automata s a -> Bool 
 valid (A qs as tr i t) = case tr of 
@@ -108,7 +91,8 @@ map_apply_nodes (m:maps) qs = map_apply_nodes maps (one_map_apply_nodes m qs)
 disjointUnionNodes :: (Num s, Eq s) => [Node s] -> [Node s] -> [Node s] 
 disjointUnionNodes qs1 qs2 = qs1 ++ new_nodes qs1 qs2 
 
-disjointUnionEdges :: (Num s,Eq s,Ord a) => [Edge s a] -> [Edge s a] -> [Node s] -> [Node s] -> [Edge s a] 
+disjointUnionEdges :: (Num s,Eq s,Ord a) => 
+    [Edge s a] -> [Edge s a] -> [Node s] -> [Node s] -> [Edge s a] 
 disjointUnionEdges tr1 tr2 qs1 qs2 = 
     let map  = new_node_mapping qs1 qs2 in 
     let tr2' = map_apply_edges map tr2 in 
@@ -152,21 +136,21 @@ transitionsfrom qs a es = loop qs a es' where
 alltransitionsfrom []     es = []
 alltransitionsfrom (q:qs) es = filter_transition_domain q es ++ alltransitionsfrom qs es 
 
-bindtransitions :: (Ord s, Ord a) => [Edge s a] -> Maybe (Edge [s] a)
-bindtransitions trs = 
+bindtrs :: (Ord s, Ord a) => [Edge s a] -> Maybe (Edge [s] a)
+bindtrs trs = 
     let (qs,as,qs') = unzip3 trs in 
     case uniq as of 
     []  -> Nothing 
     [a] -> Just (subset2node (sort qs) , a, subset2node (sort qs'))  
 
-remove_maybe [] = []
-remove_maybe (Just a:xs) = a:remove_maybe xs
-remove_maybe (Nothing:xs) = remove_maybe xs
+rmMaybe [] = []
+rmMaybe (Just a:xs) = a:rmMaybe xs
+rmMaybe (Nothing:xs) = rmMaybe xs
 
 subset_construction (A qs as trs is ts) = 
     let qss  = sort $ map sort $ subsets qs in 
-    let qs'  = map subset2node qss in 
-    let trs' = uniq $ remove_maybe [ bindtransitions (transitionsfrom q a trs) | a <- as, q <- qss ] in  
+    let qs'  = uniq $ map subset2node qss in 
+    let trs' = uniq $ rmMaybe [ bindtrs (transitionsfrom q a trs) | a <- as, q <- qss ] in  
     let is'  = [subset2node $ sort is] in 
     let ts'  = uniq $ map subset2node $ map sort $ loop ts qss where 
         loop [] qss     = [] 
@@ -211,6 +195,13 @@ eg1 = runAutomata a1 "ab"
 eg2 = runAutomata a1 "aab" 
 
 
+
+
+--------------------------------------
+----          ATREE              -----
+--------------------------------------
+
+-- || Tree Representation of Automata || ----- 
 
 
 

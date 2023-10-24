@@ -1,4 +1,4 @@
-module Matrix where 
+module MatRep where 
 
 
 -- import Data.Matrix hiding (zero)
@@ -6,6 +6,7 @@ module Matrix where
 import Mat hiding (getRow) 
 import Action
 import Semiring
+import OR 
 import PG
 import GCLL hiding (M) 
 
@@ -51,22 +52,22 @@ showListLn (x:xs) = show x ++ "\n" ++ showListLn xs
 
 diag a@(M n m _ _ _ _) = [ a ! (i,i) | i <- [1 .. n] ]   
 
-removeTrsFrom a (OR t t')               = removeTrsFrom (removeTrsFrom a t) t' 
-removeTrsFrom a (SQ [])                 = a 
-removeTrsFrom a (SQ (Tr(i,ac,j):xs))    = removeTrsFrom (setElem ZR (i,j) a) (SQ xs)
-removeTrsFrom a ZR                      = a 
+rmTrsFrom a (OR t t')               = rmTrsFrom (rmTrsFrom a t) t' 
+rmTrsFrom a (SQ [])                 = a 
+rmTrsFrom a (SQ (Tr(i,ac,j):xs))    = rmTrsFrom (setElem ZR (i,j) a) (SQ xs)
+rmTrsFrom a ZR                      = a 
 
-removeLoops an a = 
+rmLoops an a = 
     let d       = diag an in 
     let trs     = foldl (\xs x -> if x == ZR then xs else x:xs) [] d in 
-    let a'      = foldl (\xs x -> removeTrsFrom xs x) a trs in 
+    let a'      = foldl (\xs x -> rmTrsFrom xs x) a trs in 
     a' 
 
 star' a@(M n _ _ _ _ _) = loop a a n [] where 
     loop a an limit ans  
         | elem (mult a an) ans          = an
         | otherwise                     = loop a' (mult a' an) (limit-1) (an:ans) where 
-            a' = removeLoops an a 
+            a' = rmLoops an a 
 
 
 convert :: Matrix (OR Transition) -> Matrix (OR Action) 

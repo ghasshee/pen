@@ -5,7 +5,7 @@ import Lexer
 import Prelude hiding (lookup, lex, EQ, LT, GT) 
 
 import GCLL
-import Predicate 
+import Formulae
 import Tree
 import Type
 import Data

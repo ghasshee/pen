@@ -1313,60 +1313,70 @@ cholDecomp a
     a22' = a22 - multStd l21 (transpose l21)
     l22 = cholDecomp a22'
 
--------------------------------------------------------
--------------------------------------------------------
----- PROPERTIES
-
-{-# RULES
-"matrix/traceOfSum"
-    forall a b. trace (a + b) = trace a + trace b
-
-"matrix/traceOfScale"
-    forall k a. trace (scaleMatrix k a) = k * trace a
-  #-}
-
--- | Sum of the elements in the diagonal. See also 'getDiag'.
---   Example:
---
--- >       ( 1 2 3 )
--- >       ( 4 5 6 )
--- > trace ( 7 8 9 ) = 15
-trace :: Num a => Matrix a -> a
-trace = V.sum . getDiag
-
--- | Product of the elements in the diagonal. See also 'getDiag'.
---   Example:
---
--- >          ( 1 2 3 )
--- >          ( 4 5 6 )
--- > diagProd ( 7 8 9 ) = 45
-diagProd :: Num a => Matrix a -> a
-diagProd = V.product . getDiag
-
--- DETERMINANT
-
-{-# RULES
-"matrix/detLaplaceProduct"
-    forall a b. detLaplace (a*b) = detLaplace a * detLaplace b
-
-"matrix/detLUProduct"
-    forall a b. detLU (a*b) = detLU a * detLU b
-  #-}
-
--- | Matrix determinant using Laplace expansion.
---   If the elements of the 'Matrix' are instance of 'Ord' and 'Fractional'
---   consider to use 'detLU' in order to obtain better performance.
---   Function 'detLaplace' is /extremely/ slow.
-detLaplace :: Num a => Matrix a -> a
-detLaplace m@(M 1 1 _ _ _ _) = m ! (1,1)
-detLaplace m = sum1 [ (-1)^(i-1) * m ! (i,1) * detLaplace (minorMatrix i 1 m) | i <- [1 .. nrows m] ]
-  where
-    sum1 = foldl1' (+)
-
--- | Matrix determinant using LU decomposition.
---   It works even when the input matrix is singular.
-detLU :: (Ord a, Fractional a) => Matrix a -> a
-detLU m = case luDecomp m of
-  Just (u,_,_,d) -> d * diagProd u
-  Nothing -> 0
-
+-- -------------------------------------------------------
+-- -------------------------------------------------------
+-- ---- PROPERTIES
+-- 
+-- {-# RULES
+-- "matrix/traceOfSum"
+--     forall a b. trace (a + b) = trace a + trace b
+-- 
+-- "matrix/traceOfScale"
+--     forall k a. trace (scaleMatrix k a) = k * trace a
+--   #-}
+-- 
+-- -- | Sum of the elements in the diagonal. See also 'getDiag'.
+-- --   Example:
+-- --
+-- -- >       ( 1 2 3 )
+-- -- >       ( 4 5 6 )
+-- -- > trace ( 7 8 9 ) = 15
+-- trace :: Num a => Matrix a -> a
+-- trace = V.sum . getDiag
+-- 
+-- -- | Product of the elements in the diagonal. See also 'getDiag'.
+-- --   Example:
+-- --
+-- -- >          ( 1 2 3 )
+-- -- >          ( 4 5 6 )
+-- -- > diagProd ( 7 8 9 ) = 45
+-- diagProd :: Num a => Matrix a -> a
+-- diagProd = V.product . getDiag
+-- 
+-- 
+-- 
+-- 
+-- 
+-- 
+-- 
+-- 
+-- 
+-- 
+-- 
+-- -- DETERMINANT
+-- 
+-- {-# RULES
+-- "matrix/detLaplaceProduct"
+--     forall a b. detLaplace (a*b) = detLaplace a * detLaplace b
+-- 
+-- "matrix/detLUProduct"
+--     forall a b. detLU (a*b) = detLU a * detLU b
+--   #-}
+-- 
+-- -- | Matrix determinant using Laplace expansion.
+-- --   If the elements of the 'Matrix' are instance of 'Ord' and 'Fractional'
+-- --   consider to use 'detLU' in order to obtain better performance.
+-- --   Function 'detLaplace' is /extremely/ slow.
+-- detLaplace :: Num a => Matrix a -> a
+-- detLaplace m@(M 1 1 _ _ _ _) = m ! (1,1)
+-- detLaplace m = sum1 [ (-1)^(i-1) * m ! (i,1) * detLaplace (minorMatrix i 1 m) | i <- [1 .. nrows m] ]
+--   where
+--     sum1 = foldl1' (+)
+-- 
+-- -- | Matrix determinant using LU decomposition.
+-- --   It works even when the input matrix is singular.
+-- detLU :: (Ord a, Fractional a) => Matrix a -> a
+-- detLU m = case luDecomp m of
+--   Just (u,_,_,d) -> d * diagProd u
+--   Nothing -> 0
+-- 

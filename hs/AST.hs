@@ -5,7 +5,7 @@ import GCLL
 import Type
 import Term
 import Tree
-import Predicate 
+import Formulae
 import Datatype
     
 

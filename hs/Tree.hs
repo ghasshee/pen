@@ -19,7 +19,7 @@ instance Show a' => Show (RBLTree a') where
         where
         showT s (RD a x)        = "+-  " ++ show a ++ "\n" ++ showF s x 
         showT s (BK a x)        = "*-( " ++ show a ++ "\n" ++ showF s x
-        showT s (LN(RT n _))    = "*=> LINK" ++ show n
+        showT s (LN(RT n _))    = "*=> LINK " ++ show n
         showF s []              = ""
         showF s [RD a x]        = s ++ "+-  " ++ show a ++ "\n" ++ showF(s ++ "    ")x
         showF s [BK a x]        = s ++ "*-( " ++ show a ++ "\n" ++ showF(s ++ "    ")x

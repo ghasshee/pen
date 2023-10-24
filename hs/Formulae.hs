@@ -1,4 +1,4 @@
-module  Predicate where 
+module Formulae where 
 
 import Term 
 
