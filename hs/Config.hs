@@ -3,9 +3,7 @@ module Config where
 
 
 
-data Index      =   Big  Integer     
-                |   Int  Int 
-                |   Label Int
+
 
 
 data Datum a    =   D
@@ -13,4 +11,20 @@ data Datum a    =   D
                     , size    :: a 
                     }
 
-data Loc    
+
+
+
+data Location   =   Stor  (Datum Int) 
+                |   Mem   (Datum Int)
+                |   Stack (Datum Int) 
+
+
+
+type Config     =   [(Location, Integer)] 
+
+
+
+                    
+
+
+

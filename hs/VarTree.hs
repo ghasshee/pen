@@ -130,26 +130,31 @@ vtBODY (BODY _ ds tm _) (i,b)   = (VBr (H i)BDY(vds++[vtm]), ctx'') where
 vtDecls :: [Decl] -> Ctx -> VTs
 vtDecls []      ctx             = ([],ctx)
 vtDecls (d:ds)  ctx@(i,b)       = case d of 
+    DATA id is ds               -> undefined 
+    LET  id tm fm               -> (VBr (H i) LETIN [vdef] : vds, ctx'') where 
+                                    (vdef,ctx')     = vtDEF id tm fm (i+1,b) 
+                                    (vds,ctx'')     = vtDecls ds ctx'  
     FLET id ps tm fm            -> (VBr (H i) LETIN [vf]  : vds , ctx'') where 
                                     (vf ,ctx' )     = vtFUN id ps tm fm (i+1,b)
                                     (vds,ctx'')     = vtDecls ds ctx'
-    DATA id is ds               -> undefined 
     SLET id tm _                -> (VBr  s    LETIN [vtm] : vds , ctx'') where 
                                     s               = searchSTO id b 
                                     (vtm,ctx')      = vtTerm  tm ctx
                                     (vds,ctx'')     = vtDecls ds ctx'
-    LET  id tm fm               -> (VBr (H i) LETIN [vlet] : vds, ctx'') where 
-                                    (i',b')         = (i+2,(id,X(i+1)):b) 
-                                    (vtm,(i'',b'')) = vtTerm tm (i',b') 
-                                    vlet            = VBr (X(i+1)) DEF [vtm] 
-                                    (vds,ctx'')     = vtDecls ds (i'',b') 
 
 vtFUN id ps tm fm ctx@(i,b)     = case recursive (length ps) tm of 
-    True                            -> (VBr (R i) LAM (vps++[vtm]), (i'',b')) where
-                                            (i',b')         = (i+1,(id,R i):b) 
-                                            (vps,ctx'')     = vtParams ps (i',b')
-                                            (vtm,(i'',_))   = vtTerm   tm ctx''
-    False                           -> undefined 
+    True                        -> (VBr (R i) LAM (vps++[vtm]), (i'',b')) where
+                                    (i',b')         = (i+1,(id,R i):b) 
+                                    (vps,ctx'')     = vtParams ps (i',b')
+                                    (vtm,(i'',_))   = vtTerm   tm ctx''
+    False                       -> (VBr (F i) LAM (vps++[vtm]), (i'',b')) where
+                                    (i',b')         = (i+1,(id,F i):b) 
+                                    (vps,ctx'')     = vtParams ps (i',b')
+                                    (vtm,(i'',_))   = vtTerm   tm ctx''
+
+vtDEF id tm fm ctx@(i,b)        = (VBr (X i) DEF [vtm], (i'',b')) where 
+                                   (i',b')          = (i+1,(id,X i):b) 
+                                   (vtm,(i'',_))    = vtTerm tm (i',b')
 
 searchSTO id []             = error (id ++ " is not initialized as a storage variable. ") 
 searchSTO id ((s,v):bind)   = if s==id then v else searchSTO id bind 
