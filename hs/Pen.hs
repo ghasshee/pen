@@ -12,6 +12,7 @@ import Lexer
 import Parser
 import Typing
 import PG
+import VarTree
 import Decl2Term
 import Mat
 import MatRep
@@ -19,49 +20,42 @@ import Action
 import Semiring 
 import OR
 
+import Print
+
 import System.IO 
 import System.Environment 
 import Data.Char
 
-printDiag a@(M n _ _ _ _ _) = loop a a n where 
-    loop a an n = do 
-        print $ show n ++ ": " 
-        print $ diag an 
-        let a'  = rmLoops an a 
-        let an' = mult a' an 
-        if n /= 0 then loop a' an' (n-1) else return ()  
 
-printStar a@(M n _ _ _ _ _) = loop a a n where 
-    loop a an n = do 
-        print $ show n ++ ":\n" 
-        print $ convert an 
-        print "success path: " 
-        print $ success an  
-        let a'  = rmLoops an a 
-        let an' = mult a an 
-        let s   = success an' 
-        if n /= 1 then loop a' an' (n-1) else return () 
+
 
 main = do 
     args <- getArgs 
     let (file:_) = args
     contents <- readFile file 
 
+    -- AST.hs 
     let ast :: [CONTRACT] 
         ast     = parse . lex $ contents
 
+    -- Term.hs 
     let tm  :: [Term] 
         tm      = map transpileCN ast 
 
+    -- PG.hs 
     let pgs :: [Edges] 
         pgs     = map mkPG ast
 
+    -- VarTree.hs
+    let vts :: [VT] 
+        vts     = map mkVT ast
+
+    -- MatRep.hs
     let mats :: [Matrix (OR Transition)] 
         mats    = map genMat pgs
 
     let stars :: [Matrix (OR Transition)] 
         stars   = map star' mats
-
 
     let ss      = map success stars
         
@@ -72,6 +66,9 @@ main = do
 --    print tm 
     print "------ Program Graph -------" 
     print pgs 
+
+    print "------ Variable Tree -------"
+    print vts 
     
     print "------ Matrix Representation ----" 
     print $ map convert mats

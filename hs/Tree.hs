@@ -2,40 +2,31 @@ module Tree where
 
 import Comonad
 
-data Tree a'    = Node a' [Tree a']     deriving (Eq,Read)
+data Tree a     = Node a [Tree a]     deriving (Eq,Read)
 
-data RBTree a'  = RED a' [RBTree a'] 
-                | BLK a' [RBTree a']    deriving (Eq,Read) 
+data RBTree a   = RED a [RBTree a] 
+                | BLK a [RBTree a]    deriving (Eq,Read) 
 
+data ROOT a     = RT Int [RBLTree a] deriving (Show, Eq, Read) 
 
-data ROOT a'    = RT Int [RBLTree a'] deriving (Show, Eq, Read) 
+data RBLTree a  = RD  a [RBLTree a] 
+                | BK  a [RBLTree a] 
+                | LN    (ROOT    a)  deriving (Eq,Read)  
 
-data RBLTree a' = RD  a' [RBLTree a'] 
-                | BK  a' [RBLTree a'] 
-                | LN     (ROOT   a')  deriving (Eq,Read)  
-
-instance Show a' => Show (RBLTree a') where 
-    show  s  = "\n" ++ showT "    " s
-        where
-        showT s (RD a x)        = "+-  " ++ show a ++ "\n" ++ showF s x 
-        showT s (BK a x)        = "*-( " ++ show a ++ "\n" ++ showF s x
-        showT s (LN(RT n _))    = "*=> LINK " ++ show n
+instance Show a => Show (RBLTree a) where 
+    show  s  = "\n" ++ showF "    " [s] where
         showF s []              = ""
         showF s [RD a x]        = s ++ "+-  " ++ show a ++ "\n" ++ showF(s ++ "    ")x
         showF s [BK a x]        = s ++ "*-( " ++ show a ++ "\n" ++ showF(s ++ "    ")x
-        showF s [LN(RT n _)]    = s ++ "*=> LINK " ++ show n ++ "\n" 
-        showF s (RD a x:xs)     = s ++ "+-  " ++ show a ++ "\n" 
-                                    ++ showF(s ++ "|   ")x ++ showF s xs 
-        showF s (BK a x:xs)     = s ++ "*-( " ++ show a ++ "\n" 
-                                    ++ showF(s ++ "|   ")x ++ showF s xs 
-        showF s (LN(RT n _):xs) = s ++ "*=> LINK " ++ show n ++ "\n" 
+        showF s (RD a x:xs)     = s ++ "+-  " ++ show a ++ "\n" ++ showF(s ++ "|   ")x 
+                                    ++ showF s xs 
+        showF s (BK a x:xs)     = s ++ "*-( " ++ show a ++ "\n" ++ showF(s ++ "|   ")x 
+                                    ++ showF s xs 
+        showF s (LN(RT n _):xs) = s ++ "L=> " ++ show n ++ "\n" 
                                     ++ showF s xs 
 
-instance Show a' => Show (RBTree a') where 
-    show  s  = "\n" ++ showT "    " s
-        where
-        showT s (RED a x)       = "+-  " ++ show a ++ "\n" ++ showF s x 
-        showT s (BLK a x)       = "*-( " ++ show a ++ "\n" ++ showF s x
+instance Show a => Show (RBTree a) where 
+    show  s  = "\n" ++ showF "    " [s] where
         showF s []              = ""
         showF s [RED a x]       = s ++ "+-  " ++ show a ++ "\n" ++ showF(s ++ "    ")x
         showF s [BLK a x]       = s ++ "*-( " ++ show a ++ "\n" ++ showF(s ++ "    ")x
@@ -44,10 +35,8 @@ instance Show a' => Show (RBTree a') where
         showF s (BLK a x:xs)    = s ++ "*-( " ++ show a ++ "\n" ++ showF(s ++ "|   ")x
                                     ++ showF s xs 
 
-instance Show a' => Show (Tree a') where
-    show    = showT "   "
-        where 
-        showT s (Node a x)      = "+- " ++ show a ++ "\n" ++ showF s x
+instance Show a => Show (Tree a) where
+    show t  = showF "   " [t]  where 
         showF s []              = ""
         showF s [Node a x]      = s ++ "+- " ++ show a ++ "\n" ++ showF(s ++ "   ")x
         showF s (Node a x:xs)   = s ++ "+- " ++ show a ++ "\n" ++ showF(s ++ "|  ")x

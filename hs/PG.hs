@@ -4,6 +4,7 @@
 module PG where 
 
 import GCLL 
+import Node 
 import Type
 import Term
 import Tree
@@ -20,15 +21,15 @@ import Data.Tuple.Extra (fst3, snd3, thd3)
 
 
 -- || PROGRAM GRAPH || --
-type Edge = (Node, Action, Node) 
+-- type Edge = (Node, Action, Node) 
 
 
 -- CONFIGURE 
 type NewNode    = Int
 type NewSto     = Int 
 type NewVar     = Int
-type InitNode   = Node 
-type LastNode   = Node
+type InitNode   = Nd
+type LastNode   = Nd
 type ArgNum     = Int
 data Bind       = FunBind (ArgNum, InitNode, LastNode) 
                 | VarBind 
@@ -36,14 +37,15 @@ data Bind       = FunBind (ArgNum, InitNode, LastNode)
 type FunCtx     = [(ArgNum, InitNode, LastNode)] 
 type Config     = (InitNode, LastNode, NewNode, NewSto, NewVar, FunCtx) 
 
-type Edges  = ([Edge], Config) 
+type Edges  = ([Edge Int Action], Config) 
 
 
-data PG = PG [Node] Edges Node [Node]  
+data PG = PG [Nd] Edges Nd [Nd]  
 
 
 -- Initial Configuration  
-initialConfig = (Qi, Qt, 1, 0, 0, [])
+-- initialConfig = (Qi, Qt, 1, 0, 0, [])
+initialConfig = (Q 1,Q 2, 3, 0, 0, []) 
 
 
 mkPG :: CONTRACT -> Edges
@@ -194,7 +196,7 @@ pgTerm tr cfg@(i,t,q,s,v,ctx)       = case tr of
     _                           ->  ([], cfg) 
 
 
-searchFun :: Int -> FunCtx -> Maybe (ArgNum,Node,Node) 
+searchFun :: Int -> FunCtx -> Maybe (ArgNum,Nd,Nd) 
 searchFun i []      = Nothing 
 searchFun 0 (x:xs)  = Just x  
 searchFun n (x:xs)  = searchFun (n-1) xs 

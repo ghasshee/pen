@@ -1,14 +1,18 @@
 module Action where 
 
 import GCLL
+import Node
 
 
 data Var  = X Int deriving (Show, Eq, Read) 
 data Sto  = S Int deriving (Show, Eq, Read) 
+
+type Nd   = Node Int 
+{--
 data Node = Q Int 
           | Qi | Qt | Qe
                 deriving (Show, Eq, Read) 
-
+--}
 data Action     = AcStop 
                 | AcDispatch String 
                 | AcRevert EXPR EXPR
@@ -30,8 +34,8 @@ data Action     = AcStop
                 | AcVar Int
                 | AcSto Int
                 | AcArray Var Int
-                | AcRecord Node Node    -- 
-                | AcCheck Node Node 
+                | AcRecord Nd Nd
+                | AcCheck  Nd Nd    
                 -- | AcSeq [Action] 
                 deriving (Eq, Read) 
                 
@@ -57,14 +61,15 @@ instance Show Action where
     show (AcVar i               ) = "VAR" ++ show i 
     show (AcSto i               ) = "STO" ++ show i 
     show (AcArray a i           ) = show a ++ show [i]
-    show (AcRecord Qi Qt        ) = "RC" ++ "i/t"
-    show (AcRecord Qi(Q j)      ) = "RC" ++ "i/" ++ show j
-    show (AcRecord (Q i)Qt      ) = "RC" ++ show i ++ "/t"
+    -- show (AcRecord Qi Qt        ) = "RC" ++ "i/t"
+    -- show (AcRecord Qi(Q j)      ) = "RC" ++ "i/" ++ show j
+    -- show (AcRecord (Q i)Qt      ) = "RC" ++ show i ++ "/t"
     show (AcRecord (Q i)(Q j)   ) = "RC" ++ show i ++ "/" ++ show j
-    show (AcCheck  Qi Qt        ) = "CK" ++ "i/t"
-    show (AcCheck  Qi(Q j)      ) = "CK" ++ "i/" ++ show j
-    show (AcCheck  (Q i)Qt      ) = "CK" ++ show i ++ "/t"
+    -- show (AcCheck  Qi Qt        ) = "CK" ++ "i/t"
+    -- show (AcCheck  Qi(Q j)      ) = "CK" ++ "i/" ++ show j
+    -- show (AcCheck  (Q i)Qt      ) = "CK" ++ show i ++ "/t"
     show (AcCheck  (Q i)(Q j)   ) = "CK" ++ show i ++ "/" ++ show j
+
 
 
 data Transition = Tr (Int,Action,Int) deriving (Eq) 
@@ -72,6 +77,6 @@ data Transition = Tr (Int,Action,Int) deriving (Eq)
 instance Show Transition where 
     show (Tr (i,a,j))         = show i ++ "=" ++ show a ++ "=>" ++ show j 
 
-
 tr2ac :: Transition -> Action
 tr2ac (Tr (_,a,_)) = a 
+

@@ -18,7 +18,6 @@ data    Automata s a =
 
 
 
-
 -- || Validity of Automata || --  
 
 valid :: (Eq s, Eq a) => Automata s a -> Bool 

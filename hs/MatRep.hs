@@ -4,6 +4,7 @@ module MatRep where
 -- import Data.Matrix hiding (zero)
 
 import Mat hiding (getRow) 
+import Node
 import Action
 import Semiring
 import OR 
@@ -24,11 +25,11 @@ genFun (e, (_,_,q,s,v,ctx))  (i,j) =
         Nothing             -> ZR 
         Just a              -> SQ [Tr(i,a,j)] 
 
-searchEdge :: [Edge] -> Int -> Int -> Int -> Maybe Action 
+searchEdge :: [Edge Int Action] -> Int -> Int -> Int -> Maybe Action 
 searchEdge []               i j sz                  = Nothing 
-searchEdge ((Qi, a,Qt ):es) 0 j sz | j==sz          = Just a 
-searchEdge ((Qi, a,Q n):es) 0 j sz | j==n           = Just a
-searchEdge ((Q n,a,Qt ):es) i j sz | i==n&&j==sz    = Just a 
+-- searchEdge ((Qi, a,Qt ):es) 0 j sz | j==sz          = Just a 
+-- searchEdge ((Qi, a,Q n):es) 0 j sz | j==n           = Just a
+-- searchEdge ((Q n,a,Qt ):es) i j sz | i==n&&j==sz    = Just a 
 searchEdge ((Q n,a,Q m):es) i j sz | i==n&&j==m     = Just a 
 searchEdge (e          :es) i j sz                  = searchEdge es i j sz
 
@@ -45,7 +46,8 @@ star :: (Semiring a,Eq a) => Matrix a -> Matrix a
 star a = loop a a where 
     loop a an = if an == mult a an then an else loop a (mult a an)
 
-success a@(M i j _ _ _ _) = a ! (1,j-1) 
+--success a@(M i j _ _ _ _) = a ! (1,j-1) 
+success a@(M i j _ _ _ _) = a ! (1,2) 
 
 showListLn []     = ""
 showListLn (x:xs) = show x ++ "\n" ++ showListLn xs 
