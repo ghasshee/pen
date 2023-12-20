@@ -12,3 +12,7 @@
 
 -- Kripke.hs    -- defines Kripke Structure which is used LTL analysis
 --
+--
+--
+--
+--
