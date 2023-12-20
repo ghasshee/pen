@@ -15,6 +15,7 @@ data Tm     = TmAPP                 -- 2 args
             | TmSTO Int             -- 0 Storage Variable  
             | TmPROD                -- n 
             | TmFIX ID ID Ty        -- 1
+            | TmLAM ID Ty 
             | TmDATA Data
             | TmU8 Int              -- 0
             | TmU256 Integer        -- 0

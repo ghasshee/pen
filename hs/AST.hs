@@ -14,7 +14,7 @@ import Datatype
 data Decl   = FLET ID [Param] Term (Maybe Formulae)
             |  LET ID         Term (Maybe Formulae) 
             | SLET ID         Term (Maybe Formulae) 
-            | DATA ID [ID] [DCONSTR] 
+            | DATA ID [ID] [DConstr] 
             deriving (Eq, Read)  
 
 instance Show Decl where 
