@@ -21,5 +21,4 @@ instance Num s => Num (Node s) where
 instance Show s => Show (Node s) where 
     show (Q s) = "Q" ++ show s 
 
-type Edge s a = (Node s,a,Node s) 
 

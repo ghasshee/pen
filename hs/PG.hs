@@ -5,6 +5,7 @@ module PG where
 
 import GCLL 
 import Node 
+import Edge
 import Type
 import Term
 import Tree
@@ -37,10 +38,11 @@ data Bind       = FunBind (ArgNum, InitNode, LastNode)
 type FunCtx     = [(ArgNum, InitNode, LastNode)] 
 type Config     = (InitNode, LastNode, NewNode, NewSto, NewVar, FunCtx) 
 
+-- PROGRAM GRAPH with Configure 
 type Edges  = ([Edge Int Action], Config) 
 
 
-data PG = PG [Nd] Edges Nd [Nd]  
+-- data PG = PG [Nd] Edges Nd [Nd]  
 
 
 -- Initial Configuration  

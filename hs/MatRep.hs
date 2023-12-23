@@ -5,6 +5,7 @@ module MatRep where
 
 import Mat hiding (getRow) 
 import Node
+import Edge
 import Action
 import Semiring
 import OR 
