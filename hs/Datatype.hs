@@ -5,7 +5,6 @@ import Type
 
 data DInd       = DInd ID [ID] DTy [DConstr] 
 
-
 data DConstr    = DConstr ID DTy  
                 deriving (Show, Eq, Read) 
 
