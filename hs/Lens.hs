@@ -1,5 +1,13 @@
 -- {-# LANGUAGE RankNTypes #-} 
+--
+--
+-- references : 
+-- - https://gist.github.com/lotz84/7fd7e279bd7196c6baab
+-- - https://dl.acm.org/doi/pdf/10.1145/3236779
 
+
+
+module Lens where 
 
 
 import Comonad 
@@ -88,5 +96,19 @@ flatten = Adapter from to where
 
 
 
+
+
+
+nth :: (Num n, Eq n) => n -> Lens a a [a] [a] 
+nth n = Lens (vw n) (up n) where 
+    vw n []         = error "nth element does not exist" 
+    vw 0 (x:xs)     = x 
+    vw n (x:xs)     = vw (n-1) xs 
+    up n ([],a')    = error "nth element does not exist"
+    up 0 (x:xs,a')  = a':xs 
+    up n (x:xs,a')  = x : up (n-1) (xs,a') 
+
+
+eg = update (nth 3) ([1..10], 99) 
 
 

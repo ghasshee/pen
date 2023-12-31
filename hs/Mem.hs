@@ -1,7 +1,11 @@
 module Mem where 
 
 
+import Lens
 
-set i x mem =  
 
-get i mem = 
+
+
+
+
+
