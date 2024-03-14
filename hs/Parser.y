@@ -172,21 +172,21 @@ Decl
     : let id Params '=' Tm ';' Predicate { \ctx -> 
                                             case lookup' $2 ctx of 
                                             Just (TmSTO n)  -> 
-                                                let id'  = '\'':$2 in 
-                                                let ctx' = addCtx STO $2 ctx in 
-                                                let ctx'''' = addCtx STO id' ctx in 
-                                                let ([], ctx'') = $3 ctx' in 
-                                                let (tm, ctx''')    = $5 ctx'''' in 
-                                                (SLET $2 tm ($7 ctx'''), ctx')
+                                                let id'             = '\'':$2 in 
+                                                let ctx'            = addCtx STO $2 ctx     in 
+                                                let ctx''''         = addCtx STO id' ctx    in 
+                                                let ([], ctx'')     = $3 ctx'               in 
+                                                let (tm, ctx''')    = $5 ctx''''            in 
+                                                (SLET id' tm ($7 ctx'''), ctx')
                                             _               -> 
-                                                let ctx' = addCtx VAR $2 ctx in 
-                                                let (params, ctx'') = $3 ctx' in 
+                                                let ctx'            = addCtx VAR $2 ctx     in 
+                                                let (params, ctx'') = $3 ctx'               in 
                                                 case params of 
                                                 []          -> 
-                                                    let (tm, ctx''')   = $5 ctx''  in 
+                                                    let (tm, ctx''')    = $5 ctx''              in 
                                                     (LET  $2 tm ($7 ctx'''), ctx') 
                                                 _           -> 
-                                                    let (tm, ctx''')   = $5 ctx''  in 
+                                                    let (tm, ctx''')    = $5 ctx''              in 
                                                     (FLET $2 params tm ($7 ctx'''), ctx') } 
 
 Predicate 

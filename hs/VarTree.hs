@@ -109,9 +109,10 @@ vtTOPs (top:tops)   ctx     = (vtop:vtops, ctx'') where
 vtTOP  :: TOP -> Ctx -> VT
 vtTOP e@(EV id ty      ) ctx    = undefined 
 vtTOP s@(SV id ty      ) (i,b)  = (VLf (Var(S i)), (i+1,(id, S i):b))
-vtTOP m@(MT id ty ps bd) (i,b)  = (VBr (M i)MTD(vps ++ [vbd]), ctx'') where
-                                    (vps,ctx')  = vtParams ps (i+1,(id,M i):b) 
-                                    (vbd,ctx'') = vtBODY bd ctx' 
+vtTOP m@(MT id ty ps bd) (i,b)  = (VBr (A i)MTD(vps ++ [vbd]), ctx'') where
+                                    (vps,ctx')      = vtParams ps (i+1,(id,A i):b) 
+                                    (vbd,(i'',b'')) = vtBODY bd ctx' 
+                                    ctx''           = (i'', removeHiddenSTO b'') 
 
 vtParams :: [Param] -> Ctx -> VTs 
 vtParams []      ctx            = ([],ctx)
@@ -137,10 +138,11 @@ vtDecls (d:ds)  ctx@(i,b)       = case d of
     FLET id ps tm fm            -> (VBr (H i) LETIN [vf]  : vds , ctx'') where 
                                     (vf ,ctx' )     = vtFUN id ps tm fm (i+1,b)
                                     (vds,ctx'')     = vtDecls ds ctx'
-    SLET id tm _                -> (VBr  s    LETIN [vtm] : vds , ctx'') where 
-                                    s               = searchSTO id b 
-                                    (vtm,ctx')      = vtTerm  tm ctx
-                                    (vds,ctx'')     = vtDecls ds ctx'
+    SLET id tm _                -> (VBr  s    LETIN [vtm] : vds , ctx''') where 
+                                    (s,ctx')        = searchSTO id ctx 
+                                    (vtm,ctx'')     = vtTerm  tm ctx'
+                                    (vds,ctx''')    = vtDecls ds ctx''
+
 
 vtFUN id ps tm fm ctx@(i,b)     = case recursive (length ps) tm of 
     True                        -> (VBr (R i) LAM (vps++[vtm]), (i'',b')) where
@@ -156,12 +158,18 @@ vtDEF id tm fm ctx@(i,b)        = (VBr (X i) DEF [vtm], (i'',b')) where
                                    (i',b')          = (i+1,(id,X i):b) 
                                    (vtm,(i'',_))    = vtTerm tm (i',b')
 
-searchSTO id []             = error (id ++ " is not initialized as a storage variable. ") 
-searchSTO id ((s,v):bind)   = if s==id then v else searchSTO id bind 
+
+searchSTO id (_,[])                                 = error (id ++ " is not initialized as a storage variable. ") 
+searchSTO id ctx@(i,(s,v):bind) | head id == '\''   = (S i,(i+1, (id,S i):(s,v):bind)) 
+searchSTO id ctx@(i,(s,v):bind) | s == id           = (v,ctx) 
+searchSTO id ctx@(i,(s,v):bind)                     = searchSTO id (i,bind) 
+
+removeHiddenSTO [] = []  
+removeHiddenSTO ((s,v):bind) | head s == '\''     = removeHiddenSTO bind 
+removeHiddenSTO ((s,v):bind)                      = (s,v) : removeHiddenSTO bind 
 
 
-
-
+-- determines whether it's a recursive function 
 recursive paramlen tr =
     case tr of 
     RED (TmVAR n) []        -> paramlen == n
@@ -171,6 +179,11 @@ recursive paramlen tr =
     _                       -> False
 
 
+-- remove HiddenVars from context
+removeHiddenVars [] = [] 
+removeHiddenVars ((_,A i):bs) = removeHiddenVars bs 
+removeHiddenVars ((_,H i):bs) = removeHiddenVars bs
+removeHiddenVars (b:bs      ) = b : removeHiddenVars bs  
 
 
 
@@ -179,8 +192,8 @@ vtTerm tr ctx@(i,b)                 = case tr of
     RED TmAPP [t1,t2]           ->  (VBr (H i) APP [vt1, vt2], ctx'') where 
                                         (vt1,ctx')  = vtTerm t1 (i+1,b) 
                                         (vt2,ctx'') = vtTerm t2 ctx' 
-    RED (TmVAR  n) []           ->  (VLf (Var (snd $ b !! n)), ctx  ) 
-    RED (TmSTO  n) []           ->  (VLf (Var (snd $ b !! n)), ctx  ) 
+    RED (TmVAR  n) []           ->  (VLf (Var (snd $ (removeHiddenVars b) !! n)), ctx  ) 
+    RED (TmSTO  n) []           ->  (VLf (Var (snd $ (removeHiddenVars b) !! n)), ctx  ) 
     RED (TmU256 n) []           ->  (VLf (Val n             ), ctx  )  
     RED (TmDATA d) []           ->  (VLf (Val (data2nat d)  ), ctx  )
     RED (TmIF    ) [c,t1,t2]    ->  (VBr (H i) COND [vb, vt1, vt2], ctx''') where 
