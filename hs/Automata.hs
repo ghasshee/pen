@@ -1,12 +1,23 @@
 {-# LANGUAGE IncoherentInstances #-} 
 module Automata where 
 
+--
+-- Automata.hs consists of 2 part 
+--  1. AUTOMATA : Automata Definitions 
+--  2. ATREE    : Tree Representations of Automata
+--
+
 
 import Set
 import Node
 import Data.List (sort)
 import Semiring 
 import Prelude hiding ((>>)) 
+
+----------------------------------
+-----         AUTOMATA       -----
+----------------------------------
+
 
 
 -- || Definition || -- 

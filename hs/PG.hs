@@ -13,6 +13,7 @@ import AST
 import Hex
 import Action  
 import Data
+import Datatype
 
 import Data.Tuple.Extra (fst3, snd3, thd3) 
 
@@ -81,6 +82,7 @@ pgTOP (MT id ty ps bd) (i,t,q,s,v,ctx) =
     (e++[(i,AcDispatch id, Q q),(Q(q+1),AcSkip, t)], (i,t,q',s',v',ctx')) 
 pgTOP (SV id ty) (i,t,q,s,v,ctx)    =   ([(i, AcSto s, Q q)], (Q q, t, q+1,s+1,v,ctx))   
 pgTOP (EV id ty) (i,t,q,s,v,ctx)    =   undefined 
+pgTOP (DT id ids cnstrs) (i,t,q,s,v,ctx) = undefined 
 
 pgMT :: TOP -> Config -> Edges
 pgMT (MT id ty ps bd) cfg           =   let (es ,cfg' )     = pgParams ps cfg   in 
@@ -139,7 +141,7 @@ rmctx n (c:cs) = rmctx (n-1) cs
 -- Decl -> pg  
 pgDecl :: Decl -> Config -> Edges 
 pgDecl d (i,t,q,s,v,ctx)    = case d of 
-    DATA id is ds           ->  undefined 
+    --DATA id is ds           ->  undefined 
     LET  id    tm fm        ->  pgTerm tm (i,t,q,s,v,ctx) 
 -- here, tm cannot always be AExp a 
 -- so this cannot be translated into " x := a "  

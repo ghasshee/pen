@@ -26,7 +26,6 @@ data DataStructure  = Pointer Int
 
 ed2binary EDCr      = "00"
 ed2binary EDDT      = "01" 
-ed2binary
 ed2binary EDOther   = "11"
 
 

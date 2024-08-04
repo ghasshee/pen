@@ -5,7 +5,7 @@ module VarTree where
 
 -- Variable Tree technique is used for decomposing AST 
 -- AST is transformed into a tree whose branch is always a node or variable. 
--- The branch of the tree is tagged by a variable, and variables constst of 3 sorts.
+-- The branch of the tree is tagged by a variable, and variables consist of 3 sorts.
 --  * ordinal  variable   -- non-recursive variable
 --  * recursive variable  -- 
 --  * hidden variable     -- 
@@ -108,6 +108,7 @@ vtTOPs (top:tops)   ctx     = (vtop:vtops, ctx'') where
 -- TOP -> vt
 vtTOP  :: TOP -> Ctx -> VT
 vtTOP e@(EV id ty      ) ctx    = undefined 
+vtTOP d@(DT id ids csts) ctx    = undefined 
 vtTOP s@(SV id ty      ) (i,b)  = (VLf (Var(S i)), (i+1,(id, S i):b))
 vtTOP m@(MT id ty ps bd) (i,b)  = (VBr (A i)MTD(vps ++ [vbd]), ctx'') where
                                     (vps,ctx')      = vtParams ps (i+1,(id,A i):b) 
@@ -131,7 +132,6 @@ vtBODY (BODY _ ds tm _) (i,b)   = (VBr (H i)BDY(vds++[vtm]), ctx'') where
 vtDecls :: [Decl] -> Ctx -> VTs
 vtDecls []      ctx             = ([],ctx)
 vtDecls (d:ds)  ctx@(i,b)       = case d of 
-    DATA id is ds               -> undefined 
     LET  id tm fm               -> (VBr (H i) LETIN [vdef] : vds, ctx'') where 
                                     (vdef,ctx')     = vtDEF id tm fm (i+1,b) 
                                     (vds,ctx'')     = vtDecls ds ctx'  

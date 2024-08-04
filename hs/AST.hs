@@ -14,14 +14,14 @@ import Datatype
 data Decl   = FLET ID [Param] Term (Maybe Formulae)
             |  LET ID         Term (Maybe Formulae) 
             | SLET ID         Term (Maybe Formulae) 
-            | DATA ID [ID] [DConstr] 
+--            | DATA ID [ID] [DConstr] 
             deriving (Eq, Read)  
 
 instance Show Decl where 
     show (FLET i ps t p) = "FLET " ++ i ++ " " ++ show ps ++ " := " ++ show t ++ show p ++ " IN \n" 
     show (SLET i    t p) = "SLET " ++ i ++ " "            ++ " := " ++ show t ++ show p ++ " IN \n" 
     show ( LET i    t p) = " LET " ++ i ++ " "            ++ " := " ++ show t ++ show p ++ " IN \n" 
-    show (DATA i is c)   = "DATA " ++ i ++ " " ++ show is ++ " := " ++ show c           ++ " IN \n" 
+--    show (DATA i is c)   = "DATA " ++ i ++ " " ++ show is ++ " := " ++ show c           ++ " IN \n" 
 
 data BODY   = BODY (Maybe Formulae) [Decl] Term (Maybe Formulae) 
             deriving (Eq, Read, Show) 
@@ -30,6 +30,7 @@ data BODY   = BODY (Maybe Formulae) [Decl] Term (Maybe Formulae)
 data TOP    = MT ID Ty [Param] BODY   
             | SV ID Ty  -- Storage Variables 
             | EV ID Ty 
+            | DT ID [ID] [DConstr] -- Datatype Declaration 
             deriving (Show, Eq, Read) 
 
 
