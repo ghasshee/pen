@@ -10,6 +10,7 @@ module Automata where
 
 import Set
 import Node
+import Edge
 import Data.List (sort)
 import Semiring 
 import Prelude hiding ((>>)) 
@@ -53,7 +54,7 @@ runAutomata (A qs as tr i t) w = case i of
 
 searchTransition :: (Ord a, Eq s) => Node s -> a -> [Edge s a] -> [Edge s a] 
 searchTransition curr a []                                      = [] 
-searchTransition curr a ((p, a',q):trs) | a <= a' && curr == p  = (p,a',q) : searchTransition curr a trs  
+searchTransition curr a ((p, a',q):trs) | a == a' && curr == p  = (p,a',q) : searchTransition curr a trs  
 searchTransition curr a (tr:trs)                                =            searchTransition curr a trs 
     
 
