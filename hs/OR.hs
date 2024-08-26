@@ -33,7 +33,7 @@ instance Monoid (OR a) where
     mappend o (OR t s)          = OR (mappend o t) (mappend o s) 
 
 instance Semiring (OR a) where 
-    zro             = ZR 
+    zero            = ZR 
     one             = mempty 
     ZR    <+> a     = a 
     a     <+> ZR    = a 

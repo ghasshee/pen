@@ -1,56 +1,115 @@
+{-# LANGUAGE UndecidableInstances #-} 
+{-# LANGUAGE MonoLocalBinds #-} 
+{-# LANGUAGE TypeFamilies #-} 
+{-# LANGUAGE GADTs #-} 
+{-# LANGUAGE MultiParamTypeClasses #-} 
+{-# LANGUAGE FlexibleInstances #-} 
+
 module Set where 
 
-import Data.List (sort) 
+import Data.List (sort)  
+import Prelude hiding ((>>)) 
 
 
-mkset l = (sort . uniq) l 
 
 
--- || generate SET from LIST || -- 
+class SetOperations s where    
+    subsets     :: s -> [s]  
+    power       :: s -> [s]  
+    intersect   :: s -> s -> s 
+    union       :: s -> s -> s 
+    diff        :: s -> s -> s 
+    (∩)         :: s -> s -> s  
+    (∪)         :: s -> s -> s  
+    (\\)        :: s -> s -> s 
+    power       = subsets 
+    intersect   = (∩)
+    union       = (∪)
+    diff        = (\\)
+    uniq        :: s -> s  
+    infixl 8 ∩  
+    infixl 7 ∪
+    infixl 6 \\ 
 
-uniq :: Eq a => [a] -> [a] 
-uniq [] = [] 
-uniq (a:as) = if a `elem` as then uniq as else a : uniq as 
+class ListOperations s a where 
+    (∈)             :: a -> s a -> Bool 
+    (∉)             :: a -> s a -> Bool 
+    (~=~)           :: s a -> s a -> Bool 
+    (>>)            :: a -> s a -> s a 
+    add             :: a -> s a -> s a
+    add             = (>>) 
+    disjointunion   :: s a -> s a -> s (Either a a) 
+    (+++)             :: s a -> s a -> s (Either a a)
+    disjointunion   = (+++)
+    a ∉ l           = not (a ∈ l)    
+    infixr 3 ~=~ 
+    infixr 7 >> 
+    
+instance (Ord a, Eq a) => SetOperations [a] where 
+    subsets []                  = [[]]
+    subsets (x:xs)              = subsets xs ++ ( (x:) <$> subsets xs)  
+    []      ∩ _                 = [] 
+    _       ∩ []                = []  
+    (a:as)  ∩ bs | a ∈ bs       = a : bs ∩ as 
+                  | otherwise   = bs ∩ as 
+    as      ∪ bs                = uniq (as ++ bs) 
+    as      \\  []              = as 
+    as      \\ (b:bs)           = filter (/=b) as \\ bs 
+    uniq []                     = [] 
+    uniq (a:as) | a ∈ as        = uniq as 
+                | otherwise     = a : uniq as 
+    
+
+instance Eq a => ListOperations [] a where 
+    a ∈ b                       = a `elem` b  
+    []   ~=~ []                 = True
+    []   ~=~ _                  = False 
+    a:as ~=~ l  | a ∈ l         = as ~=~ (filter (/=a) l) 
+                | otherwise     = False  
+    a >> l      | a ∈ l         = l 
+                | otherwise     = a:l 
+    l +++ r                     = (Left <$> l) ++ (Right <$> r )
 
 
--- || generate all SUBSETS || -- 
-
-subsets [] = [[]] 
-subsets (x:xs) = subsets xs ++ map (x:) (subsets xs)
-
--- || Logical Operations || --
-
-intersect [] bs = [] 
-intersect (a:as) bs = if a `elem` bs then a : intersect as bs else intersect as bs 
-
--- ||  +  &  -   operations on sets || -- 
-
-removeset :: Eq a =>  [a] -> a -> [a] 
-removeset [] x              = [] 
-removeset (a:as) x | x==a   = as 
-removeset (a:as) x          = a : removeset as x
-
-setminus  :: Eq a => [a] -> [a] -> [a] 
-setminus l1 []      = l1 
-setminus l1 (x:xs)  = setminus (removeset l1 x) xs  
-
-addset    :: Eq a =>  a  -> [a] -> [a] 
-addset x l              =   if x `elem` l then l else x : l 
-
-setplus   :: Eq a => [a] -> [a] -> [a] 
-setplus  l1 []      = l1
-setplus  l1 (x:xs)  = setplus  (addset    x l1) xs 
-
-infixr 1 >>
-(>>)  :: Eq a => a -> [a] -> [a] 
-(>>) = addset
 
 
---addset2 :: [a] -> a -> a -> [a] 
---addset2 l x1 x2         =   addset (addset l x1) x2 
+-- { Set type }-- 
 
-addsetifnot :: Eq a => [a] -> [a] -> a -> [a] 
-addsetifnot m l x       =   if x `elem` m then l else addset x l
+newtype Set a = Set [a] 
 
-addsetifnot2 :: Eq a => [a] -> [a] -> a -> a  -> [a] 
-addsetifnot2 m l x1 x2  =   addsetifnot m (addsetifnot m l x1) x2
+unset       (Set l)     = l 
+set            l        = (Set . sort . uniq) l 
+
+instance Show a => Show (Set a) where 
+    show (Set l) = '{' : init ( tail (show l) ) ++ "}" 
+          
+instance Ord a => SetOperations (Set a) where 
+    subsets         = (Set <$>) . subsets . unset 
+    Set l ∩ Set k   =  Set ( l ∩ k ) 
+    Set l ∪ Set k   =  Set ( l ∪ k ) 
+    Set l \\ Set k  =  Set ( l \\ k ) 
+    uniq (Set l)    =  Set (uniq l) 
+
+instance Ord a => ListOperations Set a where 
+    a ∈ Set l       =  a ∈ l 
+    Set l ~=~ Set k =  l ~=~ k 
+    a >> Set l      =  Set (a >> l) 
+    Set l +++ Set r = (Set $ Left <$>  l) ∪ (Set $ Right <$> r) 
+
+instance Eq a => Eq (Set a) where 
+    Set l == Set k  = l ~=~ k  
+
+instance Eq a => Ord (Set a) where 
+    Set []      <= Set _              = True
+    Set (a:as)  <= Set l  | a ∈ l     = True 
+                          | otherwise = False 
+
+
+
+
+
+addifnot :: Eq a => [a] -> [a] -> a -> [a] 
+addifnot m l x       =   if x ∈ m then l else x >> l 
+
+addifnot2 :: Eq a => [a] -> [a] -> a -> a  -> [a] 
+addifnot2 m l x1 x2  =   addifnot m (addifnot m l x1) x2

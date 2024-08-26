@@ -40,7 +40,7 @@ type FunCtx     = [(ArgNum, InitNode, LastNode)]
 type Config     = (InitNode, LastNode, NewNode, NewSto, NewVar, FunCtx) 
 
 -- PROGRAM GRAPH with Configure 
-type Edges  = ([Edge Int Action], Config) 
+type Edges  = ([Edge(Node Int)Action], Config) 
 
 
 -- data PG = PG [Nd] Edges Nd [Nd]  

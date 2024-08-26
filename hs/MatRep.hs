@@ -26,7 +26,7 @@ genFun (e, (_,_,q,s,v,ctx))  (i,j) =
         Nothing             -> ZR 
         Just a              -> SQ [Tr(i,a,j)] 
 
-searchEdge :: [Edge Int Action] -> Int -> Int -> Int -> Maybe Action 
+searchEdge :: [Edge(Node Int)Action] -> Int -> Int -> Int -> Maybe Action 
 searchEdge []               i j sz                  = Nothing 
 -- searchEdge ((Qi, a,Qt ):es) 0 j sz | j==sz          = Just a 
 -- searchEdge ((Qi, a,Q n):es) 0 j sz | j==n           = Just a

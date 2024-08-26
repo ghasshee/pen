@@ -229,12 +229,12 @@ instance Traversable Matrix where
 -- >     (     ...     )
 -- >     ( 0 0 ... 0 0 )
 -- >   n ( 0 0 ... 0 0 )
-zero :: Num a =>
+zero_matrix :: Num a =>
      Int -- ^ Rows
   -> Int -- ^ Columns
   -> Matrix a
-{-# INLINE zero #-}
-zero n m = M n m 0 0 m $ V.replicate (n*m) 0
+{-# INLINE zero_matrix #-}
+zero_matrix n m = M n m 0 0 m $ V.replicate (n*m) 0
 
 -- | /O(rows*cols)/. Generate a matrix from a generator function.
 --   Example of usage:
@@ -882,7 +882,7 @@ multStd_ a@(M 3 3 _ _ _ _) b@(M 3 3 _ _ _ _) =
 multStd_ a@(M n m _ _ _ _) b@(M _ m' _ _ _ _) = matrix n m' $ \(i,j) -> sum [ a !. (i,k) * b !. (k,j) | k <- [1 .. m] ]
 
 mult  :: Semiring a => Matrix a -> Matrix a -> Matrix a 
-mult  a@(M n m _ _ _ _) b@(M _ m' _ _ _ _) = matrix n m' $ \(i,j) -> sumS [ a !. (i,k) <.> b !. (k,j) | k <- [1 .. m] ]
+mult  a@(M n m _ _ _ _) b@(M _ m' _ _ _ _) = matrix n m' $ \(i,j) -> srsum [ a !. (i,k) <.> b !. (k,j) | k <- [1 .. m] ]
 
 multStd__ :: Num a => Matrix a -> Matrix a -> Matrix a
 {-# INLINE multStd__ #-}
@@ -1308,7 +1308,7 @@ cholDecomp a
     (a11, a12, a21, a22) = splitBlocks 1 1 a
     l11' = sqrt (a11 ! (1,1))
     l11 = fromList 1 1 [l11']
-    l12 = zero (nrows a12) (ncols a12)
+    l12 = zero_matrix (nrows a12) (ncols a12)
     l21 = scaleMatrix (1/l11') a21
     a22' = a22 - multStd l21 (transpose l21)
     l22 = cholDecomp a22'

@@ -43,10 +43,19 @@ instance Show a => Show (Tree a) where
                                     ++ showF s xs 
 
 
+
 foldt g h d c (Node a [])       = g a d 
 foldt g h d c (Node a xs)       = g a (foldf g h d c xs)
 foldf g h d c []                = c 
 foldf g h d c (x:xs)            = h (foldt g h d c x) (foldf g h d c xs)
+
+foldtr                          = foldt 
+
+foldtl g h d c (Node a [])      = g a d
+foldtl g h d c (Node a xs)      = g a (foldfl g h d c xs) 
+foldfl g h d c []               = c 
+foldfl g h d c (x:xs)           = foldfl g h d (h (foldt g h d c x) c) xs 
+
 
 foldrbt g h d c (RED a [])      = g a d 
 foldrbt g h d c (BLK a [])      = g a d 
