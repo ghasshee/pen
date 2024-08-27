@@ -7,7 +7,7 @@ module Any where
 
 import Set 
 import Semiring  
-import Prelude hiding (any) 
+import Prelude hiding (any, (>>) ) 
 
 
 
@@ -48,7 +48,14 @@ instance Anyclass (Any a) where
     complement (In l) = Ex l 
 
 
-instance (Eq a) => ListOperations Any a 
+instance (Ord a) => ListOperations Any a where 
+    a >> In as      = In (a >> as) 
+    a >> Ex as      = Ex as \\ In [a] 
+    a ∈  In as      = a ∈ as 
+    In as +++ In bs = In (as +++ bs) 
+    a ~=~ b         = undefined 
+
+
 
 instance (Ord a, SetOperations [a] ) => SetOperations (Any a) where 
     subsets (In l)      = In <$> (subsets l) 
@@ -65,6 +72,8 @@ instance (Ord a, SetOperations [a] ) => SetOperations (Any a) where
     In as   ∪  Ex bs    = Ex (bs \\ as) 
     Ex as   ∪  In bs    = Ex (as \\ bs)
     as      ∩  bs       = as ∪ (bs \\ as) 
+    uniq (In as)        = In (uniq as) 
+    uniq (Ex as)        = Ex (uniq as) 
 
 
 

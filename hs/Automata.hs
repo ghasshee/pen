@@ -6,16 +6,14 @@ module Automata
 , runAutomata 
 , matchAutomata
 , trim
+, accessible 
+, coaccessible
 , union , (∪) 
 , intersect , (∩) 
 , uniq 
 , subset_construction ) 
 where 
---
--- Automata.hs consists of 2 part 
---  1. AUTOMATA : Automata Definitions 
---  2. ATREE    : Tree Representations of Automata
---
+
 
 import Logic 
 import Set
@@ -70,8 +68,6 @@ renodeAutomata (A qs as es is ts) = A qs' as es' is' ts'
 
 
 
-
-
 -- || Validity of Automata || --  
 
 valid :: (Eq node, Eq a) => Automata node a -> Bool 
@@ -86,21 +82,6 @@ valid (A qs as es is ts) =  qs' <== qs && as' <== as && ps' <== qs   where
 runAutomata :: (Ord a, Eq node) => Automata node a -> [a] -> Bool 
 runAutomata atmt w = matchAutomata (embed_any atmt) w  
  
-{--
-runAutomata (A _ _ es is ts) = case is of 
-    [i] -> run i w  where     
-        run curr []     = curr ∈ ts 
-        run curr (c:w)  = case nextEdge curr c es of 
-            []  -> False 
-            [e] -> run (cod e) w 
-            _   -> noDFA
-    _       -> noDFA 
-
-nextEdge :: (Eq a, Eq node) => node -> a -> [Edge node a] -> [Edge node a] 
-nextEdge curr a []                                  = [] 
-nextEdge curr a ((p,b,q):es)    | a==b && curr==p   = (p,b,q) : nextEdge curr a es  
-                                | otherwise         =           nextEdge curr a es
---}     
 
 -- || Match || -- 
 
@@ -143,6 +124,8 @@ instance (Ord a, Ord s, Num s, Enum s) => SetOperations (Automata (Node s)  a) w
         is      = renodes table [(i1,i2) | i1 <- is1, i2 <- is2] 
         ts      = renodes table [(t1,t2) | t1 <- ts1, t2 <- ts2] 
     uniq (A qs as es is ts)     = A (uniq qs)(uniq as)(uniq es)(uniq is)(uniq ts) 
+    (\\)                        = undefined 
+    subsets                     = undefined 
 
 
 
@@ -151,26 +134,15 @@ instance (Ord a, Ord s, Num s, Enum s) => SetOperations (Automata (Node s)  a) w
 
 -- || Subset Construction || -- 
 
-filter_transition_arr  a     = filter ((==a) . arrow)  
-filter_transition_dom  q     = filter ((==q) . dom) 
-filter_transition_cod  q     = filter ((==q) . cod) 
-filter_transition_doms qs es = concat $ (\q -> filter_transition_dom q es) <$> qs   
-filter_transition_cods qs es = concat $ (\q -> filter_transition_cod q es) <$> qs   
+filter_edge_arr  a     = filter ((==a) . arrow)  
+filter_edge_dom  q     = filter ((==q) . dom) 
+filter_edge_cod  q     = filter ((==q) . cod) 
+filter_edge_doms qs es = concat $ (\q -> filter_edge_dom q es) <$> qs   
+filter_edge_cods qs es = concat $ (\q -> filter_edge_cod q es) <$> qs   
 
-transitionsfrom qs a es = (qs, a, ps) where 
-    ps = sort $ uniq $ cod <$> (filter  ( (∈ qs) . dom )  $ filter_transition_arr a es)
-
-{--
-subset_construction :: (Ord node, Ord a) => Automata node a -> Automata [node] a 
-subset_construction (A qs _ trs is ts) = A qss as trs' is' ts' where 
-    qss  = sort <$> subsets qs  
-    as   = sort $ uniq $ arrow <$> trs 
-    trs' = [ transitionsfrom qs a trs | a <- as, qs <- qss ] 
-    is'  = [sort is]  
-    ts'  = uniq $ sort <$> loop ts  where 
-        loop []      = [] 
-        loop (t:ts)  = filter (t ∈) qss ++ loop ts  
---}
+edgesfrom :: (Ord node, Eq a) => [node] -> a -> [Edge node a] -> Edge [node] a 
+edgesfrom qs a es = (qs, a, ps) where 
+    ps = sort $ uniq $ cod <$> (filter  ( (∈ qs) . dom )  $ filter_edge_arr a es)
 
 alphabets  :: Ord a => [Any a] -> [a] 
 alphabets  as = loop as [] where 
@@ -193,20 +165,15 @@ subset_construction (A qs _ es is ts) = A qss as' es'' is' ts' where
     qss         = sort <$> subsets qs 
     as          = uniq $ arrow <$> es
     (es',as')   = separate_edges as es 
-    es''        = [ transitionsfrom qs a es' | a <- as', qs <- qss ]  
+    es''        = [ edgesfrom qs a es' | a <- as', qs <- qss ]  
     is'         = [sort is] 
     ts'         = uniq $ sort <$> loop ts where 
         loop []     = []
         loop (t:ts) = filter (t ∈) qss ++ loop ts 
 
 
--- || Trim || 
-{--
-trimAutomata (A qs as es is ts) = (A qs' as es' is' ts') where 
-    (qs', es') = trim is ts es 
-    is' = filter (\i -> i ∈ qs') is 
-    ts' = filter (\t -> t ∈ qs') ts 
---}
+-- || Trim || -- 
+
 trim (A qs as es is ts) = A (qs1 ∩ qs2) as (es1 ∩ es2) is' ts' where     
     A qs1 _ es1 _ ts' = accessible  (A qs as es is ts) 
     A qs2 _ es2 is' _ = coaccessible (A qs as es is ts) 
@@ -215,7 +182,7 @@ accessible :: (Eq node, Eq a, Ord a, Ord node) => Automata node a -> Automata no
 accessible (A qs as es is ts) = loop is is [] where 
     loop ps _qs _es | _es ~=~ _es'  = A _qs' as _es' is (ts ∩ _qs') 
                     | otherwise     = loop qs' _qs' _es' where 
-        es'     = filter_transition_doms ps es 
+        es'     = filter_edge_doms ps es 
         qs'     = cod <$> es'
         _qs'    = _qs ∪ qs' 
         _es'    = _es ∪ es'
@@ -224,7 +191,7 @@ coaccessible :: (Eq node, Eq a, Ord a, Ord node) => Automata node a -> Automata 
 coaccessible (A qs as es is ts) = loop ts ts [] where 
     loop qs _ps _es | _es ~=~ _es'  = A _ps' as _es' (is ∩ _ps')  ts   
                     | otherwise     = loop ps _ps' _es'     where 
-        es'     = filter_transition_cods qs es
+        es'     = filter_edge_cods qs es
         ps      = dom <$> es' 
         _ps'    = _ps ∪ ps 
         _es'    = _es ∪ es 

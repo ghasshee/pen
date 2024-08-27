@@ -4,6 +4,7 @@ module Main where
 import Prelude hiding (lex, EQ, LT, GT) 
 
 import Tree
+import Edge
 import GCLL hiding (M)
 import Type
 import AST
@@ -51,14 +52,15 @@ main = do
         vts     = map mkVT ast
 
     -- MatRep.hs
-    let mats :: [Matrix (OR Transition)] 
+    let mats :: [Matrix (OR (Edge Int Action))] 
         mats    = map genMat pgs
 
-    let stars :: [Matrix (OR Transition)] 
+    let stars :: [Matrix (OR (Edge Int Action))] 
         stars   = map star' mats
 
     let ss      = map success stars
         
+    let loopEntrs = map loopEntranceNodes mats 
 
     print "------ Abstract Syntax Tree -------"
     print ast
@@ -71,7 +73,7 @@ main = do
     print vts 
     
     print "------ Matrix Representation ----" 
-    print $ map convert mats
+    print $ convert <$> mats
 
     print "------- Stars -------"
     mapM printStar mats  
@@ -79,8 +81,17 @@ main = do
     print "------ Diags ------"
     mapM printDiag mats
 
+    print "------ Diags (Action ONLY) ------" 
+    mapM printDiag' mats 
+
     print "------ Fixpoint' ------"
     print stars
+
+    print "------ Matrix Edge Representation -----" 
+    print mats 
+
+    print "------ Loop Entrances ------" 
+    print loopEntrs
 
 
 

@@ -55,3 +55,9 @@ instance Functor OR where
 
 
 
+unwrapOR :: OR a -> Maybe a 
+unwrapOR (ZR)       = Nothing
+unwrapOR (SQ [a])   = Just a 
+unwrapOR _          = error "cannot unwrap OR" 
+
+

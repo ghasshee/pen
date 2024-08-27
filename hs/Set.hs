@@ -81,7 +81,7 @@ unset       (Set l)     = l
 set            l        = (Set . sort . uniq) l 
 
 instance Show a => Show (Set a) where 
-    show (Set l) = '{' : init ( tail (show l) ) ++ "}" 
+    show (Set l) = '{' : init ( drop 1 (show l) ) ++ "}" 
           
 instance Ord a => SetOperations (Set a) where 
     subsets         = (Set <$>) . subsets . unset 

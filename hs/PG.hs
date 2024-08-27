@@ -30,12 +30,14 @@ import Data.Tuple.Extra (fst3, snd3, thd3)
 type NewNode    = Int
 type NewSto     = Int 
 type NewVar     = Int
-type InitNode   = Nd
-type LastNode   = Nd
+type InitNode   = Node Int
+type LastNode   = Node Int 
 type ArgNum     = Int
+{--
 data Bind       = FunBind (ArgNum, InitNode, LastNode) 
                 | VarBind 
                 deriving (Show, Eq, Read) 
+                --}
 type FunCtx     = [(ArgNum, InitNode, LastNode)] 
 type Config     = (InitNode, LastNode, NewNode, NewSto, NewVar, FunCtx) 
 
@@ -80,9 +82,9 @@ pgTOP :: TOP -> Config -> Edges
 pgTOP (MT id ty ps bd) (i,t,q,s,v,ctx) = 
     let (e,(_,_,q',s',v',ctx')) = pgMT (MT id ty ps bd) (Q q,Q(q+1),q+2,s,v,ctx) in 
     (e++[(i,AcDispatch id, Q q),(Q(q+1),AcSkip, t)], (i,t,q',s',v',ctx')) 
-pgTOP (SV id ty) (i,t,q,s,v,ctx)    =   ([(i, AcSto s, Q q)], (Q q, t, q+1,s+1,v,ctx))   
-pgTOP (EV id ty) (i,t,q,s,v,ctx)    =   undefined 
-pgTOP (DT id ids cnstrs) (i,t,q,s,v,ctx) = undefined 
+pgTOP (SV id ty)        (i,t,q,s,v,ctx) =   ([(i, AcSto s, Q q)], (Q q, t, q+1,s+1,v,ctx))   
+pgTOP (EV id ty)        (i,t,q,s,v,ctx) =   undefined 
+pgTOP (DT id ids cnstrs)(i,t,q,s,v,ctx) =   undefined 
 
 pgMT :: TOP -> Config -> Edges
 pgMT (MT id ty ps bd) cfg           =   let (es ,cfg' )     = pgParams ps cfg   in 
@@ -200,7 +202,7 @@ pgTerm tr cfg@(i,t,q,s,v,ctx)       = case tr of
     _                           ->  ([], cfg) 
 
 
-searchFun :: Int -> FunCtx -> Maybe (ArgNum,Nd,Nd) 
+searchFun :: Int -> FunCtx -> Maybe (ArgNum,Node Int,Node Int) 
 searchFun i []      = Nothing 
 searchFun 0 (x:xs)  = Just x  
 searchFun n (x:xs)  = searchFun (n-1) xs 
