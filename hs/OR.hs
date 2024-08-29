@@ -1,6 +1,7 @@
 module OR where 
 
 import Semiring
+import Set 
 
 {--
 data BinListErr = Zr
@@ -19,18 +20,19 @@ instance Show a => Show (OR a) where
     show (OR a b    )   = show a ++ "  |  " ++ show b 
     
 
+instance Eq a => Ord (OR a) where 
+    SQ l > SQ m                 = l ⊃ m 
+
+
 instance Semigroup (OR a) where 
     SQ l <> SQ m                = SQ (l <> m)
     OR t s <> o                 = OR (t <> o) (s <> o) 
-    o <> OR t s                 = OR (o <> t) (o <> t) 
+    o <> OR t s                 = OR (o <> t) (o <> s) 
+    a <> b                      = a <.> b 
 
 instance Monoid (OR a) where 
     mempty                      = SQ []
-    mappend ZR  a               = a 
-    mappend a  ZR               = a 
-    mappend (SQ l) (SQ m)       = SQ (mappend l m)  
-    mappend (OR t s) o          = OR (mappend t o) (mappend s o) 
-    mappend o (OR t s)          = OR (mappend o t) (mappend o s) 
+    mappend                     = (<.>) 
 
 instance Semiring (OR a) where 
     zero            = ZR 
@@ -44,7 +46,7 @@ instance Semiring (OR a) where
     a     <.> ZR    = ZR 
     SQ [] <.> a     = a 
     a     <.> SQ [] = a 
-    a     <.> b     = mappend a b 
+    a     <.> b     = a <> b 
 
 instance Functor OR where 
     fmap f ZR       = ZR

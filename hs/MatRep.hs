@@ -3,6 +3,7 @@ module MatRep where
 
 -- import Data.Matrix hiding (zero)
 
+import Logic
 import Set 
 import Mat hiding (getRow, getCol) 
 import Node
@@ -42,10 +43,12 @@ genMat edges = matrix i j gen
 
 -- || Operations on Matrix || --
 
+instance Semiring a => Semiring (Matrix a) where
+    a <.> b = mult a b 
 
-star :: (Semiring a,Eq a) => Matrix a -> Matrix a 
-star a = loop a a where 
-    loop a an = if an == mult a an then an else loop a (mult a an)
+instance (Eq a, Semiring a) => StarSemiring (Matrix a) where 
+    star a = loop a a where 
+        loop a an = if an == mult a an then an else loop a (mult a an)
 
 
 
@@ -92,6 +95,18 @@ star' a@(M n _ _ _ _ _) = loop a a n [] where
 convert :: Matrix (OR (Edge Int Action)) -> Matrix (OR Action) 
 convert = fmap (fmap arrow) 
 
+
+
+
+
+
+
+
+
+
+
+
+
 -------------------------------
 ----  Graph Loop Analysis  ----
 -------------------------------
@@ -100,38 +115,94 @@ convert = fmap (fmap arrow)
 
 
 
-getCol j a@(M n m _ _ _ _) = [ a!(i,j) | i <- [1..n] ]
-getRow i a@(M n m _ _ _ _) = [ a!(i,j) | j <- [1..n] ] 
+succEdges i a@(M n m _ _ _ _) = filter (/= zero) [ a!(i,j) | j <- [1..n] ] 
+predEdges j a@(M n m _ _ _ _) = filter (/= zero) [ a!(i,j) | i <- [1..n] ] 
+
+succNodes :: (Eq a, Semiring a) => Int -> Matrix a -> [Int]  
+succNodes i a@(M n m _ _ _ _) = filter (\k -> a!(i,k) /= zero) [1..n] 
+
+predNodes :: (Eq a, Semiring a) => Int -> Matrix a -> [Int] 
+predNodes j a@(M n m _ _ _ _) = filter (\k -> a!(k,j) /= zero) [1..n] 
+
+confluenceNodes a = loop [1] [] [] where 
+    loop []            reached confluences = confluences 
+    loop (curr:uncles) reached confluences 
+        | curr ∈ reached    = loop                      uncles reached (curr:confluences) 
+        | otherwise         = loop (succNodes curr a ++ uncles) (curr:reached) confluences  
+
+bifurcationNodes a = loop [2] [] [] where 
+    loop []            reached bifurcations = bifurcations 
+    loop (curr:uncles) reached bifurcations 
+        | curr ∈ reached    = loop                      uncles  reached (curr:bifurcations)
+        | otherwise         = loop (predNodes curr a ++ uncles) (curr:reached) bifurcations
+
+decomposedPaths :: (Ord a, Semiring a) => Matrix a -> [(Int,a,Int)]
+decomposedPaths a@(M n m _ _ _ _) = loop a [] [] n where 
+    js = [1,2] ++ junctionNodes a 
+    loop an ans n_paths n = if n == 0   
+                        then uniq $ concat $ reverse n_paths 
+                        else loop an' (an':ans) (paths:n_paths) (n-1) where 
+                                paths = filter ((/=zero). arrow) [ (i,an!(i,j),j) | i <- js ,j <- js] 
+                                an'   = a <.> rmPaths paths an
+                                rmPaths paths a = foldr (\(i,_,j) -> setElem zero (i,j)) a paths 
+                            
+
+getPath []           (i,j)                  = []  
+getPath ((n,a,m):es) (i,j)  | i==n && j==m  = a : getPath es (i,j) 
+                            | otherwise     =     getPath es (i,j) 
+
+paths2mat :: (Eq a, Semiring a) => Int -> [(Int,a,Int)] -> Matrix a 
+paths2mat n es = matrix n n gen where 
+    gen p = case getPath es p of 
+         []     -> zero 
+         a      -> foldr (<.>) one a 
 
 
-nextNodes :: (Eq a, Semiring a) => Int -> Matrix a -> [Int]  
-nextNodes i a = loop (getRow i a) 1 where 
-    loop []     _                   = [] 
-    loop (x:xs) i   | x == zero     =     loop xs (i+1) 
-                    | otherwise     = i : loop xs (i+1)  
+nodeReduction a@(M n m _ _ _ _) = rmNodes (isolatedNodes a') a' where 
+    a' = (paths2mat n (decomposedPaths a)) 
+
+
+rmNodes [] a        = a 
+rmNodes (i:is) a    = minorMatrix i i (rmNodes is a)  
+
+
+junctionNodes a@(M n m _ _ _ _) = filter (moreSuccNode a ||$ morePredNode a) [3..n] 
+pathNodes     a@(M n m _ _ _ _) = filter ( oneSuccNode a &&$  onePredNode a) [3..n] 
+isolatedNodes a@(M n m _ _ _ _) = filter (\i -> foldr (\k -> (&&) (a!(i,k) ==zero && a!(k,i) ==zero) ) True [1..n]) [3..n]     
+
+
+moreSuccNode a i = length (succNodes i a) > 1 
+morePredNode a i = length (predNodes i a) > 1 
+oneSuccNode a i = length (succNodes i a) == 1
+onePredNode a i = length (predNodes i a) == 1 
+
+
 
 
 -- || Loop Entrance Nodes & Confluence Nodes || -- 
 loopEntranceNodes :: (Eq a, Semiring a) => Matrix a -> ([Int], [Int])
 loopEntranceNodes a = loop 1 [] [[]] [] [] [] where 
-  loop curr uncles (ans:ancesters) reached confluences entrances 
-    | curr ∈ concat ancesters   = case uncles of 
+  loop curr uncles (ans:ancestors) reached confluences entrances 
+    | curr ∈ concat ancestors   = case uncles of 
         []          -> (curr : entrances, confluences ) 
-        [u]   :uss  -> loop u uss      ([]:ancesters) (ans ++ reached) confluences (curr : entrances) 
-        (u:us):uss  -> loop u (us:uss) ([]:ancesters) (ans ++ reached) confluences (curr : entrances)  
+        [u]   :uss  -> loop u uss      ([]:ancestors) (ans ++ reached) confluences (curr : entrances) 
+        (u:us):uss  -> loop u (us:uss) ([]:ancestors) (ans ++ reached) confluences (curr : entrances)  
     | curr ∈ reached            = case uncles of 
         []          -> (entrances, curr : confluences ) 
-        [u]   :uss  -> loop u uss      ([]:ancesters) (ans ++ reached) (curr : confluences) entrances 
-        (u:us):uss  -> loop u (us:uss) ([]:ancesters) (ans ++ reached) (curr : confluences) entrances 
-    | otherwise                 = case nextNodes curr a of 
+        [u]   :uss  -> loop u uss      ([]:ancestors) (ans ++ reached) (curr : confluences) entrances 
+        (u:us):uss  -> loop u (us:uss) ([]:ancestors) (ans ++ reached) (curr : confluences) entrances 
+    | otherwise                 = case succNodes curr a of 
         []              -> case uncles of 
             []              -> (entrances, confluences) 
-            [u]   :uss      -> loop u uss      ([]:ancesters) (curr:ans ++ reached) confluences entrances
-            (u:us):uss      -> loop u (us:uss) ([]:ancesters) (curr:ans ++ reached) confluences entrances 
-        [n]             -> loop n uncles      (   (curr:ans):ancesters) reached confluences entrances 
-        (n:ns)          -> loop n (ns:uncles) ([]:(curr:ans):ancesters) reached confluences entrances  
+            [u]   :uss      -> loop u uss      ([]:ancestors) (curr:ans ++ reached) confluences entrances
+            (u:us):uss      -> loop u (us:uss) ([]:ancestors) (curr:ans ++ reached) confluences entrances 
+        [n]             -> loop n uncles      (   (curr:ans):ancestors) reached confluences entrances 
+        (n:ns)          -> loop n (ns:uncles) ([]:(curr:ans):ancestors) reached confluences entrances  
 
 
 
 
 
+
+
+lu = luDecomp 

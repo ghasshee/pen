@@ -64,22 +64,21 @@ instance Show Action where
 
 
 
-instance Semiring [Action] where 
-    zero    = [] 
-    one     = [AcSkip] 
-    a <+> b = a ++ b  
-    a <.> b = [AcSeq(a ++ b)] 
-
-instance {-# Overlapping #-} Semigroup(Maybe Action) where 
-    (<>) = (<.>)
-instance {-# Overlapping #-} Monoid   (Maybe Action) where 
-    mempty = one 
-instance Semiring (Maybe Action) where 
-    zero                = Nothing 
-    one                 = Just AcSkip
-    Nothing <+> b       = b 
-    a       <+> Nothing = a 
-    a       <+> b       = undefined 
-    Nothing <.> _       = Nothing 
-    _       <.> Nothing = Nothing 
-    Just a  <.> Just b  = Just (AcSeq[a,b]) 
+--instance Semiring [Action] where 
+--    zero    = [] 
+--    one     = [AcSkip] 
+--    a <+> b = a ++ b  
+--    a <.> b = [AcSeq(a ++ b)] 
+--
+--instance {-# Overlapping #-} Semigroup(Maybe Action) where 
+--   (<>) = (<.>)
+--instance {-# Overlapping #-} Monoid   (Maybe Action) where 
+--    mempty = one 
+--instance Semiring (Maybe Action) where 
+--    zero                = Nothing 
+--    one                 = Just AcSkip
+--    Nothing <+> b       = b 
+--    a       <+> Nothing = a 
+--    a       <+> b       = undefined 
+--    Just a  <.> Just b  = Just (AcSeq[a,b]) 
+--    _       <.> _       = Nothing 

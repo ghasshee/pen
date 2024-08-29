@@ -55,12 +55,18 @@ main = do
     let mats :: [Matrix (OR (Edge Int Action))] 
         mats    = map genMat pgs
 
+    let as   :: [Matrix (OR Action)] 
+        as      = map convert mats 
+
     let stars :: [Matrix (OR (Edge Int Action))] 
         stars   = map star' mats
 
     let ss      = map success stars
         
-    let loopEntrs = map loopEntranceNodes mats 
+    let loopEntrs = map loopEntranceNodes as 
+
+    let ms   = map nodeReduction as
+
 
     print "------ Abstract Syntax Tree -------"
     print ast
@@ -75,8 +81,8 @@ main = do
     print "------ Matrix Representation ----" 
     print $ convert <$> mats
 
-    print "------- Stars -------"
-    mapM printStar mats  
+    --print "------- Stars -------"
+    --mapM printStar mats  
 
     print "------ Diags ------"
     mapM printDiag mats
@@ -89,11 +95,24 @@ main = do
 
     print "------ Matrix Edge Representation -----" 
     print mats 
+    print as 
 
     print "------ Loop Entrances ------" 
     print loopEntrs
 
+    print "------ Confluences ------" 
+    print $ map confluenceNodes as 
 
+    print "------ Bifurcations ------"
+    print $ map bifurcationNodes as 
+
+    print "------ junction Nodes ------"
+    print $ map junctionNodes as 
+    print "------ Node Reduction ------" 
+    print $ ms
+
+    --print $ map lu ms 
+    --print $ map lu as 
 
 
     

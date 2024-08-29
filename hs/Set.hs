@@ -13,7 +13,7 @@ import Prelude hiding ((>>))
 
 
 
-class SetOperations s where    
+class Eq s => SetOperations s where    
     subsets     :: s -> [s]  
     power       :: s -> [s]  
     intersect   :: s -> s -> s 
@@ -21,10 +21,14 @@ class SetOperations s where
     diff        :: s -> s -> s 
     (∩)         :: s -> s -> s  
     (∪)         :: s -> s -> s  
+    (⊂)         :: s -> s -> Bool 
+    (⊃)         :: s -> s -> Bool 
     (\\)        :: s -> s -> s 
     power       = subsets 
     intersect   = (∩)
     union       = (∪)
+    a ⊂ b       = (a ∩ b == a) 
+    b ⊃ a       = a ⊂ b 
     diff        = (\\)
     uniq        :: s -> s  
     infixl 8 ∩  
@@ -39,13 +43,13 @@ class ListOperations s a where
     add             :: a -> s a -> s a
     add             = (>>) 
     disjointunion   :: s a -> s a -> s (Either a a) 
-    (+++)             :: s a -> s a -> s (Either a a)
+    (+++)           :: s a -> s a -> s (Either a a)
     disjointunion   = (+++)
     a ∉ l           = not (a ∈ l)    
     infixr 3 ~=~ 
     infixr 7 >> 
     
-instance (Ord a, Eq a) => SetOperations [a] where 
+instance Eq a => SetOperations [a] where 
     subsets []                  = [[]]
     subsets (x:xs)              = subsets xs ++ ( (x:) <$> subsets xs)  
     []      ∩ _                 = [] 
@@ -69,6 +73,8 @@ instance Eq a => ListOperations [] a where
     a >> l      | a ∈ l         = l 
                 | otherwise     = a:l 
     l +++ r                     = (Left <$> l) ++ (Right <$> r )
+
+
 
 
 

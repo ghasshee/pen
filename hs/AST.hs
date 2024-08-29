@@ -27,10 +27,10 @@ data BODY   = BODY (Maybe Formulae) [Decl] Term (Maybe Formulae)
             deriving (Eq, Read, Show) 
 
 
-data TOP    = MT ID Ty [Param] BODY   
-            | SV ID Ty  -- Storage Variables 
-            | EV ID Ty 
-            | DT ID [ID] [DConstr] -- Datatype Declaration 
+data TOP    = MT ID Ty [Param] BODY     -- Method Definition 
+            | SV ID Ty                  -- Storage Variables 
+            | EV ID Ty                  -- Event Declaration 
+            | DT ID [ID] [DConstr]      -- Datatype Declaration 
             deriving (Show, Eq, Read) 
 
 

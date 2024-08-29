@@ -125,6 +125,7 @@ instance Eq a => Eq (Any a) where
 
 
 
+
 instance Eq a => Ord (Any a) where 
     In []   <= _              = True
     _       <= Ex []          = True
@@ -138,4 +139,5 @@ instance Eq a => Ord (Any a) where
     Ex(a:as)<= Ex l           = if a ∈ l 
                                          then Ex as <= Ex (filter(/=a)l)
                                          else Ex as <= Ex l 
+
 
