@@ -14,7 +14,7 @@ data Variable   = X Int -- NonRec    variable
                 | M Int -- Memory    Variable 
                 | A Int -- Method    Variable
                 | C Int -- Contract  Variable
-                deriving (Show) 
+                deriving (Show, Eq) 
 
 
 

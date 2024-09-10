@@ -1,0 +1,11 @@
+contract counter {
+    
+    counter : u256  ; 
+    
+
+    method reset : () :=            { counter >= 0 }  
+        let x = fac 3 ;        { necessarily globally counter == 0 }  
+        x 
+} 
+        
+

@@ -5,7 +5,6 @@ import Lexer
 import Prelude hiding (lookup, lex, EQ, LT, GT) 
 
 import GCLL
-import Formulae
 import Tree
 import Type
 import Data
@@ -195,9 +194,9 @@ Predicate
 
 Formulae
     : '~' AFormulae                     { \ctx -> FNot ($2 ctx)                 } 
-    | E PathFormulae                    { \ctx -> E    ($2 ctx)                 } 
-    | A PathFormulae                    { \ctx -> A    ($2 ctx)                 } 
-    | always Formulae                   { \ctx -> A (G ($2 ctx))                } 
+    | E PathFormulae                    { \ctx -> FE    ($2 ctx)                 } 
+    | A PathFormulae                    { \ctx -> FA    ($2 ctx)                 } 
+    | always Formulae                   { \ctx -> FA (FG ($2 ctx))                } 
     | AppFormulae                       { $1 } 
 
 AppFormulae 
@@ -205,13 +204,13 @@ AppFormulae
     | TFormulae                         { \ctx -> $1 ctx                        } 
 
 PathFormulae
-    : X Formulae                        { \ctx -> X     ($2 ctx)                } 
-    | F Formulae                        { \ctx -> F     ($2 ctx)                } 
-    | G Formulae                        { \ctx -> G     ($2 ctx)                } 
-    | Formulae U Formulae               { \ctx -> Union ($1 ctx) ($3 ctx)       } 
+    : X Formulae                        { \ctx -> FX     ($2 ctx)                } 
+    | F Formulae                        { \ctx -> FF     ($2 ctx)                } 
+    | G Formulae                        { \ctx -> FG     ($2 ctx)                } 
+    | Formulae U Formulae               { \ctx -> FU     ($1 ctx) ($3 ctx)       } 
 
 TFormulae 
-    : Tm '==' Tm                         { \ctx -> FAtom(AEq(fst($1 ctx))(fst($3 ctx)))}
+    : Tm '==' Tm                        { \ctx -> FAtom(AEq(fst($1 ctx))(fst($3 ctx)))}
     | Tm '<' Tm                         { \ctx -> FAtom(ALt(fst($1 ctx))(fst($3 ctx)))}
     | Tm '>' Tm                         { \ctx -> FAtom(AGt(fst($1 ctx))(fst($3 ctx)))}
     | Tm '<=' Tm                        { \ctx -> FAtom(ALe(fst($1 ctx))(fst($3 ctx)))}

@@ -174,8 +174,6 @@ pgDecls (d:ds) (i,t,q,s,v,ctx)      = case d of
                                         (ess, cfg'')                = pgDecls ds (Q q,t  ,q' ,s',v',ctx') 
 
 
-
-
 -- Decl -> pg  
 pgDecl :: Decl -> Config -> Edges 
 pgDecl d cfg@(i,t,q,s,v,ctx)    = case d of 
@@ -226,9 +224,9 @@ pgTermApp (RED TmAPP [t1,t2]) cfg@(i,t,q,s,v,ctx) cont = case t1 of
     _                   -> pgTermApp t1 cfg (t2:cont) 
 
 pgArgs :: [Term] -> Config -> [Maybe Int] -> Int -> Edges 
-pgArgs []                   cfg             ns           k = ([],cfg) 
-pgArgs [tm]                 (i,t,q,s,v,ctx) (Nothing:ns) k = pgTerm tm (i,t,q,s,v,ctx) 
-pgArgs (tm:tms)             (i,t,q,s,v,ctx) (Nothing:ns) k = (e ++ econt, (i,t,q'',s'',v'',ctx'')) where 
+pgArgs []       cfg             ns           k = ([],cfg) 
+pgArgs [tm]     (i,t,q,s,v,ctx) (Nothing:ns) k = pgTerm tm (i,t,q,s,v,ctx) 
+pgArgs (tm:tms) (i,t,q,s,v,ctx) (Nothing:ns) k = (e ++ econt, (i,t,q'',s'',v'',ctx'')) where 
     (e    ,(_,_,q' ,s' ,v' ,ctx' )) = pgTerm tm  (i,Q q,q+1,s,v,ctx)             
     (econt,(_,_,q'',s'',v'',ctx'')) = pgArgs tms (Q q,t,q',s',v',ctx') ns (k+1) 
 --pgArgs (RED(TmVAR j)[]:tms) (i,t,q,s,v,ctx) (n:ns) k = pgArgs tms (i,t,q,s,v,ctx) ns (k+1)  
@@ -239,12 +237,12 @@ pgArgs (tm:tms)             (i,t,q,s,v,ctx) (Nothing:ns) k = (e ++ econt, (i,t,q
 -- 2. in function defintion,  function 
 -- 3. in function call     ,  defined function variable 
 -- 4. in function call     ,  just value 
-pgArgs [tm]             (i,t,q,s,v,ctx) (Just n:ns)       k = (e, (i,t,q',s',v',ctx')) where 
+pgArgs [tm]     (i,t,q,s,v,ctx) (Just n :ns) k = (e, (i,t,q',s',v',ctx')) where 
     (e    ,(_,_,q' ,s' ,v' ,ctx' )) = pgTerm tm  (i,t,q,s ,v ,ctx ) 
-pgArgs (tm:tms)             (i,t,q,s,v,ctx) (Just n:ns)       k = (e++econt, (i,t,q'',s'',v'',ctx'')) where 
+pgArgs (tm:tms) (i,t,q,s,v,ctx) (Just n :ns) k = (e++econt, (i,t,q'',s'',v'',ctx'')) where 
     (e    ,(_,_,q' ,s' ,v' ,ctx' )) = pgTerm tm  (i,Q q,q+1 ,s ,v ,ctx ) 
     (econt,(_,_,q'',s'',v'',ctx'')) = pgArgs tms (Q q, t, q',s',v',ctx') ns (k+1) 
-pgArgs (tm:tms)             (i,t,q,s,v,ctx) (n:ns)       k = (e++econt, (i,t,q'',s'',v'',ctx'')) where 
+pgArgs (tm:tms) (i,t,q,s,v,ctx)       (n:ns) k = (e++econt, (i,t,q'',s'',v'',ctx'')) where 
     Just (_,qf,qF)                  = searchFun k ctx 
     (e    ,(_,_,q' ,s' ,v' ,ctx' )) = pgTerm tm  (qf,qF,q ,s ,v ,ctx ) 
     (econt,(_,_,q'',s'',v'',ctx'')) = pgArgs tms (i, t, q',s',v',ctx') ns (k+1) 

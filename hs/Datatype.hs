@@ -1,6 +1,9 @@
 module Datatype where 
 
 import Type 
+import LTree
+
+
 
 
 
@@ -21,6 +24,11 @@ data DTy        = DNew  ID   -- User defined Inductive Data Type (DInd)
                 | DAll  ID DTy [DTy] 
                 | DEx   ID DTy [DTy] 
                 deriving (Eq, Read) 
+
+
+dconstr2ltree (DConstr id ty) = LBr [LLf id, LBr [LLf . show $ ty]] 
+
+dind2ltree (DInd id args ty constrs) = LBr (LLf id : LBr (LLf <$> args) : [LBr (dconstr2ltree <$> constrs)])
 
 
 
