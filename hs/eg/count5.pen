@@ -1,9 +1,9 @@
 contract counter {
     
 
-    method facthree : () :=             
-        let fac n = if n == 0 then 1 else n * fac (n-1) ; 
-        fac 3
+    method fibfour : () :=             
+        let fib k = if k == 0 then 1 else fib (k-1) + fib (k-2) ; 
+        fib 4
 
 } 
         

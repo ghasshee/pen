@@ -45,6 +45,18 @@ data BODY   = BODY (Maybe Formulae) [Decl] Term (Maybe Formulae)
 --SSTORE x 1; (ABS y (SSTORE x (y * 2); SLOAD x + 3)) (SLOAD x + 1)  
 --SSTORE x 1; (SSTORE x ((SLOAD x + 1) * 2); SLAOD x + 3) 
 --SSTORE x 1; SSTORE x ((SLOAD x + 1) * 2); SLOAD x + 3 
+--
+--SLET x = 1 in LET f y = if y == 0 then 1 else x * f(y-1) in SLET x = f 3 in x + 3
+--SSTORE x 1; (FLET f y (if y==0 then 1 else (SLOAD x) * f(y-1)) in SLET x = f 3 in x + 3)
+--SSTORE x 1; (ABS f (SLET x = f 3 in x + 3)) (FIX f y (if y==0 then 1 else (SLOAD x)*f(y-1)))
+--SSTORE x 1; (ABS f (SSTORE x (f 3); x + 3)) (FIX f y (if y==0 then 1 else (SLOAD x)*f(y-1)))
+--SSTORE x 1; SSTORE x ((FIX f y (if y==0 then 1 else (SLOAD x)*f(y-1))) 3) ; SLOAD x + 3
+--SSTORE x 1; SSTORE x (SLOAD x * SLOAD x * SLOAD x * 1); SLOAD x + 3
+
+
+-- a METHOD is a sequence of tasks  
+-- a function cannot overwrite storage 
+-- 'overwrite' is a task 
 
 
 

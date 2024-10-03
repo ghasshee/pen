@@ -20,8 +20,8 @@ prAsm = loop True where
         let hex = toHex n
         pr $ zeropad (8-len hex) ++ hex ++ ":   " ++ show o
         if o==INVALID&&cr     then do pr "// RUNTIME"   ; loop False os else do   
-        if o==INVALID&&not cr then do pr "// IPFS/VER"  ; loop False os else do
-        loop cr os 
+            if o==INVALID&&not cr then do pr "// IPFS/VER"  ; loop False os else do
+                loop cr os 
 
 
 lineNo :: [OPCODE] -> [(Integer,OPCODE)]

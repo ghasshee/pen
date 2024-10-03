@@ -8,16 +8,16 @@ bytes = loop [] where
     loop l = do 
         e <- isEOF
         if e          then return $ reverse l else do 
-        a <- getChar
-        if a == '\n'  then return $ reverse l else do 
-        b <- getChar 
-        loop $ [toUpper a,toUpper b] : l 
+            a <- getChar
+            if a == '\n'  then return $ reverse l else do 
+                b <- getChar 
+                loop $ [toUpper a,toUpper b] : l 
 
 asms :: IO [String] 
 asms = loop [""] where  
     loop (str:l) = do 
         e <- isEOF
         if e        then return $ reverse l else do 
-        a <- getChar
-        if a == '\n' then loop ([]:(reverse str:l)) else do 
-        loop $ (a:str) : l 
+            a <- getChar
+            if a == '\n' then loop ([]:(reverse str:l)) else do 
+                loop $ (a:str) : l 

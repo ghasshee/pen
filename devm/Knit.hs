@@ -268,7 +268,14 @@ cat ([BLK INVALID _]:xs)                        = cat xs
 cat ([BLK(JUMPDEST s)_] : seq : xs)  = [BLK SEQ (BLK(JUMPDEST s)[] : seq)] : cat xs  
 cat (x:xs)                           = x : cat xs 
 
+partition :: [RBTree OPCODE] -> [RBTree OPCODE] 
+partition trs = loop trs [] where
+    loop []                     trs = [BLK SEQ (reverse trs)]   
+    loop (BLK(JUMPDEST s)_: xs) trs =  BLK SEQ (reverse trs) : loop xs [BLK (JUMPDEST s)[]] 
+    loop (BLK JUMPI subtr : xs) trs =  BLK SEQ (reverse trs) : loop xs [BLK JUMPI subtr]   
+    loop (x               : xs) trs = loop xs (x:trs) 
+
 knits       :: [[OPCODE]] -> [RBTree OPCODE] 
-knits       = concat . cat . map knit
+knits       = partition . concat {--. cat --}. map knit
 
 
