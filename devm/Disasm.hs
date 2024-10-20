@@ -35,13 +35,14 @@ lineNo = loop 0 where
 disAsm :: [String] -> [OPCODE] 
 disAsm = loop 2 where 
     loop _ []       =   []
+    loop 0 (" ":s)  = INVALID : loop 2 s 
     loop 0 ("69":"70":"66":"73":"58":"22": s) =  
                         INFO "ipfs5822"     : 
                         INFO (concat(take 34 s))         : loop 0 (drop 34 s) 
     loop 0 ("73":"6F":"6C":"63":"43": s)      = 
                         INFO "solc43"        : 
                         INFO (concat(take 3  s))         : loop 0 (drop 3 s)
-    loop 0 (o:s)    =   INFO o                           : loop 0 s
+    loop 0 (o:s)    =   INFO o                           : loop 0 s 
     loop n (o:s)    =   case o of 
         "0X"        ->                                     loop n s 
         "00"        ->  STOP                             : loop n s
@@ -107,6 +108,7 @@ disAsm = loop 2 where
         "59"        ->  MSIZE                            : loop n s
         "5A"        ->  GAS                              : loop n s
         "5B"        ->  JUMPDEST ""                      : loop n s
+        "5F"        ->  PUSH0                            : loop n s 
         "60"        ->  PUSH1  (concat (take  1 s))      : loop n (drop  1 s)
         "61"        ->  PUSH2  (concat (take  2 s))      : loop n (drop  2 s)
         "62"        ->  PUSH3  (concat (take  3 s))      : loop n (drop  3 s)

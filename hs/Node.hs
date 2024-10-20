@@ -11,6 +11,7 @@ import Mapping
 data Node s = Q s                 
             deriving (Eq,Ord,Read) 
 
+unNode :: Node s -> s 
 unNode(Q s) = s 
 -- instance {-# Overlapping #-} Ord s => Eq (Node [s]) where 
 --     Q xs     == Q ys     = sort xs == sort ys

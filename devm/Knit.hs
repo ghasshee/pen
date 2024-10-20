@@ -120,6 +120,7 @@ paren ops   = p ops [0] 1 where
         PC              -> L : PC           : R : p os (  hd-1:tl) i    
         MSIZE           -> L : MSIZE        : R : p os (  hd-1:tl) i    
         GAS             -> L : GAS          : R : p os (  hd-1:tl) i    
+        PUSH0           -> L : PUSH0        : R : p os (  hd-1:tl) i 
         PUSH1  s        -> L : PUSH1  s     : R : p os (  hd-1:tl) i     
         PUSH2  s        -> L : PUSH2  s     : R : p os (  hd-1:tl) i     
         PUSH3  s        -> L : PUSH3  s     : R : p os (  hd-1:tl) i     
@@ -273,6 +274,7 @@ partition trs = loop trs [] where
     loop []                     trs = [BLK SEQ (reverse trs)]   
     loop (BLK(JUMPDEST s)_: xs) trs =  BLK SEQ (reverse trs) : loop xs [BLK (JUMPDEST s)[]] 
     loop (BLK JUMPI subtr : xs) trs =  BLK SEQ (reverse trs) : loop xs [BLK JUMPI subtr]   
+    loop (BLK INVALID  _  : xs) trs =  BLK SEQ (reverse (BLK INVALID []:trs)) : loop xs []  
     loop (x               : xs) trs = loop xs (x:trs) 
 
 knits       :: [[OPCODE]] -> [RBTree OPCODE] 

@@ -10,8 +10,9 @@ bytes = loop [] where
         if e          then return $ reverse l else do 
             a <- getChar
             if a == '\n'  then return $ reverse l else do 
-                b <- getChar 
-                loop $ [toUpper a,toUpper b] : l 
+                if a == ' ' then loop (" ":l) else do 
+                    b <- getChar 
+                    loop $ [toUpper a,toUpper b] : l 
 
 asms :: IO [String] 
 asms = loop [""] where  
@@ -20,4 +21,5 @@ asms = loop [""] where
         if e        then return $ reverse l else do 
             a <- getChar
             if a == '\n' then loop ([]:(reverse str:l)) else do 
-                loop $ (a:str) : l 
+                if a == ' ' then loop (" ":l) else do 
+                    loop $ (a:str) : l 

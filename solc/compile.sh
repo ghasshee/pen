@@ -1,6 +1,6 @@
 #!/bin/sh
 
-NAME=Fac
+NAME=$1 
 SRC=$NAME.sol
 JS=$NAME.js
 

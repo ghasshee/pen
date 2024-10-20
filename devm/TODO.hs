@@ -1,0 +1,5 @@
+-- Prohibit Dynamical JUMPDEST
+--
+-- i.e. JUMPDEST must be static . 
+--
+--

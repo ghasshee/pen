@@ -89,6 +89,7 @@ toByte o = case o of
            MSIZE                              ->  "59"
            GAS                                ->  "5A"
            JUMPDEST _                         ->  "5B"
+           PUSH0                              ->  "5F" 
            PUSH1  v                           ->  "60" ++  v
            PUSH2  v                           ->  "61" ++  v
            PUSH3  v                           ->  "62" ++  v

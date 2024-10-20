@@ -4,7 +4,7 @@ module Main where
 import Lex  (bytes) 
 import Disasm
 import Knit
-import LTS
+import Node
 import Term
 
 
@@ -55,5 +55,5 @@ main = do
     pr "-- | GCLL with Nodes | --"
     pr "-- +-----------------+ --"
     pr ""
-    let numbered    = mkNode stmts
+    let numbered    = zipNode stmts
     print numbered

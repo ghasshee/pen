@@ -102,7 +102,7 @@ instance Show EXPR where
         Or     y x      -> show x ++ "|" ++ show y
         Xor    y x      -> show x ++ "(+)" ++ show y
         Not      x      -> "~" ++ show x 
-        Byte   x n      -> show x ++ "[" ++ show n ++ "]" 
+        Byte   x n      -> show x ++ "{" ++ show n ++ "}" 
         Shl    x n      -> show x ++ "<<" ++ show n 
         Shr    x n      -> show x ++ ">>" ++ show n
         Sar    x n      -> show x ++ ">>*" ++ show n
@@ -148,6 +148,7 @@ data STMT   = Stop
             | Dup  Int 
             | Calldatacopy EXPR EXPR EXPR 
             | Codecopy     EXPR EXPR EXPR
+            | Returndatacopy EXPR EXPR EXPR 
             | Extcodecopy
             deriving (Eq, Read) 
 
@@ -173,6 +174,9 @@ instance Show STMT where
         Codecopy s f t  -> "Codecopy(to:" ++ 
                             show t ++ ",from:" ++ show f ++ ",size:" ++ show s ++ ")"
         Extcodecopy     -> "Extcodecopy"
+        Returndatacopy to from size -> "Returndatacopy(to:" ++ show to ++ 
+                                        ",from:" ++ show from ++ 
+                                        ",size:" ++ show size ++ ")" 
 
 instance {-# OVERLAPPING #-} Show [STMT] where 
     show []     = ""
@@ -193,10 +197,10 @@ optree2stmt t = loop t where
         BLK CALLDATACOPY [x,y,z]    -> Calldatacopy (o2e x)(o2e y)(o2e z)
         BLK CODECOPY     [x,y,z]    -> Codecopy (o2e x)(o2e y)(o2e z)
         BLK EXTCODECOPY  _          -> Extcodecopy
-        BLK RETURNDATACOPY _        -> undefined 
+        BLK RETURNDATACOPY [x,y,z]  -> Returndatacopy (o2e x)(o2e y)(o2e z) 
         BLK POP          _          -> Pop 
         BLK MSTORE       [a,x]      -> Assign (M(o2e x)) (o2e a)  
-        BLK MSTORE8      [a,x]      -> undefined 
+        BLK MSTORE8      [a,x]      -> Assign (M(o2e x)) (o2e a)
         BLK SSTORE       [a,x]      -> Assign (S(o2e x)) (o2e a) 
         BLK JUMP         [l]        -> Goto (o2e l) 
         BLK JUMPI        [b,l]      -> IfGoto (o2e b)(o2e l)  
@@ -251,6 +255,7 @@ optree2expr t = loop t where
             DUP6                -> Stk 6
             DUP7                -> Stk 7
             DUP8                -> Stk 8
+            PUSH0               -> Ox "0"
             PUSH1  s            -> Ox s 
             PUSH2  s            -> Ox s 
             PUSH3  s            -> Ox s 
@@ -270,6 +275,7 @@ optree2expr t = loop t where
             PUSH17 s            -> Ox s 
             PUSH18 s            -> Ox s 
             PUSH19 s            -> Ox s 
+            PUSH20 s            -> Ox s 
             PUSH21 s            -> Ox s 
             PUSH22 s            -> Ox s 
             PUSH23 s            -> Ox s 

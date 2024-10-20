@@ -77,6 +77,7 @@ data OPCODE = L | R
             | MSIZE
             | GAS
             | JUMPDEST String
+            | PUSH0 
             | PUSH1  String 
             | PUSH2  String 
             | PUSH3  String 
