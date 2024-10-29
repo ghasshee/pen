@@ -18,13 +18,13 @@ data Decl   = FLET ID [Param] Term (Maybe Formulae)
             deriving (Eq, Read)  
 
 instance Show Decl where 
-    show (FLET i ps t p) = "FLET " ++ i ++ " " ++ show ps ++ " := " ++ show t ++ show p ++ " IN \n" 
-    show (SLET i    t p) = "SLET " ++ i ++ " "            ++ " := " ++ show t ++ show p ++ " IN \n" 
-    show ( LET i    t p) = " LET " ++ i ++ " "            ++ " := " ++ show t ++ show p ++ " IN \n" 
---    show (DATA i is c)   = "DATA " ++ i ++ " " ++ show is ++ " := " ++ show c           ++ " IN \n" 
+    show (FLET i ps t p) = "FLET " ++ i ++ " " ++ show ps ++ " := " ++ show t ++ show p 
+    show (SLET i    t p) = "SLET " ++ i ++ " "            ++ " := " ++ show t ++ show p  
+    show ( LET i    t p) = " LET " ++ i ++ " "            ++ " := " ++ show t ++ show p 
+--    show (DATA i is c)   = "DATA " ++ i ++ " " ++ show is ++ " := " ++ show c          
 
 data BODY   = BODY (Maybe Formulae) [Decl] Term (Maybe Formulae) 
-            deriving (Eq, Read, Show) 
+            deriving (Eq, Read, Show ) 
 
 
 -- LET x = t1 in t2 
@@ -78,7 +78,9 @@ instance {-# OVERLAPPING #-} Show [TOP] where
     show (t:ts)     = "\n\n" ++ show t ++ show ts  
 
 
-
+instance {-# OVERLAPPING #-} Show [Decl] where 
+    show []         = "" 
+    show (d:ds)     = "\n" ++ show d ++ " IN\n" ++ show ds 
 
 method_call :: TOP -> CONTRACT 
 method_call (MT id ty args body) = undefined 

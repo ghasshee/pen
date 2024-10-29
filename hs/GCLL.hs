@@ -29,49 +29,49 @@ data EVMVALUE   = Address
 
 
 
-data EXPR   = Ox           String
-            | M              EXPR
-            | S              EXPR
-            | Stk         Integer
-            | Var          String
-            | V          EVMVALUE
-            | Add       EXPR EXPR
-            | Mul       EXPR EXPR 
-            | Sub       EXPR EXPR
-            | Div       EXPR EXPR
-            | Sdiv      EXPR EXPR
-            | Mod       EXPR EXPR
-            | Smod      EXPR EXPR
-            | Addmod    EXPR EXPR EXPR
-            | Mulmod    EXPR EXPR EXPR
-            | Exp       EXPR EXPR
-            | Sigextend EXPR EXPR
-            | Lt        EXPR EXPR
-            | Gt        EXPR EXPR
-            | Slt       EXPR EXPR
-            | Sgt       EXPR EXPR
-            | Eq        EXPR EXPR
-            | Iszero         EXPR
-            | And       EXPR EXPR
-            | Or        EXPR EXPR
-            | Xor       EXPR EXPR
-            | Not            EXPR
-            | Byte      EXPR EXPR
-            | Shl       EXPR EXPR
-            | Shr       EXPR EXPR
-            | Sar       EXPR EXPR
-            | Keccak         EXPR
-            | Balance        EXPR
-            | Extcodesize    EXPR
-            | Calldataload   EXPR
-            | Extcodehash    EXPR
-            | Blockhash      EXPR
-            | Create                        EXPR EXPR EXPR
-            | Call      EXPR EXPR EXPR EXPR EXPR EXPR EXPR
-            | Callcode  EXPR EXPR EXPR EXPR EXPR EXPR EXPR
-            | Delegatecall   EXPR EXPR EXPR EXPR EXPR EXPR
-            | Create2                  EXPR EXPR EXPR EXPR
-            | Staticcall     EXPR EXPR EXPR EXPR EXPR EXPR
+data EXPR   = Ox               String
+            | M                  EXPR
+            | S                  EXPR
+            | Stk             Integer
+            | Var              String
+            | V              EVMVALUE
+            | Add           EXPR EXPR
+            | Mul           EXPR EXPR 
+            | Sub           EXPR EXPR
+            | Div           EXPR EXPR
+            | Sdiv          EXPR EXPR
+            | Mod           EXPR EXPR
+            | Smod          EXPR EXPR
+            | Addmod   EXPR EXPR EXPR
+            | Mulmod   EXPR EXPR EXPR
+            | Exp           EXPR EXPR
+            | Signextend    EXPR EXPR
+            | Lt            EXPR EXPR
+            | Gt            EXPR EXPR
+            | Slt           EXPR EXPR
+            | Sgt           EXPR EXPR
+            | Eq            EXPR EXPR
+            | Iszero             EXPR
+            | And           EXPR EXPR
+            | Or            EXPR EXPR
+            | Xor           EXPR EXPR
+            | Not                EXPR
+            | Byte          EXPR EXPR
+            | Shl           EXPR EXPR
+            | Shr           EXPR EXPR
+            | Sar           EXPR EXPR
+            | Keccak             EXPR
+            | Balance            EXPR
+            | Extcodesize        EXPR
+            | Calldataload       EXPR
+            | Extcodehash        EXPR
+            | Blockhash          EXPR
+            | Create   EXPR EXPR EXPR
+            | Call     EXPR EXPR EXPR EXPR EXPR EXPR EXPR
+            | Callcode EXPR EXPR EXPR EXPR EXPR EXPR EXPR
+            | Delegatecall  EXPR EXPR EXPR EXPR EXPR EXPR
+            | Create2                 EXPR EXPR EXPR EXPR
+            | Staticcall    EXPR EXPR EXPR EXPR EXPR EXPR
             deriving (Eq, Read) 
 
 
@@ -94,7 +94,7 @@ instance Show EXPR where
         Addmod z y x    -> "(" ++ show x ++ "+"++ show y ++ ")%" ++ show z 
         Mulmod z y x    -> "(" ++ show x ++ "*"++ show y ++ ")%" ++ show z 
         Exp    y x      -> show x ++ "^" ++ show y 
-        Sigextend y x   -> "sigext(" ++ show x ++ "," ++ show y ++ ")"
+        Signextend y x  -> "sigext(" ++ show x ++ "," ++ show y ++ ")"
         Lt     y x      -> show x ++ "<" ++ show y 
         Gt     y x      -> show x ++ ">" ++ show y 
         Slt    y x      -> show x ++ ">'" ++ show y 

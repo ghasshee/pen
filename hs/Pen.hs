@@ -111,6 +111,9 @@ main = do
     print "------ Node Reduction ------" 
     print $ ms
 
+    print "------ decomposed path ------"
+    print $ map decomposedPaths as
+
     --print $ map lu ms 
     --print $ map lu as 
 
