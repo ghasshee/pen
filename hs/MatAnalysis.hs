@@ -1,4 +1,4 @@
-module MatRep where 
+module MatAnalysis where 
 
 
 -- import Data.Matrix hiding (zero)
@@ -46,6 +46,8 @@ genMat edges = matrix i j gen
 
 instance Semiring a => Semiring (Matrix a) where
     a <.> b = mult a b 
+    a <+> b = undefined 
+    zero    = undefined 
 
 instance (Eq a, Semiring a) => StarSemiring (Matrix a) where 
     star a = loop a a where 
@@ -148,6 +150,8 @@ decomposedPaths a@(M n m _ _ _ _) = loop a [] [] n where
                                 rmPaths paths a = foldr (\(i,_,j) -> setElem zero (i,j)) a paths 
                             
 
+
+getPath :: [(Int,a,Int)] -> (Int,Int) -> [a] 
 getPath []           (i,j)                  = []  
 getPath ((n,a,m):es) (i,j)  | i==n && j==m  = a : getPath es (i,j) 
                             | otherwise     =     getPath es (i,j) 
@@ -158,11 +162,12 @@ paths2mat n es = matrix n n gen where
          []     -> zero 
          a      -> foldr (<.>) one a 
 
-
+nodeReduction :: (Eq a, Ord a, Semiring a) => Matrix a -> Matrix a 
 nodeReduction a@(M n m _ _ _ _) = rmNodes (isolatedNodes a') a' where 
     a' = (paths2mat n (decomposedPaths a)) 
 
 
+rmNodes :: [Int] -> Matrix a -> Matrix a 
 rmNodes [] a        = a 
 rmNodes (i:is) a    = minorMatrix i i (rmNodes is a)  
 

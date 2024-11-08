@@ -22,17 +22,22 @@ instance Show a => Show (OR a) where
 
 instance Eq a => Ord (OR a) where 
     SQ l > SQ m                 = l ⊃ m 
+    (<=)                        = (.)(.)(.) not (>)
+
 
 
 instance Semigroup (OR a) where 
+    ZR   <> _                   = ZR 
+    _    <> ZR                  = ZR
+    SQ[] <> a                   = a 
+    a    <> SQ[]                = a 
     SQ l <> SQ m                = SQ (l <> m)
     OR t s <> o                 = OR (t <> o) (s <> o) 
     o <> OR t s                 = OR (o <> t) (o <> s) 
-    a <> b                      = a <.> b 
 
 instance Monoid (OR a) where 
     mempty                      = SQ []
-    mappend                     = (<.>) 
+    mappend                     = (<>) 
 
 instance Semiring (OR a) where 
     zero            = ZR 
@@ -42,10 +47,6 @@ instance Semiring (OR a) where
     SQ [] <+> a     = a 
     a     <+> SQ [] = a 
     a     <+> b     = OR a b 
-    ZR    <.> a     = ZR 
-    a     <.> ZR    = ZR 
-    SQ [] <.> a     = a 
-    a     <.> SQ [] = a 
     a     <.> b     = a <> b 
 
 instance Functor OR where 

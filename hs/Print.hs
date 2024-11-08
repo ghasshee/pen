@@ -3,7 +3,7 @@ module Print where
 
 import Edge (arrow) 
 import Mat 
-import MatRep 
+import MatAnalysis
 
 
 

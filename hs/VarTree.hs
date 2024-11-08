@@ -159,14 +159,15 @@ vtDEF id tm fm ctx@(i,b)        = (VBr (X i) DEF [vtm], (i'',b')) where
                                    (vtm,(i'',_))    = vtTerm tm (i',b')
 
 
+searchSTO "" _                                      = error "id cannot be an empty string"
 searchSTO id (_,[])                                 = error (id ++ " is not initialized as a storage variable. ") 
-searchSTO id ctx@(i,(s,v):bind) | head id == '\''   = (S i,(i+1, (id,S i):(s,v):bind)) 
+searchSTO id ctx@(i,(s,v):bind) | take 1 id == "\'" = (S i,(i+1, (id,S i):(s,v):bind)) 
 searchSTO id ctx@(i,(s,v):bind) | s == id           = (v,ctx) 
 searchSTO id ctx@(i,(s,v):bind)                     = searchSTO id (i,bind) 
 
 removeHiddenSTO [] = []  
-removeHiddenSTO ((s,v):bind) | head s == '\''     = removeHiddenSTO bind 
-removeHiddenSTO ((s,v):bind)                      = (s,v) : removeHiddenSTO bind 
+removeHiddenSTO ((s,v):bind) | take 1 s == "\'"     = removeHiddenSTO bind 
+removeHiddenSTO ((s,v):bind)                        = (s,v) : removeHiddenSTO bind 
 
 
 -- determines whether it's a recursive function 

@@ -247,7 +247,6 @@ pgArgs (tm:tms) (i,t,q,s,v,ctx)       (n:ns) k = (e++econt, (i,t,q'',s'',v'',ctx
     (e    ,(_,_,q' ,s' ,v' ,ctx' )) = pgTerm tm  (qf,qF,q ,s ,v ,ctx ) 
     (econt,(_,_,q'',s'',v'',ctx'')) = pgArgs tms (i, t, q',s',v',ctx') ns (k+1) 
 
-
 pgCond :: Term -> Config -> Edges 
 pgCond (RED (TmBOP op) [t1,t2]) (i,t,q,s,v,ctx) = 
     ([(i,AcBool ((pgBOP op) t1' t2'), t)], (i,t,q,s,v,ctx)) where 

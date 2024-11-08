@@ -16,7 +16,7 @@ import PG
 import VarTree
 import Decl2Term
 import Mat
-import MatRep
+import MatAnalysis (decomposedPaths, junctionNodes, bifurcationNodes, confluenceNodes, loopEntranceNodes, success, genMat, convert, star', nodeReduction)
 import Action 
 import Semiring 
 import OR

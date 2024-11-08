@@ -119,12 +119,12 @@ instance Functor Matrix where
 ---- MONOID INSTANCE
 
 instance Monoid a => S.Semigroup (Matrix a) where
-  (<>) = mappend
+  m <> m' = matrix (max (nrows m) (nrows m')) (max (ncols m) (ncols m')) $ uncurry zipTogether
+    where zipTogether row column = fromMaybe mempty $ safeGet row column m <> safeGet row column m'
 
 instance Monoid a => Monoid (Matrix a) where
   mempty = fromList 1 1 [mempty]
-  mappend m m' = matrix (max (nrows m) (nrows m')) (max (ncols m) (ncols m')) $ uncurry zipTogether
-    where zipTogether row column = fromMaybe mempty $ safeGet row column m <> safeGet row column m'
+  mappend = (<>) 
 
 
 

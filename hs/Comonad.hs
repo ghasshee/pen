@@ -22,7 +22,7 @@ right (Z ls c (r:rs))   = Z (c:ls) r rs
 
 
 iterate1 :: ( a -> a) -> a -> [a] 
-iterate1 f = tail . iterate f 
+iterate1 f = drop 1 . iterate f 
 
 
 instance Functor Z where 
