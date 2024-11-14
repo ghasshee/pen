@@ -22,7 +22,10 @@ data Action     = AcStop
                 | AcCodecopy EXPR EXPR EXPR
                 | AcExtcodecopy EXPR EXPR EXPR EXPR
                 | AcSkip                -- correspond to GOTO 
-                | AcAssign Var EXPR
+                | AcSstore 
+                | AcMstore 
+                -- | AcAssign Var EXPR
+                -- | AcSassign Sto EXPR    
                 | AcBool   EXPR         -- correspond to IFGOTO
                 | AcElse                -- Does this  
                 | AcEnter               -- make empty frame 
@@ -37,7 +40,7 @@ data Action     = AcStop
                 
 instance Show Action where 
     show (AcStop                ) = "STOP"
-    show (AcDispatch s          ) = s 
+    show (AcDispatch s          ) = "Dispatcher " ++  s 
     show (AcRevert e f          ) = "RV" ++ show [e,f] 
     show (AcReturn e f          ) = "RT" ++ show [e,f] 
     show (AcPop                 ) = "POP "
@@ -49,7 +52,10 @@ instance Show Action where
     show (AcCodecopy     e f g  ) = "CDCP"     ++ show [e,f,g] 
     show (AcExtcodecopy e f g h ) = "EXCDCP" ++ show [e,f,g,h] 
     show (AcSkip                ) = "SKIP"
-    show (AcAssign x a          ) = show x ++ ":=" ++ show a 
+    show (AcSstore              ) = "SSTORE"
+    show (AcMstore              ) = "MSTORE" 
+    -- show (AcAssign x a          ) = show x ++ ":=" ++ show a 
+    -- show (AcSassign s a         ) = show s ++ ":=" ++ show a 
     show (AcBool e              ) = show e -- ++ "?" 
     show (AcElse                ) = "ELSE" 
     show (AcEnter               ) = "ENTR"

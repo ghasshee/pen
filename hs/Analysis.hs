@@ -1,4 +1,4 @@
-module MatAnalysis where 
+module Analysis where 
 
 
 -- import Data.Matrix hiding (zero)
@@ -23,10 +23,10 @@ import GCLL hiding (M)
 -- matrix   #row   #col     generatorFunction   = result
 
 genSize :: Edges -> (Int {--Rows--} , Int {--Cols--} )  
-genSize (e, (i,t,q,s,v,ctx)) = (q+1,q+1)
+genSize (e, (i,t,q,s,v,ctx,stx)) = (q+1,q+1)
 
 genFun :: Edges -> (Int,Int) -> OR (Edge Int Action) 
-genFun (e, (_,_,q,s,v,ctx))  (i,j) = 
+genFun (e, (_,_,q,s,v,ctx,stx))  (i,j) = 
     case searchEdge e i j of 
         Nothing             -> ZR 
         Just a              -> SQ [(i,a,j)] 
@@ -140,14 +140,15 @@ bifurcationNodes a = loop [2] [] [] where
         | otherwise         = loop (predNodes curr a ++ uncles) (curr:reached) bifurcations
 
 decomposedPaths :: (Ord a, Semiring a) => Matrix a -> [(Int,a,Int)]
-decomposedPaths a@(M n m _ _ _ _) = loop a [] [] n where 
-    js = [1,2] ++ junctionNodes a 
-    loop an ans n_paths n = if n == 0   
+decomposedPaths a@(M n m _ _ _ _) = loop a [] n where 
+    js = uniq $ [1,2] ++ junctionNodes a ++ terminalNodes a -- ++ initialNodes a 
+    loop an n_paths n = if n == 0   
                         then uniq $ concat $ reverse n_paths 
-                        else loop an' (an':ans) (paths:n_paths) (n-1) where 
+                        else loop an' (paths:n_paths) (n-1) where 
                                 paths = filter ((/=zero). arrow) [ (i,an!(i,j),j) | i <- js ,j <- js] 
+                                diags = filter ((/=zero). arrow) [ (i,an!(i,i),i) | i <- js ] 
                                 an'   = a <.> rmPaths paths an
-                                rmPaths paths a = foldr (\(i,_,j) -> setElem zero (i,j)) a paths 
+                                rmPaths pathes a = foldr (\(i,_,j) -> setElem zero (i,j)) a pathes 
                             
 
 
@@ -158,9 +159,12 @@ getPath ((n,a,m):es) (i,j)  | i==n && j==m  = a : getPath es (i,j)
 
 paths2mat :: (Eq a, Semiring a) => Int -> [(Int,a,Int)] -> Matrix a 
 paths2mat n es = matrix n n gen where 
-    gen p = case getPath es p of 
-         []     -> zero 
-         a      -> foldr (<.>) one a 
+    gen p = loop paths where 
+        paths = getPath es p 
+        loop ps = case ps of 
+            []     -> zero 
+            [a]    -> a 
+            (a:as) -> a <+> loop as 
 
 nodeReduction :: (Eq a, Ord a, Semiring a) => Matrix a -> Matrix a 
 nodeReduction a@(M n m _ _ _ _) = rmNodes (isolatedNodes a') a' where 
@@ -175,15 +179,18 @@ rmNodes (i:is) a    = minorMatrix i i (rmNodes is a)
 junctionNodes a@(M n m _ _ _ _) = filter (moreSuccNode a ||$ morePredNode a) [3..n] 
 pathNodes     a@(M n m _ _ _ _) = filter ( oneSuccNode a &&$  onePredNode a) [3..n] 
 isolatedNodes a@(M n m _ _ _ _) = filter (\i -> foldr (\k -> (&&) (a!(i,k) ==zero && a!(k,i) ==zero) ) True [1..n]) [3..n]     
+initialNodes  a@(M n m _ _ _ _) = filter (zeroPredNodes a) [3..n] 
+terminalNodes a@(M n m _ _ _ _) = filter (zeroSuccNodes a) [3..n] 
+
+moreSuccNode a i    = length (succNodes i a)  > 1 
+morePredNode a i    = length (predNodes i a)  > 1 
+oneSuccNode  a i    = length (succNodes i a) == 1
+onePredNode  a i    = length (predNodes i a) == 1 
+zeroSuccNodes a i   = length (succNodes i a) == 0 
+zeroPredNodes a i   = length (predNodes i a) == 0 
 
 
-moreSuccNode a i = length (succNodes i a) > 1 
-morePredNode a i = length (predNodes i a) > 1 
-oneSuccNode a i = length (succNodes i a) == 1
-onePredNode a i = length (predNodes i a) == 1 
-
-
-
+{--
 
 -- || Loop Entrance Nodes & Confluence Nodes || -- 
 loopEntranceNodes :: (Eq a, Semiring a) => Matrix a -> ([Int], [Int])
@@ -206,7 +213,7 @@ loopEntranceNodes a = loop 1 [] [[]] [] [] [] where
         (n:ns)          -> loop n (ns:uncles) ([]:(curr:ans):ancestors) reached confluences entrances  
 
 
-
+--}
 
 
 

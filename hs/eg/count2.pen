@@ -7,15 +7,15 @@ contract counter {
         let counter = counter + 1 ; { counter > 0  }  
         counter 
     
-    method get : u256 :=            { counter >= 0 } 
-        counter                     { counter > 0  } 
-
     method reset : () :=            { counter >= 0 }  
         let x = 0; 
         let id x = x; 
         let fac n = if n == 0 then 1 else n * fac (n-1) ; 
         let x = fac 3 ;        { necessarily globally counter == 0 }  
         if x != 0 then 0 else x  
+
+    method get : u256 :=            { counter >= 0 } 
+        counter                     { counter > 0  } 
 
 } 
         

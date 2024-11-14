@@ -18,3 +18,8 @@
 -- Datatype.hs  -- we have to define not only structures of datatype but also semantics
 --              e.g. List has head/tail which are semantics while cons/nil is syntax
 --
+--
+--
+--
+--
+-- #TODO Parser.y  -- removal of LET Sugar Syntax 

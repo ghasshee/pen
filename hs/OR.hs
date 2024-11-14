@@ -44,8 +44,8 @@ instance Semiring (OR a) where
     one             = mempty 
     ZR    <+> a     = a 
     a     <+> ZR    = a 
-    SQ [] <+> a     = a 
-    a     <+> SQ [] = a 
+    SQ [] <+> a     = a             -- WARNING : 1 + a = a 
+    a     <+> SQ [] = a             -- WARNING : 1 + a = a 
     a     <+> b     = OR a b 
     a     <.> b     = a <> b 
 

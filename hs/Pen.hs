@@ -16,7 +16,7 @@ import PG
 import VarTree
 import Decl2Term
 import Mat
-import MatAnalysis (decomposedPaths, junctionNodes, bifurcationNodes, confluenceNodes, loopEntranceNodes, success, genMat, convert, star', nodeReduction)
+import Analysis (decomposedPaths, junctionNodes, bifurcationNodes, initialNodes, terminalNodes, confluenceNodes, success, genMat, convert, star', nodeReduction)
 import Action 
 import Semiring 
 import OR
@@ -36,47 +36,47 @@ main = do
     contents <- readFile file 
 
     -- AST.hs 
-    let ast :: [CONTRACT] 
-        ast     = parse . lex $ contents
+    let asts    :: [CONTRACT] 
+        asts    = parse . lex $ contents
 
     -- Term.hs 
-    let tm  :: [Term] 
-        tm      = map transpileCN ast 
+    let tm      :: [Term] 
+        tm      = map transpileCN asts
 
     -- PG.hs 
-    let pgs :: [Edges] 
-        pgs     = map mkPG ast
+    let pgs     :: [Edges] 
+        pgs     = map mkPG asts
 
-    -- VarTree.hs
-    let vts :: [VT] 
-        vts     = map mkVT ast
+    -- VarTree.hss
+--    let vts     :: [VT] 
+--        vts     = map mkVT asts
 
-    -- MatRep.hs
-    let mats :: [Matrix (OR (Edge Int Action))] 
+    -- Analysis.hs
+    let mats    :: [Matrix (OR (Edge Int Action))] 
         mats    = map genMat pgs
 
-    let as   :: [Matrix (OR Action)] 
+    let as      :: [Matrix (OR Action)] 
         as      = map convert mats 
 
-    let stars :: [Matrix (OR (Edge Int Action))] 
+    let stars   :: [Matrix (OR (Edge Int Action))] 
         stars   = map star' mats
 
     let ss      = map success stars
         
-    let loopEntrs = map loopEntranceNodes as 
+--    let loopEns = map loopEntranceNodes as 
 
-    let ms   = map nodeReduction as
+    let ms      = map nodeReduction as
 
 
     print "------ Abstract Syntax Tree -------"
-    print ast
+    print asts
 --    print "------- transpiled into Functional Term -------" 
 --    print tm 
     print "------ Program Graph -------" 
     print pgs 
 
     print "------ Variable Tree -------"
-    print vts 
+--    print vts 
     
     print "------ Matrix Representation ----" 
     print $ convert <$> mats
@@ -97,8 +97,8 @@ main = do
     print mats 
     print as 
 
-    print "------ Loop Entrances ------" 
-    print loopEntrs
+    --print "------ Loop Entrances ------" 
+    --print loopEns
 
     print "------ Confluences ------" 
     print $ map confluenceNodes as 
@@ -108,11 +108,18 @@ main = do
 
     print "------ junction Nodes ------"
     print $ map junctionNodes as 
-    print "------ Node Reduction ------" 
-    print $ ms
 
+    print "------ initial Nodes ------"
+    print $ map initialNodes as 
+
+    print "------ terminal Nodes -----" 
+    print $ map terminalNodes as 
+    
     print "------ decomposed path ------"
     print $ map decomposedPaths as
+
+    print "------ Node Reduction ------" 
+    print $ ms
 
     --print $ map lu ms 
     --print $ map lu as 

@@ -165,3 +165,6 @@ data AFormulae  = AEq Term Term
 instance Show AFormulae where 
     show (AEq a b   )   = show' a ++ "==" ++ show' b
     show (AGt a b   )   = show' a ++ ">"  ++ show' b 
+    show (ALt a b   )   = show' a ++ "<"  ++ show' b 
+    show (AGe a b   )   = show' a ++ ">=" ++ show' b 
+    show (ALe a b   )   = show' a ++ "<=" ++ show' b 
