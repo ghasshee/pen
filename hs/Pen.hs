@@ -48,8 +48,8 @@ main = do
         pgs     = map mkPG asts
 
     -- VarTree.hss
---    let vts     :: [VT] 
---        vts     = map mkVT asts
+    let vts     :: [VT] 
+        vts     = map mkVT asts
 
     -- Analysis.hs
     let mats    :: [Matrix (OR (Edge Int Action))] 
@@ -76,7 +76,7 @@ main = do
     print pgs 
 
     print "------ Variable Tree -------"
---    print vts 
+    print vts 
     
     print "------ Matrix Representation ----" 
     print $ convert <$> mats

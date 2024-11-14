@@ -57,12 +57,12 @@ foldfl g h d c []               = c
 foldfl g h d c (x:xs)           = foldfl g h d (h (foldt g h d c x) c) xs 
 
 
-foldrbt g h d c (RED a [])      = g a d 
-foldrbt g h d c (BLK a [])      = g a d 
-foldrbt g h d c (RED a xs)      = g a (foldrbf g h d c xs)
-foldrbt g h d c (BLK a xs)      = g a (foldrbf g h d c xs)
-foldrbf g h d c []              = c 
-foldrbf g h d c (x:xs)          = h (foldrbt g h d c x) (foldrbf g h d c xs)
+foldrbt gR gB h d c (RED a [])      = gR a d 
+foldrbt gR gB h d c (BLK a [])      = gB a d 
+foldrbt gR gB h d c (RED a xs)      = gR a (foldrbf gR gB h d c xs)
+foldrbt gR gB h d c (BLK a xs)      = gB a (foldrbf gR gB h d c xs)
+foldrbf gR gB h d c []              = c 
+foldrbf gR gB h d c (x:xs)          = h (foldrbt gR gB h d c x) (foldrbf gR gB h d c xs)
 
 foldrblt g h d c (RD a [])      = g a d 
 foldrblt g h d c (BK a [])      = g a d 

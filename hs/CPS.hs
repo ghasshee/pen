@@ -1,6 +1,6 @@
 {-# LANGUAGE UnicodeSyntax #-}
 
-module CPS where 
+module CPS {-# WARNING "NON USED MODULE" #-} where 
 
 import Tree 
 import Term

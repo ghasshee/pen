@@ -10,7 +10,6 @@ import CPS
     
 
 
-
 data Decl   = FLET ID [Param] Term (Maybe Formulae)
             |  LET ID         Term (Maybe Formulae) 
             | SLET ID         Term (Maybe Formulae) 
@@ -25,7 +24,6 @@ instance Show Decl where
 
 data BODY   = BODY (Maybe Formulae) [Decl] Term (Maybe Formulae) 
             deriving (Eq, Read, Show ) 
-
 
 -- LET x = t1 in t2 
 -- == (ABS x t2 ) t1 
@@ -61,17 +59,19 @@ data BODY   = BODY (Maybe Formulae) [Decl] Term (Maybe Formulae)
 
 
 data TOP    = MT ID Ty [Param] BODY     -- Method Definition 
-            | MT' ID Ty [Param] Term 
+--            | MT' ID Ty [Param] Term 
             | SV ID Ty                  -- Storage Variables 
             | EV ID Ty                  -- Event Declaration 
             | DT ID [ID] [DConstr]      -- Datatype Declaration 
             deriving (Show, Eq, Read) 
 
 
+
+
+
 data CONTRACT 
             = CN ID [TOP] 
             deriving (Show, Eq, Read) 
-
 
 instance {-# OVERLAPPING #-} Show [TOP] where 
     show []         = "\n\n"
@@ -89,3 +89,27 @@ method_call (MT id ty args body) = undefined
 
 
 
+
+-- || FOLD over AST || -- 
+
+
+foldBODY _BD _Dc _Tm (BODY f1 ds t f2) = _BD (BODY f1 (foldDecl _Dc _Tm <$> ds) (_Tm t) f2) 
+
+foldDecl (_F,_L,_S,_D) _Term (FLET i ps t p) = _F (FLET i ps (_Term t) p) 
+foldDecl (_F,_L,_S,_D) _Term ( LET i    t p) = _L ( LET i    (_Term t) p) 
+foldDecl (_F,_L,_S,_D) _Term (SLET i    t p) = _S (SLET i    (_Term t) p) 
+
+foldTOP (_M,_S,_E,_D) _P _BD _Dc _Tm (SV i t     ) = _S(SV i t ) 
+foldTOP (_M,_S,_E,_D) _P _BD _Dc _Tm (EV i t     ) = _E(EV i t ) 
+foldTOP (_M,_S,_E,_D) _P _BD _Dc _Tm (DT i id ds ) = _D(DT i id ds) 
+foldTOP (_M,_S,_E,_D) _P _BD _Dc _Tm (MT i t ps b) = 
+    _M(MT i t(_P<$>ps)(foldBODY _BD _Dc _Tm b))
+
+foldCONTRACT _TOP _P _BD _Dc _Tm (CN id tops)      = CN id (foldTOP _TOP _P _BD _Dc _Tm<$>tops) 
+
+
+
+-- || FOLD contract only on Term || -- 
+foldCONTRACT_Tm  _Tm cn = foldCONTRACT id4 id id id4 _Tm cn 
+
+id4 = (id,id,id,id) 
