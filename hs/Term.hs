@@ -21,11 +21,12 @@ type Bind   = (ID, Ty)
 type Param  = (ID, Ty) 
 
 data Tm     = TmAPP                 -- 2 args 
-            | TmABS ID Ty           -- 1 arg
+            | TmABS ID Ty           -- 2 function body & predicate 
+            | TmSSTORE              -- 4 stored variable & storing value & predicate & continuation   
+            | TmFIX ID [ID] Ty      -- 2 function body & predicate 
             | TmVAR Int             -- 0
             | TmSTO Int             -- 0 Storage Variable  
             | TmPROD                -- n 
-            | TmFIX ID [ID] Ty      -- 1
             | TmLAM ID Ty 
             | TmDATA Data
             | TmU8 Int              -- 0

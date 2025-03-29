@@ -25,6 +25,13 @@ instance Show Decl where
 data BODY   = BODY (Maybe Formulae) [Decl] Term (Maybe Formulae) 
             deriving (Eq, Read, Show ) 
 
+
+data BD  = BD (Maybe Formulae) Term (Maybe Formulae) 
+
+
+
+
+
 -- LET x = t1 in t2 
 -- == (ABS x t2 ) t1 
 -- FLET f x = t1 in t2 
