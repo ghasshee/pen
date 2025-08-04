@@ -1,6 +1,8 @@
 module Action2Opcode where 
 
 import Prelude hiding (EQ,LT,GT) 
+import Hex 
+import Node
 import Action 
 import Opcode 
 import Expr2Opcode
@@ -64,7 +66,11 @@ action2opcode a = case a of
     AcEnter                 -> undefined -- make empty frame
     AcExit                  -> undefined -- return stacktop, remove frame, push stacktop
     AcVar i                 -> undefined 
+    AcRecord (Q i)(Q j)     -> pushFUNSTACK (toHex $ toInteger i) ++ pushFUNSTACK (toHex $ toInteger j)   
+    AcCheck  (Q i)(Q j)     -> popFUNSTACK ++ [PUSH32 (toHex $ toInteger j), EQ] ++ popFUNSTACK ++ [PUSH32 (toHex $ toInteger i), EQ]  
 
+pushFUNSTACK i = undefined 
+popFUNSTACK = undefined 
 
 
 

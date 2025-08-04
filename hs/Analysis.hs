@@ -265,12 +265,20 @@ reNodeMat a@(M n _ _ _ _ _) = matrix n n (\(i,j) -> (i, a!(i,j) , j))
 ----------------------
 
 data Branch a   = BIf Int a [a] [a] Int Int   
+                | BDp Int [(a, [a], Int)] 
+                | BCk Int [(a, [a], Int)]  
                 | BSq Int [a] Int 
                 | BZr
 
 
 instance Show a => Show (Branch a) where 
     show (BIf i c as bs j k) = "(" ++ show i ++ ",IF " ++ show c ++ " THEN " ++ show as ++ " ELSE " ++ show bs ++ ", (" ++ show j ++ "," ++ show k ++ "))"
+    show (BDp i dsps)        = "(" ++ show i ++ ", [" ++ showChks dsps ++ ")" where 
+        showChks []                     = "]"
+        showChks ((a, as, j):chks)      = "(IF " ++ show a ++ " THEN " ++ show as ++ ", " ++ show j ++ ") " ++ showChks chks    
+    show (BCk i chks)        = "(" ++ show i ++ ", [" ++ showChks chks ++ ")" where 
+        showChks []                     = "]"
+        showChks ((a, as, j):chks)      = "(IF " ++ show a ++ " THEN " ++ show as ++ ", " ++ show j ++ ") " ++ showChks chks    
     show (BSq i as j)        = "(" ++ show i ++ ", " ++ show as ++ ", " ++ show j ++ ")"
     show (BZr)               = "_" 
 
@@ -307,8 +315,14 @@ removeEdgeOR row = concat $ map (map putoffEdgeOR . decompEdgeOR) row
 -- reordering so that the actions with cond is the head 
 
 findCond :: [Edge Int [Action]] -> Branch Action
-findCond [(i,as,j),(i',as',j')] | isCond (head as)  && i == i' = BIf i (head as) (tail as) as' j j' 
-findCond [(i,as,j),(i',as',j')] | isCond (head as') && i == i' = BIf i (head as') (tail as') as j' j 
+findCond [(i,as,j),(i',as',j')] | isCond (head as)  && i == i' && head as' == AcSkip = BIf i (head as) (tail as) (tail as') j j' 
+findCond [(i,as,j),(i',as',j')] | isCond (head as') && i == i' && head as == AcSkip  = BIf i (head as') (tail as') (tail as) j' j 
+findCond ((i,(a:as),j):es) | isDspCond a = BDp i ((a, as, j): loop es) where 
+    loop [] = [] 
+    loop ((i', (a':as'), j'):es') | isDspCond a' && i == i' = (a',as', j'): loop es'   
+findCond ((i,(a:as),j):es) | isCheckCond a = BCk i ((a, as, j): loop es) where 
+    loop [] = [] 
+    loop ((i', (a':as'), j'):es') | isCheckCond a' && i == i' = (a',as', j'): loop es'   
 findCond [(i,as,j)] = BSq i as j 
 findCond [] = BZr 
 findCond e = error (show e) 

@@ -69,9 +69,14 @@ instance Show Action where
 
 
 isCond :: Action -> Bool 
-isCond (AcBool _)       = True 
-isCond (AcCheck _ _)    = True
-isCond _                = False 
+isCond (AcBool _)           = True 
+isCond _                    = False 
+
+isCheckCond (AcCheck _ _)   = True
+isCheckCond _               = False 
+
+isDspCond (AcDispatch s)    = True 
+isDspCond _                 = False 
 
 --instance Semiring [Action] where 
 --    zero    = [] 
