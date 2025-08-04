@@ -16,10 +16,11 @@ import PG
 import VarTree
 import Decl2Term
 import Mat
-import Analysis (decomposedPaths, junctionNodes, bifurcationNodes, initialNodes, terminalNodes, confluenceNodes, success, genMat, convert, star', nodeReduction)
+import Analysis (decomposedPaths, junctionNodes, bifurcationNodes, initialNodes, terminalNodes, confluenceNodes, success, genMat, convert, star', nodeReduction, innerizeOR, reNodeMat, Branch, branching)
 import Action 
 import Semiring 
 import OR
+import Action2Opcode
 
 import Print
 
@@ -62,11 +63,26 @@ main = do
         stars   = map star' mats
 
     let ss      = map success stars
+
+    -- Action2Opcode.hs 
         
 --    let loopEns = map loopEntranceNodes as 
 
-    let ms      = map nodeReduction as
+    
+    let ms      :: [Matrix (OR Action)] 
+        ms      = map nodeReduction as
 
+    let ms'     :: [Matrix (OR (Edge Int Action))] 
+        ms'     = map nodeReduction mats
+
+    let ms''    :: [Matrix (Edge Int (OR Action))] 
+        ms''    = map (fmap innerizeOR) ms' 
+
+    let ms'''   :: [Matrix (Edge Int (OR Action))] 
+        ms'''   = map reNodeMat ms
+
+    let bs      :: [[Branch Action]] 
+        bs      = map branching ms''' 
 
     print "------ Abstract Syntax Tree -------"
     print asts
@@ -120,6 +136,18 @@ main = do
 
     print "------ Node Reduction ------" 
     print $ ms
+
+    print "------ Node Reduction with Node Info ----" 
+    print $ ms' 
+
+    print "------ Edge Information rewrapping ------"
+    print $ ms''
+
+    print "------ ReNodeMat ------" 
+    print $ ms'''
+
+    print "------ Branches -----"
+    print $ bs
 
     --print $ map lu ms 
     --print $ map lu as 

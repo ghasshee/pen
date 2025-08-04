@@ -5,8 +5,17 @@ import Mapping
 import Node 
 import Data.List (sort) 
 import GHC.Exts
+import Semiring 
 
 type Edge node a = (node,a,node) 
+
+instance {-# Overlapping #-} Semigroup a => Semigroup (Edge node a) where 
+    (i,a,j) <> (_,b,_) = (i,a<>b,j) 
+instance {-# Overlapping #-} Monoid a => Monoid (Edge node a) where 
+instance Semiring a => Semiring (Edge Int a) where 
+    (i,a,j) <.> (_,b,_) = (i, a<.>b, j) 
+    (i,a,j) <+> (_,b,_) = (i, a<+>b, j)
+    iszero (_,a,_)      = iszero a 
 
 
 dom :: Edge node a -> node 
@@ -65,4 +74,6 @@ renodeEdges table es                = renodeEdge table <$> es
 intersect_edges :: Eq a => [(Edge node a,Edge node a)] -> [Edge (node,node) a]
 intersect_edges (((q,a,p),(s,b,r)):xs)  | a == b    = ((q,s),a,(p,r)) : intersect_edges xs  
                                         | otherwise =                   intersect_edges xs 
+
+
 

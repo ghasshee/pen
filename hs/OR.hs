@@ -39,7 +39,7 @@ instance Monoid (OR a) where
     mempty                      = SQ []
     mappend                     = (<>) 
 
-instance Semiring (OR a) where 
+instance Eq a => Semiring (OR a) where 
     zero            = ZR 
     one             = mempty 
     ZR    <+> a     = a 
@@ -48,6 +48,7 @@ instance Semiring (OR a) where
     a     <+> SQ [] = a             -- WARNING : 1 + a = a 
     a     <+> b     = OR a b 
     a     <.> b     = a <> b 
+    iszero a        = a == ZR 
 
 instance Functor OR where 
     fmap f ZR       = ZR

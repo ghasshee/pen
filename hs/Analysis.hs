@@ -42,6 +42,8 @@ genMat edges = matrix i j gen
             (i,j) = genSize edges 
 
 
+
+
 -- || Operations on Matrix || --
 
 instance Semiring a => Semiring (Matrix a) where
@@ -73,7 +75,7 @@ showListLn []     = ""
 showListLn (x:xs) = show x ++ "\n" ++ showListLn xs 
 
 
-rmActions :: OR(Edge Int a) -> Matrix (OR (Edge Int a)) -> Matrix (OR (Edge Int a))
+rmActions :: Eq a => OR(Edge Int a) -> Matrix (OR (Edge Int a)) -> Matrix (OR (Edge Int a))
 rmActions (OR t t')          a  = rmActions t' (rmActions t a) 
 rmActions (SQ [])            a  = a 
 rmActions (SQ ((i,ac,j):xs)) a  = rmActions (SQ xs) (setElem zero (i,j) a)
@@ -101,15 +103,6 @@ convert = fmap (fmap arrow)
 
 
 
-
-
-
-
-
-
-
-
-
 -------------------------------
 ----  Graph Loop Analysis  ----
 -------------------------------
@@ -118,14 +111,14 @@ convert = fmap (fmap arrow)
 
 
 
-succEdges i a@(M n m _ _ _ _) = filter (/= zero) [ a!(i,j) | j <- [1..n] ] 
-predEdges j a@(M n m _ _ _ _) = filter (/= zero) [ a!(i,j) | i <- [1..n] ] 
+succEdges i a@(M n m _ _ _ _) = filter (not . iszero) [ a!(i,j) | j <- [1..n] ] 
+predEdges j a@(M n m _ _ _ _) = filter (not . iszero) [ a!(i,j) | i <- [1..n] ] 
 
 succNodes :: (Eq a, Semiring a) => Int -> Matrix a -> [Int]  
-succNodes i a@(M n m _ _ _ _) = filter (\k -> a!(i,k) /= zero) [1..n] 
+succNodes i a@(M n m _ _ _ _) = filter (\k -> not (iszero $ a!(i,k))) [1..n] 
 
 predNodes :: (Eq a, Semiring a) => Int -> Matrix a -> [Int] 
-predNodes j a@(M n m _ _ _ _) = filter (\k -> a!(k,j) /= zero) [1..n] 
+predNodes j a@(M n m _ _ _ _) = filter (\k -> not (iszero $ a!(k,j))) [1..n] 
 
 confluenceNodes a = loop [1] [] [] where 
     loop []            reached confluences = confluences 
@@ -145,8 +138,8 @@ decomposedPaths a@(M n m _ _ _ _) = loop a [] n where
     loop an n_paths n = if n == 0   
                         then uniq $ concat $ reverse n_paths 
                         else loop an' (paths:n_paths) (n-1) where 
-                                paths = filter ((/=zero). arrow) [ (i,an!(i,j),j) | i <- js ,j <- js] 
-                                diags = filter ((/=zero). arrow) [ (i,an!(i,i),i) | i <- js ] 
+                                paths = filter (not . iszero . arrow) [ (i,an!(i,j),j) | i <- js ,j <- js] 
+                                diags = filter (not . iszero . arrow) [ (i,an!(i,i),i) | i <- js ] 
                                 an'   = a <.> rmPaths paths an
                                 rmPaths pathes a = foldr (\(i,_,j) -> setElem zero (i,j)) a pathes 
                             
@@ -171,14 +164,14 @@ nodeReduction a@(M n m _ _ _ _) = rmNodes (isolatedNodes a') a' where
     a' = (paths2mat n (decomposedPaths a)) 
 
 
-rmNodes :: [Int] -> Matrix a -> Matrix a 
+rmNodes :: Eq a => [Int] -> Matrix a -> Matrix a 
 rmNodes [] a        = a 
 rmNodes (i:is) a    = minorMatrix i i (rmNodes is a)  
 
 
 junctionNodes a@(M n m _ _ _ _) = filter (moreSuccNode a ||$ morePredNode a) [3..n] 
 pathNodes     a@(M n m _ _ _ _) = filter ( oneSuccNode a &&$  onePredNode a) [3..n] 
-isolatedNodes a@(M n m _ _ _ _) = filter (\i -> foldr (\k -> (&&) (a!(i,k) ==zero && a!(k,i) ==zero) ) True [1..n]) [3..n]     
+isolatedNodes a@(M n m _ _ _ _) = filter (\i -> foldr (\k -> (&&) (iszero (a!(i,k)) && iszero (a!(k,i))) ) True [1..n]) [3..n]     
 initialNodes  a@(M n m _ _ _ _) = filter (zeroPredNodes a) [3..n] 
 terminalNodes a@(M n m _ _ _ _) = filter (zeroSuccNodes a) [3..n] 
 
@@ -219,3 +212,110 @@ loopEntranceNodes a = loop 1 [] [[]] [] [] [] where
 
 
 lu = luDecomp 
+
+
+
+
+
+
+
+
+
+
+-- After Node Reduction 
+-- Branching Point Analysis
+
+
+----------------------------------------
+---  Renode with existing Numbering  ---
+----------------------------------------
+
+
+startNode :: OR (Edge Int Action) -> Int 
+startNode ZR = -1 
+startNode (SQ ((i,_,_):_)) = i 
+startNode (OR a b)  | startNode a == startNode b    = startNode a 
+                    | otherwise                     = error "edge start ambiguous"  
+
+endNode :: OR (Edge Int Action) -> Int 
+endNode ZR             = -1 
+endNode (SQ [])        = error "Node reduction has not been done in a good way" 
+endNode (SQ [(_,_,j)]) = j 
+endNode (SQ (e:es))    = endNode (SQ es) 
+endNode (OR a b)    | endNode a == endNode b    = endNode b 
+                    | otherwise                 = error "edge end ambiguous" 
+
+snd3 (a,b,c) = b 
+
+innerizeOR :: OR (Edge Int Action) -> Edge Int (OR Action)
+innerizeOR or = (startNode or, fmap snd3 or, endNode or) 
+
+
+---------------------------------------
+---  Renode with New Numbering      ---
+---------------------------------------
+
+reNodeMat :: Matrix (OR Action) -> Matrix (Edge Int (OR Action))
+reNodeMat a@(M n _ _ _ _ _) = matrix n n (\(i,j) -> (i, a!(i,j) , j)) 
+
+
+
+----------------------
+--- Branching      ---
+----------------------
+
+data Branch a   = BIf Int a [a] [a] Int Int   
+                | BSq Int [a] Int 
+                | BZr
+
+
+instance Show a => Show (Branch a) where 
+    show (BIf i c as bs j k) = "(" ++ show i ++ ",IF " ++ show c ++ " THEN " ++ show as ++ " ELSE " ++ show bs ++ ", (" ++ show j ++ "," ++ show k ++ "))"
+    show (BSq i as j)        = "(" ++ show i ++ ", " ++ show as ++ ", " ++ show j ++ ")"
+    show (BZr)               = "_" 
+
+
+rows a@(M n _ _ _ _ _) = [ [ a!(i,j) | j <- [1..n] , (not . iszero) (a!(i,j)) ] | i <- [1..n] ]  
+
+decomposeOR :: OR a -> [OR a] 
+decomposeOR (OR a b) = decomposeOR a ++ decomposeOR b  
+decomposeOR (SQ s)   = [SQ s] 
+decomposeOR ZR       = []  
+
+decompEdgeOR :: Edge node (OR a) -> [Edge node (OR a)] 
+decompEdgeOR (i,a,j) = map (\a -> (i,a,j)) (decomposeOR a)  
+
+
+putoffOR :: OR a -> [a]
+putoffOR (SQ s)             = s 
+putoffOR _                  = error "putoffOR: unexpected Argument" 
+
+putoffEdgeOR :: Edge node (OR a) -> Edge node [a] 
+putoffEdgeOR (i,SQ s, j)    = (i,s,j) 
+putoffEdgeOR _              = error "putoffEdgeOR: unexpected Argument" 
+
+removeOR :: [OR a] -> [[a]]
+removeOR row = concat $ map ( map putoffOR . decomposeOR ) row 
+
+removeEdgeOR :: [Edge node (OR a)] -> [Edge node [a]]
+removeEdgeOR row = concat $ map (map putoffEdgeOR . decompEdgeOR) row
+
+-- data Structure OR removed 
+-- so after removeOR adaption, the data is e.g. like this    
+--  [[a1,a2], [cond, a3,a4]]  
+-- Now we find the branching condition from the list, and 
+-- reordering so that the actions with cond is the head 
+
+findCond :: [Edge Int [Action]] -> Branch Action
+findCond [(i,as,j),(i',as',j')] | isCond (head as)  && i == i' = BIf i (head as) (tail as) as' j j' 
+findCond [(i,as,j),(i',as',j')] | isCond (head as') && i == i' = BIf i (head as') (tail as') as j' j 
+findCond [(i,as,j)] = BSq i as j 
+findCond [] = BZr 
+findCond e = error (show e) 
+
+
+branching :: Matrix (Edge Int (OR Action)) -> [Branch Action] 
+branching a = map (findCond . removeEdgeOR) $ rows a 
+
+
+

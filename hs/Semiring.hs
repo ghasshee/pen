@@ -25,6 +25,7 @@ class Monoid m => Semiring m where
     srsum     = foldr (<+>) zero
     srprod    = foldr (<.>) one
     one     = mempty 
+    iszero  :: m -> Bool 
 
 class Semiring a => StarSemiring a where 
     plus :: a -> a 
