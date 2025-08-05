@@ -374,7 +374,13 @@ findCond n e            = error (show e)
 
 
 branch :: [[Edge Int [Action]]] -> [Branch Action] 
-branch ess = undefined 
+branch ess = bs where 
+    (n', bs)    = loop n ess 
+    n           = length ess + 1
+    loop n []       = (n, [])
+    loop n (es:ess) = (n'', b:bs) where 
+        (n'', bs)   = loop n' ess
+        (n', b)     = findCond n es 
 
 
 branching :: Matrix (Edge Int (OR Action)) -> [Branch Action] 

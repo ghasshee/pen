@@ -83,7 +83,7 @@ main = do
         ms'''   = map reNodeMat ms
 
     let bs      :: [[Branch Action]] 
-        bs      = map branching ms''
+        bs      = map branching ms''' 
 
     print "------ Abstract Syntax Tree -------"
     print asts
