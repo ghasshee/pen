@@ -10,7 +10,7 @@ pappy:
 	#Pappy/pappy Parser.pappy
 	
 	alex Lexer.x 	# generates Lexer.hs 
-	happy Parser.y 
+	happy Parser.y --ghc  
 	
 	ghc Pen
 
