@@ -17,6 +17,14 @@ dispatch s = [DUP1, PUSH4 (dispatcherHash s), EQ]
 
 revert = undefined 
 
+-- #TODO 
+enter           = [] -- make empty frame 
+exit            = [] -- return stacktop; remove frame; push stacktop 
+pushFUNSTACK i  = [PUSHFUNSTACK i ] 
+popFUNSTACK     = [POPFUNSTACK ]
+
+
+
 
 
 swap i = case i of 
@@ -68,16 +76,14 @@ action2opcode a = case a of
     AcSkip                  -> []   
     AcBool e                -> e2o e 
     AcElse                  -> [] 
-    AcEnter                 -> [] -- undefined -- make empty frame
-    AcExit                  -> [] -- undefined -- return stacktop, remove frame, push stacktop
+    AcEnter                 -> enter 
+    AcExit                  -> exit  
     AcVar i                 -> undefined 
     AcRecord (Q i)(Q j)     -> pushFUNSTACK (toHex $ toInteger i) ++ pushFUNSTACK (toHex $ toInteger j)   
     AcCheck  (Q i)(Q j)     -> popFUNSTACK ++ [PUSH32 (toHex $ toInteger j), EQ] ++ popFUNSTACK ++ [PUSH32 (toHex $ toInteger i), EQ]  
     a   -> [] 
     a                       -> error $ "action2opcode: [Undefined Arg] " ++ show a    
 
-pushFUNSTACK i = [PUSHFUNSTACK i ] 
-popFUNSTACK = [POPFUNSTACK ]
 
 
 
