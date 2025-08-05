@@ -7,13 +7,18 @@ import Action
 import Opcode 
 import Expr2Opcode
 import GCLL
+import Crypto (dispatcherHash) 
 
 
 e2o = expr2opcode
 
-hash = undefined 
-dispatch = undefined 
+dispatch s = [JUMPI, DUP1, PUSH4 (dispatcherHash s), EQ] ++ push_dest
+push_dest = undefined 
+
 revert = undefined 
+
+
+
 swap i = case i of 
     1   -> SWAP1
     2   -> SWAP2
@@ -49,7 +54,7 @@ bop o   = case o of
 action2opcode :: Action -> [OPCODE] 
 action2opcode a = case a of 
     AcStop                  -> [STOP]
-    AcDispatch s            -> dispatch (hash s) 
+    AcDispatch s            -> dispatch s
     AcRevert e1 e2          -> e2o e1 ++ e2o e2 ++ [REVERT] 
     AcReturn e1 e2          -> e2o e1 ++ e2o e2 ++ [RETURN] 
     AcPop                   -> [POP] 

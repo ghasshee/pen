@@ -12,7 +12,7 @@ data OPCODE = L | R
             | ARG Integer   -- ARG n is the nth element from STACK top 
             -- | UNDEFINED String
             | INFO      String
-
+            | PUSHDEST String 
             -- EVM specification  
             | STOP
             | ADD         

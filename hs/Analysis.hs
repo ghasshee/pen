@@ -13,6 +13,7 @@ import Semiring
 import OR 
 import PG
 import GCLL hiding (M) 
+import Opcode hiding (OR) 
 
 
 --import Data.List (sort) 
@@ -265,25 +266,44 @@ reNodeMat a@(M n _ _ _ _ _) = matrix n n (\(i,j) -> (i, a!(i,j) , j))
 ----------------------
 
 data Branch a   = BIf Int a [a] [a] Int Int   
-                | BDp Int [(a, [a], Int)] 
-                | BCk Int [(a, [a], Int)]  
+                | BDp Int [(a, Int, [a], Int)] 
+                | BCk Int [(a, Int, [a], Int)]  
                 | BSq Int [a] Int 
                 | BZr
+
+
+branch2opcode :: Branch Action -> [OPCODE] 
+branch2opcode  = undefined 
 
 
 instance Show a => Show (Branch a) where 
     show (BIf i c as bs j k) = "(" ++ show i ++ ",IF " ++ show c ++ " THEN " ++ show as ++ " ELSE " ++ show bs ++ ", (" ++ show j ++ "," ++ show k ++ "))"
     show (BDp i dsps)        = "(" ++ show i ++ ", [" ++ showChks dsps ++ ")" where 
         showChks []                     = "]"
-        showChks ((a, as, j):chks)      = "(IF " ++ show a ++ " THEN " ++ show as ++ ", " ++ show j ++ ") " ++ showChks chks    
+        showChks ((a, q, as, j):chks)      = "(IF " ++ show a ++ " THEN[" ++ show q ++ "] " ++ show as ++ ", " ++ show j ++ ") " ++ showChks chks    
     show (BCk i chks)        = "(" ++ show i ++ ", [" ++ showChks chks ++ ")" where 
         showChks []                     = "]"
-        showChks ((a, as, j):chks)      = "(IF " ++ show a ++ " THEN " ++ show as ++ ", " ++ show j ++ ") " ++ showChks chks    
+        showChks ((a, q, as, j):chks)      = "(IF " ++ show a ++ " THEN[" ++ show q ++ "]" ++ show as ++ ", " ++ show j ++ ") " ++ showChks chks    
     show (BSq i as j)        = "(" ++ show i ++ ", " ++ show as ++ ", " ++ show j ++ ")"
     show (BZr)               = "_" 
 
 
+
+
+
+----------------------------------------------
+---   Matrix -> [[Edge Int (OR Action)]]   ---
+----------------------------------------------
+
+
+rows :: Semiring a => Matrix a -> [[a]] 
 rows a@(M n _ _ _ _ _) = [ [ a!(i,j) | j <- [1..n] , (not . iszero) (a!(i,j)) ] | i <- [1..n] ]  
+
+
+
+------------------------------------
+---  [[OR Action]]  OR Removal   ---  
+------------------------------------
 
 decomposeOR :: OR a -> [OR a] 
 decomposeOR (OR a b) = decomposeOR a ++ decomposeOR b  
@@ -308,28 +328,59 @@ removeOR row = concat $ map ( map putoffOR . decomposeOR ) row
 removeEdgeOR :: [Edge node (OR a)] -> [Edge node [a]]
 removeEdgeOR row = concat $ map (map putoffEdgeOR . decompEdgeOR) row
 
+
+
+-----------------------------------
+---      [[[Action]]]           ---
+-----------------------------------
+
 -- data Structure OR removed 
 -- so after removeOR adaption, the data is e.g. like this    
---  [[a1,a2], [cond, a3,a4]]  
+--
+--  [
+--  [[a1,a2], [cond, a3,a4]] , 
+--  [[chk1, a1, ..], [chk2, a2, ..], ..] , 
+--  [[dsptch1, a1, ..], [dsptch2, a2, ..], ..] , 
+--  ] 
+--
+--
 -- Now we find the branching condition from the list, and 
 -- reordering so that the actions with cond is the head 
 
-findCond :: [Edge Int [Action]] -> Branch Action
-findCond [(i,as,j),(i',as',j')] | isCond (head as)  && i == i' && head as' == AcSkip = BIf i (head as) (tail as) (tail as') j j' 
-findCond [(i,as,j),(i',as',j')] | isCond (head as') && i == i' && head as == AcSkip  = BIf i (head as') (tail as') (tail as) j' j 
-findCond ((i,(a:as),j):es) | isDspCond a = BDp i ((a, as, j): loop es) where 
-    loop [] = [] 
-    loop ((i', (a':as'), j'):es') | isDspCond a' && i == i' = (a',as', j'): loop es'   
-findCond ((i,(a:as),j):es) | isCheckCond a = BCk i ((a, as, j): loop es) where 
-    loop [] = [] 
-    loop ((i', (a':as'), j'):es') | isCheckCond a' && i == i' = (a',as', j'): loop es'   
-findCond [(i,as,j)] = BSq i as j 
-findCond [] = BZr 
-findCond e = error (show e) 
+
+-- findCond :: NewNode -> [Edge Int [Action]] -> (NewNode, Branch Action) 
+findCond :: Int -> [Edge Int [Action]] -> (Int, Branch Action) 
+findCond n [(i,as,j),(i',as',j')] 
+    | isCond (head as)  && i == i' && head as' == AcSkip = (n, BIf i (head as) (tail as) (tail as') j j' ) 
+findCond n [(i,as,j),(i',as',j')] 
+    | isCond (head as') && i == i' && head as == AcSkip  = (n, BIf i (head as') (tail as') (tail as) j' j )
+findCond n ((i,(a:as),j):es) | isDspCond a = (n', BDp i ((a, n, as, j):es')) where 
+    (n', es') = loop (n+1) es
+    loop n []                           = (n,  [])  
+    loop n ((i', (a':as'), j'):es') 
+        | isDspCond a' && i == i'           = (n', (a', n, as', j'): es'') 
+        where 
+            (n', es'') = loop (n+1) es' 
+findCond n ((i,(a:as),j):es) | isCheckCond a = (n', BCk i ((a, n, as, j): es'))  where 
+    (n', es') = loop (n+1) es 
+    loop n []                           = (n, [])  
+    loop n ((i', (a':as'), j'):es') 
+        | isCheckCond a' && i == i'         = (n', (a',n, as', j'): es'')    
+        where 
+            (n', es'') = loop (n+1) es' 
+findCond n [(i,as,j)]   = (n, BSq i as j) 
+findCond n []           = (n, BZr) 
+findCond n e            = error (show e) 
+
+
+branch :: [[Edge Int [Action]]] -> [Branch Action] 
+branch ess = undefined 
 
 
 branching :: Matrix (Edge Int (OR Action)) -> [Branch Action] 
-branching a = map (findCond . removeEdgeOR) $ rows a 
+branching a = branch . map removeEdgeOR $ rows a 
 
-
+---------------------------------
+--- [ Branch Action ]         ---
+---------------------------------
 

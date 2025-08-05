@@ -21,6 +21,7 @@ import Action
 import Semiring 
 import OR
 import Action2Opcode
+import Crypto 
 
 import Print
 
@@ -152,5 +153,8 @@ main = do
     --print $ map lu ms 
     --print $ map lu as 
 
+    print "----- Crypto Test ----"
+    print "set(uint256) hash is: " 
+    print $ dispatcherHash "set(uint256)" 
 
     
