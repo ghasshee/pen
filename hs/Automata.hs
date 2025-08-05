@@ -1,6 +1,5 @@
 {-# LANGUAGE IncoherentInstances #-} 
 module Automata 
-
 ( Automata (A) 
 , renodeAutomata 
 , runAutomata 

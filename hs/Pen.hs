@@ -16,18 +16,32 @@ import PG
 import VarTree
 import Decl2Term
 import Mat
-import Analysis (decomposedPaths, junctionNodes, bifurcationNodes, initialNodes, terminalNodes, confluenceNodes, success, genMat, convert, star', nodeReduction, innerizeOR, reNodeMat, Branch, branching)
+import Analysis 
+        ( decomposedPaths, junctionNodes, bifurcationNodes, initialNodes, terminalNodes, confluenceNodes, success
+        , genMat, convert, star', nodeReduction
+        , innerizeOR, reNodeMat, Branch, branch )
 import Action 
 import Semiring 
 import OR
 import Action2Opcode
 import Crypto 
+import Asm 
 
 import Print
 
 import System.IO 
 import System.Environment 
 import Data.Char
+
+
+
+-- Later implementation 
+import Layout
+import MSO
+import Automata 
+import ATree
+import VC
+
 
 
 
@@ -64,31 +78,22 @@ main = do
         stars   = map star' mats
 
     let ss      = map success stars
-
-    -- Action2Opcode.hs 
-        
---    let loopEns = map loopEntranceNodes as 
-
     
     let ms      :: [Matrix (OR Action)] 
         ms      = map nodeReduction as
 
-    let ms'     :: [Matrix (OR (Edge Int Action))] 
-        ms'     = map nodeReduction mats
-
-    let ms''    :: [Matrix (Edge Int (OR Action))] 
-        ms''    = map (fmap innerizeOR) ms' 
-
-    let ms'''   :: [Matrix (Edge Int (OR Action))] 
-        ms'''   = map reNodeMat ms
+    let ns      :: [Matrix (Edge Int (OR Action))] 
+        ns      = map reNodeMat ms
 
     let bs      :: [[Branch Action]] 
-        bs      = map branching ms''' 
+        bs      = map branch ns 
 
     print "------ Abstract Syntax Tree -------"
     print asts
---    print "------- transpiled into Functional Term -------" 
---    print tm 
+
+    print "------- transpiled into Functional Term -------" 
+    print tm 
+
     print "------ Program Graph -------" 
     print pgs 
 
@@ -97,9 +102,6 @@ main = do
     
     print "------ Matrix Representation ----" 
     print $ convert <$> mats
-
-    --print "------- Stars -------"
-    --mapM printStar mats  
 
     print "------ Diags ------"
     mapM printDiag mats
@@ -113,9 +115,6 @@ main = do
     print "------ Matrix Edge Representation -----" 
     print mats 
     print as 
-
-    --print "------ Loop Entrances ------" 
-    --print loopEns
 
     print "------ Confluences ------" 
     print $ map confluenceNodes as 
@@ -138,14 +137,8 @@ main = do
     print "------ Node Reduction ------" 
     print $ ms
 
-    print "------ Node Reduction with Node Info ----" 
-    print $ ms' 
-
-    print "------ Edge Information rewrapping ------"
-    print $ ms''
-
     print "------ ReNodeMat ------" 
-    print $ ms'''
+    print $ ns 
 
     print "------ Branches -----"
     print $ bs

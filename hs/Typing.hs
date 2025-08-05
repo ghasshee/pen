@@ -1,4 +1,4 @@
-module Typing where 
+module Typing  {-# WARNING "statically type checking NOT implemented now" #-} where 
 
 import GCLL
 import Type 
@@ -6,8 +6,6 @@ import Term
 import Tree
 
 
-
- 
 typeof (BLK _ _) = Untyped
 typeof (RED _ _) = Untyped
 {--

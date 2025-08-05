@@ -12,9 +12,12 @@ type Edge node a = (node,a,node)
 instance {-# Overlapping #-} Semigroup a => Semigroup (Edge node a) where 
     (i,a,j) <> (_,b,_) = (i,a<>b,j) 
 instance {-# Overlapping #-} Monoid a => Monoid (Edge node a) where 
+    mempty              = undefined 
+    mconcat             = undefined 
 instance Semiring a => Semiring (Edge Int a) where 
     (i,a,j) <.> (_,b,_) = (i, a<.>b, j) 
     (i,a,j) <+> (_,b,_) = (i, a<+>b, j)
+    zero                = undefined 
     iszero (_,a,_)      = iszero a 
 
 

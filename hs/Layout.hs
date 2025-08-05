@@ -38,7 +38,7 @@
 
 
 
-module Layout where 
+module Layout {-# WARNING "Not implemented" #-} where 
 
 
 import ExtraData 

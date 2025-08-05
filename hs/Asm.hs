@@ -1,28 +1,16 @@
 module Asm where 
 
 import Data.Char
-import Control.Monad
 import Prelude hiding (EQ,LT,GT) 
 
 import Opcode
 import Hex
-import Lex
 
 
 
-extractAsm :: [String] -> [String] 
-extractAsm [] = [] 
-extractAsm (s:l) = case s of 
-    a:_ | isDigit a     -> s: extractAsm l 
-    _                   -> extractAsm l 
 
-rmLineNo :: [String] -> [String] 
-rmLineNo = map (dropWhile (/= ' ') . dropWhile isSpace)
-
-
-toBytes :: [String] -> String
-toBytes  = map toLower . concat . map toByte . map read . rmLineNo . extractAsm
-
+asm :: [OPCODE] -> String 
+asm = map toLower . concat . map toByte 
 
 toByte  :: OPCODE -> String
 toByte o = case o of 

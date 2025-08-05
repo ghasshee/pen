@@ -51,6 +51,7 @@ instance Semiring a => Semiring (Matrix a) where
     a <.> b = mult a b 
     a <+> b = undefined 
     zero    = undefined 
+    iszero  = undefined 
 
 instance (Eq a, Semiring a) => StarSemiring (Matrix a) where 
     star a = loop a a where 
@@ -246,10 +247,9 @@ endNode (SQ (e:es))    = endNode (SQ es)
 endNode (OR a b)    | endNode a == endNode b    = endNode b 
                     | otherwise                 = error "edge end ambiguous" 
 
-snd3 (a,b,c) = b 
 
 innerizeOR :: OR (Edge Int Action) -> Edge Int (OR Action)
-innerizeOR or = (startNode or, fmap snd3 or, endNode or) 
+innerizeOR or = (startNode or, fmap arrow or, endNode or) 
 
 
 ---------------------------------------
@@ -350,11 +350,11 @@ removeEdgeOR row = concat $ map (map putoffEdgeOR . decompEdgeOR) row
 
 -- findCond :: NewNode -> [Edge Int [Action]] -> (NewNode, Branch Action) 
 findCond :: Int -> [Edge Int [Action]] -> (Int, Branch Action) 
-findCond n [(i,as,j),(i',as',j')] 
-    | isCond (head as)  && i == i' && head as' == AcSkip = (n, BIf i (head as) (tail as) (tail as') j j' ) 
-findCond n [(i,as,j),(i',as',j')] 
-    | isCond (head as') && i == i' && head as == AcSkip  = (n, BIf i (head as') (tail as') (tail as) j' j )
-findCond n ((i,(a:as),j):es) | isDspCond a = (n', BDp i ((a, n, as, j):es')) where 
+findCond n [(i,a:as,j),(i',AcSkip:as',j')] 
+    | isCond a  && i == i' = (n, BIf i a as as' j j' ) 
+findCond n [(i,AcSkip:as,j),(i',a':as',j')] 
+    | isCond a' && i == i' = (n, BIf i a' as' as j' j )
+findCond n ((i,a:as,j):es) | isDspCond a = (n', BDp i ((a, n, as, j):es')) where 
     (n', es') = loop (n+1) es
     loop n []                           = (n,  [])  
     loop n ((i', (a':as'), j'):es') 
@@ -373,8 +373,8 @@ findCond n []           = (n, BZr)
 findCond n e            = error (show e) 
 
 
-branch :: [[Edge Int [Action]]] -> [Branch Action] 
-branch ess = bs where 
+branching :: [[Edge Int [Action]]] -> [Branch Action] 
+branching ess = bs where 
     (n', bs)    = loop n ess 
     n           = length ess + 1
     loop n []       = (n, [])
@@ -383,8 +383,8 @@ branch ess = bs where
         (n', b)     = findCond n es 
 
 
-branching :: Matrix (Edge Int (OR Action)) -> [Branch Action] 
-branching a = branch . map removeEdgeOR $ rows a 
+branch :: Matrix (Edge Int (OR Action)) -> [Branch Action] 
+branch = branching . map removeEdgeOR . rows  
 
 ---------------------------------
 --- [ Branch Action ]         ---

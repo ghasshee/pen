@@ -22,7 +22,7 @@ data ExtraData  = EDCr      -- Creation Code
                 | EDOther   -- Other Byte Data
 
 data DataStructure  = Pointer Int
-                    | 
+                    | Undefnd  
 
 ed2binary EDCr      = "00"
 ed2binary EDDT      = "01" 
