@@ -16,14 +16,19 @@ import PG
 import VarTree
 import Decl2Term
 import Mat
-import Analysis 
-        ( decomposedPaths, junctionNodes, bifurcationNodes, initialNodes, terminalNodes, confluenceNodes, success
-        , genMat, convert, star', nodeReduction
-        , innerizeOR, reNodeMat, Branch, branch )
 import Action 
 import Semiring 
 import OR
+import Analysis 
+        ( decomposedPaths, junctionNodes, bifurcationNodes, initialNodes, terminalNodes, confluenceNodes, success
+        , genMat, convert, star', nodeReduction
+        , innerizeOR, reNodeMat)
+
+import Branch (Branch, branch) 
+
 import Action2Opcode
+import Branch2Opcode 
+
 import Crypto 
 import Asm 
 
