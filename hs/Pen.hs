@@ -26,6 +26,7 @@ import Analysis
 
 import Branch (Branch, branch) 
 
+import Opcode 
 import Action2Opcode
 import Branch2Opcode 
 
@@ -95,6 +96,9 @@ main = do
     let bs      :: [[Branch Action]] 
         bs      = map branch ns 
 
+    let ops     :: [[OPCODE]]
+        ops     = map branches2opcodes bs 
+
     print "------ Abstract Syntax Tree -------"
     print asts
 
@@ -149,6 +153,9 @@ main = do
 
     print "------ Branches -----"
     print $ bs
+
+    print "------ OPCODEs ------"
+    print $ ops 
 
     --print $ map lu ms 
     --print $ map lu as 

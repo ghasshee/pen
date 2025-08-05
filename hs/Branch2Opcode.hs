@@ -6,6 +6,11 @@ import Branch
 import Opcode 
 
 
+
+branches2opcodes :: [Branch Action] -> [OPCODE]
+branches2opcodes = concat . map branch2opcode
+
+
 errOPCODE = [STOP] -- #TODO  [REVERT]   
 actions2opcodes = concat . map action2opcode 
 

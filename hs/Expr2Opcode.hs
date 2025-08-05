@@ -7,6 +7,7 @@ import Prelude hiding (EQ,LT,GT)
 
 push s      = pushN s where 
     pushN = case length s of 
+        1       -> PUSH1
         2       -> PUSH1  
         4       -> PUSH2  
         6       -> PUSH3   
@@ -39,7 +40,7 @@ push s      = pushN s where
         60      -> PUSH30 
         62      -> PUSH31 
         64      -> PUSH32 
-        _       -> error "expr2opcode.hs : PUSH NULL" 
+        _       -> error $ "expr2opcode.hs : pushN" ++ show s 
 
 dup  i      = case i of 
     1       -> DUP1
@@ -60,7 +61,9 @@ dup  i      = case i of
     16      -> DUP16 
     _       -> error "DUP n: cannot duplicate more than depth 16" 
 
-var s       = undefined 
+var s   = case s of 
+    ('X':n)     -> ARG $ read n 
+    n           -> ARG $ read n  
 
 
 value :: EVMVALUE -> OPCODE 
@@ -89,7 +92,7 @@ expr2opcode e = let e2o = expr2opcode in case e of
     M  e                -> e2o e ++ [MLOAD] 
     S  e                -> e2o e ++ [SLOAD] 
     Stk i               -> [dup i] 
-    Var s               -> var s 
+    Var s               -> [var s] 
     V evmv              -> [value evmv] 
     Add         e1 e2   -> e2o e1 ++ e2o e2 ++ [ADD] 
     Sub         e1 e2   -> e2o e1 ++ e2o e2 ++ [SUB] 

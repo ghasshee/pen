@@ -7,6 +7,7 @@ import Tree
 --import Term 
 
 data OPCODE = L | R 
+            | POPFUNSTACK | PUSHFUNSTACK String
             | SEQ 
             | STACK 
             | ARG Integer   -- ARG n is the nth element from STACK top 

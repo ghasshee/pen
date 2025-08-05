@@ -12,8 +12,8 @@ import Crypto (dispatcherHash)
 
 e2o = expr2opcode
 
-dispatch s = [JUMPI, DUP1, PUSH4 (dispatcherHash s), EQ] ++ push_dest
-push_dest = undefined 
+dispatch s = [DUP1, PUSH4 (dispatcherHash s), EQ] 
+
 
 revert = undefined 
 
@@ -65,17 +65,19 @@ action2opcode a = case a of
     AcCalldatacopy x y z    -> e2o x ++ e2o y ++ e2o z ++ [CALLDATACOPY]  
     AcCodecopy x y z        -> e2o x ++ e2o y ++ e2o z ++ [CODECOPY] 
     AcExtcodecopy x y z w   -> e2o x ++ e2o y ++ e2o z ++ e2o w ++ [EXTCODECOPY] 
-    AcSkip                  -> undefined -- dest ++ [GOTO}  
-    AcBool e                -> undefined -- e2o e ++ dest ++ [IFGOTO] 
+    AcSkip                  -> []   
+    AcBool e                -> e2o e 
     AcElse                  -> [] 
-    AcEnter                 -> undefined -- make empty frame
-    AcExit                  -> undefined -- return stacktop, remove frame, push stacktop
+    AcEnter                 -> [] -- undefined -- make empty frame
+    AcExit                  -> [] -- undefined -- return stacktop, remove frame, push stacktop
     AcVar i                 -> undefined 
     AcRecord (Q i)(Q j)     -> pushFUNSTACK (toHex $ toInteger i) ++ pushFUNSTACK (toHex $ toInteger j)   
     AcCheck  (Q i)(Q j)     -> popFUNSTACK ++ [PUSH32 (toHex $ toInteger j), EQ] ++ popFUNSTACK ++ [PUSH32 (toHex $ toInteger i), EQ]  
+    a   -> [] 
+    a                       -> error $ "action2opcode: [Undefined Arg] " ++ show a    
 
-pushFUNSTACK i = undefined 
-popFUNSTACK = undefined 
+pushFUNSTACK i = [PUSHFUNSTACK i ] 
+popFUNSTACK = [POPFUNSTACK ]
 
 
 
