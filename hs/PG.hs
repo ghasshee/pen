@@ -145,7 +145,8 @@ pgTOPs  (top:tops)   cfg    =   (es ++ ess, cfg'') where
 pgTOP :: TOP -> Config -> Edges
 pgTOP (MT id ty ps bd) (i,t,q,s,v,ctx, stx) = 
     let (e,(_,_,q',s',v',ctx', stx')) = pgMT (MT id ty ps bd) (Q q,Q(q+1),q+2,s,v,ctx, stx) in 
-    (e++[(i,AcDispatch id, Q q),(Q(q+1),AcSkip, t)], (i,t,q',s',v',ctx', stx)) 
+    let id' = id ++ showTyParams ps in 
+    (e++[(i,AcDispatch id', Q q),(Q(q+1),AcSkip, t)], (i,t,q',s',v',ctx', stx)) 
 pgTOP (SV id ty)        (i,t,q,s,v,ctx,stx) =   ([(i, AcSto s, Q q)], (Q q, t, q+1,s+1,v,ctx,id:stx))   
 pgTOP (EV id ty)        (i,t,q,s,v,ctx,stx) =   undefined 
 pgTOP (DT id ids cnstrs)(i,t,q,s,v,ctx,stx) =   undefined 
@@ -194,7 +195,7 @@ pgDecl d cfg@(i,t,q,s,v,ctx,stx)    = case d of
 -- pg(tm ; x := retvalue) ; 
     SLET id    tm _         ->  (es ++ es',  cfg'  ) 
                                 where   (es, (i',t',q',s',v',ctx',stx'))    = pgTerm tm (i,Q q,q+1,s,v,ctx, id:stx)
-                                        (es', cfg')                         = ([(Q q, AcPush (Ox (toHex (toInteger n))), Q q'), (Q q', AcSstore, t)], (i,t,q'+1,s',v',ctx',stx'))
+                                        (es', cfg')                         = ([(Q q, AcPush (Ox (toInteger n)), Q q'), (Q q', AcSstore, t)], (i,t,q'+1,s',v',ctx',stx'))
                                         Just _n                             = searchSto id stx'  
                                         Just n                              = searchSto (drop 1 id) stx' 
     FLET id ps tm _         ->  (es,   (i,t,q''',s''',v''',ctx',stx'))  where 
@@ -210,8 +211,8 @@ pgDecl d cfg@(i,t,q,s,v,ctx,stx)    = case d of
 pgTerm :: Term -> Config -> Edges 
 pgTerm tr cfg@(i,t,q,s,v,ctx,stx)       = case tr of 
     RED TmAPP [t1,t2]                   ->  pgTermApp tr cfg []
-    RED (TmU256 n) []                   ->  ([(i, AcPush (Ox (toHex n           )), t)], cfg) 
-    RED (TmDATA d) []                   ->  ([(i, AcPush (Ox (toHex (data2nat d))), t)], cfg)
+    RED (TmU256 n) []                   ->  ([(i, AcPush (Ox n           ), t)], cfg) 
+    RED (TmDATA d) []                   ->  ([(i, AcPush (Ox (data2nat d)), t)], cfg)
     RED (TmVAR  n) []                   ->  ([(i, AcPush (Var (show n           )), t)], cfg) 
     RED TmIF [b,t1,t2]                  ->  (eb++e1++e2++eelse, cfg')  where 
         (eb,(_,_,q' ,s' ,v' ,ctx' ,stx'))   = pgCond b  (i, Q q,q+2,s  ,v  ,ctx , stx)
@@ -290,8 +291,8 @@ pgBOP ">"  x y = Gt  x y
 
 tm2exp :: a -> Term -> EXPR 
 tm2exp ctx (RED (TmVAR  n) [])  =   Var (show n)  
-tm2exp ctx (RED (TmSTO  n) [])  =   GCLL.S   (Ox (toHex $ toInteger n))
-tm2exp ctx (RED (TmU256 n) [])  =   Ox (toHex n)
-tm2exp ctx (RED (TmDATA d) [])  =   Ox (toHex (data2nat d))
+tm2exp ctx (RED (TmSTO  n) [])  =   GCLL.S   (Ox (toInteger n))
+tm2exp ctx (RED (TmU256 n) [])  =   Ox n
+tm2exp ctx (RED (TmDATA d) [])  =   Ox (data2nat d)
 
     

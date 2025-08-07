@@ -12,7 +12,7 @@ import Crypto (dispatcherHash)
 
 e2o = expr2opcode
 
-dispatch s = [DUP1, PUSH4 (dispatcherHash s), EQ] 
+dispatch s = [DUP1, PUSH4 (fromHex $ dispatcherHash s), EQ] 
 
 
 revert = undefined 
@@ -79,8 +79,8 @@ action2opcode a = case a of
     AcEnter                 -> enter 
     AcExit                  -> exit  
     AcVar i                 -> undefined 
-    AcRecord (Q i)(Q j)     -> pushFUNSTACK (toHex $ toInteger i) ++ pushFUNSTACK (toHex $ toInteger j)   
-    AcCheck  (Q i)(Q j)     -> popFUNSTACK ++ [PUSH32 (toHex $ toInteger j), EQ] ++ popFUNSTACK ++ [PUSH32 (toHex $ toInteger i), EQ]  
+    AcRecord (Q i)(Q j)     -> pushFUNSTACK i ++ pushFUNSTACK j   
+    AcCheck  (Q i)(Q j)     -> popFUNSTACK ++ [PUSH16 (toInteger j), EQ] ++ popFUNSTACK ++ [PUSH16 (toInteger i), EQ]  
     a   -> [] 
     a                       -> error $ "action2opcode: [Undefined Arg] " ++ show a    
 

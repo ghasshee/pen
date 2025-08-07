@@ -1,13 +1,13 @@
 module Expr2Opcode where 
 
+import Hex
 import GCLL 
 import Opcode 
 import Prelude hiding (EQ,LT,GT) 
 
 
-push s      = pushN s where 
-    pushN = case length s of 
-        1       -> PUSH1
+push n      = pushN n  where 
+    pushN = case length (toHex n) of 
         2       -> PUSH1  
         4       -> PUSH2  
         6       -> PUSH3   
@@ -40,7 +40,7 @@ push s      = pushN s where
         60      -> PUSH30 
         62      -> PUSH31 
         64      -> PUSH32 
-        _       -> error $ "expr2opcode.hs : pushN" ++ show s 
+        _       -> error $ "expr2opcode.hs : pushN" ++ show n
 
 dup  i      = case i of 
     1       -> DUP1
@@ -88,7 +88,7 @@ value  v    = case v of
 
 expr2opcode :: EXPR -> [OPCODE] 
 expr2opcode e = let e2o = expr2opcode in case e of 
-    Ox s                -> [push s] 
+    Ox n                -> [push n] 
     M  e                -> e2o e ++ [MLOAD] 
     S  e                -> e2o e ++ [SLOAD] 
     Stk i               -> [dup i] 

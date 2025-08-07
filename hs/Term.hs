@@ -20,6 +20,13 @@ instance Read K where
 type Bind   = (ID, Ty) 
 type Param  = (ID, Ty) 
 
+
+showTyParam (id,ty) = showTy ty 
+showTyParams ps = "(" ++ loop ps where 
+    loop []     = ")"
+    loop [p]    = showTyParam p ++ ")" 
+    loop (p:ps) = showTyParam p ++ "," ++ loop ps  
+
 data Tm     = TmAPP                 -- 2 args 
             | TmABS ID Ty           -- 2 function body & predicate 
             | TmSSTORE              -- 4 stored variable & storing value & predicate & continuation   

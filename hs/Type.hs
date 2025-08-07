@@ -28,6 +28,13 @@ data Ty     =   TyERR   --   nothing
             deriving (Show, Eq, Read) 
 
 
+showTy ty = case ty of 
+    TyBOOL      -> "bool"
+    TyU8        -> "uint8"
+    TyADDR      -> "address"
+    TyU256      -> "uint256"
+    TyI256      -> "int256" 
+
 
 ty2num TyERR    = 0 
 ty2num TyUNIT   = 1 

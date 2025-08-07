@@ -2,6 +2,7 @@
 
 module GCLL where 
 
+import Hex 
 import Prelude hiding (EQ,GT,LT)
 
 type GCLL = STMT
@@ -29,7 +30,7 @@ data EVMVALUE   = Address
 
 
 
-data EXPR   = Ox               String
+data EXPR   = Ox              Integer
             | M                  EXPR
             | S                  EXPR
             | Stk             Integer
@@ -79,7 +80,7 @@ data EXPR   = Ox               String
 
 instance Show EXPR where 
     show x  = case x of 
-        Ox s            -> "0x" ++ s
+        Ox n            -> "0x" ++ toHex n
         M  e            -> "M[" ++ show e ++ "]"
         S  e            -> "S[" ++ show e ++ "]"
         Stk n           -> "Stk[" ++ show n ++ "]" 

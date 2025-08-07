@@ -77,38 +77,38 @@ toByte o = case o of
            MSIZE                              ->  "59"
            GAS                                ->  "5A"
            JUMPDEST _                         ->  "5B"
-           PUSH1  v                           ->  "60" ++  v
-           PUSH2  v                           ->  "61" ++  v
-           PUSH3  v                           ->  "62" ++  v
-           PUSH4  v                           ->  "63" ++  v
-           PUSH5  v                           ->  "64" ++  v
-           PUSH6  v                           ->  "65" ++  v
-           PUSH7  v                           ->  "66" ++  v
-           PUSH8  v                           ->  "67" ++  v
-           PUSH9  v                           ->  "68" ++  v
-           PUSH10 v                           ->  "69" ++  v
-           PUSH11 v                           ->  "6A" ++  v
-           PUSH12 v                           ->  "6B" ++  v
-           PUSH13 v                           ->  "6C" ++  v
-           PUSH14 v                           ->  "6D" ++  v
-           PUSH15 v                           ->  "6E" ++  v
-           PUSH16 v                           ->  "6F" ++  v
-           PUSH17 v                           ->  "70" ++  v
-           PUSH18 v                           ->  "71" ++  v
-           PUSH19 v                           ->  "72" ++  v
-           PUSH20 v                           ->  "73" ++  v
-           PUSH21 v                           ->  "74" ++  v
-           PUSH22 v                           ->  "75" ++  v
-           PUSH23 v                           ->  "76" ++  v
-           PUSH24 v                           ->  "77" ++  v
-           PUSH25 v                           ->  "78" ++  v
-           PUSH26 v                           ->  "79" ++  v
-           PUSH27 v                           ->  "7A" ++  v
-           PUSH28 v                           ->  "7B" ++  v
-           PUSH29 v                           ->  "7C" ++  v
-           PUSH30 v                           ->  "7D" ++  v
-           PUSH31 v                           ->  "7E" ++  v
-           PUSH32 v                           ->  "7F" ++  v
+           PUSH1  v                           ->  "60" ++  toHex v
+           PUSH2  v                           ->  "61" ++  toHex v
+           PUSH3  v                           ->  "62" ++  toHex v
+           PUSH4  v                           ->  "63" ++  toHex v
+           PUSH5  v                           ->  "64" ++  toHex v
+           PUSH6  v                           ->  "65" ++  toHex v
+           PUSH7  v                           ->  "66" ++  toHex v
+           PUSH8  v                           ->  "67" ++  toHex v
+           PUSH9  v                           ->  "68" ++  toHex v
+           PUSH10 v                           ->  "69" ++  toHex v
+           PUSH11 v                           ->  "6A" ++  toHex v
+           PUSH12 v                           ->  "6B" ++  toHex v
+           PUSH13 v                           ->  "6C" ++  toHex v
+           PUSH14 v                           ->  "6D" ++  toHex v
+           PUSH15 v                           ->  "6E" ++  toHex v
+           PUSH16 v                           ->  "6F" ++  toHex v
+           PUSH17 v                           ->  "70" ++  toHex v
+           PUSH18 v                           ->  "71" ++  toHex v
+           PUSH19 v                           ->  "72" ++  toHex v
+           PUSH20 v                           ->  "73" ++  toHex v
+           PUSH21 v                           ->  "74" ++  toHex v
+           PUSH22 v                           ->  "75" ++  toHex v
+           PUSH23 v                           ->  "76" ++  toHex v
+           PUSH24 v                           ->  "77" ++  toHex v
+           PUSH25 v                           ->  "78" ++  toHex v
+           PUSH26 v                           ->  "79" ++  toHex v
+           PUSH27 v                           ->  "7A" ++  toHex v
+           PUSH28 v                           ->  "7B" ++  toHex v
+           PUSH29 v                           ->  "7C" ++  toHex v
+           PUSH30 v                           ->  "7D" ++  toHex v
+           PUSH31 v                           ->  "7E" ++  toHex v
+           PUSH32 v                           ->  "7F" ++  toHex v
            DUP1                               ->  "80"
            DUP2                               ->  "81"
            DUP3                               ->  "82"

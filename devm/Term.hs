@@ -171,7 +171,7 @@ instance Show STMT where
         Dup n           -> "Dup" ++ show n 
         Calldatacopy a b c -> "Calldatacopy(" ++ 
                             show a ++ "," ++ show b ++ "," ++ show c ++ ")"
-        Codecopy s f t  -> "Codecopy(to:" ++ 
+        Codecopy t f s  -> "Codecopy(to:" ++ 
                             show t ++ ",from:" ++ show f ++ ",size:" ++ show s ++ ")"
         Extcodecopy     -> "Extcodecopy"
         Returndatacopy to from size -> "Returndatacopy(to:" ++ show to ++ 
@@ -192,12 +192,12 @@ optree2stmt t = loop t where
             x'          = loop x
             Seq xs'     = loop (BLK SEQ xs) 
         BLK STOP _                  -> Stop
-        BLK REVERT       [x,y]      -> Revert (o2e x) (o2e y) 
-        BLK RETURN       [x,y]      -> Return (o2e x) (o2e y) 
-        BLK CALLDATACOPY [x,y,z]    -> Calldatacopy (o2e x)(o2e y)(o2e z)
-        BLK CODECOPY     [x,y,z]    -> Codecopy (o2e x)(o2e y)(o2e z)
+        BLK REVERT       [y,x]      -> Revert (o2e x) (o2e y) 
+        BLK RETURN       [y,x]      -> Return (o2e x) (o2e y) 
+        BLK CALLDATACOPY [z,y,x]    -> Calldatacopy (o2e x)(o2e y)(o2e z)
+        BLK CODECOPY     [z,y,x]    -> Codecopy (o2e x)(o2e y)(o2e z)
         BLK EXTCODECOPY  _          -> Extcodecopy
-        BLK RETURNDATACOPY [x,y,z]  -> Returndatacopy (o2e x)(o2e y)(o2e z) 
+        BLK RETURNDATACOPY [z,y,x]  -> Returndatacopy (o2e x)(o2e y)(o2e z) 
         BLK POP          _          -> Pop 
         BLK MSTORE       [a,x]      -> Assign (M(o2e x)) (o2e a)  
         BLK MSTORE8      [a,x]      -> Assign (M(o2e x)) (o2e a)
@@ -300,7 +300,7 @@ optree2expr t = loop t where
             CALLDATALOAD        -> Calldataload     (loop x)
             EXTCODEHASH         -> Extcodehash      (loop x)
             BLOCKHASH           -> Blockhash        (loop x)
-        RED o [x,y]   -> case o of 
+        RED o [y,x]   -> case o of 
             ADD                 -> Add      (loop x)(loop y)
             SUB                 -> Sub      (loop x)(loop y)
             MUL                 -> Mul      (loop x)(loop y)
@@ -321,18 +321,18 @@ optree2expr t = loop t where
             SHL                 -> Shl      (loop x)(loop y) 
             SHR                 -> Shr      (loop x)(loop y) 
             SAR                 -> Sar      (loop x)(loop y) 
-        RED o [x,y,z]   -> case o of 
+        RED o [z,y,x]   -> case o of 
             ADDMOD              -> Addmod   (loop x)(loop y)(loop z)
             MULMOD              -> Mulmod   (loop x)(loop y)(loop z)
             CREATE              -> Create   (loop x)(loop y)(loop z)
-        RED o [x,y,z,w] -> case o of 
+        RED o [w,z,y,x] -> case o of 
             CREATE2             -> Create2  (loop x)(loop y)(loop z)(loop w)
-        RED o [a,b,c,d,e,f] -> case o of 
+        RED o [f,e,d,c,b,a] -> case o of 
             DELEGATECALL        -> Delegatecall 
                                     (loop a)(loop b)(loop c)(loop d)(loop e)(loop f)
             STATICCALL          -> Staticcall   
                                     (loop a)(loop b)(loop c)(loop d)(loop e)(loop f)
-        RED o [a,b,c,d,e,f,g] -> case o of 
+        RED o [g,f,e,d,c,b,a] -> case o of 
             CALL                -> Call
                                     (loop a)(loop b)(loop c)(loop d)(loop e)(loop f)(loop g)
             CALLCODE            -> Callcode

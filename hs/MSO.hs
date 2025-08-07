@@ -1,5 +1,5 @@
 
-module MSO {-# WARNING "Toy MSO Logic implemented now" #-} where 
+module MSO {-# WARNING "Only Toy MSO Logic implemented" #-} where 
 
 
 import Logic 

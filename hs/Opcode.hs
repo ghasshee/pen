@@ -7,13 +7,13 @@ import Tree
 --import Term 
 
 data OPCODE = L | R 
-            | POPFUNSTACK | PUSHFUNSTACK String
+            | POPFUNSTACK | PUSHFUNSTACK Int
             | SEQ 
             | STACK 
             | ARG Integer   -- ARG n is the nth element from STACK top 
             -- | UNDEFINED String
             | INFO      String
-            | PUSHDEST String 
+            | PUSHDEST Int 
             -- EVM specification  
             | STOP
             | ADD         
@@ -77,39 +77,40 @@ data OPCODE = L | R
             | PC
             | MSIZE
             | GAS
-            | JUMPDEST String
-            | PUSH1  String 
-            | PUSH2  String 
-            | PUSH3  String 
-            | PUSH4  String 
-            | PUSH5  String 
-            | PUSH6  String 
-            | PUSH7  String 
-            | PUSH8  String 
-            | PUSH9  String 
-            | PUSH10 String 
-            | PUSH11 String 
-            | PUSH12 String 
-            | PUSH13 String 
-            | PUSH14 String 
-            | PUSH15 String 
-            | PUSH16 String 
-            | PUSH17 String 
-            | PUSH18 String 
-            | PUSH19 String 
-            | PUSH20 String 
-            | PUSH21 String 
-            | PUSH22 String 
-            | PUSH23 String 
-            | PUSH24 String 
-            | PUSH25 String 
-            | PUSH26 String 
-            | PUSH27 String 
-            | PUSH28 String 
-            | PUSH29 String 
-            | PUSH30 String 
-            | PUSH31 String 
-            | PUSH32 String 
+            | JUMPDEST Int
+            | PUSH0 
+            | PUSH1  Integer 
+            | PUSH2  Integer 
+            | PUSH3  Integer 
+            | PUSH4  Integer 
+            | PUSH5  Integer 
+            | PUSH6  Integer 
+            | PUSH7  Integer 
+            | PUSH8  Integer 
+            | PUSH9  Integer 
+            | PUSH10 Integer 
+            | PUSH11 Integer 
+            | PUSH12 Integer 
+            | PUSH13 Integer 
+            | PUSH14 Integer 
+            | PUSH15 Integer 
+            | PUSH16 Integer 
+            | PUSH17 Integer 
+            | PUSH18 Integer 
+            | PUSH19 Integer 
+            | PUSH20 Integer 
+            | PUSH21 Integer 
+            | PUSH22 Integer 
+            | PUSH23 Integer 
+            | PUSH24 Integer 
+            | PUSH25 Integer 
+            | PUSH26 Integer 
+            | PUSH27 Integer 
+            | PUSH28 Integer 
+            | PUSH29 Integer 
+            | PUSH30 Integer 
+            | PUSH31 Integer 
+            | PUSH32 Integer 
             | DUP1 
             | DUP2 
             | DUP3 

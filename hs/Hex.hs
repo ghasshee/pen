@@ -45,9 +45,11 @@ toHexChar 15='F'
 
 toHex   :: Integer -> String 
 toHex 0 = "0"
-toHex n = loop n where 
-    loop 0 = ""
-    loop n = loop (div n 16) ++ [toHexChar (rem n 16)]
+toHex n = oddloop n where 
+    oddloop  0 = ""
+    oddloop  n = evenloop (div n 16) ++ [toHexChar (rem n 16)]
+    evenloop 0 = "0"
+    evenloop n = oddloop (div n 16) ++ [toHexChar (rem n 16)] 
 
 
 --toByte  :: Integer -> String
