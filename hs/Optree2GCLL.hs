@@ -7,8 +7,9 @@ import Prelude hiding (EQ,GT,LT)
 
 import Opcode
 import GCLL 
-import Tree
+import Tree hiding (Node) 
 import Hex
+import PreLink hiding (LABEL) 
 
 
 
@@ -36,7 +37,7 @@ optree2stmt t = loop t where
         BLK SSTORE       [a,x]      -> Assign (S(o2e x)) (o2e a) 
         BLK JUMP         [l]        -> Goto (o2e l) 
         BLK JUMPI        [b,l]      -> IfGoto (o2e b)(o2e l)  
-        BLK (JUMPDEST s) _          -> Label (toHex $ toInteger s) 
+        BLK (JUMPDEST s) _          -> Label s 
         BLK SWAP1        _          -> Swap 1 
         BLK SWAP2        _          -> Swap 2 
         BLK SWAP3        _          -> Swap 3 
@@ -61,6 +62,8 @@ optree2expr :: RBTree OPCODE -> EXPR
 optree2expr t = loop t where 
     loop t = case t of 
         RED o [] -> case o of 
+            PUSH (FUN v)        -> Ox $ toInteger v 
+            PUSHDEST i          -> LABEL i
             ARG    n            -> Var ("Arg[" ++ show n ++ "]")
             ADDRESS             -> V Address
             ORIGIN              -> V Origin 

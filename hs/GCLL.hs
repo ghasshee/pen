@@ -32,6 +32,7 @@ data EVMVALUE   = Address
 
 
 data EXPR   = Ox              Integer
+            | LABEL               Int 
             | M                  EXPR
             | S                  EXPR
             | Stk             Integer
@@ -82,6 +83,7 @@ data EXPR   = Ox              Integer
 instance Show EXPR where 
     show x  = case x of 
         Ox n            -> "0x" ++ toHex n
+        LABEL i         -> "Label " ++ show i 
         M  e            -> "M[" ++ show e ++ "]"
         S  e            -> "S[" ++ show e ++ "]"
         Stk n           -> "Stk[" ++ show n ++ "]" 
@@ -147,7 +149,7 @@ instance Show EXPR where
 data STMT   = Stop
             | Revert EXPR EXPR 
             | Return EXPR EXPR 
-            | Label String
+            | Label Int
             | Pop 
             | Push EXPR
             | Assign EXPR EXPR
@@ -167,7 +169,7 @@ instance Show STMT where
         Stop            -> "Stop()" 
         Revert x y      -> "Revert(" ++ show x ++ ", " ++ show y ++ ")"
         Return x y      -> "Return(" ++ show x ++ ", " ++ show y ++ ")"
-        Label s         -> "<< label: " ++ s ++ " >>"
+        Label i         -> "<< label: " ++ show i ++ " >>"
         Pop             -> "Pop()"
         Push e          -> show e
         Assign x a      -> show x ++ " := " ++ show a 

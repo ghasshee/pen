@@ -85,6 +85,7 @@ action2opcode a = case a of
     a                       -> error $ "action2opcode: [Undefined Arg] " ++ show a    
 
 
+actions2opcodes = concat . map action2opcode 
 
 
 {--

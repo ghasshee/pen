@@ -107,15 +107,14 @@ findCond n ((i,a:as,j):es) | isDspCond a = (n', BDp i ((a, n, as, j):es')) where
     loop n []                           = (n,  [])  
     loop n ((i', (a':as'), j'):es') 
         | isDspCond a' && i == i'           = (n', (a', n, as', j'): es'') 
+        | a' == AcSkip && i == i'           = loop n (es' ++ [(i', (a':as'), j')]) 
         where 
             (n', es'') = loop (n+1) es' 
-findCond n ((i,(a:as),j):es) | isCheckCond a = (n', BCk i ((a, n, as, j): es'))  where 
+findCond n ((i,(a:as),j):es) | (isCheckCond a || a == AcSkip) = (n', BCk i ((a, n, as, j): es'))  where 
     (n', es') = loop (n+1) es 
     loop n []                           = (n, [])  
     loop n ((i', (a':as'), j'):es') 
-        | isCheckCond a' && i == i'         = (n', (a',n, as', j'): es'')    
-        where 
-            (n', es'') = loop (n+1) es' 
+        | isCheckCond a' && i == i' || a == AcSkip    = (n', (a',n, as', j'): es'') where  (n', es'') = loop (n+1) es' 
 findCond n [(i,as,j)]   = (n, BSq i as j) 
 findCond n []           = (n, BZr) 
 findCond n e            = error $ "findCond: [Unexpected Action Seq] " ++ show e   

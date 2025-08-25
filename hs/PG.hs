@@ -135,7 +135,7 @@ pgCN (CN id tops) config    = pgTOPs tops config
 
 -- [TOP] -> pg 
 pgTOPs  :: [TOP] -> Config -> Edges 
-pgTOPs  []           cfg    =   ([], cfg)
+pgTOPs  []           cfg@(i,t,q,s,v,_,_)    =   ([(i,AcSkip,t)], cfg)
 pgTOPs  (top:tops)   cfg    =   (es ++ ess, cfg'') where 
                                     (es, cfg' ) = pgTOP  top  cfg 
                                     (ess,cfg'') = pgTOPs tops cfg'  
