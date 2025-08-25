@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleInstances #-} 
 
-module Term where 
+module Stmt where 
 
 
 import Prelude hiding (EQ,GT,LT)

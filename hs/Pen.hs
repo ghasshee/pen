@@ -30,8 +30,17 @@ import Opcode
 import Action2Opcode
 import Branch2Opcode 
 
+import Knit
+import Optree2GCLL
+import Codegen 
+
 import Crypto 
 import Asm 
+
+
+
+
+
 
 import Print
 
@@ -96,8 +105,19 @@ main = do
     let bs      :: [[Branch Action]] 
         bs      = map branch ns 
 
-    let ops     :: [[OPCODE]]
+    let ops     :: [[OPCODE]] 
         ops     = map branches2opcodes bs 
+
+    let ops'    :: [[OPCODE]]
+        ops'    = removeFUNSTACKOPCODEs $ ops
+
+
+    let optrees :: [[RBTree OPCODE]]  
+        optrees = map ( knits . revcut) ops'
+
+    let gclls   :: [[GCLL]]
+        gclls   = map optrees2stmts optrees 
+
 
     print "------ Abstract Syntax Tree -------"
     print asts
@@ -156,6 +176,15 @@ main = do
 
     print "------ OPCODEs ------"
     print $ ops 
+
+    print "------ remove FUNSTACK OPCODE -----"
+    print $ ops' 
+
+    print "------ OpTrees ------"
+    print $ optrees 
+
+    print "------ GCLLs  -------"
+    print $ gclls 
 
     --print $ map lu ms 
     --print $ map lu as 

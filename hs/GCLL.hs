@@ -1,6 +1,7 @@
 {-# LANGUAGE FlexibleInstances #-} 
 
 module GCLL where 
+-- Guarded Command Lower Language 
 
 import Hex 
 import Prelude hiding (EQ,GT,LT)
@@ -24,7 +25,7 @@ data EVMVALUE   = Address
                 | Pc
                 | Msize
                 | Gas
-                deriving (Show, Eq, Read) 
+                deriving (Show, Eq, Read, Ord) 
 
 
 
@@ -73,7 +74,7 @@ data EXPR   = Ox              Integer
             | Delegatecall  EXPR EXPR EXPR EXPR EXPR EXPR
             | Create2                 EXPR EXPR EXPR EXPR
             | Staticcall    EXPR EXPR EXPR EXPR EXPR EXPR
-            deriving (Eq, Read) 
+            deriving (Eq, Read, Ord) 
 
 
 
@@ -157,6 +158,7 @@ data STMT   = Stop
             | Dup  Int 
             | Calldatacopy EXPR EXPR EXPR 
             | Codecopy     EXPR EXPR EXPR
+            | Returndatacopy EXPR EXPR EXPR 
             | Extcodecopy
             deriving (Eq, Read) 
 

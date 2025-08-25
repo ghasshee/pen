@@ -9,7 +9,7 @@ import Data.HashTable.IO (BasicHashTable, new, insert, lookup)
 
 import Opcode 
 import Var
-import Term
+import Stmt
 import Tree
 
 

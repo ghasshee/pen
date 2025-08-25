@@ -6,41 +6,43 @@ import Opcode
 import Prelude hiding (EQ,LT,GT) 
 
 
-push n      = pushN n  where 
-    pushN = case length (toHex n) of 
-        2       -> PUSH1  
-        4       -> PUSH2  
-        6       -> PUSH3   
-        8       -> PUSH4 
-        10      -> PUSH5 
-        12      -> PUSH6
-        14      -> PUSH7 
-        16      -> PUSH8 
-        18      -> PUSH9 
-        20      -> PUSH10 
-        22      -> PUSH11 
-        24      -> PUSH12 
-        26      -> PUSH13 
-        28      -> PUSH14 
-        30      -> PUSH15
-        32      -> PUSH16 
-        34      -> PUSH17 
-        36      -> PUSH18 
-        38      -> PUSH19 
-        40      -> PUSH20 
-        42      -> PUSH21 
-        44      -> PUSH22 
-        46      -> PUSH23 
-        48      -> PUSH24 
-        50      -> PUSH25 
-        52      -> PUSH26 
-        54      -> PUSH27 
-        56      -> PUSH28 
-        58      -> PUSH29 
-        60      -> PUSH30 
-        62      -> PUSH31 
-        64      -> PUSH32 
-        _       -> error $ "expr2opcode.hs : pushN" ++ show n
+
+push n      = case length (toHex n) of 
+        -- 0       -> PUSH0 
+        1       -> PUSH0 
+        2       -> PUSH1  n 
+        4       -> PUSH2  n 
+        6       -> PUSH3  n  
+        8       -> PUSH4  n
+        10      -> PUSH5  n
+        12      -> PUSH6  n
+        14      -> PUSH7  n
+        16      -> PUSH8  n
+        18      -> PUSH9  n
+        20      -> PUSH10 n 
+        22      -> PUSH11 n 
+        24      -> PUSH12 n 
+        26      -> PUSH13 n 
+        28      -> PUSH14 n 
+        30      -> PUSH15 n
+        32      -> PUSH16 n 
+        34      -> PUSH17 n 
+        36      -> PUSH18 n 
+        38      -> PUSH19 n 
+        40      -> PUSH20 n 
+        42      -> PUSH21 n 
+        44      -> PUSH22 n 
+        46      -> PUSH23 n 
+        48      -> PUSH24 n 
+        50      -> PUSH25 n 
+        52      -> PUSH26 n 
+        54      -> PUSH27 n 
+        56      -> PUSH28 n 
+        58      -> PUSH29 n 
+        60      -> PUSH30 n 
+        62      -> PUSH31 n 
+        64      -> PUSH32 n 
+        _       -> error $ "Expr2Opcode.hs : pushN" ++ show n
 
 dup  i      = case i of 
     1       -> DUP1

@@ -5,16 +5,20 @@ import Data.Char
 import Tree 
 --import Var
 --import Term 
+import PreLink
 
-data OPCODE = L | R 
-            | POPFUNSTACK | PUSHFUNSTACK Int
-            | SEQ 
-            | STACK 
-            | ARG Integer   -- ARG n is the nth element from STACK top 
-            -- | UNDEFINED String
-            | INFO      String
-            | PUSHDEST Int 
-            -- EVM specification  
+
+data OPCODE = L | R             -- Parenceses "(", ")" for Disassemling -- see Knit.hs  
+            | POPFUNSTACK       -- Function Stack POP operation 
+            | PUSHFUNSTACK Int  -- Function Stack PUSH operation 
+            | SEQ               -- Partitioning OPCODEs for Disassembling -- see Knit.hs  
+            | ARG Integer       -- ARG n is the nth element from STACK top -- see Knit.hs
+            | PUSHDEST Int      -- PUSHing JUMPDEST by Virtual Node ID (Not real Jump Address) 
+            | PUSH PreLinkValue -- Linker handles PreLinkValues 
+            | INFO      String  -- HEX DATA Segment Contracts will have on ethereum Network
+--  ^  VIRTUAL EVM OPCODES  ( for IR: Intermediate Representation ) 
+
+--  v  REAL EVM OPCODE      ( for EVM: Ethereum Virtual Machine   )   
             | STOP
             | ADD         
             | MUL

@@ -8,9 +8,7 @@ import Var
 
 data OPCODE = L | R 
             | SEQ 
-            | STACK 
             | ARG Integer   -- ARG n is the nth element from STACK top 
-            -- | UNDEFINED String
             | INFO      String
 
             -- EVM specification  

@@ -5,7 +5,7 @@ import Lex  (bytes)
 import Disasm
 import Knit
 import LTS
-import Term
+import Stmt
 
 
 main = do 

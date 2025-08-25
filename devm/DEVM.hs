@@ -2,10 +2,12 @@ module Main where
 
 
 import Lex  (bytes) 
+import Opcode
+import Tree
 import Disasm
 import Knit
 import Node
-import Term
+import Stmt 
 
 
 main = do 
@@ -21,7 +23,8 @@ main = do
     pr "-- | DisAsm  | --"
     pr "-- +---------+ --"
     pr ""
-    let prog    = lineNo $ disAsm words 
+    let prog    :: [(Integer, OPCODE)] 
+        prog    = lineNo $ disAsm words 
     prAsm prog
 
 
@@ -30,7 +33,8 @@ main = do
     pr "-- | Cut into States | --"
     pr "-- +-----------------+ --"
     pr ""
-    let progs   = revcut $ extract prog 
+    let progs   :: [[OPCODE]] 
+        progs   = revcut $ extract prog 
     mapM print $ map reverse progs 
 
 
@@ -39,7 +43,8 @@ main = do
     pr "-- | Decompile | --"
     pr "-- +-----------+ --"
     pr ""
-    let asts       = knits progs
+    let asts    :: [RBTree OPCODE]
+        asts    = knits progs
     print asts
 
     pr ""
