@@ -5,6 +5,7 @@ import Hex
 import Node
 import Action 
 import Opcode 
+import PreLink 
 import Expr2Opcode
 import GCLL
 import Crypto (dispatcherHash) 
@@ -81,7 +82,8 @@ action2opcode a = case a of
     AcVar i                 -> undefined 
     AcRecord (Q i)(Q j)     -> pushFUNSTACK i ++ pushFUNSTACK j   
     AcCheck  (Q i)(Q j)     -> popFUNSTACK ++ [PUSH16 (toInteger j), EQ] ++ popFUNSTACK ++ [PUSH16 (toInteger i), EQ]  
-    a   -> [] 
+    AcSto i                 -> [PUSH0, PUSH (INT (toInteger i)), SSTORE] 
+    -- a   -> [] 
     a                       -> error $ "action2opcode: [Undefined Arg] " ++ show a    
 
 

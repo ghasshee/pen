@@ -63,6 +63,7 @@ optree2expr t = loop t where
     loop t = case t of 
         RED o [] -> case o of 
             PUSH (FUN v)        -> Ox $ toInteger v 
+            PUSH (INT i)        -> Ox i 
             PUSHDEST i          -> LABEL i
             ARG    n            -> Var ("Arg[" ++ show n ++ "]")
             ADDRESS             -> V Address

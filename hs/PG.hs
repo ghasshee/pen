@@ -218,8 +218,8 @@ pgTerm tr cfg@(i,t,q,s,v,ctx,stx)       = case tr of
     RED (TmU256 n) []                   ->  ([(i, AcPush (Ox n           ), t)], cfg) 
     RED (TmDATA d) []                   ->  ([(i, AcPush (Ox (data2nat d)), t)], cfg)
     RED (TmVAR  n) []                   ->  case searchFun n ctx of 
-        Nothing                             -> ([(i, AcPush (Var (show n)),    t)], cfg) 
         Just (argnum, qn, qx)               -> ([(i, AcSkip, qn), (qx, AcSkip, t)], cfg) 
+        Nothing                             -> ([(i, AcPush (Var (show n)),    t)], cfg) 
     RED TmIF [b,t1,t2]                  ->  (eb++e1++e2++eelse, cfg')  where 
         (eb,(_,_,q' ,s' ,v' ,ctx' ,stx'))   = pgCond b  (i, Q q,q+2,s  ,v  ,ctx , stx)
         (e1,(_,_,q'',s'',v'',ctx'',stx''))  = pgTerm t1 (Q q ,t,q' ,s' ,v' ,ctx', stx') 
