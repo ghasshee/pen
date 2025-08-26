@@ -99,8 +99,8 @@ instance Show EXPR where
         Mulmod z y x    -> "(" ++ show x ++ "*"++ show y ++ ")%" ++ show z 
         Exp    y x      -> show x ++ "^" ++ show y 
         Signextend y x  -> "sigext(" ++ show x ++ "," ++ show y ++ ")"
-        Lt     y x      -> show x ++ "<" ++ show y 
-        Gt     y x      -> show x ++ ">" ++ show y 
+        Lt     y x      -> show x ++ ">" ++ show y 
+        Gt     y x      -> show x ++ "<" ++ show y 
         Slt    y x      -> show x ++ ">'" ++ show y 
         Sgt    y x      -> show x ++ "<'" ++ show y
         Eq     y x      -> show x ++ "==" ++ show y 
