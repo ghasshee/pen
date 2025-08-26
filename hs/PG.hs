@@ -172,7 +172,11 @@ pgBODY (BODY _ ds tm _) cfg         =   (es++es', cfg'')
                                         (es', cfg'') = pgTerm  tm cfg' 
 
 pgDecls :: [Decl] -> Config -> Edges 
-pgDecls []     cfg                  = ([],cfg)
+pgDecls []     cfg                  =   ([],cfg)
+pgDecls (d:ds) cfg                  =   (es++ess, cfg'') 
+                                where   (es, cfg')      = pgDecl d cfg
+                                        (ess, cfg'')    = pgDecls ds cfg'  
+{--
 pgDecls (d:ds) (i,t,q,s,v,ctx,stx)      = case d of 
     SLET id tm fm                   ->  (es++ess, cfg'') 
                                 where   (es, (i',t',q',s',v',ctx',stx'))    = pgDecl  d  (i  ,Q q,q+1,s ,v ,ctx , stx ) 
@@ -180,7 +184,7 @@ pgDecls (d:ds) (i,t,q,s,v,ctx,stx)      = case d of
     _                               ->  (es++ess, cfg'')
                                 where   (es, (i',t',q',s',v',ctx',stx'))    = pgDecl  d  (i  ,t  ,q  ,s ,v ,ctx , stx ) 
                                         (ess, cfg'')                        = pgDecls ds (i  ,t  ,q' ,s',v',ctx', stx')
-
+--}
 
 -- Decl -> pg  
 pgDecl :: Decl -> Config -> Edges 
@@ -213,13 +217,15 @@ pgTerm tr cfg@(i,t,q,s,v,ctx,stx)       = case tr of
     RED TmAPP [t1,t2]                   ->  pgTermApp tr cfg []
     RED (TmU256 n) []                   ->  ([(i, AcPush (Ox n           ), t)], cfg) 
     RED (TmDATA d) []                   ->  ([(i, AcPush (Ox (data2nat d)), t)], cfg)
-    RED (TmVAR  n) []                   ->  ([(i, AcPush (Var (show n           )), t)], cfg) 
+    RED (TmVAR  n) []                   ->  case searchFun n ctx of 
+        Nothing                             -> ([(i, AcPush (Var (show n)),    t)], cfg) 
+        Just (argnum, qn, qx)               -> ([(i, AcSkip, qn), (qx, AcSkip, t)], cfg) 
     RED TmIF [b,t1,t2]                  ->  (eb++e1++e2++eelse, cfg')  where 
         (eb,(_,_,q' ,s' ,v' ,ctx' ,stx'))   = pgCond b  (i, Q q,q+2,s  ,v  ,ctx , stx)
         (e1,(_,_,q'',s'',v'',ctx'',stx''))  = pgTerm t1 (Q q ,t,q' ,s' ,v' ,ctx', stx') 
         (e2,cfg')                           = pgTerm t2 (Q(q+1),t,q'',s'',v'',ctx'', stx'') 
         eelse                               = [(i, AcSkip, Q(q+1))]    
-    RED(TmBOP o)[t1,t2]                 ->  (e1++e2++[(Q q',AcBop o,t)],cfg')  where 
+    RED (TmBOP o)[t1,t2]                ->  (e1++e2++[(Q q',AcBop o,t)],cfg')  where 
         (e1,(_,_,q',s',v',ctx',stx'))       = pgTerm t1 (i,Q q,q+1,s,v,ctx,stx)
         (e2,cfg')                           = pgTerm t2 (Q q,Q q',q'+1,s',v',ctx', stx') 
     RED (TmSTO n) [] | n >= length stx' ->  ([(i, AcSto n' , t)], cfg) where 
