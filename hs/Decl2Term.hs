@@ -9,7 +9,6 @@ import Typing
 
 
 transpileCN :: CONTRACT -> Term 
-transpileCN (CN id [])      = undefined 
 transpileCN (CN id tops)    = RED (TmCN id) (transpileTOPs tops)
 
 transpileTOPs :: [TOP] -> [Term] 

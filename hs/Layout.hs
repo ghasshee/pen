@@ -42,6 +42,24 @@ module Layout {-# WARNING "Not implemented" #-} where
 
 
 import ExtraData 
+import Opcode
+
+
+
+
+
+
+
+data Layout = Layout    { crSize :: Int 
+                        , rnSize :: Int 
+                        , crCode :: [OPCODE] 
+                        , rnCode :: [OPCODE] } 
+
+
+initLayout = Layout     { crSize = 0
+                        , rnSize = 0
+                        , crCode = []
+                        , rnCode = [] } 
 
 
 

@@ -111,6 +111,10 @@ main = do
     let ops'    :: [[OPCODE]]
         ops'    = removeFUNSTACKOPCODEs $ ops
 
+    let ops''   :: [[OPCODE]] 
+        ops''   = undefined  
+
+
 
     let optrees :: [[RBTree OPCODE]]  
         optrees = map ( knits . revcut) ops'
