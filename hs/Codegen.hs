@@ -53,6 +53,10 @@ malloc n = [PUSH1 0x40, MLOAD, DUP1, PUSH4 (0x20 * toInteger n), ADD, PUSH1 0x40
 
 
 
+
+
+
+
 -- 1. Transpiling 
 -- 1.a FUNSTACK transpile
 removeFUNSTACKOPCODE :: [OPCODE] -> [OPCODE] 
@@ -182,3 +186,16 @@ if_value_revert q = (q+1, opcodes) where
 
 deploy :: [OPCODE] 
 deploy =  [PUSH RN_SIZE, DUP1, PUSH RN_OFFSET, PUSH0, CODECOPY, PUSH0, RETURN] 
+
+
+
+
+
+
+
+
+
+-- #TODO 
+-- precalculate CREATION ADDRESS 
+--  import RLP 
+--  import CRYPTO (keccak256) 
