@@ -6,7 +6,37 @@ Pen is a Compiler that compiles the High-Level Language into EVM bytecodes.
 
 
 
-## Old Project (deprecated bamboo modification and its History) 
+## Build 
+
+You might need Haskell compiler  and some libraries. 
+
+Goto `pen/hs/` directory and then type `make` and push enter key. 
+
+
+## Program Analysis 
+
+```
+$ cd hs 
+$ make 
+$ ./Pen count2.pen
+``` 
+
+The above command might analyze the pen source code and show the resulting program graph and its matrix representation. 
+
+![](/program_graph_and_matrix.png) 
+
+
+
+## Deploying a contract 
+
+Currently Not Supported 
+
+
+
+
+## History 
+
+### Old Project (deprecated bamboo modification and its History) 
 
 Original motivation of Pen compiler starts with modification of bamboo. 
 It halved unreadable and unusable source code of bamboo and had new features that bamboo did not have. 
@@ -25,7 +55,7 @@ it makes us difficult to separate AST of terms and AST of types.
 But, However, this design enable avoiding full type system, which seems expensive for designing. 
 
 
-### Build 
+#### Build 
 
 Old Pen is written by [OCaml](https://ocaml.org/), 
 whose package manager is [OPAM](https://opam.ocaml.org/), which you need to install first of all.  
@@ -50,7 +80,7 @@ $ cd pen/src
 $ ./compile.sh ../examples/count.pen
 ```
 
-### Deploy a contract on Geth
+#### Deploy a contract on Geth
 
 If you successfully compile it with the above command, 
     you will find the following instruction which is displayed on STD I/O . 
@@ -82,7 +112,7 @@ $ ./pen --asm < ../examples/count.pen   ## shows Assembler Code
 
 
 
-## New Project (Written from Sctratch in Haskell) 
+### New Project (Written from Sctratch in Haskell) 
 
 
 Deploying the heavily-modified old project's compiling EVM bytecode into blockchain, we should have checked the specification and run some tests, and 
@@ -91,34 +121,6 @@ then we must have modified the compiler, but the old architecture turned out too
 We started new compiler from scratch in Haskell. Haskell is a purely functional programming language. 
 Haskell is more expensive than OCaml in writing codes. You know, OCaml is a nice language because Coq Proof Assistant and its transpiler (Extraction Mechanism) gives us more formality than Haskell's code. However, Haskell gives us a lot of useful or visibly nice interpreter. 
 In developping, we use a lot Haskell's "Show Instance" for visibility of analysis, which gives us formality directly and intuitively. 
-
-### Build 
-
-You might need Haskell compiler  and some libraries. 
-
-Goto `pen/hs/` directory and then type `make` and push enter key. 
-
-
-### Program Analysis 
-
-```
-$ cd hs 
-$ make 
-$ ./Pen count2.pen
-``` 
-
-The above command might analyze the pen source code and show the resulting program graph and its matrix representation. 
-
-![](/program_graph_and_matrix.png) 
-
-
-
-### Deploying a contract 
-
-Currently Not Supported 
-
-
-
 
 
 
