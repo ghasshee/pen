@@ -13,12 +13,12 @@ fromhexChar '6' = 6
 fromhexChar '7' = 7
 fromhexChar '8' = 8
 fromhexChar '9' = 9
-fromhexChar 'A' = 10
-fromhexChar 'B' = 11
-fromhexChar 'C' = 12
-fromhexChar 'D' = 13
-fromhexChar 'E' = 14
-fromhexChar 'F' = 15
+fromhexChar 'a' = 10
+fromhexChar 'b' = 11
+fromhexChar 'c' = 12
+fromhexChar 'd' = 13
+fromhexChar 'e' = 14
+fromhexChar 'f' = 15
 
 fromHex     :: String -> Integer 
 fromHex []  = 0 
@@ -36,12 +36,12 @@ toHexChar 6 ='6'
 toHexChar 7 ='7'  
 toHexChar 8 ='8'  
 toHexChar 9 ='9'  
-toHexChar 10='A'  
-toHexChar 11='B'  
-toHexChar 12='C'  
-toHexChar 13='D'  
-toHexChar 14='E'  
-toHexChar 15='F'  
+toHexChar 10='a'  
+toHexChar 11='b'  
+toHexChar 12='c'  
+toHexChar 13='d'  
+toHexChar 14='e'  
+toHexChar 15='f'  
 
 toHex   :: Integer -> String 
 toHex 0 = "0"
@@ -69,5 +69,11 @@ isHex c = case c of
     'D'     -> True
     'E'     -> True
     'F'     -> True
+    'a'     -> True
+    'b'     -> True 
+    'c'     -> True 
+    'd'     -> True 
+    'e'     -> True 
+    'f'     -> True
     _       -> isDigit c
 

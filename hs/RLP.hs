@@ -1,57 +1,102 @@
 {-# LANGUAGE OverloadedStrings #-} 
+{-# LANGUAGE FlexibleInstances #-} 
+{-# LANGUAGE PackageImports #-} 
+{-# LANGUAGE IncoherentInstances #-} 
 
-import Data.ByteString hiding (map, concatMap) 
--- import qualified Data.ByteString.Char8 as C
+module RLP where 
+import Data.ByteString hiding (map, concatMap )
 
 import Data.Word (Word8)
-import Numeric (showHex) 
 
-import Prelude hiding (length, concat, head, reverse) 
+import Prelude hiding (length, concat, head, tail, reverse, null, take, drop)
 
+
+len     = length 
+hd      = head
+tl      = tail 
+rev     = reverse
+fi a    = fromIntegral a 
+
+
+type Parser a = Either String (a,ByteString) 
 
 data RLP    = RLPString ByteString
             | RLPList [RLP] 
             deriving (Show, Eq) 
 
-{--
-encodeLength :: Int -> Word8 -> ByteString 
-encodeLength len offset 
-    | len <= 55     = singleton (fromIntegral len + offset)
-    | otherwise     = cons a lenBytes where 
-        a = fromIntegral(length lenBytes) + offset + 55
-        lenBytes = int2Bytes len 
---}
 
-int2Bytes :: Int -> ByteString 
-int2Bytes 0 = singleton 0 
-int2Bytes n = reverse (unfoldr step n) where 
+bytes :: Int -> ByteString 
+bytes 0 = singleton 0 
+bytes n = rev (unfoldr step n) where 
     step 0 = Nothing 
-    step i = Just (fromIntegral (i `mod` 256), i `div` 256) 
+    step i = Just (fi (i `mod` 256), i `div` 256) 
 
 
-rlpEncode :: RLP -> ByteString 
-rlpEncode (RLPString bs) 
-    | length bs == 1 && head bs < 0x80 = bs 
-    | length bs <= 55 = cons (0x80 + fromIntegral (length bs)) bs
-    | otherwise         = concat [singleton (0xb7 + fromIntegral (length lenBytes)), lenBytes, bs] where 
-        lenBytes = int2Bytes (length bs)
-rlpEncode (RLPList xs) =
-    let payload = concat (map rlpEncode xs)
-        len     = length payload in 
-    if len <= 55 
-        then    cons (0xc0 + fromIntegral len) payload
-        else    let lenBytes = int2Bytes len in 
-                concat [singleton (0xf7 + fromIntegral (length lenBytes)), lenBytes, payload] 
+encodeRLP :: RLP -> ByteString 
+encodeRLP (RLPString "") = ""
+encodeRLP (RLPString bs)    
+    | l == 1 && hd<0x80 = bs 
+    | l <= 55           = cons (0x80 + fi l ) bs
+    | otherwise         = concat [singleton (0xb7 + fi (len h)), h, bs] where 
+        hd  = head bs 
+        h    = bytes l
+        l   = len bs 
+encodeRLP (RLPList xs) 
+    | l <= 55           = cons (0xc0 + fi l) bs
+    | otherwise         = concat [singleton (0xf7 + fi (len h)), h, bs] where 
+        h   = bytes l 
+        bs  = concat (map encodeRLP xs)
+        l   = len bs 
 
+
+
+decodeRLP :: ByteString -> Parser RLP 
+decodeRLP bs 
+    | null bs       = Left "decodeRLP: empty input" 
+    | b < 0x80      = Right (RLPString (singleton b), bs')   
+    | b < 0xc0      = Right (RLPString (take l bs'), drop l bs')    
+    | b < 0xf8      = do    (rlps, r)       <- decodeList bss 
+                            Right (RLPList rlps, r)
+    | otherwise     = do    (rlps, r)       <- decodeList bss'     
+                            Right (RLPList rlps, r)
+    where 
+        l   = fi b - 0x80 
+        l'  = fi b - 0xc0
+        b   = hd bs 
+        bs' = tl bs 
+        bss = take l' bs' 
+        l'' = fi b - 0xf7 
+        bss' = take l'' bs' 
+
+decodeList :: ByteString -> Parser [RLP] 
+decodeList bss   
+    | null bss      = Right ([], "")
+    | otherwise     = do 
+        (x, rest)   <- decodeRLP bss 
+        (xs, r)     <- decodeList rest
+        Right (x:xs, r) 
+
+
+
+
+encode :: RLP -> ByteString 
+encode = encodeRLP
+
+decode :: ByteString -> RLP 
+decode bs = case decodeRLP bs of 
+    Left err        -> error err
+    Right (rlp, _)  -> rlp
 
 
 
 --- e.g. 
 r1  = (RLPList [RLPString "cat"]) 
 r1' = (RLPString "cat") 
+r0  = RLPString ""
 
-e1  = rlpEncode r1
-e1' = rlpEncode r1' 
+e1  = encode r1
+e1' = encode r1' 
+e0  = encode r0 
 
 
-showRLP r = "0x" ++ concatMap (`showHex` "") (unpack (rlpEncode r)) 
+

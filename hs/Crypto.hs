@@ -14,6 +14,10 @@ import Text.Printf (printf)
 
 import Data.Char (toUpper) 
 
+import RLP
+
+
+
 sha3            ::  ByteString -> ByteString
 sha3    bs      =   convert (hash bs :: Digest Keccak_256)
 
@@ -22,7 +26,7 @@ from    = toStrict . fromString
 
 
 toHex     :: ByteString -> String
-toHex     = map toUpper . concatMap (printf "%02x") . unpack
+toHex     = {-- map toUpper . --} concatMap (printf "%02x") . unpack
 
 
 
