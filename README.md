@@ -76,7 +76,7 @@ Then, pull this repo from github and compile the comipler !
 
 ```
 $ git pull https://www.github.com/ghasshee/pen
-$ cd pen/src
+$ cd pen/old
 $ ./compile.sh ../examples/count.pen
 ```
 
@@ -136,9 +136,9 @@ Currently we have 3 analysis tools: DASM, ASM, and, DEVM .
 ```
 $ cd devm 
 $ make
-$ ../src/pen < ../examples/count.pen | ./DEVM           ## Decompiler 
-$ ../src/pen < ../examples/count.pen | ./DASM           ## Disassembler
-$ ../src/pen < ../examples/count.pen | ./DASM  | ./ASM  ## Assembler
+$ ../old/pen < ../examples/count.pen | ./DEVM           ## Decompiler 
+$ ../old/pen < ../examples/count.pen | ./DASM           ## Disassembler
+$ ../old/pen < ../examples/count.pen | ./DASM  | ./ASM  ## Assembler
 ``` 
 
 Of course `DEVM` can decompile [Solidity](https://github.com/ethereum/solidity/) EVM-bytecode . 
