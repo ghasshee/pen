@@ -51,6 +51,9 @@ emptyEVM = EVM [] empty empty
 
 
 
+
+
+
 ---------------------------------------
 ---  CREATE / CREATE2 Addr          ---
 ---------------------------------------
@@ -78,10 +81,24 @@ computeCREATEAddr addr nonce
 computeCREATE2Addr :: ByteString -> ByteString -> ByteString -> ByteString 
 computeCREATE2Addr addr salt init_code
     | la /= 20 || ls /= 32  = error "computeCREATE2Addr: bad addr" 
-    | otherwise             = sha3 $ concat ["\255", addr, salt, code]
+    | otherwise             = drop 12 $ sha3 $ concat ["\255", addr, salt, code]
     where 
         la = len addr
         ls = len salt 
         code = sha3 init_code
+
+
+
+
+
+addr1 = from $ replicate 20 '0' 
+salt1 = from $ replicate 32 '1'
+
+c0 = computeCREATEAddr addr1 0 
+c1 = computeCREATE2Addr addr1 salt1 addr1 
+
+h0 = toHex c0 
+h1 = toHex c1
+
 
 

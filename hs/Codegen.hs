@@ -161,7 +161,7 @@ data PreLinkValue   = LABEL Int             -- JUMPDEST Label
 -------------------------------------------
 
 creationCode :: [OPCODE] 
-creationCode = init_malloc ++ init_mstack ++ snd (if_value_revert 0) ++ deploy 
+creationCode = init_malloc ++ init_mstack ++ snd (if_value_revert 0) ++ libcreate ++ deploy 
 
 -- a. init memory 
 init_malloc :: [OPCODE] 
@@ -177,7 +177,16 @@ if_value_revert q = (q+1, opcodes) where
     opcodes = [JUMPDEST q, CALLVALUE, ISZERO, PUSHDEST (q+1), JUMPI, PUSH0, PUSH0, REVERT]
 
 
--- d. codecopy for constructor ( deploying contract ) 
+-- #TODO 
+-- d. library creation 
+-- using 
+-- (CREATE /) CREATE2 opcode, 
+-- create library contracts in the creation code and, 
+-- later, CALL them from runtime code. 
+
+
+
+-- e. codecopy for constructor ( deploying contract ) 
 
 -- push code size 
 -- DUP1 
@@ -199,3 +208,5 @@ deploy =  [PUSH RN_SIZE, DUP1, PUSH RN_OFFSET, PUSH0, CODECOPY, PUSH0, RETURN]
 -- precalculate CREATION ADDRESS 
 --  import RLP 
 --  import CRYPTO (keccak256) 
+--
+
