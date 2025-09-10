@@ -275,10 +275,13 @@ pgArgs [tm]     (i,t,q,s,v,ctx,stx) (Just n :ns) k = (e, (i,t,q',s',v',ctx',stx'
 pgArgs (tm:tms) (i,t,q,s,v,ctx,stx) (Just n:ns) k = (e++econt, (i,t,q'',s'',v'',ctx'',stx'')) where 
     (e    ,(_,_,q' ,s' ,v' ,ctx',stx' ))    = pgTerm tm  (i,Q q,q+1 ,s ,v ,ctx,stx ) 
     (econt,(_,_,q'',s'',v'',ctx'',stx''))   = pgArgs tms (Q q, t, q',s',v',ctx',stx') ns (k+1) 
+{--
 pgArgs (tm:tms) (i,t,q,s,v,ctx,stx)(n:ns) k = (e++econt, (i,t,q'',s'',v'',ctx'',stx'')) where 
     Just (_,qf,qF)                          = searchFun k ctx 
     (e    ,(_,_,q' ,s' ,v' ,ctx' ,stx'))    = pgTerm tm  (qf,qF,q ,s ,v ,ctx,stx ) 
     (econt,(_,_,q'',s'',v'',ctx'',stx''))   = pgArgs tms (i, t, q',s',v',ctx',stx') ns (k+1) 
+-}
+
 
 pgCond :: Term -> Config -> Edges 
 pgCond (RED (TmBOP op) [t1,t2]) (i,t,q,s,v,ctx,stx) = 

@@ -1,4 +1,4 @@
-module ATree where 
+module ATree {-# WARNING "Automata.hs / ATree.hs unused modules" #-} where 
 
 import Logic 
 import Set 
