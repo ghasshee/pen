@@ -30,8 +30,6 @@ toHex     = {-- map toUpper . --} concatMap (printf "%02x") . unpack
 
 
 
-
-
 dispatcherHash :: String -> String 
 dispatcherHash = Prelude.take 8 . toHex . sha3 . from 
 
@@ -39,3 +37,9 @@ dispatcherHash = Prelude.take 8 . toHex . sha3 . from
 -- function set (uint: val) public  { 
 a = dispatcherHash "set(uint256)" 
 b = dispatcherHash "inc()"
+
+
+-- e.g.  : hash ( rlp  r1 ) 
+s1 = sha3 (encode r1) 
+-- encode r1 == e1 
+
