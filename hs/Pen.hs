@@ -54,7 +54,7 @@ import Data.Char
 -- Later implementation 
 import Layout
 import MSO
-import Automata 
+import Automata hiding (trim) 
 import ATree
 import VC
 import CPS
@@ -198,6 +198,9 @@ main = do
     --print $ map lu as 
     
     print "----- Direct Sum Decompostions -----" 
+    print "trims:"
+    print $ map (\m -> trim m 1 2)  ms 
+    print "decomposions:"
     print $ map allComponents ms 
     print $ decompss
 

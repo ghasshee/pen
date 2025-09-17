@@ -13,7 +13,7 @@
 module Mat  where 
 
 
-
+import Set 
 import Semiring -- added by ghasshee
 
 
@@ -1400,6 +1400,26 @@ connectedComponent m@(M n _ _ _ _ _) start = go [start] [] where
                     | otherwise     = go (xs ++ neighbors) (comp++[x]) where 
                         neighbors = [ j | j <- [1..n], not $ iszero (m!(x,j)) && iszero (m!(j,x)) ] 
 
+
+accessible :: (Eq a, Semiring a) => Matrix a -> Int -> [Int] 
+accessible m@(M n _ _ _ _ _) start  = go [start] [] where 
+    go []     comp                  = comp
+    go (x:xs) comp  | x `elem` comp = go xs (sort comp) 
+                    | otherwise     = go (xs ++ neighbors) (comp++[x]) where 
+                        neighbors = [ j | j <- [1..n], not $ iszero (m!(x,j))] 
+
+coaccessible :: (Eq a, Semiring a) => Matrix a -> Int -> [Int] 
+coaccessible m@(M n _ _ _ _ _) end      = come [end] [] where 
+    come []     comp                    = comp
+    come (x:xs) comp | x `elem` comp    = come xs (sort comp)
+                     | otherwise        = come (xs ++ neighbors) (comp++[x]) where 
+                        neighbors = [ i | i <- [1..n], not $ iszero (m!(i,x))]   
+
+
+trim :: (Eq a, Semiring a) => Matrix a -> Int -> Int -> [Int] 
+trim m@(M n _ _ _ _ _) start end    = intersect acc coacc where 
+    acc = accessible m start
+    coacc = coaccessible m end 
 
 allComponents :: (Eq a, Semiring a) => Matrix a -> [[Int]] 
 allComponents a@(M n _ _ _ _ _) = go [1 .. n] [] where 
