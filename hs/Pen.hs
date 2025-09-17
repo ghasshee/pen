@@ -23,6 +23,7 @@ import Analysis
         ( decomposedPaths, junctionNodes, bifurcationNodes, initialNodes, terminalNodes, confluenceNodes, success
         , genMat, convert, star', nodeReduction
         , innerizeOR, reNodeMat)
+import Opt
 
 import Branch (Branch, branch) 
 
@@ -101,6 +102,9 @@ main = do
 
     let ns      :: [Matrix (Edge Int (OR Action))] 
         ns      = map reNodeMat ms
+
+    let decompss :: [[Matrix (OR Action)]] 
+        decompss = map directSumDecompose ms 
 
     let bs      :: [[Branch Action]] 
         bs      = map branch ns 
@@ -192,6 +196,10 @@ main = do
 
     --print $ map lu ms 
     --print $ map lu as 
+    
+    print "----- Direct Sum Decompostions -----" 
+    print $ map allComponents ms 
+    print $ decompss
 
     print "----- Crypto Test ----"
     print "set(uint256) hash is: " 

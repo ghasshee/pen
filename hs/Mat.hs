@@ -34,7 +34,7 @@ import Control.Applicative(Applicative, (<$>), (<*>), pure)
 import GHC.Generics (Generic)
 -- Data
 import           Control.Monad.Primitive (PrimMonad, PrimState)
-import           Data.List               (maximumBy,foldl1')
+import           Data.List               (maximumBy,foldl1',sort) 
 import           Data.Ord                (comparing)
 import qualified Data.Vector             as V
 import qualified Data.Vector.Mutable     as MV
@@ -235,6 +235,8 @@ zero_matrix :: Num a =>
   -> Matrix a
 {-# INLINE zero_matrix #-}
 zero_matrix n m = M n m 0 0 m $ V.replicate (n*m) 0
+
+isZero a@(M n m _ _ _ _) = a == zero_matrix n m 
 
 -- | /O(rows*cols)/. Generate a matrix from a generator function.
 --   Example of usage:
@@ -1380,3 +1382,38 @@ cholDecomp a
 --   Just (u,_,_,d) -> d * diagProd u
 --   Nothing -> 0
 -- 
+
+
+
+
+
+
+----------------------------------------
+-- Direct Sum Decomposition of Matrix --
+----------------------------------------
+
+
+connectedComponent :: (Eq a, Semiring a) => Matrix a -> Int -> [Int] 
+connectedComponent m@(M n _ _ _ _ _) start = go [start] [] where 
+    go []     comp                  = comp
+    go (x:xs) comp  | x `elem` comp = go xs (sort comp) 
+                    | otherwise     = go (xs ++ neighbors) (comp++[x]) where 
+                        neighbors = [ j | j <- [1..n], not $ iszero (m!(x,j)) && iszero (m!(j,x)) ] 
+
+
+allComponents :: (Eq a, Semiring a) => Matrix a -> [[Int]] 
+allComponents a@(M n _ _ _ _ _) = go [1 .. n] [] where 
+    go []       comps                           = comps
+    go (v:vs)   comps   | any (v `elem`) comps  = go vs comps
+                        | otherwise             = go vs (comps ++ [comp]) where 
+                            comp = connectedComponent a v
+
+
+
+
+subMat :: [Int] -> Matrix a -> Matrix a 
+subMat idxs a = fromLists [[ a ! (i,j) | j <- idxs ] | i <- idxs] 
+
+
+directSumDecompose :: (Eq a, Semiring a) => Matrix a -> [Matrix a] 
+directSumDecompose a = map (`subMat` a) (allComponents a) 

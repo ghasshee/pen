@@ -184,6 +184,7 @@ if_value_revert q = (q+1, opcodes) where
 -- create library contracts in the creation code and, 
 -- later, CALL them from runtime code. 
 
+libcreate = [] -- undefined 
 
 
 -- e. codecopy for constructor ( deploying contract ) 
