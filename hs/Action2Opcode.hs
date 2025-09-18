@@ -83,6 +83,7 @@ action2opcode a = case a of
     AcRecord (Q i)(Q j)     -> pushFUNSTACK i ++ pushFUNSTACK j   
     AcCheck  (Q i)(Q j)     -> popFUNSTACK ++ [PUSH16 (toInteger j), EQ] ++ popFUNSTACK ++ [PUSH16 (toInteger i), EQ]  
     AcSto i                 -> [PUSH0, PUSH (INT (toInteger i)), SSTORE] 
+    AcSstore                -> [SSTORE] 
     -- a   -> [] 
     a                       -> error $ "action2opcode: [Undefined Arg] " ++ show a    
 

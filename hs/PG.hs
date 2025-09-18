@@ -208,11 +208,11 @@ pgDecl d cfg@(i,t,q,s,v,ctx,stx)    = case d of
 -- so this cannot be translated into " x := a "  
 -- it should be like 
 -- pg(tm ; x := retvalue) ; 
-    SLET id    tm _         ->  (es ++ es',  cfg'  ) 
-                                where   (es, (i',t',q',s',v',ctx',stx'))    = pgTerm tm (i,Q q,q+1,s,v,ctx, id:stx)
-                                        (es', cfg')                         = ([(Q q, AcPush (Ox (toInteger n)), Q q'), (Q q', AcSstore, t)], (i,t,q'+1,s',v',ctx',stx'))
-                                        Just _n                             = searchSto id stx'  
-                                        Just n                              = searchSto (drop 1 id) stx' 
+    SLET id    tm _         ->  (es ++ es',  cfg'  ) where   
+        (es, (i',t',q',s',v',ctx',stx'))        = pgTerm tm (i,Q q,q+3,s,v,ctx, id:stx)
+        (es', cfg')                             = ([(Q q, AcPush (Ox (toInteger n)), Q(q+1)), (Q(q+1),AcSstore,Q(q+2))], (Q(q+2),t,q',s',v',ctx',stx'))
+        Just _n                                 = searchSto id stx'  
+        Just n                                  = searchSto (drop 1 id) stx' 
     FLET id ps tm _         ->  (es,   (i,t,q''',s''',v''',ctx',stx'))  where 
         arglen                                  = length        ps                    
         params                                  = paramDegrees  ps       
