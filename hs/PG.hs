@@ -74,6 +74,10 @@ degreeOfFun _                       = 0
 
 type ArgLen = Int 
 
+calc_arglen []           = error "calc_arglen: not in function ctx" 
+calc_arglen (Nothing:xs) = 1 + calc_arglen xs 
+calc_arglen (Just _ :xs) = 0 
+
 pgFunCtxs :: [(ID,ArgLen)] -> Config -> Config 
 pgFunCtxs []     cfg   =   cfg 
 pgFunCtxs (f:fs) cfg   =   pgFunCtxs fs (pgFunCtx f cfg)  
@@ -223,7 +227,8 @@ pgTerm tr cfg@(i,t,q,s,v,ctx,stx)       = case tr of
     RED (TmDATA d) []                   ->  ([(i, AcPush (Ox (data2nat d)), t)], cfg)
     RED (TmVAR  n) []                   ->  case searchFun n ctx of 
         Just (argnum, qn, qx)               -> ([(i, AcSkip, qn), (qx, AcSkip, t)], cfg) 
-        Nothing                             -> ([(i, AcPush (Var (show n)),    t)], cfg) 
+        Nothing                             -> ([(i, AcDup n',    t)], cfg) where 
+            n'                                  = calc_arglen ctx - n 
     RED TmIF [b,t1,t2]                  ->  (eb++e1++enotb++e2, cfg')  where 
         (eb,(_,_,q' ,s' ,v' ,ctx' ,stx'))   = pgCond b  (i,   Q q, q+2,s  ,v  ,ctx  , stx)
         (e1,(_,_,q'',s'',v'',ctx'',stx''))  = pgTerm t1 (Q q   ,t, q' ,s' ,v' ,ctx' , stx') 
