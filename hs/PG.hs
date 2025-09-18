@@ -155,7 +155,9 @@ pgTOPs  (top:tops)   cfg    =   (es ++ ess, cfg'') where
 pgTOP :: TOP -> Config -> Edges
 pgTOP (EV id ty)        (i,t,q,s,v,ctx,stx) =   undefined 
 pgTOP (DT id ids cnstrs)(i,t,q,s,v,ctx,stx) =   undefined 
-pgTOP (SV id ty)        (i,t,q,s,v,ctx,stx) =   ([(i, AcSto s, Q q)], (Q q, t, q+1,s+1,v,ctx,id:stx))   
+pgTOP (SV id ty)        (i,t,q,s,v,ctx,stx) =   (e, cfg') where 
+    e       = [(i,AcPush(Ox 0),Q q),(Q q,AcPush(Ox (toInteger s)),Q(q+1)),(Q(q+1), AcSstore, Q(q+2))]
+    cfg'    = (Q(q+2),t,q+3,s+1,v,ctx,id:stx)
 pgTOP (MT id ty ps bd)  (i,t,q,s,v,ctx,stx) =   (e ++ edispatch, (i,t,q',s',v',ctx', stx)) where 
     edispatch                       = [(i,AcDispatch id', Q q), (Q(q+1), AcSkip, t) ] 
     (e,(_,_,q',s',v',ctx',_))       = pgMT (MT id ty ps bd) (Q q,Q(q+1),q+2,s,v,ctx, stx) 

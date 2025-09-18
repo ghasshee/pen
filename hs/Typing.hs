@@ -8,6 +8,7 @@ import Tree
 
 typeof (BLK _ _) = Untyped
 typeof (RED _ _) = Untyped
+
 {--
 data Tm     = TmAPP                 -- 2 args 
             | TmABS ID Ty           -- 1 arg

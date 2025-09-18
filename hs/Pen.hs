@@ -176,6 +176,14 @@ main = do
     print "------ Node Reduction ------" 
     print $ ms
 
+    print "----- Direct Sum Decompostions -----" 
+    print "trims:"
+    print $ map (\m -> trim m 1 2)  ms 
+    print "decomposions:"
+    print $ map allComponents ms 
+    print $ decompss
+
+
     print "------ ReNodeMat ------" 
     print $ ns 
 
@@ -197,13 +205,6 @@ main = do
     --print $ map lu ms 
     --print $ map lu as 
     
-    print "----- Direct Sum Decompostions -----" 
-    print "trims:"
-    print $ map (\m -> trim m 1 2)  ms 
-    print "decomposions:"
-    print $ map allComponents ms 
-    print $ decompss
-
     print "----- Crypto Test ----"
     print "set(uint256) hash is: " 
     print $ dispatcherHash "set(uint256)" 
