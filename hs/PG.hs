@@ -79,12 +79,16 @@ pgFunCtxs []     cfg   =   cfg
 pgFunCtxs (f:fs) cfg   =   pgFunCtxs fs (pgFunCtx f cfg)  
 
 pgFunCtx :: (ID,ArgLen) -> Config -> Config 
---pgFunCtx (id,0)      (i,t,q,s,v,ctx)   =  (i,t,q,s,v, Nothing : ctx) 
-pgFunCtx (id,arglen) (i,t,q,s,v,ctx,stx)   =  (qn,qx,q+2,s,v,Just(arglen,qn,qx) : ctx, stx)   
-                where (qn,qx) = (Q q, Q(q+1)) 
+pgFunCtx (id,0)      (i,t,q,s,v,ctx,stx)   =  (i,t,q,s,v,ctx',stx) 
+                where   ctx'    = Nothing : ctx 
+pgFunCtx (id,arglen) (i,t,q,s,v,ctx,stx)   =  (qn,qx,q+2,s,v, ctx', stx)   
+                where (qn,qx)   = (Q q, Q(q+1)) 
+                      ctx'      = Just(arglen, qn, qx) : ctx  
+
+pgFunArgCtx (id,arglen) ctx = replicate arglen Nothing ++ ctx 
 
 searchFun :: Int -> FunCtx -> Maybe (ArgNum,INode,TNode) 
-searchFun i []      = Nothing 
+searchFun i []      = error "searchFun: out of context" 
 searchFun 0 (x:xs)  = x  
 searchFun n (x:xs)  = searchFun (n-1) xs 
 
@@ -206,7 +210,7 @@ pgDecl d cfg@(i,t,q,s,v,ctx,stx)    = case d of
         arglen                                  = length        ps                    
         params                                  = paramDegrees  ps       
         (i',t',q',s',v',ctx',stx')              = pgFunCtxs [(id,arglen)] (i,t,q,s,v,ctx,stx)       
-        Just (_,qn,qx)                          = searchFun 0 ctx'
+        Just (_,qn,qx)                          = searchFun 0 ctx' 
         (_ ,_ ,q'',s'',v'',ctx'',stx'')         = pgFunCtxs params  (i',t',q',s',v',ctx',stx)       
         (es,(_,_,q''',s''',v''',ctx''',stx''')) = pgTerm tm   (qn,qx,q'',s'',v'',ctx'',stx'') 
     --DATA id is ds           ->  undefined 
@@ -220,14 +224,14 @@ pgTerm tr cfg@(i,t,q,s,v,ctx,stx)       = case tr of
     RED (TmVAR  n) []                   ->  case searchFun n ctx of 
         Just (argnum, qn, qx)               -> ([(i, AcSkip, qn), (qx, AcSkip, t)], cfg) 
         Nothing                             -> ([(i, AcPush (Var (show n)),    t)], cfg) 
-    RED TmIF [b,t1,t2]                  ->  (eb++e1++e2++eelse, cfg')  where 
-        (eb,(_,_,q' ,s' ,v' ,ctx' ,stx'))   = pgCond b  (i, Q q,q+2,s  ,v  ,ctx , stx)
-        (e1,(_,_,q'',s'',v'',ctx'',stx''))  = pgTerm t1 (Q q ,t,q' ,s' ,v' ,ctx', stx') 
-        (e2,cfg')                           = pgTerm t2 (Q(q+1),t,q'',s'',v'',ctx'', stx'') 
-        eelse                               = [(i, AcSkip, Q(q+1))]    
-    RED (TmBOP o)[t1,t2]                ->  (e1++e2++[(Q q',AcBop o,t)],cfg')  where 
-        (e1,(_,_,q',s',v',ctx',stx'))       = pgTerm t1 (i,Q q,q+1,s,v,ctx,stx)
-        (e2,cfg')                           = pgTerm t2 (Q q,Q q',q'+1,s',v',ctx', stx') 
+    RED TmIF [b,t1,t2]                  ->  (eb++e1++enotb++e2, cfg')  where 
+        (eb,(_,_,q' ,s' ,v' ,ctx' ,stx'))   = pgCond b  (i,   Q q, q+2,s  ,v  ,ctx  , stx)
+        (e1,(_,_,q'',s'',v'',ctx'',stx''))  = pgTerm t1 (Q q   ,t, q' ,s' ,v' ,ctx' , stx') 
+        enotb                               = [(i, AcSkip, Q(q+1))]    
+        (e2,cfg')                           = pgTerm t2 (Q(q+1),t, q'',s'',v'',ctx'', stx'') 
+    RED (TmBOP o)[t1,t2]                ->  (e1++e2++[(Q(q+1),AcBop o,t)],cfg')  where 
+        (e1,(i',t',q',s',v',ctx',stx'))     = pgTerm t1 (i,  Q q,   q+2,s,v,ctx,stx)
+        (e2,cfg')                           = pgTerm t2 (Q q,Q(q+1),q',s',v',ctx',stx') 
     RED (TmSTO n) [] | n >= length stx' ->  ([(i, AcSto n' , t)], cfg) where 
         n'   = length stx - n - 1 
         stx' = reduced stx 
@@ -246,14 +250,16 @@ reduced stx                    = stx
 
 pgTermApp :: Term -> Config -> [Term] -> Edges 
 pgTermApp (RED TmAPP [t1,t2]) cfg@(i,t,q,s,v,ctx,stx) cont = case t1 of 
-    RED (TmVAR n) []    -> (eent++econt++ercd++echk++eexit, (i,t,q'+1,s',v',ctx',stx'))  where 
-        Just (argnum,qn,qx)         = searchFun n ctx 
-        argnums                     = map (fst3 <$>) ctx 
-        (econt,(_,_,q',s',v',ctx',stx')) = pgArgs(t2:cont)(Q q,Q(q+1),q+2,s,v,ctx,stx) argnums 0
-        eent                        = [(i     , AcEnter     , Q q     )] 
-        ercd                        = [(Q(q+1), AcRecord i t, qn      )] 
-        echk                        = [(qx    , AcCheck  i t, Q q'    )]  
-        eexit                       = [(Q q'  , AcExit      , t       )] 
+    RED (TmVAR n) []    -> case searchFun n ctx of 
+        Nothing -> error $ "pgTermApp illegal TmVAR " ++ show n ++ ": " ++ show ctx 
+        _       -> (eent++econt++ercd++echk++eexit, cfg')  where 
+            Just (argnum,qn,qx)             = searchFun n ctx 
+            argnums                         = map (fst3 <$>) ctx 
+            eent                            = [(i     , AcEnter     , Q q     )] 
+            (econt,cfg')                    = pgArgs(t2:cont)(Q q,Q(q+1), q+3,s,v,ctx,stx) argnums 0
+            ercd                            = [(Q(q+1), AcRecord i t, qn      )] 
+            echk                            = [(qx    , AcCheck  i t, Q(q+2)  )]  
+            eexit                           = [(Q(q+2), AcExit      , t       )] 
     _                   -> pgTermApp t1 cfg (t2:cont) 
 
 pgArgs :: [Term] -> Config -> [Maybe Int] -> Int -> Edges 

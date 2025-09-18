@@ -253,7 +253,7 @@ AppTm
                                             (RED TmNOT [t], ctx')           } 
     | '-' PathTm                        { \ctx -> 
                                             let (t,ctx') = $2 ctx in 
-                                            (RED (TmUOP "-") [t], ctx')           } 
+                                            (RED (TmUOP "-") [t], ctx')     } 
 
     | AppTm PathTm                      { \ctx -> 
                                             let (t1,ctx') = $1 ctx in 
@@ -274,7 +274,6 @@ ATm : '(' Tm ')'                        { $2                                }
     | sender                            { \ctx -> (RED TmSENDER [], ctx)    } 
     | id                                { \ctx -> (RED (lookup $1 ctx) [], ctx) } 
 
-Numm : num                               { TmU256 $1                 } 
 Num : num                               { let f n = case n of 
                                                         0 -> DZero 
                                                         _ -> DSucc (f (n-1)) in 

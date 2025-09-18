@@ -40,6 +40,7 @@ lookup id (ss,vs) = loopVar vs 0 where
     loopSto [] _        = error $ "Variable " ++ id ++ " is Not Defined." 
     loopSto (s:ss) n    = if s == id then TmSTO n else loopSto ss (n+1) 
 
+
 lookup' :: ID -> PsrCtx -> Maybe Tm 
 lookup' id (ss,vs) = loopVar vs 0 where 
     loopVar [] _        = loopSto ss 0

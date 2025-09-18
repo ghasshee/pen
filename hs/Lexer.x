@@ -18,7 +18,7 @@ $symbol = [\$\#\@\!\%\^\&\\\*\(\)\+\-\:\:\=\/\>\<\.\,]
 
 @any    = [$digit $space $letter $symbol]*     
 
-@id     = [\_ $letter]* $letter+  
+@id     = [\_ $letter]* [$digit $letter]+  
 
 token :-
     $white+     ; 

@@ -40,7 +40,7 @@ data Action     = AcStop
                 
 instance Show Action where 
     show (AcStop                ) = "STOP"
-    show (AcDispatch s          ) = "Dispatcher " ++  s 
+    show (AcDispatch s          ) = "DSPT " ++  s 
     show (AcRevert e f          ) = "RV" ++ show [e,f] 
     show (AcReturn e f          ) = "RT" ++ show [e,f] 
     show (AcPop                 ) = "POP "
