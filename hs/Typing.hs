@@ -37,6 +37,52 @@ unify ctx constraint = case constraint of
     (tyS,  tyT)        : cs | tyS == tyT    -> unify ctx cs  
                             | otherwise     -> error "unify: Unsolvable Constraints" 
     _                                       -> error "unify: NoRuleApplies" 
+
+
+var :: Int -> String 
+var q = "?X" ++ show q
+
+getTy ctx i = undefined 
+
+simplifyty ctx ty = undefined 
+
+data Bind = BindTmVAR Ty 
+
+addbind ctx x bd = undefined 
+
+
+subtype :: a -> Ty -> Ty -> Bool 
+subtype ctx x y = x == y  
+
+apply_constr sol ty = undefined 
+
+
+
+recon ctx q (RED tm trs)    = case tm of 
+    TmVAR i                         ->  (tyT, q, []) where 
+                                        tyT     = getTy ctx i 
+    TmABS x _                       ->  (TyMAP tyX tyT, q'', cnstr') where 
+                                        tyX     = TyVAR (var q) 
+                                        ctx'    = addbind ctx x (BindTmVAR tyX) 
+                                        (tyT,q'',cnstr')    = recon ctx' (q+1) (head trs) 
+    TmAPP                           ->  (TyVAR x, q''+1, cs ++ cs' ++ cs'') where 
+                                        x                   = var q'' 
+                                        cs                  = [(tyT1, TyMAP tyT2 (TyVAR x))]
+                                        (tyT1, q',cs')      = recon ctx q  t1
+                                        (tyT2, q'',cs'')    = recon ctx q' t2
+                                        [t1,t2]             = trs 
+    TmFIX f x _                     ->  let (ty,q',cs) = recon ctx q (head trs) in 
+                                        case simplifyty ctx ty of 
+        TyMAP tyS tyT | subtype ctx tyT' tyS' -> (tyT', q, cs) 
+                      | otherwise             -> error "recon: TmFIX can take type A -> A" 
+            where   tyT' = apply_constr sol tyT
+                    tyS' = apply_constr sol tyS
+                    sol  = unify ctx ((tyS,tyT) : cs )
+                    
+                                    
+                                        
+
+
                                             
 
 
