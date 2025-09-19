@@ -35,6 +35,9 @@ let rec occurcheck x      = function
     | tyT                       -> false 
 
 
+(* unify *)
+(* take a list of conditions (c::cs)    
+   and *)
 let rec unify fi ctx msg =  function 
 | []    -> [] 
 | c::cs -> let p(tyS,tyT)= pr"UNIFY: ";pr_Type false ctx tyS;pr", ";pr_Type false ctx tyT;pn() in 
@@ -46,13 +49,13 @@ let rec unify fi ctx msg =  function
     | (TyId(x),tyT)::rest       ->  (p c ;if tyT = TyId(x) 
                                     then unify fi ctx msg rest
                                     else if occurcheck x tyT 
-                                    then (unify fi ctx msg (substinconstr x tyT rest))@[TyId(x),TyRec(x,tyT)]
-                                    else (unify fi ctx msg (substinconstr x tyT rest))@[TyId(x),tyT] )
+                                    then (unify fi ctx msg (substinconstr x tyT rest)) @ [TyId(x),TyRec(x,tyT)]
+                                    else (unify fi ctx msg (substinconstr x tyT rest)) @ [TyId(x),tyT] )
     | (tyS,TyId(x))::rest       ->  (p c ; if tyS = TyId(x) 
                                     then unify fi ctx msg rest 
                                     else (if occurcheck x tyS 
-                                    then (unify fi ctx msg (substinconstr x tyS rest))@[TyId(x),TyRec(x,tyS)]
-                                    else (unify fi ctx msg (substinconstr x tyS rest))@[TyId(x),tyS]))
+                                    then (unify fi ctx msg (substinconstr x tyS rest)) @ [TyId(x),TyRec(x,tyS)]
+                                    else (unify fi ctx msg (substinconstr x tyS rest)) @ [TyId(x),tyS]))
     | (TyNat,TyNat)::rest       ->  p c ; unify fi ctx msg rest
     | (TyBool,TyBool)::rest     ->  p c ; unify fi ctx msg rest
     | (TyArr(tyS1,tyS2),TyArr(tyT1,tyT2))::rest

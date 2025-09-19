@@ -31,7 +31,7 @@ transpileDecls (FLET id ags t formulae : ds) t'  = RED (TmFLET id (params2ty ags
 
 params2ty :: [Param] -> Ty -> Ty 
 params2ty []          rety  = rety
-params2ty ((i,ty):ps) rety  = TyABS ty (params2ty ps rety)
+params2ty ((i,ty):ps) rety  = TyMAP ty (params2ty ps rety)
 
 
 

@@ -136,7 +136,7 @@ IDs : id IDs                            { $1 : $2           }
     |                                   { []                }   
 
 Ty  : ATy                               { $1                } 
-    | Ty '->' Ty                        { TyABS $1 $3       } 
+    | Ty '->' Ty                        { TyMAP $1 $3       } 
     | '(' Tys ')'                       { TyPROD $2         } 
 
 Tys : Ty ',' Tys                        { $1 : $3           } 

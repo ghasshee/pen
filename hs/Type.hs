@@ -12,16 +12,19 @@ data Ty     =   TyERR   --   nothing
             |   TyI256  -- 256 bits
             |   TyB32   -- 256 bits 
             |   TyPROD  [Ty] 
-            |   TyABS   Ty Ty 
-            |   TyMAP   Ty Ty 
+            |   TyABS   ID Ty    -- λX.T
+            |   TyREC   ID Ty    -- μX.T  
+            |   TyMAP   Ty Ty    -- T → T  
             |   TyMTHD  ID [Ty] Ty
             |   TyDFLT
             |   TyREF   Ty
-            |   TyVAR   ID Ty 
+            |   TyVAR   ID 
 
             |   TyAMOUNT        -- type of Wei i.e. Ether
             |   TyINCR  Integer -- the balance of the account is increased 
             |   TyDECR  Integer -- the balance of the account is decreased 
+            |   TySEND 
+            |   TyTRANSFER
             |   Ty String  
             |   TyPoly String [Ty] 
             |   Untyped 
