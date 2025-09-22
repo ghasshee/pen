@@ -45,6 +45,7 @@ import PsrCtx
     send        { SEND              } 
     msg         { MSG               } 
     amount      { AMOUNT            } 
+    table       { TABLE             } 
     balance     { BALANCE           } 
     dstrct      { DESTRUCT          } 
     this        { THIS              } 
@@ -136,7 +137,7 @@ IDs : id IDs                            { $1 : $2           }
     |                                   { []                }   
 
 Ty  : ATy                               { $1                } 
-    | Ty '->' Ty                        { TyMAP $1 $3       } 
+    | Ty '->' Ty                        { TyARR $1 $3       } 
     | '(' Tys ')'                       { TyPROD $2         } 
 
 Tys : Ty ',' Tys                        { $1 : $3           } 
@@ -176,17 +177,17 @@ Decl
                                                 let ctx''''         = addCtx STO id' ctx    in 
                                                 let ([], ctx'')     = $3 ctx'               in 
                                                 let (tm, ctx''')    = $5 ctx''''            in 
-                                                (SLET id' tm ($7 ctx'''), ctx') 
+                                                (SLET id' Untyped tm ($7 ctx'''), ctx') 
                                             _               -> 
                                                 let ctx'            = addCtx VAR $2 ctx     in 
                                                 let (params, ctx'') = $3 ctx'               in 
                                                 case params of 
                                                 []          -> 
                                                     let (tm, ctx''')    = $5 ctx''              in 
-                                                    (LET  $2 tm ($7 ctx'''), ctx') 
+                                                    (LET  $2 Untyped tm ($7 ctx'''), ctx') 
                                                 _           -> 
                                                     let (tm, ctx''')    = $5 ctx''              in 
-                                                    (FLET $2 params tm ($7 ctx'''), ctx') } 
+                                                    (FLET $2 params Untyped tm ($7 ctx'''), ctx') } 
 
 Predicate 
     : '{' Formulae '}'                  { \ctx -> Just ($2 ctx)                 } 

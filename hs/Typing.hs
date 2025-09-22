@@ -1,83 +1,151 @@
-module Typing  {-# WARNING "statically type checking NOT implemented now" #-} where 
+module Typing  where 
+
 
 import GCLL
 import Type 
 import Term 
+import Bind
 import Tree
+import Subtyping
+
+import Prelude hiding ((<$)) 
 
 
-typeof (BLK _ _) = Untyped
 
-typeof (RED tm trs) = case tm of 
+
+
+type Constraint =  [(Ty, Ty)]
+
+
+hd :: [a] -> a  
+hd []       = error "hd: empty list" 
+hd (a:_)    = a 
+
+
+
+
+
+typeof :: Ctx -> Term -> Ty 
+typeof ctx (BLK _ _) = Untyped
+typeof ctx (RED tm trs) = case tm of 
     TmU8  i             -> TyU8
     TmU256 i            -> TyU256
     _                   -> Untyped 
 
 
 
-substinconstr = undefined 
+substinty :: ID -> Ty -> Ty -> Ty 
+substinty x tyT tyS = case tyS of 
+    TyARR tyS1 tyS2         -> TyARR (substinty x tyT tyS1) (substinty x tyT tyS2) 
+    TyID s                  -> case tyT of 
+        TyREC _ _               -> tyT 
+        _ | s == x              -> tyT
+          | otherwise           -> tyS 
+    _                       -> tyS 
 
-occur = undefined 
+
+substinconstr :: ID -> Ty -> Constraint -> Constraint 
+substinconstr x tyT = ((substinty x tyT <$>) <$>)
 
 
+apply_constr :: Constraint -> Ty -> Ty  
+apply_constr sol tyT = 
+    foldl f tyT (reverse sol) where  
+        f tyS (TyID x, tyC2)   = substinty x tyC2 tyS 
+        f tyS _                 = tyS
+
+occur :: ID -> Ty -> Bool 
+occur x tyT = case tyT of 
+    TyARR tyT1 tyT2        -> occur x tyT1 || occur x tyT2
+    TyID s                -> s == x 
+    _                      -> False 
+
+
+
+unify :: Ctx -> Constraint -> Constraint 
 unify ctx constraint = case constraint of 
+    []                                      -> [] 
     (tyT, TyREC x tyS) : cs                 -> unify ctx ((tyS, tyT) : cs) 
     (TyREC x tyS, tyT) : cs                 -> unify ctx ((tyS, tyT) : cs) 
-    (TyVAR x, tyT)     : cs | tyT==TyVAR x  -> unify ctx cs
+    (TyID x, tyT)     : cs | tyT==TyID x  -> unify ctx cs
                             | occur x tyT   -> unify ctx (substinconstr x tyT cs) 
-                                            ++ [(TyVAR x, TyREC x tyT)] 
+                                            ++ [(TyID x, TyREC x tyT)] 
                             | otherwise     -> unify ctx (substinconstr x tyT cs) 
-                                            ++ [(TyVAR x, tyT)] 
-    (tyS, TyVAR x)     : cs | tyS==TyVAR x  -> unify ctx cs 
+                                            ++ [(TyID x, tyT)] 
+    (tyS, TyID x)     : cs | tyS==TyID x  -> unify ctx cs 
                             | occur x tyS   -> unify ctx (substinconstr x tyS cs)
-                                            ++ [(TyVAR x, TyREC x tyS)] 
+                                            ++ [(TyID x, TyREC x tyS)] 
                             | otherwise     -> unify ctx (substinconstr x tyS cs)
-                                            ++ [(TyVAR x, tyS)] 
-    (TyMAP t1 t2,TyMAP s1 s2) : cs          -> unify ctx ((t1, s1):(t2, s2) : cs) 
+                                            ++ [(TyID x, tyS)] 
+    (TyARR t1 t2,TyARR s1 s2) : cs          -> unify ctx ((t1, s1):(t2, s2) : cs) 
     (tyS,  tyT)        : cs | tyS == tyT    -> unify ctx cs  
                             | otherwise     -> error "unify: Unsolvable Constraints" 
-    _                                       -> error "unify: NoRuleApplies" 
+    cs                                      -> error $ "unify: NoRuleApplies: " ++ show cs 
 
 
 var :: Int -> String 
 var q = "?X" ++ show q
 
-getTy ctx i = undefined 
-
-simplifyty ctx ty = undefined 
-
-data Bind = BindTmVAR Ty 
-
-addbind ctx x bd = undefined 
 
 
-subtype :: a -> Ty -> Ty -> Bool 
-subtype ctx x y = x == y  
 
-apply_constr sol ty = undefined 
+
+
+
+
+
+reconTOPs ctx q tops = undefined 
+
+reconDecls ctx q decl = undefined 
 
 
 
 recon ctx q (RED tm trs)    = case tm of 
     TmVAR i                         ->  (tyT, q, []) where 
                                         tyT     = getTy ctx i 
-    TmABS x _                       ->  (TyMAP tyX tyT, q'', cnstr') where 
-                                        tyX     = TyVAR (var q) 
-                                        ctx'    = addbind ctx x (BindTmVAR tyX) 
-                                        (tyT,q'',cnstr')    = recon ctx' (q+1) (head trs) 
-    TmAPP                           ->  (TyVAR x, q''+1, cs ++ cs' ++ cs'') where 
+    TmABS x _                       ->  (TyARR tyX tyT, q'', cnstr') where 
+                                        tyX     = TyID (var q) 
+                                        ctx'    = addBind ctx x (BindTmVAR tyX) 
+                                        (tyT,q'',cnstr')    = recon ctx' (q+1) (hd trs) 
+    TmAPP                           ->  (TyID x, q''+1, cs ++ cs' ++ cs'') where 
                                         x                   = var q'' 
-                                        cs                  = [(tyT1, TyMAP tyT2 (TyVAR x))]
+                                        cs                  = [(tyT1, TyARR tyT2 (TyID x))]
                                         (tyT1, q',cs')      = recon ctx q  t1
                                         (tyT2, q'',cs'')    = recon ctx q' t2
                                         [t1,t2]             = trs 
-    TmFIX f x _                     ->  let (ty,q',cs) = recon ctx q (head trs) in 
+                                        {--
+    TmFIX f x _                     ->  let (ty,q',cs) = recon ctx q (hd trs) in 
                                         case simplifyty ctx ty of 
-        TyMAP tyS tyT | subtype ctx tyT' tyS' -> (tyT', q, cs) 
-                      | otherwise             -> error "recon: TmFIX can take type A -> A" 
+        TyARR tyS tyT | tyT' <$ ctx $ tyS'  -> (tyT', q, cs) 
+                      | otherwise           -> error "recon: TmFIX can take type A -> A" 
             where   tyT' = apply_constr sol tyT
                     tyS' = apply_constr sol tyS
                     sol  = unify ctx ((tyS,tyT) : cs )
+                    --} 
+    TmIF                            ->  (tyT3, q''', cs ++ cs' ++ cs'' ++ cs''') where 
+                                        (tyT1, q'  , cs'  )     = recon ctx q   tr1
+                                        (tyT2, q'' , cs'' )     = recon ctx q'  tr2
+                                        (tyT3, q''', cs''')     = recon ctx q'' tr3
+                                        cs = [(tyT1,TyBOOL),(tyT2,tyT3)]
+                                        [tr1, tr2, tr3] = trs 
+    TmBOP o                         ->  let [tr1,tr2]           = trs 
+                                            (tyT1, q' , cs' )   = recon ctx q  tr1
+                                            (tyT2, q'', cs'')   = recon ctx q' tr2 in 
+                                        case o of 
+        "<"                             ->  (TyBOOL, q'', [(tyT1, tyT2)] ++ cs' ++ cs'') 
+        ">"                             ->  (TyBOOL, q'', [(tyT1, tyT2)] ++ cs' ++ cs'') 
+        "=="                            ->  (TyBOOL, q'', [(tyT1, tyT2)] ++ cs' ++ cs'') 
+        "!="                            ->  (TyBOOL, q'', [(tyT1, tyT2)] ++ cs' ++ cs'') 
+        "<="                            ->  (TyBOOL, q'', [(tyT1, tyT2)] ++ cs' ++ cs'') 
+        ">="                            ->  (TyBOOL, q'', [(tyT1, tyT2)] ++ cs' ++ cs'') 
+        "+"                             ->  (tyT1  , q'', [(tyT1, tyT2)] ++ cs' ++ cs'') 
+        "-"                             ->  (tyT1  , q'', [(tyT1, tyT2)] ++ cs' ++ cs'') 
+        "*"                             ->  (tyT1  , q'', [(tyT1, tyT2)] ++ cs' ++ cs'') 
+        "/"                             ->  (tyT1  , q'', [(tyT1, tyT2)] ++ cs' ++ cs'') 
+        "%"                             ->  (tyT1  , q'', [(tyT1, tyT2)] ++ cs' ++ cs'') 
+    TmDATA d                        ->  (TyNAT, q, []) 
+    tm      -> error $ "recon not defined tm : " ++ show (RED tm trs)  
+    
                     
                                     
                                         

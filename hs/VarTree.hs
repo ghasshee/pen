@@ -132,13 +132,13 @@ vtBODY (BODY _ ds tm _) (i,b)   = (VBr (H i)BDY(vds++[vtm]), ctx'') where
 vtDecls :: [Decl] -> Ctx -> VTs
 vtDecls []      ctx             = ([],ctx)
 vtDecls (d:ds)  ctx@(i,b)       = case d of 
-    LET  id tm fm               -> (VBr (H i) LETIN [vdef] : vds, ctx'') where 
+    LET  id _ tm fm             -> (VBr (H i) LETIN [vdef] : vds, ctx'') where 
                                     (vdef,ctx')     = vtDEF id tm fm (i+1,b) 
                                     (vds,ctx'')     = vtDecls ds ctx'  
-    FLET id ps tm fm            -> (VBr (H i) LETIN [vf]  : vds , ctx'') where 
+    FLET id ps _ tm fm          -> (VBr (H i) LETIN [vf]  : vds , ctx'') where 
                                     (vf ,ctx' )     = vtFUN id ps tm fm (i+1,b)
                                     (vds,ctx'')     = vtDecls ds ctx'
-    SLET id tm _                -> (VBr  s    LETIN [vtm] : vds , ctx''') where 
+    SLET id _ tm _              -> (VBr  s    LETIN [vtm] : vds , ctx''') where 
                                     (s,ctx')        = searchSTO id ctx 
                                     (vtm,ctx'')     = vtTerm  tm ctx'
                                     (vds,ctx''')    = vtDecls ds ctx''

@@ -47,6 +47,7 @@ token :-
     sender      { \s -> SENDER          }
     send        { \s -> SEND            }
     message     { \s -> MSG             }
+    table       { \s -> TABLE           } 
     amount      { \s -> AMOUNT          }
     balance     { \s -> BALANCE         }
     destruct    { \s -> DESTRUCT        }
@@ -131,7 +132,7 @@ data Token
             | CALL 
             | SENDER | SEND 
             | MSG
-            | AMOUNT | BALANCE 
+            | AMOUNT | BALANCE | TABLE  
             | DESTRUCT | THIS | UNIT | LOG | KECCAK | NOW 
             | ARROW | DARROW 
             | LPAREN | RPAREN 

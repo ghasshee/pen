@@ -17,15 +17,67 @@ instance Eq K where
 instance Read K where 
     readsPrec _ = undefined 
 
-type Bind   = (ID, Ty) 
-type Param  = (ID, Ty) 
 
+
+
+
+
+
+type Param  = (ID, Ty) 
 
 showTyParam (id,ty) = showTy ty 
 showTyParams ps = "(" ++ loop ps where 
     loop []     = ")"
     loop [p]    = showTyParam p ++ ")" 
     loop (p:ps) = showTyParam p ++ "," ++ loop ps  
+
+
+
+
+
+
+tyWalk onVar c ty = case ty of 
+    TyVAR k             -> onVar c k 
+    TyARR tyT1 tyT2     -> TyARR (tyWalk onVar c tyT1) (tyWalk onVar c tyT2) 
+    TyREC x tyT         -> TyREC x (tyWalk onVar (c+1) tyT)
+    _                   -> ty 
+
+
+tmWalk onVar onTy c (RED tm trs) = 
+    let trs'  = tmWalk onVar onTy c     <$> trs 
+        trs'' = tmWalk onVar onTy (c+1) <$> trs in 
+    case tm of 
+    TmVAR k             -> onVar c k 
+    --TmREF               -> RED TmREF trs'  
+    --TmDEREF             -> RED TmDEREF trs' 
+    TmABS x ty          -> RED (TmABS x (onTy c ty)) trs''
+    TmAPP               -> RED TmAPP trs' 
+    TmIF                -> RED TmIF  trs' 
+    _                   -> RED tm trs
+
+
+tyShiftOnVar :: Int -> Int -> Int -> Ty 
+tyShiftOnVar d c    = \k -> if k>=c then TyVAR (k+d) else TyVAR k
+
+tyShiftAbove :: Int -> Int -> Ty -> Ty 
+tyShiftAbove d c    = tyWalk (tyShiftOnVar d) c
+
+tyShift :: Int -> Ty -> Ty 
+tyShift d           = tyShiftAbove d 0 
+
+
+tmShiftOnVar :: Int -> Int -> Int -> Term 
+tmShiftOnVar d c    = \k -> if k>=c then RED (TmVAR (k+d)) []  else RED (TmVAR k) [] 
+
+tmShiftAbove :: Int -> Int -> Term -> Term 
+tmShiftAbove d c    = tmWalk (tmShiftOnVar d) (tyShiftAbove d) c
+
+tmShift :: Int -> Term -> Term 
+tmShift d           = tmShiftAbove d 0 
+
+
+
+
 
 data Tm     = TmAPP                 -- 2 args 
             | TmABS ID Ty           -- 2 function body & predicate 
@@ -34,16 +86,15 @@ data Tm     = TmAPP                 -- 2 args
             | TmVAR Int             -- 0
             | TmSTO Int             -- 0 Storage Variable  
             | TmPROD                -- n 
-            | TmLAM ID Ty 
             | TmDATA Data
             | TmU8 Int              -- 0
             | TmU256 Integer        -- 0
             | TmTRUE                -- 0
             | TmFALSE               -- 0
             | TmNOT                 -- 1
-            | TmI Int Int           -- 0 
-            | TmIREC  Int           -- 0 
-            | TmISTR  Int           -- 0 structural recursion 
+            -- | TmI Int Int           -- 0 
+            -- | TmIREC  Int           -- 0 
+            -- | TmISTR  Int           -- 0 structural recursion 
             | TmIF                  -- 3 
             | TmAMOUNT              -- 0 EVM Value
             | TmTHIS                -- 0 THIS CONTRACT ADDRESS
@@ -67,7 +118,6 @@ data Tm     = TmAPP                 -- 2 args
 
             | Eff STMT
             deriving (Show, Eq, Read) 
-
 
 
 type Term    = RBTree Tm 

@@ -3,18 +3,25 @@ module Main where
 
 import Prelude hiding (lex, EQ, LT, GT) 
 
-import Tree
-import Edge
-import GCLL hiding (M)
-import Type
-import AST
-import Term
 import Lexer
 import Parser
+
+import Tree
+import Type
+import Term
+import AST
+
+import Bind 
 import Typing
+import Eval 
+
+import Edge
+import GCLL hiding (M)
 import PG
-import VarTree
+
 import Decl2Term
+import VarTree
+
 import Mat
 import Action 
 import Semiring 
@@ -73,9 +80,15 @@ main = do
     let asts    :: [CONTRACT] 
         asts    = parse . lex $ contents
 
+    -- Eval.hs
+    let typed   = map typingTest asts  
+
+
+
     -- Term.hs 
     let tm      :: [Term] 
         tm      = map transpileCN asts
+
 
     -- PG.hs 
     let pgs     :: [Edges] 
@@ -129,6 +142,9 @@ main = do
 
     print "------ Abstract Syntax Tree -------"
     print asts
+
+    print "------ Typing Test -----"
+    print typed 
 
     print "------- transpiled into Functional Term -------" 
     print tm 
@@ -199,12 +215,10 @@ main = do
     print "------ OpTrees ------"
     print $ optrees 
 
+{--
     print "------ GCLLs  -------"
     print $ gclls 
-
-    --print $ map lu ms 
-    --print $ map lu as 
-    
+--} 
     print "----- Crypto Test ----"
     print "set(uint256) hash is: " 
     print $ dispatcherHash "set(uint256)" 

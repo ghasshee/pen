@@ -16,6 +16,8 @@ instance Show a => Show (Y [] a) where
     show (YZ a)     = "YZ " ++ show a 
     show (YS fyfa)  = "YS"  ++ show fyfa  
 
+
+
 embed :: Functor f => X f a -> Y f a 
 embed (XZ a)    = YZ a 
 embed (XS xffa) = loop $ embed xffa where 
@@ -23,7 +25,14 @@ embed (XS xffa) = loop $ embed xffa where
     loop (YS f_Yffa)    = YS $ loop <$> f_Yffa 
 
 
-x = XS (XS (XS (XZ [[[], [1], [2,1],[3,2,1]], [[]], [[], [1]]]))) 
+
+embed' :: Functor f => X f a -> Y f a 
+embed' x = go x YZ where 
+    go :: Functor f => X f b -> (b -> Y f a) -> Y f a 
+    go (XZ a)       k  = k a 
+    go (XS xffa)    k  = go xffa (YS  . (k <$>) ) 
+
+x = XS (XS (XS (XZ [[[], [1..10000], [1..1000],[1..100]], [[]], [[], [1]]]))) 
 
 
 

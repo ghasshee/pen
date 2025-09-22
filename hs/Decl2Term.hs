@@ -2,6 +2,7 @@ module Decl2Term where
 
 
 import Tree
+import Bind 
 import Type
 import Term
 import AST
@@ -9,29 +10,32 @@ import Typing
 
 
 transpileCN :: CONTRACT -> Term 
-transpileCN (CN id tops)    = RED (TmCN id) (transpileTOPs tops)
+transpileCN (CN id tops)    = RED (TmCN id) (transpileTOPs [] tops)
 
-transpileTOPs :: [TOP] -> [Term] 
-transpileTOPs []            = []
-transpileTOPs (top:tops)    = case top of 
-    (MT id ty ags body)  -> RED (TmMT id (params2ty ags ty) ags) [transpileBODY body] : transpileTOPs tops
-    (SV id ty)           -> [ RED (TmSLET id ty) (transpileTOPs tops) ] 
-    (EV id ty)           -> undefined 
-    (DT id ids cnstrs) -> undefined   
+transpileTOPs :: Ctx -> [TOP] -> [Term] 
+transpileTOPs ctx []            = []
+transpileTOPs ctx (top:tops)    = case top of 
+    (MT id ty ps body)     -> RED (TmMT id tys ps) trs : transpileTOPs ctx tops where 
+        trs = [transpileBODY ctx body] 
+        tys = params2ty ps ty 
+    (SV id ty)              -> [ RED (TmSLET id ty) (transpileTOPs ctx tops) ] 
+    (EV id ty)              -> undefined 
+    (DT id ids cnstrs)      -> undefined   
 
 
-transpileBODY :: BODY -> Term 
-transpileBODY (BODY _ ds t _) = transpileDecls ds t
+transpileBODY :: Ctx -> BODY -> Term 
+transpileBODY ctx (BODY _ ds t _) = transpileDecls ctx ds t
 
-transpileDecls :: [Decl] -> Term -> Term 
-transpileDecls []                            t   = t
-transpileDecls (SLET id     t formulae : ds) t'  = RED (TmSLET id (typeof t)) (t: [transpileDecls ds t']) 
-transpileDecls ( LET id     t formulae : ds) t'  = RED (TmLET  id (typeof t)) (t: [transpileDecls ds t']) 
-transpileDecls (FLET id ags t formulae : ds) t'  = RED (TmFLET id (params2ty ags (typeof t)) ags) (t: [transpileDecls ds t'])
+transpileDecls :: Ctx -> [Decl] -> Term -> Term 
+transpileDecls ctx []      t    = t
+transpileDecls ctx (d:ds)  t'   = case d of  
+    SLET id    _ t formulae   ->  RED (TmSLET id (typeof ctx t)) (t: [transpileDecls ctx ds t']) 
+    LET  id    _ t formulae   ->  RED (TmLET  id (typeof ctx t)) (t: [transpileDecls ctx ds t']) 
+    FLET id ps _ t formulae   ->  RED (TmFLET id (params2ty ps (typeof ctx t)) ps) (t: [transpileDecls ctx ds t'])
 
 params2ty :: [Param] -> Ty -> Ty 
 params2ty []          rety  = rety
-params2ty ((i,ty):ps) rety  = TyMAP ty (params2ty ps rety)
+params2ty ((i,ty):ps) rety  = TyARR ty (params2ty ps rety)
 
 
 

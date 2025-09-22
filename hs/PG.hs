@@ -202,7 +202,7 @@ pgDecls (d:ds) (i,t,q,s,v,ctx,stx)      = case d of
 -- Decl -> pg  
 pgDecl :: Decl -> Config -> Edges 
 pgDecl d cfg@(i,t,q,s,v,ctx,stx)    = case d of 
-    LET id tm fm            -> pgDecl (FLET id [] tm fm) cfg 
+    LET id ty tm fm          -> pgDecl (FLET id [] ty tm fm) cfg 
 {--    LET  id    tm fm        -> (es,cfg'')  where 
         cfg'                                = pgFunCtxs [(id,0)] cfg 
         (es,cfg'')                          = pgTerm tm cfg' --}
@@ -210,12 +210,12 @@ pgDecl d cfg@(i,t,q,s,v,ctx,stx)    = case d of
 -- so this cannot be translated into " x := a "  
 -- it should be like 
 -- pg(tm ; x := retvalue) ; 
-    SLET id    tm _         ->  (es ++ es',  cfg'  ) where   
+    SLET id  _  tm _        ->  (es ++ es',  cfg'  ) where   
         (es, (i',t',q',s',v',ctx',stx'))        = pgTerm tm (i,Q q,q+3,s,v,ctx, id:stx)
         (es', cfg')                             = ([(Q q, AcPush (Ox (toInteger n)), Q(q+1)), (Q(q+1),AcSstore,Q(q+2))], (Q(q+2),t,q',s',v',ctx',stx'))
         Just _n                                 = searchSto id stx'  
         Just n                                  = searchSto (drop 1 id) stx' 
-    FLET id ps tm _         ->  (es,   (i,t,q''',s''',v''',ctx',stx'))  where 
+    FLET id ps _ tm _       ->  (es,   (i,t,q''',s''',v''',ctx',stx'))  where 
         arglen                                  = length        ps                    
         params                                  = paramDegrees  ps       
         (i',t',q',s',v',ctx',stx')              = pgFunCtxs [Fun (id,arglen)] (i,t,q,s,v,ctx,stx)       

@@ -1,10 +1,16 @@
 module Type where 
 
 
+import Numeric.Natural 
+import Prelude hiding ((<$))
+
+type N = Natural 
+
 type ID     = String
 data Ty     =   TyERR   --   nothing 
             |   TyUNIT  --   0 bit 
             |   TyBOOL  --   1 bit
+            |   TyNAT
             |   TyU8    --   8 bits
             |   TyI8    --   8 bits
             |   TyADDR  -- 160 bits
@@ -14,12 +20,14 @@ data Ty     =   TyERR   --   nothing
             |   TyPROD  [Ty] 
             |   TyABS   ID Ty    -- λX.T
             |   TyREC   ID Ty    -- μX.T  
-            |   TyMAP   Ty Ty    -- T → T  
+            |   TyARR   Ty Ty    -- T → T  
             |   TyMTHD  ID [Ty] Ty
             |   TyDFLT
-            |   TyREF   Ty
-            |   TyVAR   ID 
-
+            |   TyREF   Ty     
+            |   TySRC   Ty      |   TySINK Ty 
+            |   TyID    ID 
+            |   TyVAR   Int 
+            |   TyTOP           -- forall T. T 
             |   TyAMOUNT        -- type of Wei i.e. Ether
             |   TyINCR  Integer -- the balance of the account is increased 
             |   TyDECR  Integer -- the balance of the account is decreased 
@@ -29,6 +37,8 @@ data Ty     =   TyERR   --   nothing
             |   TyPoly String [Ty] 
             |   Untyped 
             deriving (Show, Eq, Read) 
+
+
 
 
 showTy ty = case ty of 
