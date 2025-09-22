@@ -39,5 +39,5 @@ nthBind ctx i | i >= length ctx = error $ "nthBind : " ++ show i ++ " >= len(ctx
 getTy ctx i = case nthBind ctx i of 
     BindTmVAR tyT                   -> tyT 
     BindTmAbb _ (Just tyT)          -> tyT 
-    BindTmAbb _ (Nothing )          -> error "getTy: No type recorede at the Bind"
+    BindTmAbb _ (Nothing )          -> error "getTy: No type binded"
     _                               -> error "getTy: Wrong Bind"

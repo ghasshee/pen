@@ -1,6 +1,6 @@
 module Typing  where 
 
-
+import AST 
 import GCLL
 import Type 
 import Term 
@@ -62,25 +62,25 @@ occur x tyT = case tyT of
 
 
 
-unify :: Ctx -> Constraint -> Constraint 
-unify ctx constraint = case constraint of 
-    []                                      -> [] 
-    (tyT, TyREC x tyS) : cs                 -> unify ctx ((tyS, tyT) : cs) 
-    (TyREC x tyS, tyT) : cs                 -> unify ctx ((tyS, tyT) : cs) 
-    (TyID x, tyT)      : cs | tyT==TyID x   -> unify ctx cs
-                            | occur x tyT   -> unify ctx (substinconstr x tyT cs) 
-                                            ++ [(TyID x, TyREC x tyT)] 
-                            | otherwise     -> unify ctx (substinconstr x tyT cs) 
-                                            ++ [(TyID x, tyT)] 
-    (tyS, TyID x)      : cs | tyS==TyID x   -> unify ctx cs 
-                            | occur x tyS   -> unify ctx (substinconstr x tyS cs)
-                                            ++ [(TyID x, TyREC x tyS)] 
-                            | otherwise     -> unify ctx (substinconstr x tyS cs)
-                                            ++ [(TyID x, tyS)] 
-    (TyARR t1 t2,TyARR s1 s2) : cs          -> unify ctx ((t1, s1):(t2, s2) : cs) 
-    (tyS,  tyT)        : cs | tyS == tyT    -> unify ctx cs  
-                            | otherwise     -> error $ "unify: Unsolvable Constraints :\n" ++ show constraint  ++ "\n" ++ show ctx 
-    cs                                      -> error $ "unify: NoRuleApplies: " ++ show cs 
+unify :: Constraint -> Constraint 
+unify constraint = case constraint of 
+    []                                    -> [] 
+    (tyT, TyREC x tyS) : cs               -> unify ((tyS, tyT) : cs) 
+    (TyREC x tyS, tyT) : cs               -> unify ((tyS, tyT) : cs) 
+    (TyID x, tyT)      : cs | tyT==TyID x -> unify cs
+                            | occur x tyT -> unify (substinconstr x tyT cs) 
+                                          ++ [(TyID x, TyREC x tyT)] 
+                            | otherwise   -> unify (substinconstr x tyT cs) 
+                                          ++ [(TyID x, tyT)] 
+    (tyS, TyID x)      : cs | tyS==TyID x -> unify cs 
+                            | occur x tyS -> unify (substinconstr x tyS cs)
+                                          ++ [(TyID x, TyREC x tyS)] 
+                            | otherwise   -> unify (substinconstr x tyS cs)
+                                          ++ [(TyID x, tyS)] 
+    (TyARR t1 t2,TyARR s1 s2) : cs        -> unify ((t1, s1):(t2, s2) : cs) 
+    (tyS,  tyT)        : cs | tyS == tyT  -> unify cs  
+                            | otherwise   -> error $ "unify: Unsolvable Constraints:" ++ show constraint
+    cs                                    -> error $ "unify: NoRuleApplies: " ++ show cs 
 
 
 var :: Int -> String 
@@ -90,16 +90,87 @@ var q = "?X" ++ show q
 
 
 
+paramret2ty :: [Param] -> Ty -> Ty 
+paramret2ty ps rety = loop (reverse ps) rety where 
+    loop []             ty = ty 
+    loop ((_,t1):rest)  ty = TyARR t1 ty 
+
+addParamBind ctx params q = case params of 
+    []                      -> (params , q , ctx  ) 
+    (p,Untyped) : rest      -> (params'', q', ctx'') where 
+        tyP                     = TyID (var q) 
+        ctx'                    = addBind ctx p (BindTmVAR tyP)
+        params''                = (p,tyP) : params' 
+        (params', q', ctx'')    = addParamBind ctx' rest (q+1)   
+    (p,tyP) : rest          -> (params', q', ctx'') where 
+        ctx'                    = addBind ctx p (BindTmVAR tyP)
+        (params', q', ctx'')    = addParamBind ctx' rest q 
+
+apply_constr_params constr params = case params of 
+    []          -> []
+    (id,ty):ps  -> (id, apply_constr constr ty) : apply_constr_params constr ps 
+
+
+
+{--
+data Decl   = FLET ID [Param] Ty Term (Maybe Formulae)
+            |  LET ID         Ty Term (Maybe Formulae) 
+            | SLET ID         Ty Term (Maybe Formulae) 
+            deriving (Eq, Read)  
+
+data BODY   = BODY (Maybe Formulae) [Decl] Term (Maybe Formulae) 
+            deriving (Eq, Read, Show ) 
+
+data TOP    = MT ID Ty [Param] BODY     -- Method Definition 
+            | SV ID Ty                  -- Storage Variables 
+            | SM ID Ty                  -- Storage Mappings 
+            | EV ID Ty                  -- Event Declaration 
+            | DT ID [ID] [DConstr]      -- Datatype Declaration 
+            deriving (Show, Eq, Read) 
+
+data CONTRACT 
+            = CN ID [TOP] 
+            deriving (Show, Eq, Read) 
+--} 
+
+
+
+reconCN ctx stx q (CN id tops) = loop ctx stx q [] tops [] where 
+    loop ctx stx q constr tops tops' = case tops of 
+        []                          -> undefined 
 
 
 
 
-reconTOPs ctx q tops = undefined 
+reconBODY ctx stx q (BODY p1 decls tm p2) = loop ctx stx q [] decls [] where 
+    loop ctx stx q constr ds ds' = case ds of 
+        []                          -> (body, ty, q', constr ++ constr') where
+            body                        = BODY p1 ds' tm p2
+            (ty, q', constr')           = recon ctx stx q tm 
+        FLET id ps ty tm p  : ds    -> loop ctx' stx q'' (constr ++ constr') ds (d':ds') where 
+            -- #TODO another constraint should be added for (TmFIX (TmABS ..)) 
+            _ctx                        = addBind ctx id (BindTmVAR (TyID (var q)))
+            (ps',q',__ctx)              = addParamBind _ctx ps (q+1)
+            (rety, q'', constr')        = recon __ctx stx q' tm 
+            tyF                         = paramret2ty ps' rety
+            ctx'                        = addBind ctx id (BindTmVAR tyF) 
+            d'                          = FLET id ps' rety tm p
+        LET  id    ty tm p  : ds    -> loop ctx' stx q' (constr ++ constr') ds (d':ds') where 
+            _ctx                        = addBind ctx id (BindTmVAR (TyID (var q)))
+            (ty', q', constr')          = recon _ctx stx (q+1) tm 
+            ctx'                        = addBind ctx id (BindTmVAR ty') 
+            d'                          = LET id ty' tm p 
+        SLET id    ty tm p  : ds    -> loop ctx stx' q' (constr ++ constr') ds (d':ds') where 
+            _stx                        = addBind stx id (BindTmVAR (TyID (var q)))
+            (ty', q', constr')          = recon ctx _stx (q+1) tm 
+            stx'                        = addBind stx id (BindTmVAR ty') 
+            d'                          = SLET id ty' tm p 
+        
+        
+        
 
-reconDecls ctx q decl = undefined 
 
-
-
+recon :: Ctx -> Ctx -> Int -> Term -> (Ty, Int, Constraint) 
 recon ctx stx q (RED tm trs)    = case tm of 
     TmVAR i                         ->  (tyT, q, []) where 
                                         tyT     = getTy ctx i 
