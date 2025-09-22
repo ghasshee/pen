@@ -56,9 +56,9 @@ apply_constr sol tyT =
 
 occur :: ID -> Ty -> Bool 
 occur x tyT = case tyT of 
-    TyARR tyT1 tyT2        -> occur x tyT1 || occur x tyT2
+    TyARR tyT1 tyT2       -> occur x tyT1 || occur x tyT2
     TyID s                -> s == x 
-    _                      -> False 
+    _                     -> False 
 
 
 
@@ -67,19 +67,19 @@ unify ctx constraint = case constraint of
     []                                      -> [] 
     (tyT, TyREC x tyS) : cs                 -> unify ctx ((tyS, tyT) : cs) 
     (TyREC x tyS, tyT) : cs                 -> unify ctx ((tyS, tyT) : cs) 
-    (TyID x, tyT)     : cs | tyT==TyID x  -> unify ctx cs
+    (TyID x, tyT)      : cs | tyT==TyID x   -> unify ctx cs
                             | occur x tyT   -> unify ctx (substinconstr x tyT cs) 
                                             ++ [(TyID x, TyREC x tyT)] 
                             | otherwise     -> unify ctx (substinconstr x tyT cs) 
                                             ++ [(TyID x, tyT)] 
-    (tyS, TyID x)     : cs | tyS==TyID x  -> unify ctx cs 
+    (tyS, TyID x)      : cs | tyS==TyID x   -> unify ctx cs 
                             | occur x tyS   -> unify ctx (substinconstr x tyS cs)
                                             ++ [(TyID x, TyREC x tyS)] 
                             | otherwise     -> unify ctx (substinconstr x tyS cs)
                                             ++ [(TyID x, tyS)] 
     (TyARR t1 t2,TyARR s1 s2) : cs          -> unify ctx ((t1, s1):(t2, s2) : cs) 
     (tyS,  tyT)        : cs | tyS == tyT    -> unify ctx cs  
-                            | otherwise     -> error "unify: Unsolvable Constraints" 
+                            | otherwise     -> error $ "unify: Unsolvable Constraints :\n" ++ show constraint  ++ "\n" ++ show ctx 
     cs                                      -> error $ "unify: NoRuleApplies: " ++ show cs 
 
 
@@ -100,21 +100,23 @@ reconDecls ctx q decl = undefined
 
 
 
-recon ctx q (RED tm trs)    = case tm of 
+recon ctx stx q (RED tm trs)    = case tm of 
     TmVAR i                         ->  (tyT, q, []) where 
                                         tyT     = getTy ctx i 
+    TmSTO i                         ->  (tyT, q, []) where 
+                                        tyT     = getTy stx i 
     TmABS x _                       ->  (TyARR tyX tyT, q'', cnstr') where 
                                         tyX     = TyID (var q) 
                                         ctx'    = addBind ctx x (BindTmVAR tyX) 
-                                        (tyT,q'',cnstr')    = recon ctx' (q+1) (hd trs) 
+                                        (tyT,q'',cnstr')    = recon ctx' stx (q+1) (hd trs) 
     TmAPP                           ->  (TyID x, q''+1, cs ++ cs' ++ cs'') where 
                                         x                   = var q'' 
                                         cs                  = [(tyT1, TyARR tyT2 (TyID x))]
-                                        (tyT1, q',cs')      = recon ctx q  t1
-                                        (tyT2, q'',cs'')    = recon ctx q' t2
+                                        (tyT1, q',cs')      = recon ctx stx q  t1
+                                        (tyT2, q'',cs'')    = recon ctx stx q' t2
                                         [t1,t2]             = trs 
                                         {--
-    TmFIX f x _                     ->  let (ty,q',cs) = recon ctx q (hd trs) in 
+    TmFIX f x _                     ->  let (ty,q',cs) = recon ctx stx q (hd trs) in 
                                         case simplifyty ctx ty of 
         TyARR tyS tyT | tyT' <$ ctx $ tyS'  -> (tyT', q, cs) 
                       | otherwise           -> error "recon: TmFIX can take type A -> A" 
@@ -123,14 +125,14 @@ recon ctx q (RED tm trs)    = case tm of
                     sol  = unify ctx ((tyS,tyT) : cs )
                     --} 
     TmIF                            ->  (tyT3, q''', cs ++ cs' ++ cs'' ++ cs''') where 
-                                        (tyT1, q'  , cs'  )     = recon ctx q   tr1
-                                        (tyT2, q'' , cs'' )     = recon ctx q'  tr2
-                                        (tyT3, q''', cs''')     = recon ctx q'' tr3
+                                        (tyT1, q'  , cs'  )     = recon ctx stx q   tr1
+                                        (tyT2, q'' , cs'' )     = recon ctx stx q'  tr2
+                                        (tyT3, q''', cs''')     = recon ctx stx q'' tr3
                                         cs = [(tyT1,TyBOOL),(tyT2,tyT3)]
                                         [tr1, tr2, tr3] = trs 
     TmBOP o                         ->  let [tr1,tr2]           = trs 
-                                            (tyT1, q' , cs' )   = recon ctx q  tr1
-                                            (tyT2, q'', cs'')   = recon ctx q' tr2 in 
+                                            (tyT1, q' , cs' )   = recon ctx stx q  tr1
+                                            (tyT2, q'', cs'')   = recon ctx stx q' tr2 in 
                                         case o of 
         "<"                             ->  (TyBOOL, q'', [(tyT1, tyT2)] ++ cs' ++ cs'') 
         ">"                             ->  (TyBOOL, q'', [(tyT1, tyT2)] ++ cs' ++ cs'') 
