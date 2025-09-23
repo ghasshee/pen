@@ -272,7 +272,6 @@ pgTermApp (RED TmAPP [t1,t2]) cfg@(i,t,q,s,v,ctx,stx) cont = case t1 of
         Fun(0,_,_)          -> error $ "pgTermApp: illegal TmVAR " ++ show n ++ ":Fun" ++ show ctx
         Arg(0,_,_)          -> error $ "pgTermApp: illegal TmVAR " ++ show n ++ ":Arg" ++ show ctx
         Arg(_,_,_)          -> error $ "pgTermApp: Higher Order Function is not defined now."
-        {--
         Arg(argnum,qn,qx)   -> (eent++econt++ercd++echk++eexit, cfg')  where 
             argnums             =   map (fst3 <$>) ctx 
             eent                =   [(i     , AcEnter     , Q q     )] 
@@ -280,7 +279,6 @@ pgTermApp (RED TmAPP [t1,t2]) cfg@(i,t,q,s,v,ctx,stx) cont = case t1 of
             ercd                =   [(Q(q+1), AcRecord i t, qn      )]
             echk                =   [(qx    , AcCheck  i t, Q(q+2)  )] 
             eexit               =   [(Q(q+2), AcExit      , t       )] 
-        --}
         Fun(argnum,qn,qx)   -> (eent++econt++ercd++echk++eexit, cfg')  where 
             argnums             =   map (fst3 <$>) ctx 
             eent                =   [(i     , AcEnter     , Q q     )] 

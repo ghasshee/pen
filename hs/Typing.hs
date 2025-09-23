@@ -161,9 +161,10 @@ reconBODY ctx stx q (BODY p1 decls tm p2) = loop ctx stx q [] decls [] where
             constr''                    = [(tyR, rety)] ++ constr' 
             sol                         = unify constr'' 
             tyF'                        = apply_constr sol tyF 
+            rety'                       = apply_constr sol rety 
             ps'                         = apply_constr_params sol _ps
             ctx'                        = addBind ctx id (BindTmVAR tyF') 
-            d'                          = FLET id ps' rety tm p
+            d'                          = FLET id ps' rety' tm p
         LET  id    ty tm p  : ds    -> loop ctx' stx q' (constr ++ constr') ds (d':ds') where 
             _ctx                        = addBind ctx id (BindTmVAR (TyID (var q)))
             (ty', q', constr')          = recon _ctx stx (q+1) tm 
