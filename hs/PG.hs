@@ -47,7 +47,7 @@ data Bind       = FunBind (ArgNum, INode, TNode)
 
 data FunOrArg a = Fun a | Arg a deriving (Functor, Show) 
 type Var        = FunOrArg (ArgNum, INode, TNode)
-type VarCtx     = [Var] 
+type VarCtx     = [[Var]] 
 type StoCtx     = [ID] 
 
 {-- Function Execution (or Function Call ) 
@@ -77,9 +77,9 @@ degreeOfFun _                       = 0
 
 type ArgLen = Int 
 
-calc_arglen []                  = error "calc_arglen: not in function ctx" 
-calc_arglen (Arg _ :xs)         = 1 + calc_arglen xs 
-calc_arglen (Fun _ :xs)         = 0 
+calc_arglen ([]:xss)            = error "calc_arglen: not in function ctx" 
+calc_arglen ((Arg _:xs):xss)    = 1 + calc_arglen (xs:xss)
+calc_arglen ((Fun _ :xs):xss)   = 0 
 
 pgFunCtxs :: [FunOrArg (ID,ArgLen)] -> Config -> Config 
 pgFunCtxs []     cfg   =   cfg 
@@ -87,22 +87,27 @@ pgFunCtxs (f:fs) cfg   =   pgFunCtxs fs (pgFunCtx f cfg)
 
 pgFunCtx :: FunOrArg (ID,ArgLen) -> Config -> Config 
 pgFunCtx (Arg(id, 0))     (i,t,q,s,v,ctx,stx)   =  (i, t, q,  s,v, ctx', stx) 
-                where ctx'      = Arg(0, i, t) : ctx 
+                where ctx'      = (arg:c) : cs 
+                      c:cs      = ctx 
+                      arg       = Arg(0, i, t) 
 pgFunCtx (Arg(id,arglen)) (i,t,q,s,v,ctx,stx)   =  (qn,qx,q+2,s,v, ctx', stx)
                 where (qn,qx)   = (Q q, Q(q+1))
                       arg       = Arg(arglen, qn, qx)
-                      ctx'      = arg : ctx  
+                      ctx'      = (arg:c) : cs     
+                      c:cs      = ctx 
 pgFunCtx (Fun(id,arglen)) (i,t,q,s,v,ctx,stx)   =  (qn,qx,q+2,s,v, ctx', stx)   
                 where (qn,qx)   = (Q q, Q(q+1)) 
                       fun       = Fun(arglen, qn, qx) 
-                      ctx'      = fun : ctx  
+                      ctx'      = [fun] : ctx  
 
 
 searchFun :: Int -> VarCtx -> Var 
 searchFun i ctx     = loop i ctx where 
-    loop n []       = error $ "searchFun: " ++ show i ++ " out of context " ++ show ctx 
-    loop 0 (c:cs)   = c
-    loop n (_:cs)   = loop (n-1) cs 
+    loop n []           = error $ "searchFun: " ++ show i ++ " out of context " ++ show ctx 
+    loop 0 ([]:css)     = loop 0 css 
+    loop 0 ((c:_):_)    = c
+    loop n ([]:css)     = loop n css
+    loop n ((c:cs):css) = loop (n-1) (cs:css) 
 
 searchSto :: ID -> StoCtx -> Maybe Int
 searchSto s []                      = Nothing
@@ -237,9 +242,11 @@ pgTerm tr cfg@(i,t,q,s,v,ctx,stx)       = case tr of
     RED (TmU256 n) []                   ->  ([(i, AcPush (Ox n           ), t)], cfg) 
     RED (TmDATA d) []                   ->  ([(i, AcPush (Ox (data2nat d)), t)], cfg)
     RED (TmVAR  n) []                   ->  case searchFun n ctx of 
-        Arg (0, qn, qx)                    -> ([(i, AcDup n',    t)], cfg) where 
+        Arg (0, qn, qx)                    -> ([(i, AcDup n',    t)], cfg') where 
             n'                              = calc_arglen ctx - n 
-            cfg'                            = (i,t,q,s,v, Arg (0,qn,qx): ctx, stx)  
+            cfg'                            = (i,t,q,s,v, ctx', stx)  
+            cs:css                          = ctx 
+            ctx'                            = (Arg (0,qn,qx) : cs) : css  -- Because of !! DUP !! opearation the context gains 
         Arg (n, qn, qx)                    -> undefined 
         Fun (argnum, qn, qx)               -> ([(i, AcSkip, qn), (qx, AcSkip, t)], cfg) 
     RED TmIF [b,t1,t2]                  ->  (eb++e1++enotb++e2, cfg')  where 
@@ -273,14 +280,14 @@ pgTermApp (RED TmAPP [t1,t2]) cfg@(i,t,q,s,v,ctx,stx) cont = case t1 of
         Arg(0,_,_)          -> error $ "pgTermApp: illegal TmVAR " ++ show n ++ ":Arg" ++ show ctx
         Arg(_,_,_)          -> error $ "pgTermApp: Higher Order Function is not defined now."
         Arg(argnum,qn,qx)   -> (eent++econt++ercd++echk++eexit, cfg')  where 
-            argnums             =   map (fst3 <$>) ctx 
+            argnums             =   ((fst3 <$>)<$>)<$> ctx 
             eent                =   [(i     , AcEnter     , Q q     )] 
             (econt,cfg')        =   pgArgs(t2:cont)(Q q,Q(q+1),q+3,s,v,ctx,stx) argnums 0
             ercd                =   [(Q(q+1), AcRecord i t, qn      )]
             echk                =   [(qx    , AcCheck  i t, Q(q+2)  )] 
             eexit               =   [(Q(q+2), AcExit      , t       )] 
         Fun(argnum,qn,qx)   -> (eent++econt++ercd++echk++eexit, cfg')  where 
-            argnums             =   map (fst3 <$>) ctx 
+            argnums             =   ((fst3 <$>) <$>) <$> ctx 
             eent                =   [(i     , AcEnter     , Q q     )] 
             (econt,cfg')        =   pgArgs(t2:cont)(Q q,Q(q+1),q+3,s,v,ctx,stx) argnums 0
             ercd                =   [(Q(q+1), AcRecord i t, qn      )] 
@@ -288,17 +295,17 @@ pgTermApp (RED TmAPP [t1,t2]) cfg@(i,t,q,s,v,ctx,stx) cont = case t1 of
             eexit               =   [(Q(q+2), AcExit      , t       )] 
     _                   -> pgTermApp t1 cfg (t2:cont) 
 
-pgArgs :: [Term] -> Config -> [FunOrArg Int] -> Int -> Edges 
+pgArgs :: [Term] -> Config -> [[FunOrArg Int]] -> Int -> Edges 
 pgArgs []       cfg                 ns           k = ([],cfg) 
-pgArgs [tm]                 (i,t,q,s,v,ctx,stx) (Arg _:ns) k = pgTerm tm (i,t,q,s,v,ctx,stx) 
+pgArgs [tm]                 (i,t,q,s,v,ctx,stx) ((Arg _:ns):nss) k = pgTerm tm (i,t,q,s,v,ctx,stx) 
 {--pgArgs (RED(TmVAR j)[]:tms) (i,t,q,s,v,ctx,stx) (n:ns)     k = case searchFun j ctx of 
     Fun(argnum,qn,qx)       -> (e, cfg') where 
         e                       = [(i, AcSkip, qn), (qx, AcSkip, t)]
         cfg'                    = (i,t,q,s,v,ctx,stx) 
         (econt,cfg')            = pgArgs tms ( --} 
-pgArgs (tm:tms)             (i,t,q,s,v,ctx,stx) (Arg _:ns) k = (e ++ econt, (i,t,q'',s'',v'',ctx'',stx'')) where 
+pgArgs (tm:tms)             (i,t,q,s,v,ctx,stx) ((Arg _:ns):nss) k = (e ++ econt, (i,t,q'',s'',v'',ctx'',stx'')) where 
     (e    ,(_,_,q' ,s' ,v' ,ctx',stx'  ))   = pgTerm tm  (i  ,Q q,q+1,s ,v ,ctx ,stx )             
-    (econt,(_,_,q'',s'',v'',ctx'',stx''))   = pgArgs tms (Q q,t  ,q' ,s',v',ctx',stx') ns (k+1) 
+    (econt,(_,_,q'',s'',v'',ctx'',stx''))   = pgArgs tms (Q q,t  ,q' ,s',v',ctx',stx') (ns:nss) (k+1) 
 --pgArgs (RED(TmVAR j)[]:tms) (i,t,q,s,v,ctx,stx) (n:ns)     k = pgArgs tms (i,t,q,s,v,ctx) ns (k+1)  
     -- Higher Order Variable is Skipped since We do not push values to the stack before function call.
     -- Rather, we connect edges. 
@@ -307,13 +314,13 @@ pgArgs (tm:tms)             (i,t,q,s,v,ctx,stx) (Arg _:ns) k = (e ++ econt, (i,t
 -- 2. in function defintion,  function 
 -- 3. in function call     ,  defined function variable 
 -- 4. in function call     ,  just value 
-pgArgs [tm]     (i,t,q,s,v,ctx,stx) (Fun n :ns) k = (e, (i,t,q',s',v',ctx',stx')) where 
+pgArgs [tm]     (i,t,q,s,v,ctx,stx) ((Fun n :ns):nss) k = (e, (i,t,q',s',v',ctx',stx')) where 
     (e    ,(_,_,q' ,s' ,v' ,ctx',stx' ))    = pgTerm tm  (i,t,q,s ,v ,ctx,stx ) 
-pgArgs (tm:tms) (i,t,q,s,v,ctx,stx) (Fun n:ns) k = (e++econt, (i,t,q'',s'',v'',ctx'',stx'')) where 
+pgArgs (tm:tms) (i,t,q,s,v,ctx,stx) ((Fun n:ns):nss) k = (e++econt, (i,t,q'',s'',v'',ctx'',stx'')) where 
     (e    ,(_,_,q' ,s' ,v' ,ctx',stx' ))    = pgTerm tm  (i,Q q,q+1 ,s ,v ,ctx,stx ) 
-    (econt,(_,_,q'',s'',v'',ctx'',stx''))   = pgArgs tms (Q q, t, q',s',v',ctx',stx') ns (k+1) 
+    (econt,(_,_,q'',s'',v'',ctx'',stx''))   = pgArgs tms (Q q, t, q',s',v',ctx',stx') (ns:nss) (k+1) 
 {--
-pgArgs (tm:tms) (i,t,q,s,v,ctx,stx)(n:ns) k = (e++econt, (i,t,q'',s'',v'',ctx'',stx'')) where 
+pgArgs (tm:tms) (i,t,q,s,v,ctx,stx)((n:ns):nss) k = (e++econt, (i,t,q'',s'',v'',ctx'',stx'')) where 
     Just (_,qf,qF)                          = searchFun k ctx 
     (e    ,(_,_,q' ,s' ,v' ,ctx' ,stx'))    = pgTerm tm  (qf,qF,q ,s ,v ,ctx,stx ) 
     (econt,(_,_,q'',s'',v'',ctx'',stx''))   = pgArgs tms (i, t, q',s',v',ctx',stx') ns (k+1) 
