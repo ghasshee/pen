@@ -95,16 +95,20 @@ paramret2ty ps rety = loop (reverse ps) rety where
     loop []             ty = ty 
     loop ((_,t1):rest)  ty = TyARR t1 ty 
 
-addParamBind ctx params q = case params of 
-    []                      -> (params , q , ctx  ) 
-    (p,Untyped) : rest      -> (params'', q', ctx'') where 
+paramUVar params q = case params of 
+    []                      -> ([],q)
+    (p,Untyped) : ps        -> (params'', q') where 
         tyP                     = TyID (var q) 
-        ctx'                    = addBind ctx p (BindTmVAR tyP)
+        (params',q')            = paramUVar ps (q+1) 
         params''                = (p,tyP) : params' 
-        (params', q', ctx'')    = addParamBind ctx' rest (q+1)   
-    (p,tyP) : rest          -> (params', q', ctx'') where 
-        ctx'                    = addBind ctx p (BindTmVAR tyP)
-        (params', q', ctx'')    = addParamBind ctx' rest q 
+    (p,tyP)     : ps        -> (params'', q') where 
+        (params', q')           = paramUVar ps q 
+        params''                = (p,tyP) : params' 
+
+addParamBind ctx params = case params of 
+    []                      -> ctx 
+    (p,tyP) : ps            -> addParamBind ctx' ps where  
+        ctx' = addBind ctx p (BindTmVAR tyP)  
 
 apply_constr_params constr params = case params of 
     []          -> []
@@ -148,12 +152,17 @@ reconBODY ctx stx q (BODY p1 decls tm p2) = loop ctx stx q [] decls [] where
             body                        = BODY p1 ds' tm p2
             (ty, q', constr')           = recon ctx stx q tm 
         FLET id ps ty tm p  : ds    -> loop ctx' stx q'' (constr ++ constr') ds (d':ds') where 
-            -- #TODO another constraint should be added for (TmFIX (TmABS ..)) 
-            _ctx                        = addBind ctx id (BindTmVAR (TyID (var q)))
-            (ps',q',__ctx)              = addParamBind _ctx ps (q+1)
+            tyR                         = TyID (var q)  
+            (_ps,q')                    = paramUVar ps (q+1) 
+            tyF                         = paramret2ty _ps tyR
+            _ctx                        = addBind ctx id (BindTmVAR tyF)
+            __ctx                       = addParamBind _ctx _ps 
             (rety, q'', constr')        = recon __ctx stx q' tm 
-            tyF                         = paramret2ty ps' rety
-            ctx'                        = addBind ctx id (BindTmVAR tyF) 
+            constr''                    = [(tyR, rety)] ++ constr' 
+            sol                         = unify constr'' 
+            tyF'                        = apply_constr sol tyF 
+            ps'                         = apply_constr_params sol _ps
+            ctx'                        = addBind ctx id (BindTmVAR tyF') 
             d'                          = FLET id ps' rety tm p
         LET  id    ty tm p  : ds    -> loop ctx' stx q' (constr ++ constr') ds (d':ds') where 
             _ctx                        = addBind ctx id (BindTmVAR (TyID (var q)))

@@ -81,22 +81,23 @@ main = do
         asts    = parse . lex $ contents
 
     -- Eval.hs
-    let typed   = map typingTest asts  
+    let tests   = map typingTest asts  
 
+    let typed   = map typing asts 
 
 
     -- Term.hs 
     let tm      :: [Term] 
-        tm      = map transpileCN asts
+        tm      = map transpileCN typed
 
 
     -- PG.hs 
     let pgs     :: [Edges] 
-        pgs     = map mkPG asts
+        pgs     = map mkPG typed
 
     -- VarTree.hss
     let vts     :: [VT] 
-        vts     = map mkVT asts
+        vts     = map mkVT typed 
 
     -- Analysis.hs
     let mats    :: [Matrix (OR (Edge Int Action))] 
@@ -144,7 +145,7 @@ main = do
     print asts
 
     print "------ Typing Test -----"
-    print typed 
+    print tests
 
     print "------- transpiled into Functional Term -------" 
     print tm 

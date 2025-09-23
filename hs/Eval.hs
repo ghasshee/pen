@@ -101,4 +101,9 @@ processTerm ctx stx q constr tr =
 
 
 
+fst5 (a,_,_,_,_) = a 
+
+typingTest :: CONTRACT -> (CONTRACT, Ctx, Ctx, UVar, Constraint) 
 typingTest cn = processCN [] [] 0 [] cn  
+
+typing = fst5 . typingTest
