@@ -149,7 +149,7 @@ reconCN ctx stx q (CN id tops) = loop ctx stx q [] tops [] where
 reconBODY ctx stx q (BODY p1 decls tm p2) = loop ctx stx q [] decls [] where 
     loop ctx stx q constr ds ds' = case ds of 
         []                          -> (body, ty, q', constr ++ constr') where
-            body                        = BODY p1 ds' tm p2
+            body                        = BODY p1 (reverse ds') tm p2
             (ty, q', constr')           = recon ctx stx q tm 
         FLET id ps ty tm p  : ds    -> loop ctx' stx q'' (constr ++ constr') ds (d':ds') where 
             tyR                         = TyID (var q)  

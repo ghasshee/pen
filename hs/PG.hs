@@ -86,7 +86,7 @@ pgFunCtxs []     cfg   =   cfg
 pgFunCtxs (f:fs) cfg   =   pgFunCtxs fs (pgFunCtx f cfg)  
 
 pgFunCtx :: FunOrArg (ID,ArgLen) -> Config -> Config 
-pgFunCtx (Arg(id, 0))     (i,t,q,s,v,ctx,stx)   =  (i,t,q,s,v,ctx', stx) 
+pgFunCtx (Arg(id, 0))     (i,t,q,s,v,ctx,stx)   =  (i, t, q,  s,v, ctx', stx) 
                 where ctx'      = Arg(0, i, t) : ctx 
 pgFunCtx (Arg(id,arglen)) (i,t,q,s,v,ctx,stx)   =  (qn,qx,q+2,s,v, ctx', stx)
                 where (qn,qx)   = (Q q, Q(q+1))
@@ -98,10 +98,11 @@ pgFunCtx (Fun(id,arglen)) (i,t,q,s,v,ctx,stx)   =  (qn,qx,q+2,s,v, ctx', stx)
                       ctx'      = fun : ctx  
 
 
-searchFun :: Int -> VarCtx -> Var
-searchFun i []      = error "searchFun: out of context" 
-searchFun 0 (x:xs)  = x  
-searchFun n (x:xs)  = searchFun (n-1) xs 
+searchFun :: Int -> VarCtx -> Var 
+searchFun i ctx     = loop i ctx where 
+    loop n []       = error $ "searchFun: " ++ show i ++ " out of context " ++ show ctx 
+    loop 0 (c:cs)   = c
+    loop n (_:cs)   = loop (n-1) cs 
 
 searchSto :: ID -> StoCtx -> Maybe Int
 searchSto s []                      = Nothing
@@ -271,6 +272,7 @@ pgTermApp (RED TmAPP [t1,t2]) cfg@(i,t,q,s,v,ctx,stx) cont = case t1 of
         Fun(0,_,_)          -> error $ "pgTermApp: illegal TmVAR " ++ show n ++ ":Fun" ++ show ctx
         Arg(0,_,_)          -> error $ "pgTermApp: illegal TmVAR " ++ show n ++ ":Arg" ++ show ctx
         Arg(_,_,_)          -> error $ "pgTermApp: Higher Order Function is not defined now."
+        {--
         Arg(argnum,qn,qx)   -> (eent++econt++ercd++echk++eexit, cfg')  where 
             argnums             =   map (fst3 <$>) ctx 
             eent                =   [(i     , AcEnter     , Q q     )] 
@@ -278,6 +280,7 @@ pgTermApp (RED TmAPP [t1,t2]) cfg@(i,t,q,s,v,ctx,stx) cont = case t1 of
             ercd                =   [(Q(q+1), AcRecord i t, qn      )]
             echk                =   [(qx    , AcCheck  i t, Q(q+2)  )] 
             eexit               =   [(Q(q+2), AcExit      , t       )] 
+        --}
         Fun(argnum,qn,qx)   -> (eent++econt++ercd++echk++eexit, cfg')  where 
             argnums             =   map (fst3 <$>) ctx 
             eent                =   [(i     , AcEnter     , Q q     )] 

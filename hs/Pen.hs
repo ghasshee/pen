@@ -147,14 +147,14 @@ main = do
     print "------ Typing Test -----"
     print tests
 
-    print "------- transpiled into Functional Term -------" 
-    print tm 
+    -- print "------- transpiled into Functional Term -------" 
+    -- print tm 
 
     print "------ Program Graph -------" 
     print pgs 
 
-    print "------ Variable Tree -------"
-    print vts 
+    -- print "------ Variable Tree -------"
+    -- print vts 
     
     print "------ Matrix Representation ----" 
     print $ convert <$> mats
