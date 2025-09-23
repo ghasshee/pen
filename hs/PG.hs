@@ -14,6 +14,7 @@ import Hex
 import Action  hiding (Var) 
 import Data
 import Datatype
+import DupDepth 
 
 import Data.Tuple.Extra (fst3, snd3, thd3) 
 
@@ -125,9 +126,11 @@ rmctx n (c:cs) = rmctx (n-1) cs
 
 
 type Config     = (INode, TNode, FreshNode, FreshSto, FreshVar, VarCtx, StoCtx) 
+type Config'    = (INode, TNode, FreshNode, FreshSto, FreshVar, VarCtx, StoCtx, DupDepth)
 
 -- PROGRAM GRAPH with Configure 
 type Edges  = ([Edge(Node Int)Action], Config) 
+type Edges' = ([Edge(Node Int)Action], Config')
 
 
 -- data PG = PG [Nd] Edges Nd [Nd]  
@@ -191,9 +194,9 @@ pgParam (id,ty) (i,t,q,s,v,ctx,stx)     =   ([(i, AcVar v, Q q)], (Q q, t, q+1,s
 
 -- BODY -> pg 
 pgBODY :: BODY -> Config -> Edges 
-pgBODY (BODY _ ds tm _) cfg         =   (es++es', cfg'') 
+pgBODY (BODY _ ds tm _) cfg         =   (es++es', (i,t,q,s,v,ctx,stx)) 
                                 where   (es,  cfg' ) = pgDecls ds cfg  
-                                        (es', cfg'') = pgTerm  tm cfg' 
+                                        (es', (i,t,q,s,v,ctx,stx,_)) = pgTerm  tm cfg' []
 
 pgDecls :: [Decl] -> Config -> Edges 
 pgDecls []     cfg                  =   ([],cfg)
@@ -222,49 +225,58 @@ pgDecl d cfg@(i,t,q,s,v,ctx,stx)    = case d of
 -- it should be like 
 -- pg(tm ; x := retvalue) ; 
     SLET id  _  tm _        ->  (es ++ es',  cfg'  ) where   
-        (es, (i',t',q',s',v',ctx',stx'))        = pgTerm tm (i,Q q,q+3,s,v,ctx, id:stx)
-        (es', cfg')                             = ([(Q q, AcPush (Ox (toInteger n)), Q(q+1)), (Q(q+1),AcSstore,Q(q+2))], (Q(q+2),t,q',s',v',ctx',stx'))
-        Just _n                                 = searchSto id stx'  
-        Just n                                  = searchSto (drop 1 id) stx' 
+        (es, (i',t',q',s',v',ctx',stx',_))          = pgTerm tm (i,Q q,q+3,s,v,ctx, id:stx) []
+        (es', cfg')                                 = ([(Q q, AcPush (Ox (toInteger n)), Q(q+1)), (Q(q+1),AcSstore,Q(q+2))], (Q(q+2),t,q',s',v',ctx',stx'))
+        Just _n                                     = searchSto id stx'  
+        Just n                                      = searchSto (drop 1 id) stx' 
     FLET id ps _ tm _       ->  (es,   (i,t,q''',s''',v''',ctx',stx'))  where 
-        arglen                                  = length        ps                    
-        params                                  = paramDegrees  ps       
-        (i',t',q',s',v',ctx',stx')              = pgFunCtxs [Fun (id,arglen)] (i,t,q,s,v,ctx,stx)       
-        Fun (_,qn,qx)                           = searchFun 0 ctx' 
-        (_ ,_ ,q'',s'',v'',ctx'',stx'')         = pgFunCtxs params  (i',t',q',s',v',ctx',stx)       
-        (es,(_,_,q''',s''',v''',ctx''',stx''')) = pgTerm tm   (qn,qx,q'',s'',v'',ctx'',stx'') 
+        arglen                                      = length        ps                    
+        params                                      = paramDegrees  ps       
+        (i',t',q',s',v',ctx',stx')                  = pgFunCtxs [Fun (id,arglen)] (i,t,q,s,v,ctx,stx)       
+        Fun (_,qn,qx)                               = searchFun 0 ctx' 
+        (_ ,_ ,q'',s'',v'',ctx'',stx'')             = pgFunCtxs params  (i',t',q',s',v',ctx',stx)       
+        (es,(_,_,q''',s''',v''',ctx''',stx''',_))   = pgTerm tm   (qn,qx,q'',s'',v'',ctx'',stx'') []
     --DATA id is ds           ->  undefined 
 
 
-pgTerm :: Term -> Config -> Edges 
-pgTerm tr cfg@(i,t,q,s,v,ctx,stx)       = case tr of 
-    RED TmAPP [t1,t2]                   ->  pgTermApp tr cfg []
-    RED (TmU256 n) []                   ->  ([(i, AcPush (Ox n           ), t)], cfg) 
-    RED (TmDATA d) []                   ->  ([(i, AcPush (Ox (data2nat d)), t)], cfg)
-    RED (TmVAR  n) []                   ->  case searchFun n ctx of 
+pgTerm :: Term -> Config -> DupDepth -> Edges' 
+pgTerm tr cfg@(i,t,q,s,v,ctx,stx) ds    = case tr of 
+    RED TmAPP [t1,t2]                   ->  pgTermApp tr cfg [] (d_push 2 ds) 
+    RED (TmU256 n) []                   ->  ([(i, AcPush (Ox n           ), t)], cfg') where  
+        cfg'                                    = (i,t,q,s,v,ctx,stx, d_minus ds)
+    RED (TmDATA d) []                   ->  ([(i, AcPush (Ox (data2nat d)), t)], cfg') where 
+        cfg'                                    = (i,t,q,s,v,ctx,stx, d_minus ds)
+    RED (TmVAR  n) []                   ->  let d = dup_sum ds in 
+                                            case searchFun (n+d) ctx of 
         Arg (0, qn, qx)                    -> ([(i, AcDup n',    t)], cfg') where 
-            n'                              = calc_arglen ctx - n 
-            cfg'                            = (i,t,q,s,v, ctx', stx)  
-            cs:css                          = ctx 
-            ctx'                            = (Arg (0,qn,qx) : cs) : css  -- Because of !! DUP !! opearation the context gains 
+            n'                                  = calc_arglen ctx - n 
+            ds'                                 = d_dup ds 
+            cfg'                                = (i,t,q,s,v,ctx',stx,d_minus ds')  
+            cs:css                              = ctx 
+            ctx'                                = (Arg (0,qn,qx) : cs) : css  -- Because of !! DUP !! opearation the context gains 
         Arg (n, qn, qx)                    -> undefined 
-        Fun (argnum, qn, qx)               -> ([(i, AcSkip, qn), (qx, AcSkip, t)], cfg) 
+        Fun (argnum, qn, qx)               -> ([(i, AcSkip, qn), (qx, AcSkip, t)], cfg') where 
+            cfg'                                = (i,t,q,s,v, ctx,stx,d_minus ds)  
     RED TmIF [b,t1,t2]                  ->  (eb++e1++enotb++e2, cfg')  where 
-        (eb,(_,_,q' ,s' ,v' ,ctx' ,stx'))   = pgCond b  (i,   Q q, q+2,s  ,v  ,ctx  , stx)
-        (e1,(_,_,q'',s'',v'',ctx'',stx''))  = pgTerm t1 (Q q   ,t, q' ,s' ,v' ,ctx' , stx') 
-        enotb                               = [(i, AcSkip, Q(q+1))]    
-        (e2,cfg')                           = pgTerm t2 (Q(q+1),t, q'',s'',v'',ctx'', stx'') 
+        (eb,(_,_,q' ,s' ,v' ,ctx' ,stx' ,ds' )) = pgCond b  (i,   Q q, q+2,s  ,v  ,ctx  , stx) (d_push 3 ds)
+        (e1,(_,_,q'',s'',v'',ctx'',stx'',ds'')) = pgTerm t1 (Q q   ,t, q' ,s' ,v' ,ctx' , stx') ds'
+        enotb                                   = [(i, AcSkip, Q(q+1))]    
+        (e2,cfg')                               = pgTerm t2 (Q(q+1),t, q'',s'',v'',ctx'', stx'') ds'' 
     RED (TmBOP o)[t1,t2]                ->  (e1++e2++[(Q(q+1),AcBop o,t)],cfg')  where 
-        (e1,(i',t',q',s',v',ctx',stx'))     = pgTerm t1 (i,  Q q,   q+2,s,v,ctx,stx)
-        (e2,cfg')                           = pgTerm t2 (Q q,Q(q+1),q',s',v',ctx',stx') 
-    RED (TmSTO n) [] | n >= length stx' ->  ([(i, AcSto n' , t)], cfg) where 
-        n'   = length stx - n - 1 
-        stx' = reduced stx 
-    RED (TmSTO n) [] | stx /= stx'      ->  ([(i, AcSto (length stx - n' - 1), t)], cfg) where 
-        n'   = n + length stx'
-        stx' = reduced stx 
-    RED (TmSTO n) []                    ->  ([(i, AcSto (length stx - n  - 1), t)], cfg)
-    _                                   ->  ([], cfg) 
+        (e1,(i',t',q',s',v',ctx',stx',ds'))     = pgTerm t1 (i,  Q q,   q+2,s,v,ctx,stx) (d_push 2 ds)
+        (e2,cfg')                               = pgTerm t2 (Q q,Q(q+1),q',s',v',ctx',stx') ds' 
+    RED (TmSTO n) [] | n >= length stx' ->  ([(i, AcSto n' , t)], cfg') where 
+        n'                                      = length stx - n - 1 
+        stx'                                    = reduced stx 
+        cfg'                                    = (i,t,q,s,v, ctx,stx,d_minus ds)  
+    RED (TmSTO n) [] | stx /= stx'      ->  ([(i, AcSto (length stx - n' - 1), t)], cfg') where 
+        n'                                      = n + length stx'
+        stx'                                    = reduced stx 
+        cfg'                                    = (i,t,q,s,v, ctx,stx,d_minus ds)  
+    RED (TmSTO n) []                    ->  ([(i, AcSto (length stx - n  - 1), t)], cfg' ) where 
+        cfg'                                    = (i,t,q,s,v, ctx,stx,d_minus ds)  
+    _                                   ->  ([], cfg') where 
+        cfg'                                    = (i,t,q,s,v, ctx,stx,d_minus ds) 
 
 
 reduced []                     = [] 
@@ -273,39 +285,42 @@ reduced stx                    = stx
 
 
 
-pgTermApp :: Term -> Config -> [Term] -> Edges 
-pgTermApp (RED TmAPP [t1,t2]) cfg@(i,t,q,s,v,ctx,stx) cont = case t1 of 
-    RED (TmVAR n) []    -> case searchFun n ctx of 
+pgTermApp :: Term -> Config -> [Term] -> DupDepth -> Edges' 
+pgTermApp (RED TmAPP [t1,t2]) cfg@(i,t,q,s,v,ctx,stx) cont ds = case t1 of 
+    RED (TmVAR n) []    ->  let d = dup_sum ds in 
+                            case searchFun (n+d) ctx of 
         Fun(0,_,_)          -> error $ "pgTermApp: illegal TmVAR " ++ show n ++ ":Fun" ++ show ctx
         Arg(0,_,_)          -> error $ "pgTermApp: illegal TmVAR " ++ show n ++ ":Arg" ++ show ctx
         Arg(_,_,_)          -> error $ "pgTermApp: Higher Order Function is not defined now."
         Arg(argnum,qn,qx)   -> (eent++econt++ercd++echk++eexit, cfg')  where 
             argnums             =   ((fst3 <$>)<$>)<$> ctx 
             eent                =   [(i     , AcEnter     , Q q     )] 
-            (econt,cfg')        =   pgArgs(t2:cont)(Q q,Q(q+1),q+3,s,v,ctx,stx) argnums 0
+            (econt,cfg')        =   pgArgs(t2:cont)(Q q,Q(q+1),q+3,s,v,ctx,stx) argnums 0 (d_minus ds)
             ercd                =   [(Q(q+1), AcRecord i t, qn      )]
             echk                =   [(qx    , AcCheck  i t, Q(q+2)  )] 
             eexit               =   [(Q(q+2), AcExit      , t       )] 
         Fun(argnum,qn,qx)   -> (eent++econt++ercd++echk++eexit, cfg')  where 
             argnums             =   ((fst3 <$>) <$>) <$> ctx 
             eent                =   [(i     , AcEnter     , Q q     )] 
-            (econt,cfg')        =   pgArgs(t2:cont)(Q q,Q(q+1),q+3,s,v,ctx,stx) argnums 0
+            (econt,cfg')        =   pgArgs(t2:cont)(Q q,Q(q+1),q+3,s,v,ctx,stx) argnums 0 (d_minus ds)
             ercd                =   [(Q(q+1), AcRecord i t, qn      )] 
             echk                =   [(qx    , AcCheck  i t, Q(q+2)  )]  
             eexit               =   [(Q(q+2), AcExit      , t       )] 
-    _                   -> pgTermApp t1 cfg (t2:cont) 
+    _                   -> pgTermApp t1 cfg (t2:cont) ds
 
-pgArgs :: [Term] -> Config -> [[FunOrArg Int]] -> Int -> Edges 
-pgArgs []       cfg                 ns           k = ([],cfg) 
-pgArgs [tm]                 (i,t,q,s,v,ctx,stx) ((Arg _:ns):nss) k = pgTerm tm (i,t,q,s,v,ctx,stx) 
-{--pgArgs (RED(TmVAR j)[]:tms) (i,t,q,s,v,ctx,stx) (n:ns)     k = case searchFun j ctx of 
+pgArgs :: [Term] -> Config -> [[FunOrArg Int]] -> Int -> DupDepth -> Edges' 
+pgArgs []   (i,t,q,s,v,ctx,stx)             nss  k ds = ([],(i,t,q,s,v,ctx,stx,ds)) 
+pgArgs [tm] (i,t,q,s,v,ctx,stx) ((Arg _:ns):nss) k ds = pgTerm tm (i,t,q,s,v,ctx,stx) ds
+{--
+pgArgs (RED(TmVAR j)[]:tms) (i,t,q,s,v,ctx,stx) (n:ns)     k = case searchFun j ctx of 
     Fun(argnum,qn,qx)       -> (e, cfg') where 
         e                       = [(i, AcSkip, qn), (qx, AcSkip, t)]
         cfg'                    = (i,t,q,s,v,ctx,stx) 
-        (econt,cfg')            = pgArgs tms ( --} 
-pgArgs (tm:tms)             (i,t,q,s,v,ctx,stx) ((Arg _:ns):nss) k = (e ++ econt, (i,t,q'',s'',v'',ctx'',stx'')) where 
-    (e    ,(_,_,q' ,s' ,v' ,ctx',stx'  ))   = pgTerm tm  (i  ,Q q,q+1,s ,v ,ctx ,stx )             
-    (econt,(_,_,q'',s'',v'',ctx'',stx''))   = pgArgs tms (Q q,t  ,q' ,s',v',ctx',stx') (ns:nss) (k+1) 
+        (econt,cfg')            = pgArgs tm undefined 
+--} 
+pgArgs(tm:tms)(i,t,q,s,v,ctx,stx)((Arg _:ns):nss) k ds = (e ++ econt, (i,t,q'',s'',v'',ctx'',stx'',ds'')) where 
+    (e    ,(_,_,q' ,s' ,v' ,ctx',stx'  ,ds' ))   = pgTerm tm  (i  ,Q q,q+1,s ,v ,ctx ,stx ) ds             
+    (econt,(_,_,q'',s'',v'',ctx'',stx'',ds''))   = pgArgs tms (Q q,t  ,q' ,s',v',ctx',stx') (ns:nss) (k+1) ds'
 --pgArgs (RED(TmVAR j)[]:tms) (i,t,q,s,v,ctx,stx) (n:ns)     k = pgArgs tms (i,t,q,s,v,ctx) ns (k+1)  
     -- Higher Order Variable is Skipped since We do not push values to the stack before function call.
     -- Rather, we connect edges. 
@@ -314,11 +329,11 @@ pgArgs (tm:tms)             (i,t,q,s,v,ctx,stx) ((Arg _:ns):nss) k = (e ++ econt
 -- 2. in function defintion,  function 
 -- 3. in function call     ,  defined function variable 
 -- 4. in function call     ,  just value 
-pgArgs [tm]     (i,t,q,s,v,ctx,stx) ((Fun n :ns):nss) k = (e, (i,t,q',s',v',ctx',stx')) where 
-    (e    ,(_,_,q' ,s' ,v' ,ctx',stx' ))    = pgTerm tm  (i,t,q,s ,v ,ctx,stx ) 
-pgArgs (tm:tms) (i,t,q,s,v,ctx,stx) ((Fun n:ns):nss) k = (e++econt, (i,t,q'',s'',v'',ctx'',stx'')) where 
-    (e    ,(_,_,q' ,s' ,v' ,ctx',stx' ))    = pgTerm tm  (i,Q q,q+1 ,s ,v ,ctx,stx ) 
-    (econt,(_,_,q'',s'',v'',ctx'',stx''))   = pgArgs tms (Q q, t, q',s',v',ctx',stx') (ns:nss) (k+1) 
+pgArgs [tm]     (i,t,q,s,v,ctx,stx) ((Fun n:ns):nss) k ds = (e, (i,t,q',s',v',ctx',stx',ds')) where 
+    (e    ,(_,_,q' ,s' ,v' ,ctx',stx',ds'))     = pgTerm tm  (i,t,q,s ,v ,ctx,stx ) ds 
+pgArgs (tm:tms) (i,t,q,s,v,ctx,stx) ((Fun n:ns):nss) k ds = (e++econt, (i,t,q'',s'',v'',ctx'',stx'',ds'')) where 
+    (e    ,(_,_,q' ,s' ,v' ,ctx',stx'  ,ds' ))  = pgTerm tm  (i,Q q,q+1 ,s ,v ,ctx,stx ) ds 
+    (econt,(_,_,q'',s'',v'',ctx'',stx'',ds''))  = pgArgs tms (Q q, t, q',s',v',ctx',stx') (ns:nss) (k+1) ds''
 {--
 pgArgs (tm:tms) (i,t,q,s,v,ctx,stx)((n:ns):nss) k = (e++econt, (i,t,q'',s'',v'',ctx'',stx'')) where 
     Just (_,qf,qF)                          = searchFun k ctx 
@@ -327,9 +342,9 @@ pgArgs (tm:tms) (i,t,q,s,v,ctx,stx)((n:ns):nss) k = (e++econt, (i,t,q'',s'',v'',
 -}
 
 
-pgCond :: Term -> Config -> Edges 
-pgCond (RED (TmBOP op) [t1,t2]) (i,t,q,s,v,ctx,stx) = 
-    ([(i,AcBool ((pgBOP op) t1' t2'), t)], (i,t,q,s,v,ctx,stx)) where 
+pgCond :: Term -> Config -> DupDepth -> Edges' 
+pgCond (RED (TmBOP op) [t1,t2]) (i,t,q,s,v,ctx,stx) ds = 
+    ([(i,AcBool ((pgBOP op) t1' t2'), t)], (i,t,q,s,v,ctx,stx,d_minus ds)) where 
         t1' = tm2exp ctx t1
         t2' = tm2exp ctx t2 
 
