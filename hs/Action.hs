@@ -72,11 +72,11 @@ isCond :: Action -> Bool
 isCond (AcBool _)           = True 
 isCond _                    = False 
 
-isCheckCond (AcCheck _ _)   = True
-isCheckCond _               = False 
+isChk (AcCheck _ _)   = True
+isChk _               = False 
 
-isDspCond (AcDispatch s)    = True 
-isDspCond _                 = False 
+isDsp (AcDispatch s)    = True 
+isDsp _                 = False 
 
 --instance Semiring [Action] where 
 --    zero    = [] 

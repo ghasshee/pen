@@ -80,7 +80,6 @@ unify constraint = case constraint of
     (TyARR t1 t2,TyARR s1 s2) : cs        -> unify ((t1, s1):(t2, s2) : cs) 
     (tyS,  tyT)        : cs | tyS == tyT  -> unify cs  
                             | otherwise   -> error $ "unify: Unsolvable Constraints:" ++ show constraint
-    cs                                    -> error $ "unify: NoRuleApplies: " ++ show cs 
 
 
 var :: Int -> String 

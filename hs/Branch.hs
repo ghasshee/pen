@@ -98,36 +98,36 @@ removeEdgeOR row = concat $ map (map putoffEdgeOR . decompEdgeOR) row
 
 -- | :: NewNode -> [Edge Int [Action]] -> (NewNode, Branch Action) 
 findCond :: Int -> [Edge Int [Action]] -> (Int, Branch Action) 
-findCond n [(i,a:as,j),(i',AcSkip:as',j')] 
-    | isCond a  && i == i' = (n+1, BIf i a n as as' j j' ) 
-findCond n [(i,AcSkip:as,j),(i',a':as',j')] 
-    | isCond a' && i == i' = (n+1, BIf i a' n as' as j' j )
-findCond n ((i,a:as,j):es) | isDspCond a = (n', BDp i ((a, n, as, j):es')) where 
-    (n', es') = loop (n+1) es
-    loop n []                           = (n,  [])  
-    loop n ((i', (a':as'), j'):es') 
-        | isDspCond a' && i == i'           = (n', (a', n, as', j'): es'') 
-        | a' == AcSkip && i == i'           = loop n (es' ++ [(i', (a':as'), j')]) 
-        where 
-            (n', es'') = loop (n+1) es' 
-findCond n ((i,(a:as),j):es) | (isCheckCond a || a == AcSkip) = (n', BCk i ((a, n, as, j): es'))  where 
-    (n', es') = loop (n+1) es 
-    loop n []                           = (n, [])  
-    loop n ((i', (a':as'), j'):es') 
-        | isCheckCond a' && i == i' || a == AcSkip    = (n', (a',n, as', j'): es'') where  (n', es'') = loop (n+1) es' 
-findCond n [(i,as,j)]   = (n, BSq i as j) 
-findCond n []           = (n, BZr) 
-findCond n e            = error $ "findCond: [Unexpected Action Seq] " ++ show e   
+findCond n [(i,a:as,j), (i',AcSkip:as',j')] | isCond a  && i==i'    = (n+1, BIf i a n as as' j j' ) 
+findCond n [(i,AcSkip:as,j),(i',a':as',j')] | isCond a' && i==i'    = (n+1, BIf i a' n as' as j' j )
+findCond n ((i,a:as,j):es)                  | isDsp  a              = (n' , BDp i ((a, n, as, j):es')) where 
+    (n', es')                                                       = loop (n+1) es
+    loop n []                                                       = (n,  [])  
+    loop n ((i',a':as',j'):es') | isDsp a'   && i==i'               = (n', (a',n,as',j'):es'') 
+                                | a'==AcSkip && i==i'               = loop  n   (es'++[(i',a':as',j')]) where 
+            (n', es'')                                              = loop (n+1) es' 
+findCond n ((i,a:as,j):es)      | isChk a                           = (n', BCk i ((a, n, as, j): es'))  where 
+    (n', es')                                                       = loop (n+1) es 
+    loop n []                                                       = (n, [])  
+    loop n ((i',a':as',j'):es') | (isChk a' && i==i') || a'==AcSkip = (n', (a',n, as', j'): es'') where  (n', es'') = loop (n+1) es' 
+findCond n ((i,a:as,j):es)      | a==AcSkip                         = (n', BDp i ((a, n, as, j): es'))  where 
+    (n', es')                                                       = loop (n+1) es 
+    loop n []                                                       = (n, [])  
+    loop n ((i',a':as',j'):es') | (isDsp a' && i==i')               = (n', (a',n, as', j'): es'') where  (n', es'') = loop (n+1) es' 
+        
+findCond n [(i,as,j)]                                               = (n, BSq i as j)  
+findCond n []                                                       = (n, BZr) 
+findCond n e                                                        = error $ "findCond: [Unexpected Action Seq] " ++ show e   
 
 
 branching :: [[Edge Int [Action]]] -> [Branch Action] 
 branching ess = bs where 
-    (n', bs)    = loop n ess 
-    n           = length ess + 1
-    loop n []       = (n, [])
-    loop n (es:ess) = (n'', b:bs) where 
-        (n'', bs)   = loop n' ess
-        (n', b)     = findCond n es 
+    q           = length ess + 1
+    (q', bs)    = loop q ess 
+    loop q []       = (q, [])
+    loop q (es:ess) = (q'', b:bs) where 
+        (q', b)     = findCond q es 
+        (q'', bs)   = loop q' ess
 
 
 branch :: Matrix (Edge Int (OR Action)) -> [Branch Action] 
