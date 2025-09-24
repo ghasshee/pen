@@ -1,10 +1,9 @@
 contract counter {
     
 
-    method fib3 : () :=             
+    method fib4 : () :=             
         let fib k = if (k == 0) || (k==1) then 1 else fib (k-1) + fib (k-2) ; 
-        let double f x = f (f x);  
-        double fib 3 
+        fib 4
 
 } 
         

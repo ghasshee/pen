@@ -2,8 +2,8 @@ contract counter {
     
 
     method foo : () :=             
-        let fac n = if n == 0 then 1 else n * fac (n-1) ; 
         let double f x = f (f x);
+        let fac n = if n == 0 then 1 else n * fac (n-1) ; 
         double fac 3
 
 } 

@@ -216,6 +216,8 @@ recon ctx stx q (RED tm trs)    = case tm of
                                         case o of 
         "<"                             ->  (TyBOOL, q'', [(tyT1, tyT2)] ++ cs' ++ cs'') 
         ">"                             ->  (TyBOOL, q'', [(tyT1, tyT2)] ++ cs' ++ cs'') 
+        "&&"                            ->  (TyBOOL, q'', [(tyT1, TyBOOL),(tyT2, TyBOOL)] ++ cs' ++ cs'')
+        "||"                            ->  (TyBOOL, q'', [(tyT1, TyBOOL),(tyT2, TyBOOL)] ++ cs' ++ cs'')
         "=="                            ->  (TyBOOL, q'', [(tyT1, tyT2)] ++ cs' ++ cs'') 
         "!="                            ->  (TyBOOL, q'', [(tyT1, tyT2)] ++ cs' ++ cs'') 
         "<="                            ->  (TyBOOL, q'', [(tyT1, tyT2)] ++ cs' ++ cs'') 

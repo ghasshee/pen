@@ -82,6 +82,8 @@ token :-
     "."         { \s -> DOT             } 
     "~"         { \s -> NOT             } 
     "="         { \s -> EQ              } 
+    "&&"        { \s -> AND             }
+    "||"        { \s -> OR              } 
     "=="        { \s -> EQEQ            } 
     "!="        { \s -> NEQ             } 
     "<"         { \s -> LT              } 
@@ -126,6 +128,7 @@ data Token
             | BOOL
             | LT | GT | LE | GE 
             | EQ | NEQ | EQEQ
+            | AND | OR 
             | PLUS |MINUS | MULT | DIV | MOD 
             | CASE 
             | NEW 

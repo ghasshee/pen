@@ -209,14 +209,13 @@ main = do
 
     print "------ OPCODEs ------"
     print $ ops 
-
+{--
     print "------ remove FUNSTACK OPCODE -----"
     print $ ops' 
 
     print "------ OpTrees ------"
     print $ optrees 
 
-{--
     print "------ GCLLs  -------"
     print $ gclls 
 --} 
