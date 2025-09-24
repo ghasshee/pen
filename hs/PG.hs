@@ -82,8 +82,9 @@ degreeOfFun _                       = 0
 type ArgLen = Int 
 
 calc_arglen ([]:xss)            = error "calc_arglen: not in function ctx" 
-calc_arglen ((Arg _:xs):xss)    = 1 + calc_arglen (xs:xss)
-calc_arglen ((Fun _ :xs):xss)   = 0 
+calc_arglen ((Arg (0,_,_):xs):xss)    = 1 + calc_arglen (xs:xss)
+calc_arglen ((Arg _:xs):xss)    = calc_arglen (xs:xss)
+calc_arglen ((Fun _:xs):xss)    = 0 
 
 pgFunCtxs :: [FunOrArg (ID,ArgLen)] -> Config -> Config 
 pgFunCtxs []     cfg   =   cfg 
@@ -305,7 +306,7 @@ pgTermApp (RED TmAPP [t1,t2]) cfg@(i,t,q,s,v,ctx,stx) cont ds = case t1 of
             args                =   t2 : cont 
             actx                =   searchArgs (n+d) ctx 
             argctxs             =   zip3 [1..] args actx 
-            (econt, cfg')       =   pgArgs' argctxs (Q q,Q(q+1),q+3,s,v,ctx,stx,d_minus ds) 0
+            (econt, cfg')       =   pgArgs' argctxs (Q q,Q(q+1),q+3,s,v,ctx,stx,d_minus ds)
             argnums             =   ((fst3 <$>) <$>) <$> ctx 
             eent                =   [(i     , AcEnter     , Q q     )] 
             ercd                =   [(Q(q+1), AcRecord i t, qn      )] 
@@ -318,36 +319,36 @@ no_varg [] = True
 no_varg ((_,_,Arg(0,_,_)):ctx) = False  
 no_varg ((_,_,Arg(_,_,_)):ctx) = no_varg ctx 
 
-pgArgs' :: [(Int,Term,Var)] -> Config' -> Int -> Edges' 
-pgArgs' [] cfg dummyargs = ([],cfg) 
-pgArgs' (actx:argctxs) (i,t,q,s,v,ctx,stx,ds) dummyargs = case actx of 
-    (n, RED(TmVAR k)[], Arg(0,qn,qx)) | no_varg argctxs  ->  (earg ++ eargs, cfg'') where 
-        earg                                = [(i, AcDup (n'-dummyargs),    t)]
+pgArgs' :: [(Int,Term,Var)] -> Config' -> Edges' 
+pgArgs' [] cfg = ([],cfg) 
+pgArgs' (actx:argctxs) (i,t,q,s,v,ctx,stx,ds) = case actx of 
+    (_, RED(TmVAR n)[], Arg(0,qn,qx)) | no_varg argctxs  ->  (earg ++ eargs, cfg'') where 
+        earg                                = [(i, AcDup n',    t)]
         n'                                  = calc_arglen ctx - n 
         ds'                                 = d_dup ds 
         cfg'                                = (i,t,q,s,v,ctx',stx,d_minus ds')  
         cs:css                              = ctx 
         ctx'                                = (Arg (0,qn,qx) : cs) : css  -- Because of !! DUP !! opearation the context gains 
-        (eargs, cfg'')                      = pgArgs' argctxs cfg' dummyargs  
-    (n, RED(TmVAR k)[], Arg(0,qn,qx))                    ->  (earg ++ eargs, cfg'') where 
-        earg                                = [(i, AcDup (n'-dummyargs),  Q q)]
+        (eargs, cfg'')                      = pgArgs' argctxs cfg' 
+    (_, RED(TmVAR n)[], Arg(0,qn,qx))                    ->  (earg ++ eargs, cfg'') where 
+        earg                                = [(i, AcDup n',  Q q)]
         n'                                  = calc_arglen ctx - n 
         ds'                                 = d_dup ds 
         cfg'                                = (Q q,t,q+1,s,v,ctx',stx,d_minus ds')  
         cs:css                              = ctx 
         ctx'                                = (Arg (0,qn,qx) : cs) : css  -- Because of !! DUP !! opearation the context gains 
-        (eargs, cfg'')                      = pgArgs' argctxs cfg' dummyargs  
-    (n, tm, Arg(0,qn,qx)) | no_varg argctxs  ->  (earg ++ eargs, cfg'') where 
+        (eargs, cfg'')                      = pgArgs' argctxs cfg' 
+    (_, tm, Arg(0,qn,qx)) | no_varg argctxs  ->  (earg ++ eargs, cfg'') where 
         (earg, cfg'  )                      = pgTerm  tm      (i,t,q,s,v,ctx,stx) ds 
-        (eargs, cfg'')                      = pgArgs' argctxs cfg' dummyargs  
-    (n, tm, Arg(0,qn,qx))                    ->  (earg ++ eargs, cfg'') where 
+        (eargs, cfg'')                      = pgArgs' argctxs cfg' 
+    (_, tm, Arg(0,qn,qx))                    ->  (earg ++ eargs, cfg'') where 
         (earg,(_,_,q',s',v',ctx',stx',ds')) = pgTerm  tm      (i,Q q,q+1,s,v,ctx,stx) ds 
-        (eargs, cfg'')                      = pgArgs' argctxs (Q q,t,q',s',v',ctx',stx',ds') dummyargs  
-    (n, RED(TmVAR k)[], Arg(l,qn,qx))        ->  (earg ++ eargs, cfg') where 
+        (eargs, cfg'')                      = pgArgs' argctxs (Q q,t,q',s',v',ctx',stx',ds') 
+    (_, RED(TmVAR n)[], Arg(l,qn,qx))        ->  (earg ++ eargs, cfg') where 
         d                           = dup_sum ds 
-        Fun(_,qn',qx')              = searchFun (k+d) ctx   
+        Fun(_,qn',qx')              = searchFun (n+d) ctx   
         earg                        = [(qn, AcRecord i t, qn'), (qx', AcCheck i t, qx)] 
-        (eargs, cfg')               = pgArgs' argctxs (i,t,q,s,v,ctx,stx,d_minus ds) (dummyargs+1) 
+        (eargs, cfg')               = pgArgs' argctxs (i,t,q,s,v,ctx,stx,d_minus ds) 
     e -> error $ show e 
 
 pgArgs :: [Term] -> Config -> [[FunOrArg Int]] -> DupDepth -> Edges' 
