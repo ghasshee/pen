@@ -82,10 +82,10 @@ degreeOfFun _                       = 0
 type ArgLen = Int 
 
 
-calc_arglen ctx n = calc (loop ctx n (head ctx)) where 
+calc_arglen ctx n = calc (loop ctx n (hd ctx)) where 
     loop []  _  _               = error $ "calc_arglen: ctx := " ++ show ctx 
     loop xss 0           cur    = cur 
-    loop ([]:xss) n      cur    = loop xss n (head xss) 
+    loop ([]:xss) n      cur    = loop xss n (hd xss) 
     loop ((x:xs):xss) n  cur    = loop (xs:xss) (n-1) cur 
     calc []                      = error $ "calc_arglen: cannot reach here"
     calc (Fun _:xs)              = 0
@@ -115,9 +115,9 @@ pgFunCtx (Fun(id,arglen)) (i,t,q,s,v,ctx,stx)   =  (qn,qx,q+2,s,v, ctx', stx)
 searchFun :: Int -> VarCtx -> Var 
 searchFun i ctx     = loop i ctx where 
     loop 0 ([]:css)     = loop' 0 css
-    loop 0 (cs:css)     = head cs  
+    loop 0 (cs:css)     = hd cs  
     loop n ([]:css)     = loop' n css
-    loop n (cs:css)     = loop (n-1) (tail cs:css) 
+    loop n (cs:css)     = loop (n-1) (tl cs:css) 
     loop' 0 (cs:css)    = last cs  
     loop' n (cs:css)    = loop' (n-1) css
     loop' n []          = error $ "searchFun : out of context : " ++ show i ++ " : " ++ show ctx
@@ -135,9 +135,9 @@ rmctx n (c:cs) = rmctx (n-1) cs
     
 searchArgs  i ctx   = loop i ctx where 
     loop 0 ([]:css)     = loop' 0 css
-    loop 0 (cs:css)     = drop 1 $ reverse (head ctx)  
+    loop 0 (cs:css)     = drop 1 $ reverse (hd ctx)  
     loop n ([]:css)     = loop' n css
-    loop n (cs:css)     = loop (n-1) (tail cs:css) 
+    loop n (cs:css)     = loop (n-1) (tl cs:css) 
     loop' 0 (cs:css)    = if length cs <= 1 then error ("searchArgs " ++ show cs) else drop 1 $ reverse cs
     loop' n (cs:css)    = loop' (n-1) css
     loop' n []          = error $ "searchFun : out of context : " ++ show i ++ " : " ++ show ctx
@@ -296,11 +296,9 @@ reduced stx                    = stx
 pgTermApp :: Term -> Config -> [Term] -> DupDepth -> Edges' 
 pgTermApp (RED TmAPP [t1,t2]) cfg@(i,t,q,s,v,ctx,stx) cont ds = case t1 of 
     RED (TmVAR n) []    ->  let d = dup_sum ds in 
-                            --if n == 0 then error ("pgTermApp n==0: " ++ show ctx ++ " : " ++ show t2 ++ "," ++ show cont  ) else 
                             case searchFun (n+d) ctx of 
         Fun(0,_,_)          -> error $ "pgTermApp: illegal TmVAR " ++ show (n+d) ++ ":Fun " ++ show ctx
         Arg(0,_,_)          -> error $ "pgTermApp: illegal TmVAR " ++ show (n+d) ++ ":Arg " ++ show ctx
-        --Arg(_,_,_)          -> error $ "pgTermApp: Higher Order Function is not defined now."
         Arg(argnum,qn,qx){-- f@f(f x) --}    -> (eent++econt++ercd++echk++eexit, cfg')  where 
             argnums             =   ((fst3 <$>)<$>)<$> ctx 
             eent                =   [(i     , AcEnter     , Q q     )] 
@@ -325,45 +323,44 @@ pgTermApp (RED TmAPP [t1,t2]) cfg@(i,t,q,s,v,ctx,stx) cont ds = case t1 of
 no_varg [] = True 
 no_varg ((_,_,Arg(0,_,_)):ctx) = False  
 no_varg ((_,_,Arg(_,_,_)):ctx) = no_varg ctx 
-var_out_of_ctx ctx n = n >= length (head ctx) 
+
+var_out_of_ctx ctx n = n >= length (hd ctx) 
 
 pgArgs' :: [(Int,Term,Var)] -> Config' -> Edges' 
-pgArgs' [] cfg = ([],cfg) 
-pgArgs' (argctx:argctxs) (i,t,q,s,v,ctx,stx,ds) = case argctx of 
-    (_, RED(TmVAR n)[], Arg(0,_,_)) | var_out_of_ctx ctx (n + dup_sum ds) -> (e,cfg)       where 
-        Fun(0,qn,qx)                        =  searchFun (n + dup_sum ds) ctx 
-        e                                   =  [(i,AcSkip,qn), (qx,AcSkip,t)] 
-        cfg                                 =  (i,t,q,s,v,ctx,stx,d_minus ds)
+pgArgs' []                cfg                       = ([],cfg) 
+pgArgs' (argctx:argctxs) cfg@(i,t,q,s,v,ctx@(cs:css),stx,ds) = 
+    let d       = dup_sum ds    in 
+    let ds'     = d_dup ds      in  
+    case argctx of 
+    (_, RED(TmVAR n)[], Arg(0,_,_)) | var_out_of_ctx ctx (n+d) -> (e,cfg) where 
+        Fun(0,qn,qx)                =  searchFun (n+d) ctx 
+        e                           =  [(i,AcSkip,qn), (qx,AcSkip,t)] 
+        cfg                         =  (i,t,q,s,v,ctx,stx,d_minus ds)
     (_, RED(TmVAR n)[], Arg(0,qn,qx)) | no_varg argctxs  ->  (earg ++ eargs, cfg'') where 
-        earg                                = [(i, AcDup n',    t)]
-        n'                                  = calc_arglen ctx (n+d) - n 
-        d                                   = dup_sum ds 
-        ds'                                 = d_dup ds 
-        cfg'                                = (i,t,q,s,v,ctx',stx,d_minus ds')  
-        cs:css                              = ctx 
-        ctx'                                = (Arg (0,qn,qx) : cs) : css  -- Because of !! DUP !! opearation the context gains 
-        (eargs, cfg'')                      = pgArgs' argctxs cfg' 
+        earg                        = [(i, AcDup n',    t)]
+        n'                          = calc_arglen ctx (n+d) - n 
+        cfg'                        = (i,t,q,s,v,ctx',stx,d_minus ds')  
+        ctx'                        = (Arg (0,qn,qx) : cs) : css  -- Because of !! DUP !! opearation the context gains 
+        (eargs, cfg'')              = pgArgs' argctxs cfg' 
     (_, RED(TmVAR n)[], Arg(0,qn,qx))                    ->  (earg ++ eargs, cfg'') where 
-        earg                                = [(i, AcDup n',  Q q)]
-        n'                                  = calc_arglen ctx (n+d)- n 
-        d                                   = dup_sum ds 
-        ds'                                 = d_dup ds 
-        cfg'                                = (Q q,t,q+1,s,v,ctx',stx,d_minus ds')  
-        cs:css                              = ctx 
-        ctx'                                = (Arg (0,qn,qx) : cs) : css  -- Because of !! DUP !! opearation the context gains 
-        (eargs, cfg'')                      = pgArgs' argctxs cfg' 
+        earg                        = [(i, AcDup n',  Q q)]
+        n'                          = calc_arglen ctx (n+d)- n 
+        cfg'                        = (Q q,t,q+1,s,v,ctx',stx,d_minus ds')  
+        ctx'                        = (Arg (0,qn,qx) : cs) : css  -- Because of !! DUP !! opearation the context gains 
+        (eargs, cfg'')              = pgArgs' argctxs cfg' 
     (_, tm, Arg(0,qn,qx)) | no_varg argctxs  ->  (earg ++ eargs, cfg'') where 
-        (earg, cfg'  )                      = pgTerm  tm      (i,t,q,s,v,ctx,stx) ds 
-        (eargs, cfg'')                      = pgArgs' argctxs cfg' 
+        (earg, cfg'  )              = pgTerm  tm      (i,t,q,s,v,ctx,stx) ds 
+        (eargs, cfg'')              = pgArgs' argctxs cfg' 
     (_, tm, Arg(0,qn,qx))                    ->  (earg ++ eargs, cfg'') where 
-        (earg,(_,_,q',s',v',ctx',stx',ds')) = pgTerm  tm      (i,Q q,q+1,s,v,ctx,stx) ds 
-        (eargs, cfg'')                      = pgArgs' argctxs (Q q,t,q',s',v',ctx',stx',ds') 
+        (earg,(_,_,q',s',v',ctx',stx',ds')) = pgTerm  tm (i,Q q,q+1,s,v,ctx,stx) ds 
+        (eargs, cfg'')              = pgArgs' argctxs   (Q q,t,q',s',v',ctx',stx',ds') 
     (_, RED(TmVAR n)[], Arg(l,qn,qx))        ->  (earg ++ eargs, cfg') where 
         d                           = dup_sum ds 
         Fun(_,qn',qx')              = searchFun (n+d) ctx   
         earg                        = [(qn, AcRecord i t, qn'), (qx', AcCheck i t, qx)] 
         (eargs, cfg')               = pgArgs' argctxs (i,t,q,s,v,ctx,stx,d_minus ds) 
     e -> error $ "pgArgs: not supported arg " ++ show e 
+
 
 pgArgs :: [Term] -> Config -> [[FunOrArg Int]] -> DupDepth -> Edges' 
 pgArgs []     (i,t,q,s,v,ctx,stx)            nss ds = ([],      (i,    t,q  ,s  ,v  ,ctx  ,stx,  ds)) 
@@ -382,12 +379,6 @@ pgArgs(tm:tms)(i,t,q,s,v,ctx,stx)((Fun n:ns):nss)ds = (e++e',   (i,    t,q'',s''
     (e ,(_,_,q' ,s' ,v' ,ctx' ,stx' ,ds' ))         = pgTerm tm (i  ,Q q,q+1,s  ,v  ,ctx  ,stx ) ds 
     (e',(_,_,q'',s'',v'',ctx'',stx'',ds''))         = pgArgs tms(Q q,  t,q' ,s' ,v' ,ctx' ,stx') (ns:nss) ds'
     
-
-searchArg' n k []               = error "searchArg: out of context" 
-searchArg' 0 k (as:ass)         = reverse as !! k  
-searchArg' n k (as:ass)         = searchArg' (n-1) k ass 
-searchArg n k ([]:ass)          = searchArg' n k ass
-searchArg n k ((a:as):ass)      = searchArg (n-1) k (as:ass)
 
 
 --pgArgs (RED(TmVAR j)[]:tms) (i,t,q,s,v,ctx,stx) (n:ns)     k = pgArgs tms (i,t,q,s,v,ctx) ns (k+1)  

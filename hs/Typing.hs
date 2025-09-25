@@ -17,10 +17,6 @@ import Prelude hiding ((<$))
 type Constraint =  [(Ty, Ty)]
 
 
-hd :: [a] -> a  
-hd []       = error "hd: empty list" 
-hd (a:_)    = a 
-
 
 
 

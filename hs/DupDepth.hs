@@ -8,7 +8,18 @@ import Type
 
 
 
-
+-- 
+-- Dup Depth 
+--  Duplication Depth in Term Tree
+--
+--  [(l,r)] where 
+--
+--   l := # of Branched(args) in the current branch(term)
+--   r := # how many times (DUP i) is generated through the tree to PG compilation in the level 
+--
+--   In the tree walking, 
+--   a level is created if we go down into a new subtree,
+--   and eliminated if the subtree walk is finished.
 
 
 type DupDepth = [(Int,Int)]
@@ -26,4 +37,6 @@ d_minus ((d,dup):ds)    = ((d-1,dup):ds)
 
 dup_sum []            = 0   
 dup_sum ((d,dup):ds)  = dup + dup_sum ds  
+
+
 

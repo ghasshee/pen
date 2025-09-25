@@ -19,6 +19,13 @@ instance Read K where
 
 
 
+hd :: [a] -> a  
+hd []       = error "hd: empty list" 
+hd (a:_)    = a 
+
+tl :: [a] -> [a] 
+tl []       = error "tl: empty list"
+tl (_:as)   = as
 
 
 
