@@ -160,5 +160,6 @@ Of course `DEVM` can decompile [Solidity](https://github.com/ethereum/solidity/)
 $ ./DEVM < ../solc/Count.hex 
 ```
 
+![](/devm_solc.png)
 
 
