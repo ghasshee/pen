@@ -28,7 +28,7 @@ $ ./Pen eg/count9.pen
 The above command might analyze the pen source code and show the resulting program flow graph matrix. 
 
 
-![](/type_inference.png) 
+![](/images/type_inference.png) 
 
 
 
@@ -37,7 +37,7 @@ The above command might analyze the pen source code and show the resulting progr
 
 The above command might analyze the pen source code and show the resulting program graph and its matrix representation. 
 
-![](/program_graph_and_matrix.png) 
+![](/images/program_graph_and_matrix.png) 
 
 
 
@@ -160,6 +160,6 @@ Of course `DEVM` can decompile [Solidity](https://github.com/ethereum/solidity/)
 $ ./DEVM < ../solc/Count.hex 
 ```
 
-![](/devm_solc.png)
+![](/images/devm_solc.png)
 
 
