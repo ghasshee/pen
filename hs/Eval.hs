@@ -19,7 +19,6 @@ eval ctx stx tr = tr
 
 
 
-double f x = f (f x) 
 
 type UVar = Int 
 
@@ -85,7 +84,7 @@ processDecls ctx stx q constr ds = case ds of
 processBody ctx stx q constr body = 
     let (body', tyT, q', constr')  = reconBODY ctx stx q body in 
     let constr''            = constr ++ constr' in 
-    let sol                 = unify constr' in 
+    let sol                 = unify constr'' in 
     let tyT'                = double (apply_constr sol) tyT in 
     (body', tyT', ctx, q', constr'') 
 

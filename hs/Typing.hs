@@ -41,13 +41,15 @@ substinty x tyT tyS = case tyS of
 
 
 substinconstr :: ID -> Ty -> Constraint -> Constraint 
-substinconstr x tyT = ((substinty x tyT <$>) <$>)
+substinconstr x tyT []               = [] 
+substinconstr x tyT ((tyC1,tyC2):cs) = 
+    (substinty x tyT tyC1, substinty x tyT tyC2) : substinconstr x tyT cs 
 
 
 apply_constr :: Constraint -> Ty -> Ty  
 apply_constr sol tyT = 
     foldl f tyT (reverse sol) where  
-        f tyS (TyID x, tyC2)   = substinty x tyC2 tyS 
+        f tyS (TyID x, tyC2)    = substinty x tyC2 tyS 
         f tyS _                 = tyS
 
 occur :: ID -> Ty -> Bool 
@@ -64,15 +66,11 @@ unify constraint = case constraint of
     (tyT, TyREC x tyS) : cs               -> unify ((tyS, tyT) : cs) 
     (TyREC x tyS, tyT) : cs               -> unify ((tyS, tyT) : cs) 
     (TyID x, tyT)      : cs | tyT==TyID x -> unify cs
-                            | occur x tyT -> unify (substinconstr x tyT cs) 
-                                          ++ [(TyID x, TyREC x tyT)] 
-                            | otherwise   -> unify (substinconstr x tyT cs) 
-                                          ++ [(TyID x, tyT)] 
+                            | occur x tyT -> unify (substinconstr x tyT cs) ++ [(TyID x, TyREC x tyT)] 
+                            | otherwise   -> unify (substinconstr x tyT cs) ++ [(TyID x, tyT)] 
     (tyS, TyID x)      : cs | tyS==TyID x -> unify cs 
-                            | occur x tyS -> unify (substinconstr x tyS cs)
-                                          ++ [(TyID x, TyREC x tyS)] 
-                            | otherwise   -> unify (substinconstr x tyS cs)
-                                          ++ [(TyID x, tyS)] 
+                            | occur x tyS -> unify (substinconstr x tyS cs) ++ [(TyID x, TyREC x tyS)] 
+                            | otherwise   -> unify (substinconstr x tyS cs) ++ [(TyID x, tyS)] 
     (TyARR t1 t2,TyARR s1 s2) : cs        -> unify ((t1, s1):(t2, s2) : cs) 
     (tyS,  tyT)        : cs | tyS == tyT  -> unify cs  
                             | otherwise   -> error $ "unify: Unsolvable Constraints:" ++ show constraint
@@ -146,18 +144,18 @@ reconBODY ctx stx q (BODY p1 decls tm p2) = loop ctx stx q [] decls [] where
         []                          -> (body, ty, q', constr ++ constr') where
             body                        = BODY p1 (reverse ds') tm p2
             (ty, q', constr')           = recon ctx stx q tm 
-        FLET id ps ty tm p  : ds    -> loop ctx' stx q'' (constr ++ constr') ds (d':ds') where 
+        FLET id ps ty tm p  : ds    -> loop ctx' stx q'' constr'' ds (d':ds') where 
             tyR                         = TyID (var q)  
             (_ps,q')                    = paramUVar ps (q+1) 
             tyF                         = paramret2ty _ps tyR
             _ctx                        = addBind ctx id (BindTmVAR tyF)
             __ctx                       = addParamBind _ctx _ps 
             (rety, q'', constr')        = recon __ctx stx q' tm 
-            constr''                    = [(tyR, rety)] ++ constr' 
+            constr''                    = [(tyR, rety)] ++ constr' ++ constr
             sol                         = unify constr'' 
-            tyF'                        = apply_constr sol tyF 
-            rety'                       = apply_constr sol rety 
-            ps'                         = apply_constr_params sol _ps
+            tyF'                        = double (apply_constr sol) tyF 
+            rety'                       = double (apply_constr sol) rety 
+            ps'                         = double (apply_constr_params sol) _ps
             ctx'                        = addBind ctx id (BindTmVAR tyF') 
             d'                          = FLET id ps' rety' tm p
         LET  id    ty tm p  : ds    -> loop ctx' stx q' (constr ++ constr') ds (d':ds') where 

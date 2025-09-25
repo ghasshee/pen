@@ -28,6 +28,7 @@ tl []       = error "tl: empty list"
 tl (_:as)   = as
 
 
+double f x = f ( f x )
 
 
 type Param  = (ID, Ty) 
