@@ -20,6 +20,7 @@ d_push d ds = (d,0) : ds
 d_dup []                = []  
 d_dup ((d,dup):ds)      = (d,dup+1) : ds   
 
+d_minus []              = [] 
 d_minus ((0,_  ):ds)    = ds 
 d_minus ((d,dup):ds)    = ((d-1,dup):ds) 
 

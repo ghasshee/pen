@@ -11,7 +11,7 @@ contract counter {
         counter                     { counter > 0  } 
 
     method reset : () :=            { counter >= 0 }  
-        let x = 0; 
+        let x = 5; 
         let id x = x; 
         let fac n = if n == 0 then 1 else n * fac (n-1) ; 
         let counter = fac x ;        { necessarily globally counter == 0 }  
