@@ -22,7 +22,7 @@ Goto `pen/hs/` directory and then type `make` and push enter key.
 ```
 $ cd hs 
 $ make 
-$ ./Pen count9.pen
+$ ./Pen eg/count9.pen
 ``` 
 
 The above command might analyze the pen source code and show the resulting program flow graph matrix. 
