@@ -15,11 +15,25 @@ Goto `pen/hs/` directory and then type `make` and push enter key.
 
 ## Program Analysis 
 
+
+### News : Type Inference & Higher Order Function is Now supported in pen compiler !!
+
+
 ```
 $ cd hs 
 $ make 
-$ ./Pen count2.pen
+$ ./Pen count9.pen
 ``` 
+
+The above command might analyze the pen source code and show the resulting program flow graph matrix. 
+
+
+![](/type_inference.png) 
+
+
+
+
+### Program Graph and Matrix representation 
 
 The above command might analyze the pen source code and show the resulting program graph and its matrix representation. 
 

@@ -36,7 +36,21 @@ data Ty     =   TyERR   --   nothing
             |   Ty String  
             |   TyPoly String [Ty] 
             |   Untyped 
-            deriving (Show, Eq, Read) 
+            deriving (Eq, Read) 
+
+
+instance Show Ty where 
+    show ty = case ty of 
+        TyERR       -> "𝟎"
+        TyUNIT      -> "𝟏" 
+        TyBOOL      -> "𝟐"
+        TyNAT       -> "𝐍"
+        TyARR a b   -> show a ++ " → " ++ show b
+        TyID id     -> id 
+        TyVAR i     -> show i 
+        TyABS x ty  -> "λ" ++ show x ++ "." ++ show ty
+        TyREC x ty  -> "μ" ++ show x ++ "." ++ show ty 
+        Untyped     -> "Untyped" 
 
 
 
