@@ -63,7 +63,6 @@ import MSO
 import Automata hiding (trim) 
 import ATree
 import VC
-import CPS
 import Kripke
 
 
@@ -166,12 +165,11 @@ main = do
 
     print "------ Fixpoint' ------"
     print stars
-   
+--} 
     print "------ Matrix Edge Representation -----" 
-    print mats 
+--  print mats 
     print as 
    
---}
     print "------ Confluences ------" 
     print $ map confluenceNodes as 
 

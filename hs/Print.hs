@@ -6,7 +6,6 @@ import Mat
 import Analysis
 
 
-
 -- Printing Functions 
 
 printDiag a@(M n _ _ _ _ _) = loop a a n where 

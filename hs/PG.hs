@@ -27,24 +27,22 @@ import Prelude hiding (partition)
 
 
 
-pgFunCtxs :: Config -> [FunOrArg ParamArity] -> Config 
-pgFunCtxs cfg l = foldl pgFunCtx cfg l 
+pgFunCtxs   :: Config -> [FunOrArg ParamArity] -> Config 
+pgFunCtxs   = foldl pgFunCtx 
 
-pgFunCtx :: Config -> FunOrArg ParamArity -> Config 
+pgFunCtx    :: Config -> FunOrArg ParamArity -> Config 
 pgFunCtx cfg@(i,t,q,s,v,ctx,stx) varInfo = let c:cs = ctx in case varInfo of 
     Arg(id,0)           -> (i, t, q,  s,v, ctx', stx) where 
             arg     = Arg(0, i, t) 
             ctx'    = (arg:c) : cs 
-    Arg(id,alen)        -> (qn,qx,q+2,s,v, ctx', stx) where 
+    Arg(id,arity)       -> (qn,qx,q+2,s,v, ctx', stx) where 
             (qn,qx) = (Q q, Q(q+1))
-            arg     = Arg(alen, qn, qx)
+            arg     = Arg(arity, qn, qx)
             ctx'    = (arg:c) : cs     
-    Fun(id,alen)        -> (qn,qx,q+2,s,v, ctx', stx) where 
+    Fun(id,arity)       -> (qn,qx,q+2,s,v, ctx', stx) where 
             (qn,qx) = (Q q, Q(q+1)) 
-            fun     = Fun(alen, qn, qx) 
+            fun     = Fun(arity, qn, qx) 
             ctx'    = [fun] : ctx  
-
-
 
 
 
