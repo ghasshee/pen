@@ -4,8 +4,6 @@ module Variable where
 
 
 
-
-
 data Variable   = X Int -- NonRec    variable
                 | F Int -- Function  variable
                 | R Int -- Recursive variable

@@ -3,6 +3,10 @@
 
 .PHONY: clean pappy
 
+all: pappy
+	ghc Pen
+
+
 pappy: 
 	#cd Pappy && make 
 	#ln -s Pappy/Pos.hs ./
@@ -12,11 +16,8 @@ pappy:
 	alex Lexer.x 	# generates Lexer.hs 
 	happy Parser.y --ghc  
 
-all: pappy
-	ghc Pen
 
-
-clean: 
+clean:   
 	#rm Pappy/*.hi Pappy/*.o
 	rm *.hi *.o Parser.hs
 	rm Lexer.hs 
@@ -38,3 +39,6 @@ test:  all
 # # Never try to remake this makefile.
 # ${MAKEFILE_LIST}: ;
 # .SUFFIXES:
+
+
+

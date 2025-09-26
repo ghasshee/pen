@@ -1,5 +1,121 @@
 {--
 
+
+
+Design 2. 
+
+         | 
+       Parse 
+         |
+         v 
+  +-------------+                       +---------------+
+  |     AST     |---------transpile---->+  λ-Term syle  |
+  +------+------+                       +-------+-------+
+         |       with COND                      |
+     evaluation                             transpile 
+         |                                      |
+         v                                      v
+  +-------------+                       +-----------------+
+  |    AST'     |                       |  Variable Tree  |
+  +-------------+                       +-------+---------+
+         |       with COND                      |
+   type inference                           transpile 
+         |                                      |
+         v                                      v
+  +-------------+                       +-----------------+
+  |  typed AST' |                       |  Variable Tree  |
+  +-------------+                       +-------+---------+
+         |       with COND                      | 
+      compile                           variable analysis ? 
+         |                                      |
+         v                                      v 
+  +-------------+                               ? 
+  |Program Graph|        
+  +------+------+       
+         |       with COND
+     represent     
+         |           
+         v        
+  +------+------+ 
+  |Matrix Action|  
+  +------+------+          
+         |       with COND 
+     Analysis             
+         |        
+         v
+  +------+-------+                                      +----------------------------+
+  |reduced Matrix|----------- make Kripke Worlds ------>+ Kripke Semantics of Matrix |
+  +------+-------+                                      +-------------+--------------+
+         |        with COND                                           |               with COND
+    cut by branch                                              
+         |   
+         v   
+  +------+-------+
+  |   [Branch]   | 
+  +------+-------+ 
+         |
+      compile      
+         |   
+         v   
+  +------+-------+
+  |   [OPCODE]   | 
+  +------+-------+ 
+         | 
+      assemble 
+         |
+         v
+  +------+-------+
+  |   [ ASM ]    |
+  +--------------+
+
+
+--} 
+ 
+ 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+ 
+Design 1 
+
       | 
     Parse 
       |
