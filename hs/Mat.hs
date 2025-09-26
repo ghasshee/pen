@@ -1385,20 +1385,10 @@ cholDecomp a
 
 
 
+---------------------------------------
+---          Trim                   ---
+---------------------------------------
 
-
-
-----------------------------------------
--- Direct Sum Decomposition of Matrix --
-----------------------------------------
-
-
-connectedComponent :: (Eq a, Semiring a) => Matrix a -> Int -> [Int] 
-connectedComponent m@(M n _ _ _ _ _) start = go [start] [] where 
-    go []     comp                  = comp
-    go (x:xs) comp  | x `elem` comp = go xs (sort comp) 
-                    | otherwise     = go (xs ++ neighbors) (comp++[x]) where 
-                        neighbors = [ j | j <- [1..n], not $ iszero (m!(x,j)) && iszero (m!(j,x)) ] 
 
 
 accessible :: (Eq a, Semiring a) => Matrix a -> Int -> [Int] 
@@ -1421,14 +1411,27 @@ trim m@(M n _ _ _ _ _) start end    = intersect acc coacc where
     acc = accessible m start
     coacc = coaccessible m end 
 
+
+
+----------------------------------------
+-- Direct Sum Decomposition of Matrix --
+----------------------------------------
+
+
+connectedComponent :: (Eq a, Semiring a) => Matrix a -> Int -> [Int] 
+connectedComponent m@(M n _ _ _ _ _) start = go [start] [] where 
+    go []     comp                  = comp
+    go (x:xs) comp  | x `elem` comp = go xs (sort comp) 
+                    | otherwise     = go (xs ++ neighbors) (comp++[x]) where 
+                        neighbors = [ j | j <- [1..n], not $ iszero (m!(x,j)) && iszero (m!(j,x)) ] 
+
+
 allComponents :: (Eq a, Semiring a) => Matrix a -> [[Int]] 
 allComponents a@(M n _ _ _ _ _) = go [1 .. n] [] where 
     go []       comps                           = comps
     go (v:vs)   comps   | any (v `elem`) comps  = go vs comps
                         | otherwise             = go vs (comps ++ [comp]) where 
                             comp = connectedComponent a v
-
-
 
 
 subMat :: [Int] -> Matrix a -> Matrix a 

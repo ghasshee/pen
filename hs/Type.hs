@@ -77,3 +77,4 @@ ty2num TyI256   = 7
 ty2num TyB32    = 8 
 ty2num _        = error "not an atomic type" 
 
+

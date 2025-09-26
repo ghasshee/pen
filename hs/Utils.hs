@@ -1,0 +1,20 @@
+module Utils where 
+
+import Data.List (reverse, length)  
+
+import Prelude hiding (reverse, length) 
+
+hd :: [a] -> a  
+hd []       = error "hd: empty list" 
+hd (a:_)    = a 
+
+tl :: [a] -> [a] 
+tl []       = error "tl: empty list"
+tl (_:as)   = as
+
+rev a = reverse a 
+len a = length a
+
+double f x = f ( f x )
+
+err = error 

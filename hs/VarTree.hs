@@ -17,6 +17,7 @@ module VarTree where
 import GCLL hiding (S,M,Var)
 import Node 
 import Type
+import Param
 import Term hiding (Bind) 
 import Tree
 import AST

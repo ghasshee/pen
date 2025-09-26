@@ -29,6 +29,15 @@ clean:
 
 test:  all
 	./Pen eg/count.pen 
+	./Pen eg/count2.pen 
+	./Pen eg/count3.pen 
+	./Pen eg/count4.pen 
+	./Pen eg/count5.pen 
+	./Pen eg/count6.pen 
+	./Pen eg/count7.pen 
+	./Pen eg/count8.pen 
+	./Pen eg/count9.pen 
+	./Pen eg/count10.pen 
 
 # 
 # .DEFAULT_GOAL := all

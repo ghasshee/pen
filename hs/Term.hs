@@ -2,8 +2,10 @@ module Term where
 
 import Tree
 import Type
+import Param 
 import GCLL 
 import Data
+import Utils
 
 
 data K = K (Term -> Term)   
@@ -19,25 +21,7 @@ instance Read K where
 
 
 
-hd :: [a] -> a  
-hd []       = error "hd: empty list" 
-hd (a:_)    = a 
 
-tl :: [a] -> [a] 
-tl []       = error "tl: empty list"
-tl (_:as)   = as
-
-
-double f x = f ( f x )
-
-
-type Param  = (ID, Ty) 
-
-showTyParam (id,ty) = showTy ty 
-showTyParams ps = "(" ++ loop ps where 
-    loop []     = ")"
-    loop [p]    = showTyParam p ++ ")" 
-    loop (p:ps) = showTyParam p ++ "," ++ loop ps  
 
 
 

@@ -7,6 +7,7 @@ import GCLL
 import Node 
 import Edge hiding (partition)
 import Type
+import Param
 import Term
 import Tree
 import AST
@@ -15,6 +16,7 @@ import Action  hiding (Var)
 import Data
 import Datatype
 import DupDepth 
+import Utils
 
 import Data.Tuple.Extra (fst3, snd3, thd3) 
 import Data.List (partition) 
@@ -37,12 +39,8 @@ type FreshVar   = Int
 type INode      = Node Int
 type TNode      = Node Int 
 type ArgNum     = Int
-{--
-data Bind       = FunBind (ArgNum, INode, TNode) 
-                | VarBind 
-                | StoBind ID 
-                deriving (Show, Eq, Read) 
-                --}
+type ArgLen     = Int 
+
 
 {-- Function Context consits of 3 components 
  -  1. The number of Args
@@ -71,45 +69,54 @@ type StoCtx     = [ID]
 -- the variables are ordered by the VAR n, 
 -- so [Y,X,F] 
 
-paramDegrees :: [(ID,Ty)] -> [FunOrArg (ID,ArgLen)] 
-paramDegrees []                     = [] 
-paramDegrees ((id,ty):xs)           = Arg (id,degreeOfFun ty):paramDegrees xs
 
-degreeOfFun :: Ty -> Int
-degreeOfFun (TyARR tyA tyB)         = degreeOfFun tyB + 1 
-degreeOfFun _                       = 0  
+paramDegrees :: Params -> [FunOrArg (ID,ArgLen)] 
+--paramDegrees []                     = [] 
+--paramDegrees ((id,ty):xs)           = Arg (id,tyDegrees ty): paramDegrees xs
 
-type ArgLen = Int 
+paramDegrees ps = Arg . (tyDegrees <$>) <$> ps 
+
+tyDegrees :: Ty -> Int
+tyDegrees (TyARR tyA tyB)         = tyDegrees tyB + 1 
+tyDegrees _                       = 0  
 
 
+
+
+-- VAR n |-> 
+-- 1. dive in corresponding function context (loop)  
+-- 2. calculate VAR n is k-th argment of the context 
+-- 3. note that we do not count higher-order arguments. 
+calc_arglen :: VarCtx -> Int -> Int 
 calc_arglen ctx n = calc (loop ctx n (hd ctx)) where 
-    loop []  _  _               = error $ "calc_arglen: ctx := " ++ show ctx 
-    loop xss 0           cur    = cur 
-    loop ([]:xss) n      cur    = loop xss n (hd xss) 
+    loop          []  _  _      = error $ "calc_arglen: ctx := " ++ show ctx 
+    loop         xss  0  cur    = cur 
+    loop (   [] :xss) n  cur    = loop     xss   n   (hd xss) 
     loop ((x:xs):xss) n  cur    = loop (xs:xss) (n-1) cur 
-    calc []                      = error $ "calc_arglen: cannot reach here"
-    calc (Fun _:xs)              = 0
-    calc (Arg (0,_,_):xs)        = 1 + calc xs
-    calc (Arg _:xs)              = calc xs
+    calc              []        = error $ "calc_arglen: cannot reach here"
+    calc (Fun _      :xs)       = 0
+    calc (Arg (0,_,_):xs)       = 1 + calc xs
+    calc (Arg _      :xs)       = calc xs
+
 
 pgFunCtxs :: [FunOrArg (ID,ArgLen)] -> Config -> Config 
-pgFunCtxs []     cfg   =   cfg 
-pgFunCtxs (f:fs) cfg   =   pgFunCtxs fs (pgFunCtx f cfg)  
+pgFunCtxs l cfg = foldl pgFunCtx cfg l 
+--pgFunCtxs []     cfg   =   cfg 
+--pgFunCtxs (f:fs) cfg   =   pgFunCtxs fs (pgFunCtx f cfg)  
 
-pgFunCtx :: FunOrArg (ID,ArgLen) -> Config -> Config 
-pgFunCtx (Arg(id, 0))     (i,t,q,s,v,ctx,stx)   =  (i, t, q,  s,v, ctx', stx) 
-                where ctx'      = (arg:c) : cs 
-                      c:cs      = ctx 
-                      arg       = Arg(0, i, t) 
-pgFunCtx (Arg(id,arglen)) (i,t,q,s,v,ctx,stx)   =  (qn,qx,q+2,s,v, ctx', stx)
-                where (qn,qx)   = (Q q, Q(q+1))
-                      arg       = Arg(arglen, qn, qx)
-                      ctx'      = (arg:c) : cs     
-                      c:cs      = ctx 
-pgFunCtx (Fun(id,arglen)) (i,t,q,s,v,ctx,stx)   =  (qn,qx,q+2,s,v, ctx', stx)   
-                where (qn,qx)   = (Q q, Q(q+1)) 
-                      fun       = Fun(arglen, qn, qx) 
-                      ctx'      = [fun] : ctx  
+pgFunCtx :: Config -> FunOrArg (ID,ArgLen) -> Config 
+pgFunCtx cfg@(i,t,q,s,v,ctx,stx) varInfo = let c:cs = ctx in case varInfo of 
+    Arg(id,0)           -> (i, t, q,  s,v, ctx', stx) where 
+            arg     = Arg(0, i, t) 
+            ctx'    = (arg:c) : cs 
+    Arg(id,alen)        -> (qn,qx,q+2,s,v, ctx', stx) where 
+            (qn,qx) = (Q q, Q(q+1))
+            arg     = Arg(alen, qn, qx)
+            ctx'    = (arg:c) : cs     
+    Fun(id,alen)        -> (qn,qx,q+2,s,v, ctx', stx) where 
+            (qn,qx) = (Q q, Q(q+1)) 
+            fun     = Fun(alen, qn, qx) 
+            ctx'    = [fun] : ctx  
 
 
 searchFun :: Int -> VarCtx -> Var 
@@ -122,51 +129,46 @@ searchFun i ctx     = loop i ctx where
     loop' n (cs:css)    = loop' (n-1) css
     loop' n []          = error $ "searchFun : out of context : " ++ show i ++ " : " ++ show ctx
 
+
 searchSto :: ID -> StoCtx -> Maybe Int
 searchSto s []                      = Nothing
 searchSto s (x:xs)  | s == x        = Just (length xs)  
                     | otherwise     = searchSto s xs
 
-rmctx n []     = error "contex cannot be removed" 
-rmctx 0 ctx    = ctx 
-rmctx n (c:cs) = rmctx (n-1) cs  
 
-
-    
 searchArgs  i ctx   = loop i ctx where 
-    loop 0 ([]:css)     = loop' 0 css
-    loop 0 (cs:css)     = drop 1 $ reverse (hd ctx)  
-    loop n ([]:css)     = loop' n css
-    loop n (cs:css)     = loop (n-1) (tl cs:css) 
-    loop' 0 (cs:css)    = if length cs <= 1 then error ("searchArgs " ++ show cs) else drop 1 $ reverse cs
+    loop  0 ([]:css)    = loop' 0 css
+    loop  0 (cs:css)    = drop 1 $ reverse (hd ctx)  
+    loop  n ([]:css)    = loop' n css
+    loop  n (cs:css)    = loop (n-1) (tl cs:css) 
+    loop' 0 (cs:css)    = if len cs <= 1 then err ("searchArgs " ++ show cs) else tl $ reverse cs
     loop' n (cs:css)    = loop' (n-1) css
-    loop' n []          = error $ "searchFun : out of context : " ++ show i ++ " : " ++ show ctx
+    loop' n []          = err $ "searchFun : out of context : " ++ show i ++ " : " ++ show ctx
 
 
 
 
 
 
+
+
+
+-- Configuration Type 
 type Config     = (INode, TNode, FreshNode, FreshSto, FreshVar, VarCtx, StoCtx) 
 type Config'    = (INode, TNode, FreshNode, FreshSto, FreshVar, VarCtx, StoCtx, DupDepth)
+
 
 -- PROGRAM GRAPH with Configure 
 type Edges  = ([Edge(Node Int)Action], Config) 
 type Edges' = ([Edge(Node Int)Action], Config')
 
 
--- data PG = PG [Nd] Edges Nd [Nd]  
-
-
 -- Initial Configuration  
--- initialConfig = (Qi, Qt, 1, 0, 0, [])
 initialConfig = (Q 1,Q 2, 3, 0, 0, [], []) 
 
 
-mkPG :: CONTRACT -> Edges
-mkPG cn = pgCN cn initialConfig  
-
-
+pg :: CONTRACT -> Edges
+pg cn = pgCN cn initialConfig  
 
 
 
@@ -182,8 +184,8 @@ pgCN (CN id tops) config    = pgTOPs tops config
 
 -- [TOP] -> pg 
 pgTOPs  :: [TOP] -> Config -> Edges 
-pgTOPs  []           cfg@(i,t,q,s,v,_,_)    =   ([(i,AcSkip,t)], cfg)
-pgTOPs  (top:tops)   cfg    =   (es ++ ess, cfg'') where 
+pgTOPs  []   cfg@(i,t,_,_,_,_,_)    =   ([(i,AcSkip,t)], cfg)
+pgTOPs  (top:tops)   cfg            =   (es ++ ess,      cfg'') where 
                                     (es, cfg' ) = pgTOP  top  cfg 
                                     (ess,cfg'') = pgTOPs tops cfg'  
 

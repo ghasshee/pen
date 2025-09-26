@@ -3,6 +3,7 @@ module AST where
 
 import GCLL
 import Type
+import Param
 import Term
 import Tree
 import Datatype

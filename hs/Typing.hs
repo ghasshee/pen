@@ -3,10 +3,12 @@ module Typing  where
 import AST 
 import GCLL
 import Type 
+import Param
 import Term 
 import Bind
 import Tree
 import Subtyping
+import Utils
 
 import Prelude hiding ((<$)) 
 
@@ -22,11 +24,7 @@ type Constraint =  [(Ty, Ty)]
 
 
 typeof :: Ctx -> Term -> Ty 
-typeof ctx (BLK _ _) = Untyped
-typeof ctx (RED tm trs) = case tm of 
-    TmU8  i             -> TyU8
-    TmU256 i            -> TyU256
-    _                   -> Untyped 
+typeof _ _ = Untyped
 
 
 

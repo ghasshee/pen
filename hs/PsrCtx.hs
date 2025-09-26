@@ -1,6 +1,7 @@
 module PsrCtx where 
 
 import Type 
+import Param
 import Term
 import AST
 

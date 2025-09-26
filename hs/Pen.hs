@@ -30,7 +30,6 @@ import Analysis
         ( decomposedPaths, junctionNodes, bifurcationNodes, initialNodes, terminalNodes, confluenceNodes, success
         , genMat, convert, star', nodeReduction
         , innerizeOR, reNodeMat)
-import Opt
 
 import Branch (Branch, branch) 
 
@@ -93,7 +92,7 @@ main = do
 
     -- PG.hs 
     let pgs     :: [Edges] 
-        pgs     = map mkPG typed
+        pgs     = map pg typed
 
     -- VarTree.hss
     let vts     :: [VT] 
