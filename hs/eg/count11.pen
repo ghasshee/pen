@@ -1,0 +1,12 @@
+contract counter {
+    
+    counter : u256  ; 
+    
+
+    method reset : () :=            { counter >= 0 }  
+        let fac n = if n == 0 then 1 else n * fac (n-1) ; 
+        fac 3 + fac 5 
+
+} 
+        
+contract hoge {} 
