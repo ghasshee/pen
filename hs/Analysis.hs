@@ -23,10 +23,10 @@ import Opcode hiding (OR)
 -- matrix :: Int -> Int  -> ( (Int,Int) -> a ) -> Matrix a  
 -- matrix   #row   #col     generatorFunction   = result
 
-genSize :: Edges -> (Int {--Rows--} , Int {--Cols--} )  
+genSize :: PG -> (Int {--Rows--} , Int {--Cols--} )  
 genSize (e, (i,t,q,s,v,ctx,stx)) = (q+1,q+1)
 
-genFun :: Edges -> (Int,Int) -> OR (Edge Int Action) 
+genFun :: PG -> (Int,Int) -> OR (Edge Int Action) 
 genFun (e, (_,_,q,s,v,ctx,stx))  (i,j) = 
     case searchEdge e i j of 
         Nothing             -> ZR 
@@ -37,7 +37,7 @@ searchEdge []               i j                  = Nothing
 searchEdge ((Q n,a,Q m):es) i j | i==n&&j==m     = Just a 
                                 | otherwise      = searchEdge es i j
 
-genMat :: Edges -> Matrix (OR (Edge Int Action)) 
+genMat :: PG -> Matrix (OR (Edge Int Action)) 
 genMat edges = matrix i j gen
     where   gen   = genFun edges 
             (i,j) = genSize edges 
@@ -113,8 +113,8 @@ convert = fmap (fmap arrow)
 
 
 
-succEdges i a@(M n m _ _ _ _) = filter (not . iszero) [ a!(i,j) | j <- [1..n] ] 
-predEdges j a@(M n m _ _ _ _) = filter (not . iszero) [ a!(i,j) | i <- [1..n] ] 
+succPG i a@(M n m _ _ _ _) = filter (not . iszero) [ a!(i,j) | j <- [1..n] ] 
+predPG j a@(M n m _ _ _ _) = filter (not . iszero) [ a!(i,j) | i <- [1..n] ] 
 
 succNodes :: (Eq a, Semiring a) => Int -> Matrix a -> [Int]  
 succNodes i a@(M n m _ _ _ _) = filter (\k -> not (iszero $ a!(i,k))) [1..n] 

@@ -16,7 +16,3 @@ module Arity where
 --  Arity n is defined inductively. 
 
 
-
-
-
-data Arity = Arity Int 

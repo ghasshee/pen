@@ -91,7 +91,7 @@ main = do
 
 
     -- PG.hs 
-    let pgs     :: [Edges] 
+    let pgs     :: [PG] 
         pgs     = map pg typed
 
     -- VarTree.hss
