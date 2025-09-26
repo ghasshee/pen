@@ -165,11 +165,11 @@ main = do
 
     print "------ Fixpoint' ------"
     print stars
---} 
+    
     print "------ Matrix Edge Representation -----" 
 --  print mats 
     print as 
-   
+ 
     print "------ Confluences ------" 
     print $ map confluenceNodes as 
 
@@ -187,7 +187,7 @@ main = do
     
     print "------ decomposed path ------"
     print $ map decomposedPaths as
-
+--} 
     print "------ Node Reduction ------" 
     print $ ms
 

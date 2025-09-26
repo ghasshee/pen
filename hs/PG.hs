@@ -47,8 +47,6 @@ pgFunCtx cfg@(i,t,q,s,v,ctx,stx) varInfo = let c:cs = ctx in case varInfo of
 
 
 
-
-
 -- PROGRAM GRAPH with Configure 
 type PG  = ([Edge(Node Int)Action], Config) 
 type PG' = ([Edge(Node Int)Action], Config')
@@ -58,8 +56,11 @@ type PG' = ([Edge(Node Int)Action], Config')
 initialConfig :: Config
 initialConfig = (Q 1,Q 2, 3, 0, 0, [], []) 
 
+initialPG :: PG 
+initialPG = ([], initialConfig) 
+
 pg :: CONTRACT -> PG
-pg cn = pgCN cn initialConfig  
+pg = _pgCN initialPG  
 
 
 
@@ -69,72 +70,83 @@ pg cn = pgCN cn initialConfig
 -------------------------
 
 
--- CN -> pg 
-pgCN    :: CONTRACT -> Config -> PG
-pgCN (CN id tops) config    = pgTOPs tops config
+_pgCN pg (CN id tops) = _pgTOPs pg tops 
 
+_pgTOPs                                 =   foldl _pgTOP 
+_pgTOP (es,(i,t,q,s,v,ctx,stx))  top    =   case top of 
+    (SV id ty)          ->  (es ++ e, cfg') where 
+        e       = [(i,AcPush(Ox 0),Q q),(Q q,AcPush(Ox(to s)),Q(q+1)),(Q(q+1), AcSstore, Q(q+2))]
+        cfg'    = (Q(q+2),t,q+3,s+1,v,ctx,id:stx)
+    (MT id ty ps bd)    ->  (es'', (i,t,q',s',v',ctx',stx)) where  -- (i, t)  must NOT change 
+        id'                             =   id  ++  showTyParams ps 
+        es'                             =   es ++ [(i,AcDispatch id', Q q), (Q(q+1), AcSkip, t) ]  
+        (es'',(_,_,q',s',v',ctx',_))    =   _pgMT (es',(Q q,Q(q+1),q+2,s,v,ctx,stx)) (MT id ty ps bd)
+    
+_pgMT   pg (MT id ty ps bd)             =   _pgBODY (_pgParams pg ps) bd 
 
--- [TOP] -> pg 
-pgTOPs  :: [TOP] -> Config -> PG 
-pgTOPs  []   cfg@(i,t,_,_,_,_,_)    =   ([(i,AcSkip,t)], cfg)
-pgTOPs  (top:tops)   cfg            =   (es ++ ess,      cfg'') where 
-                                    (es, cfg' ) = pgTOP  top  cfg 
-                                    (ess,cfg'') = pgTOPs tops cfg'  
+_pgParams                               =   foldl _pgParam
+_pgParam (es,(i,t,q,s,v,ctx,stx)) _     =   (es ++ [(i,AcVar v,Q q)],(Q q,t,q+1,s,v+1,ctx,stx))
 
--- TOP -> pg     
-pgTOP :: TOP -> Config -> PG
-pgTOP (EV id ty)        (i,t,q,s,v,ctx,stx) =   undefined 
-pgTOP (DT id ids cnstrs)(i,t,q,s,v,ctx,stx) =   undefined 
-pgTOP (SV id ty)        (i,t,q,s,v,ctx,stx) =   (e, cfg') where 
-    e       = [(i,AcPush(Ox 0),Q q),(Q q,AcPush(Ox (toInteger s)),Q(q+1)),(Q(q+1), AcSstore, Q(q+2))]
-    cfg'    = (Q(q+2),t,q+3,s+1,v,ctx,id:stx)
-pgTOP (MT id ty ps bd)  (i,t,q,s,v,ctx,stx) =   (e ++ edispatch, (i,t,q',s',v',ctx', stx)) where 
-    edispatch                       = [(i,AcDispatch id', Q q), (Q(q+1), AcSkip, t) ] 
-    (e,(_,_,q',s',v',ctx',_))       = pgMT (MT id ty ps bd) (Q q,Q(q+1),q+2,s,v,ctx, stx) 
-    id'                             = id  ++  showTyParams ps 
+_pgBODY (es,cfg) (BODY _ ds tm _)       =   (es'', (i',t',q',s',v',ctx',stx'))  
+                                where   (es' ,  (i,t,q,s,v,ctx,stx))          = _pgDecls (es,cfg) ds  
+                                        (es'',  (i',t',q',s',v',ctx',stx',_)) = _pgTerm (es', (i,t,q,s,v,[]:ctx,stx,[])) tm 
 
-pgMT :: TOP -> Config -> PG
-pgMT (MT id ty ps bd) cfg           =   (es++es', cfg'') 
-                                where   (es ,cfg' ) = pgParams ps cfg   
-                                        (es',cfg'') = pgBODY   bd cfg'   
-
-pgParams :: [Param] -> Config -> PG
-pgParams []     cfg                 =   ([], cfg)
-pgParams (p:ps) cfg                 =   (es ++ ess, cfg'') 
-                                where   (es, cfg' ) = pgParam  p  cfg  
-                                        (ess,cfg'') = pgParams ps cfg' 
-
-pgParam :: Param -> Config -> PG
-pgParam (id,ty) (i,t,q,s,v,ctx,stx)     =   ([(i, AcVar v, Q q)], (Q q, t, q+1,s,v+1,ctx,stx))
-
-
--- BODY -> pg 
-pgBODY :: BODY -> Config -> PG 
-pgBODY (BODY _ ds tm _) cfg         =   (es ++ es', (i',t',q',s',v',ctx',stx')) 
-                                where   (es,  (i,t,q,s,v,ctx,stx))          = pgDecls ds cfg 
-                                        (es', (i',t',q',s',v',ctx',stx',_)) = pgTerm  tm (i,t,q,s,v,[]:ctx,stx) []
-
-pgDecls :: [Decl] -> Config -> PG 
-pgDecls []     cfg                  =   ([],cfg)
-pgDecls (d:ds) cfg                  =   (es ++ ess, cfg'') 
-                                where   (es, cfg')      = pgDecl d cfg
-                                        (ess, cfg'')    = pgDecls ds cfg'  
-
--- Decl -> pg  
-pgDecl :: Decl -> Config -> PG 
-pgDecl d cfg@(i,t,q,s,v,ctx,stx)    = case d of 
-    LET id ty tm fm         ->  pgDecl (FLET id [] ty tm fm) cfg 
-    SLET id  _  tm _        ->  (es ++ es',  cfg'  ) where   
-        (es, (i',t',q',s',v',ctx',stx',_))          = pgTerm tm (i,Q q,q+3,s,v,[]:ctx, id:stx) []
-        (es', cfg')                                 = ([(Q q, AcPush (Ox (toInteger n)), Q(q+1)), (Q(q+1),AcSstore,Q(q+2))], (Q(q+2),t,q',s',v',ctx',stx'))
+_pgDecls                                = foldl _pgDecl
+_pgDecl (es, cfg@(i,t,q,s,v,ctx,stx)) d = case d of 
+    LET id ty tm fm         ->  _pgDecl (es,cfg) (FLET id [] ty tm fm)  
+    SLET id  _  tm _        ->  (es' ++ e ,  cfg'  ) where   
+        (es', (i',t',q',s',v',ctx',stx',_))         = _pgTerm (es, (i,Q q,q+3,s,v,[]:ctx,id:stx,[])) tm  
+        e                                           = [(Q q, AcPush (Ox (to n)), Q(q+1)), (Q(q+1),AcSstore,Q(q+2))] 
+        cfg'                                        = (Q(q+2),t,q',s',v',ctx',stx')
         Just _n                                     = searchSto id stx'  
         Just n                                      = searchSto (drop 1 id) stx' 
-    FLET id ps _ tm _       ->  (es,   (i,t,q''',s''',v''',ctx'',stx'))  where 
+    FLET id ps _ tm _       ->  (es',   (i,t,q''',s''',v''',ctx'',stx'''))  where  -- (i,t) must NOT change
         arities                                     = paramArities  ps       
-        (i',t',q',s',v',ctx',stx')                  = pgFunCtxs cfg                       [Fun (id,len ps)] 
+        cfg'@(_,_,_,_,_,ctx',_)                     = pgFunCtxs cfg  [Fun (id,len ps)] 
         Fun (_,qn,qx)                               = searchFun 0 ctx' 
-        (_ ,_ ,q'',s'',v'',ctx'',stx'')             = pgFunCtxs (i',t',q',s',v',ctx',stx) (Arg <$> arities) 
-        (es,(_,_,q''',s''',v''',ctx''',stx''',_))   = pgTerm tm   (qn,qx,q'',s'',v'',ctx'',stx'') []
+        (_ ,_ ,q'',s'',v'',ctx'',stx'')             = pgFunCtxs cfg' (Arg <$> arities) 
+        (es',(_,_,q''',s''',v''',ctx''',stx''',_))  = _pgTerm (es, (qn,qx,q'',s'',v'',ctx'',stx'',[])) tm 
+
+
+_pgTerm :: PG' -> Term -> PG' 
+_pgTerm (es,cfg@(i,t,q,s,v,ctx,stx,ds)) tr = 
+    let ds'     = d_minus ds                in 
+    let cfg'    = (i,t,q,s,v,ctx,stx,ds')   in 
+    let cs:css  = ctx                       in 
+    case tr of 
+    RED TmAPP [t1,t2]                   ->  (es ++ eapp, cfg'') where 
+        cfg'                                    = (i,t,q,s,v,ctx,stx)
+        (eapp, cfg'')                           = pgTermApp tr cfg' [] (d_push 2 ds) 
+    RED (TmU256 n) []                   ->  (es ++ [(i, AcPush (Ox n           ), t)], cfg') where  
+    RED (TmDATA d) []                   ->  (es ++ [(i, AcPush (Ox (data2nat d)), t)], cfg') where 
+    RED (TmVAR  n) []                   ->  let d = dup_sum ds in 
+                                            case searchFun (n+d) ctx of 
+        Arg (0, qn, qx)                    -> (es ++ [(i, AcDup n',    t)], cfg') where 
+            n'                                  = calc_arglen ctx (n+d) - n 
+            cfg'                                = (i,t,q,s,v,ctx',stx,d_minus (d_dup ds))  
+            ctx'                                = (Arg (0,qn,qx) : cs) : css  -- Because of !! DUP !! opearation the context gains 
+        Arg (n, qn, qx)                    -> err "Dynamical Higher Order Function (Function Closure as Value) is prohibited."
+        Fun (0     , qn, qx)               -> (es ++ [(i, AcSkip, qn), (qx, AcSkip, t)], cfg') where 
+        Fun (argnum, qn, qx)               -> (es ++ [(i, AcSkip, qn), (qx, AcSkip, t)], cfg') where 
+    RED TmIF [b,t1,t2]                  ->  (es ++ eb++e1++enotb++e2, cfg')  where 
+        (eb,(_,_,q' ,s' ,v' ,ctx' ,stx' ,ds' )) = pgCond b  (i,   Q q, q+2,s  ,v  ,ctx  , stx) (d_push 3 ds)
+        (e1,(_,_,q'',s'',v'',ctx'',stx'',ds'')) = pgTerm t1 (Q q   ,t, q' ,s' ,v' ,ctx' , stx') ds'
+        enotb                                   = [(i, AcSkip, Q(q+1))]    
+        (e2,cfg')                               = pgTerm t2 (Q(q+1),t, q'',s'',v'',ctx'', stx'') ds'' 
+    RED (TmBOP o)[t1,t2]                ->  (es ++ e1++e2++[(Q(q+1),AcBop o,t)],cfg')  where 
+        (e1,(i',t',q',s',v',ctx',stx',ds'))     = pgTerm t1 (i,  Q q,   q+2,s,v,ctx,stx) (d_push 2 ds)
+        (e2,cfg')                               = pgTerm t2 (Q q,Q(q+1),q',s',v',ctx',stx') ds' 
+    RED (TmSTO n) [] | n >= len stx'    ->  (es ++ [(i, AcSto n' , t)], cfg') where 
+        n'                                      = len stx - n - 1 
+        stx'                                    = reduced stx 
+        cfg'                                    = (i,t,q,s,v, ctx,stx,d_minus ds)  
+    RED (TmSTO n) [] | stx /= stx'      ->  (es ++ [(i, AcSto (len stx - n' - 1), t)], cfg') where 
+        n'                                      = n + len stx'
+        stx'                                    = reduced stx 
+    RED (TmSTO n) []                    ->  (es ++ [(i, AcSto (len stx - n  - 1), t)], cfg' ) where 
+    _                                   ->  (es , cfg') where 
+
+
 
 
 pgTerm :: Term -> Config -> DupDepth -> PG' 
@@ -310,7 +322,7 @@ pgBOP ">"  x y = Gt  x y
 
 tm2exp :: a -> Term -> EXPR 
 tm2exp ctx (RED (TmVAR  n) [])  =   Var (show n)  
-tm2exp ctx (RED (TmSTO  n) [])  =   GCLL.S   (Ox (toInteger n))
+tm2exp ctx (RED (TmSTO  n) [])  =   GCLL.S   (Ox (to n))
 tm2exp ctx (RED (TmU256 n) [])  =   Ox n
 tm2exp ctx (RED (TmDATA d) [])  =   Ox (data2nat d)
 tm2exp ctx (RED (TmBOP o)[x,y]) =   pgBOP o (tm2exp ctx x) (tm2exp ctx y)

@@ -18,3 +18,10 @@ len a = length a
 double f x = f ( f x )
 
 err = error 
+
+
+to :: Int -> Integer 
+to      = toInteger 
+
+
+from    = fromInteger 
