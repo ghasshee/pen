@@ -11,7 +11,8 @@ pappy:
 	
 	alex Lexer.x 	# generates Lexer.hs 
 	happy Parser.y --ghc  
-	
+
+all: pappy
 	ghc Pen
 
 
@@ -24,6 +25,9 @@ clean:
 	#unlink Pos.hs
 	#unlink Parse.hs
 
+
+test:  all
+	./Pen eg/count.pen 
 
 # 
 # .DEFAULT_GOAL := all
