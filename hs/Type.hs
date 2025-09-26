@@ -50,7 +50,10 @@ instance Show Ty where
         TyVAR i     -> show i 
         TyABS x ty  -> "λ" ++ show x ++ "." ++ show ty
         TyREC x ty  -> "μ" ++ show x ++ "." ++ show ty 
+        TyU8        -> "u8"
+        TyU256      -> "uint" 
         Untyped     -> "Untyped" 
+        e           -> error $ show e 
 
 
 
