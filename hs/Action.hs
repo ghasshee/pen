@@ -10,6 +10,7 @@ data Sto  = S Int deriving (Show, Eq, Read)
 
 
 data Action     = AcStop 
+                | AcCond [Action] 
                 | AcDispatch String 
                 | AcRevert EXPR EXPR
                 | AcReturn EXPR EXPR
@@ -48,6 +49,7 @@ instance Show Action where
     show (AcSwap i              ) = "SWP" ++ show i 
     show (AcDup  i              ) = "DUP" ++ show i 
     show (AcBop  s              ) = s 
+    show (AcCond cond           ) = "IF(" ++ show cond ++ ")" 
     show (AcCalldatacopy e f g  ) = "CALLDTCP" ++ show [e,f,g] 
     show (AcCodecopy     e f g  ) = "CDCP"     ++ show [e,f,g] 
     show (AcExtcodecopy e f g h ) = "EXCDCP" ++ show [e,f,g,h] 
@@ -70,6 +72,7 @@ instance Show Action where
 
 isCond :: Action -> Bool 
 isCond (AcBool _)           = True 
+isCond (AcCond _)           = True
 isCond _                    = False 
 
 isChk (AcCheck _ _)   = True

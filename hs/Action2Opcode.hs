@@ -49,6 +49,8 @@ swap i = case i of
 
 bop o   = case o of  
     "=="  ->  [EQ] 
+    "||"  ->  [OR] 
+    "&&"  ->  [AND] 
     "!="  ->  [EQ, NOT] 
     "<"   ->  [LT] 
     ">"   ->  [GT] 
@@ -63,6 +65,7 @@ bop o   = case o of
 action2opcode :: Action -> [OPCODE] 
 action2opcode a = case a of 
     AcStop                  -> [STOP]
+    AcCond cond             -> concat $ action2opcode <$> cond
     AcDispatch s            -> dispatch s
     AcRevert e1 e2          -> e2o e1 ++ e2o e2 ++ [REVERT] 
     AcReturn e1 e2          -> e2o e1 ++ e2o e2 ++ [RETURN] 

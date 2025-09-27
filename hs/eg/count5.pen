@@ -2,7 +2,7 @@ contract counter {
     
 
     method fibfour : () :=             
-        let fib k = if k == 0 then 1 else fib (k-1) + fib (k-2) ; 
+        let fib k = if (k==0) || (k==1) then 1 else fib (k-1) + fib (k-2) ; 
         fib 4
 
 } 
