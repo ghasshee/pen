@@ -127,9 +127,9 @@ pgTerm (es,cfg@(i,t,q,s,v,ctx,stx,ds)) tr =
         (es',(_,_,q' ,s' ,v' ,ctx' ,stx' ,ds' ))        = pgCond (es,   (i,Q q,q+2,s,v,ctx,stx,d_push 3 ds)) b
         (es'',(_,_,q'',s'',v'',ctx'',stx'',ds''))       = pgTerm  (es'++enotb, (Q q,t, q' ,s',v',ctx', stx',ds')) t1
         enotb                                           = [(i, AcSkip, Q(q+1))]    
-    RED (TmBOP o)[t1,t2]                ->  (es'' ++ [(Q(q+1),AcBop o,t)],(i'',t'',q'',s'',v'',ctx'',stx'',ds''))  where 
-        (es',(i',t',q',s',v',ctx',stx',ds''))           = pgTerm (es ,(i,Q q,q+2,s,v,ctx,stx,d_push 2 ds)) t1
-        (es'',(i'',t'',q'',s'',v'',ctx'',stx'',ds'''))  = pgTerm (es',(Q q,Q(q+1),q',s',v',ctx',stx',ds'')) t2 
+    RED (TmBOP o)[t1,t2]                ->  (es'' ++ [(Q(q+1),AcBop o,t)], cfg'')  where 
+        (es',(i',t',q',s',v',ctx',stx',ds''))       = pgTerm (es ,(i,Q q,q+2,s,v,ctx,stx,d_push 2 ds)) t1
+        (es'',cfg'')                                = pgTerm (es',(Q q,Q(q+1),q',s',v',ctx',stx',ds'')) t2 
     RED (TmSTO n) [] | n >= len stx'    ->  (es ++ [(i, AcSto (len stx            - n - 1), t)], cfg') 
     RED (TmSTO n) [] | stx /= stx'      ->  (es ++ [(i, AcSto (len stx - len stx' - n - 1), t)], cfg')  
     RED (TmSTO n) []                    ->  (es ++ [(i, AcSto (len stx            - n - 1), t)], cfg')  
