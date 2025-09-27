@@ -61,7 +61,7 @@ dup  i      = case i of
     14      -> DUP14 
     15      -> DUP15 
     16      -> DUP16 
-    _       -> error "DUP n: cannot duplicate more than depth 16" 
+    n       -> error $ "DUP n: cannot duplicate more than depth 16 n==" ++ show n 
 
 var s   = case s of 
     ('X':n)     -> ARG $ read n 

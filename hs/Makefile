@@ -39,6 +39,7 @@ test:  all
 	./Pen eg/count9.pen 
 	./Pen eg/count10.pen 
 	./Pen eg/count11.pen 
+	./Pen eg/count12.pen 
 
 # 
 # .DEFAULT_GOAL := all

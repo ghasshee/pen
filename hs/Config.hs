@@ -4,7 +4,6 @@ module Config where
 import Type 
 import Param
 import Node
-import DupDepth 
 import Utils
 
 
@@ -39,8 +38,9 @@ type StoCtx     = [ID]
 -- so the context is [Y,X,F] 
 
 type Config     = (INode, TNode, FreshNode, FreshSto, FreshVar, VarCtx, StoCtx) 
-type Config'    = (INode, TNode, FreshNode, FreshSto, FreshVar, VarCtx, StoCtx, DupDepth)
+type Config'    = (INode, TNode, FreshNode, FreshSto, FreshVar, VarCtx, StoCtx, Depth)
 
+type Depth      = Int 
 
 
 -- Storage assignment 
@@ -75,6 +75,7 @@ calc_arglen ctx n = calc (loop ctx n (hd ctx)) where
     calc              []        = error $ "calc_arglen: cannot reach here"
     calc (Fun _      :xs)       = 0
     calc (Arg (0,_,_):xs)       = 1 + calc xs
+    calc (Arg (-1,_,_):xs)      = 1 + calc xs 
     calc (Arg _      :xs)       = calc xs
 
 
