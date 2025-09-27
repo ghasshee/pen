@@ -117,6 +117,7 @@ pgTerm (es,cfg@(i,t,q,s,v,ctx,stx,d)) tr =
         Arg (0, qn, qx)                     -> (es ++ [(i, AcDup n',    t)], cfg_) where 
             n'                                      = calc_arglen ctx n - n + d  
         Arg (_, qn, qx)                     -> err "Dynamical Higher Order Function (Function Closure as Value) is prohibited."
+        Fun (0, qn, qx)                     -> (es ++ [(i, AcRecord i t, qn), (qx, AcCheck i t, t)], cfg_) 
         Fun (_, qn, qx)                     -> (es ++ [(i, AcSkip, qn), (qx, AcSkip, t)], cfg_) 
     RED TmIF [b,t1,t2]                  ->  pgTerm (es'', (Q(q+1),t, q'',s'',v'',ctx'', stx'',d''-1)) t2 where 
         (es',(_,_,q' ,s' ,v' ,ctx' ,stx' ,d'))      = pgCond (es,   (i,Q q,q+2,s,v,ctx,stx,d)) b
@@ -215,8 +216,8 @@ _pgCond (es, cfg@(i,t,q,s,v,ctx,stx,ds)) (RED (TmBOP op) [t1,t2]) =
 
 pgCond :: PG' -> Term -> PG' 
 pgCond (es, cfg@(i,t,q,s,v,ctx,stx,d)) tm = (es ++ econd' , (i,t,q',s',v',ctx,stx,d'-1)) where 
-    econd'                                      = [(i,AcCond (arrow <$> econd),t)] 
-    (econd,(i',t',q',s',v',ctx',stx',d'))       = pgTerm ([], (Q q, t,q,s,v,ctx,stx,d)) tm 
+    econd'                                      = [(i,AcCond,Q q)] ++ econd ++ [(Q(q+1),AcDonc,t)]  
+    (econd,(i',t',q',s',v',ctx',stx',d'))       = pgTerm ([], (Q q, Q(q+1), q+2,s,v,ctx,stx,d)) tm 
 
 
 pgBOP "!=" x y = Not (Eq x y)  
@@ -237,5 +238,6 @@ tm2exp ctx (RED (TmU256 n) [])  =   Ox n
 tm2exp ctx (RED (TmU8   n) [])  =   Ox (to n)
 tm2exp ctx (RED (TmDATA d) [])  =   Ox (data2nat d)
 tm2exp ctx (RED (TmBOP o)[x,y]) =   pgBOP o (tm2exp ctx x) (tm2exp ctx y)
+tm2exp ctx (RED (TmAPP  )[x,y]) =   App (tm2exp ctx x) (tm2exp ctx y)
 
     

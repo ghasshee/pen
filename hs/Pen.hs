@@ -165,11 +165,11 @@ main = do
 
     print "------ Fixpoint' ------"
     print stars
---}
+   
     print "------ Matrix Edge Representation -----" 
     print mats 
---    print as 
-{--
+      print as 
+   
     print "------ Confluences ------" 
     print $ map confluenceNodes as 
 
@@ -204,10 +204,10 @@ main = do
 --}
     print "------ Branches -----"
     print $ bs
-
+{--
     print "------ OPCODEs ------"
     print $ ops 
-{--
+   
     print "------ remove FUNSTACK OPCODE -----"
     print $ ops' 
 

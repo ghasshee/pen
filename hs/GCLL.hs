@@ -38,6 +38,7 @@ data EXPR   = Ox              Integer
             | Stk             Integer
             | Var              String
             | V              EVMVALUE
+            | App           EXPR EXPR 
             | Add           EXPR EXPR
             | Mul           EXPR EXPR 
             | Sub           EXPR EXPR
@@ -82,6 +83,7 @@ data EXPR   = Ox              Integer
 
 instance Show EXPR where 
     show x  = case x of 
+        App   f x       -> show f ++ "(" ++ show x ++ ")" 
         Ox n            -> "0x" ++ toHex n
         LABEL i         -> "Label " ++ show i 
         M  e            -> "M[" ++ show e ++ "]"

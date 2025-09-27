@@ -2,6 +2,7 @@ module Action where
 
 import GCLL
 import Node
+import Edge 
 import Semiring 
 
 
@@ -10,7 +11,8 @@ data Sto  = S Int deriving (Show, Eq, Read)
 
 
 data Action     = AcStop 
-                | AcCond [Action] 
+                | AcCond 
+                | AcDonc 
                 | AcDispatch String 
                 | AcRevert EXPR EXPR
                 | AcReturn EXPR EXPR
@@ -37,7 +39,9 @@ data Action     = AcStop
                 | AcRecord (Node Int) (Node Int)
                 | AcCheck  (Node Int) (Node Int)     
                 | AcSeq [Action] 
-                deriving (Eq, Read) 
+                deriving (Eq, Read)
+
+instance Ord Action where 
                 
 instance Show Action where 
     show (AcStop                ) = "STOP"
@@ -49,7 +53,8 @@ instance Show Action where
     show (AcSwap i              ) = "SWP" ++ show i 
     show (AcDup  i              ) = "DUP" ++ show i 
     show (AcBop  s              ) = s 
-    show (AcCond cond           ) = "IF(" ++ show cond ++ ")" 
+    show (AcCond                ) = "{" 
+    show (AcDonc                ) = "}" 
     show (AcCalldatacopy e f g  ) = "CALLDTCP" ++ show [e,f,g] 
     show (AcCodecopy     e f g  ) = "CDCP"     ++ show [e,f,g] 
     show (AcExtcodecopy e f g h ) = "EXCDCP" ++ show [e,f,g,h] 
@@ -69,10 +74,9 @@ instance Show Action where
     show (AcCheck  (Q i)(Q j)   ) = "CK" ++ show i ++ "/" ++ show j
 
 
-
 isCond :: Action -> Bool 
 isCond (AcBool _)           = True 
-isCond (AcCond _)           = True
+isCond (AcCond)             = True
 isCond _                    = False 
 
 isChk (AcCheck _ _)   = True
