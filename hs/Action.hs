@@ -42,6 +42,15 @@ data Action     = AcStop
                 deriving (Eq, Read)
 
 instance Ord Action where 
+    _ <= AcCond             = True 
+    _ <= AcDispatch _       = True 
+    _ <= AcCheck _ _        = True 
+    AcCond <= _             = False
+    AcDispatch _ <= _       = False
+    AcCheck _ _ <= _        = False 
+    _ <= _                  = True
+    
+
                 
 instance Show Action where 
     show (AcStop                ) = "STOP"
@@ -74,16 +83,21 @@ instance Show Action where
     show (AcCheck  (Q i)(Q j)   ) = "CK" ++ show i ++ "/" ++ show j
 
 
-isCond :: Action -> Bool 
-isCond (AcBool _)           = True 
-isCond (AcCond)             = True
-isCond _                    = False 
+isCnd :: Action -> Bool 
+isCnd (AcBool _)        = True 
+isCnd (AcCond)          = True
+isCnd _                 = False 
 
-isChk (AcCheck _ _)   = True
-isChk _               = False 
+isChk (AcCheck _ _)     = True
+isChk _                 = False 
 
 isDsp (AcDispatch s)    = True 
 isDsp _                 = False 
+
+isSkp (AcSkip)          = True   
+isSkp _                 = False 
+
+
 
 --instance Semiring [Action] where 
 --    zero    = [] 

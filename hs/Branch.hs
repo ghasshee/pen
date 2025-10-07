@@ -15,16 +15,18 @@ import Analysis
 import Action2Opcode
 import Utils 
 
-import Data.List (partition)
+import GHC.Exts  (sortWith) 
+import Data.List (partition) 
 ----------------------
 --- Branching      ---
 ----------------------
 
-data Branch a   = BIf  Int [a] Int [a] [a] Int Int   
-                | BIf' Int ([a],Int,Int,[a]) Int [a] [a] Int Int  
-                | BDp  Int [(a, Int, [a], Int)] 
-                | BCk  Int [(a, Int, [a], Int)]  
-                | BSq  Int [a] Int 
+data Branch a   = BIf   Int [a] Int [a] [a] Int Int   
+                | BIf'  Int ([a],Int,Int,[a]) Int [a] [a] Int Int  
+                | BIf'' Int ([a],Int,[(Int,[a],Int)],Int,[a]) Int [a] [a] Int Int 
+                | BDp   Int [(a, Int, [a], Int)] 
+                | BCk   Int [(a, Int, [a], Int)]  
+                | BSq   Int [a] Int 
                 | BZr
 
 
@@ -98,96 +100,100 @@ removeEdgeOR row = concat $ map (map putoffEdgeOR . decompEdgeOR) row
 --  [[a1,a2], [cond, a3,a4]] , 
 --  [[chk1, a1, ..], [chk2, a2, ..], ..] , 
 --  [[dsptch1, a1, ..], [dsptch2, a2, ..], ..] , 
+--  [[cond, a3, a4, rec5], [a1,a2]] 
 --  ] 
 --
 -- Now we pick up the branching condition from the list, 
 -- and transform them into data Branch. 
 
 
+type Edg    = Edge Int [Action] 
+type Edgs   = [Edg] 
+type Ac     = Action 
+type Br     = Branch 
+type Fresh  = FreshNode 
+
+sortEdgs :: Edgs -> Edgs
+sortEdgs = rev . sortWith (\(_,a:as,_) -> a) 
 
 
-partCond :: [Action] -> ([Action],[Action]) 
+partCond :: [Ac] -> ([Ac],[Ac]) 
 partCond as = loop1 as ([],[]) where 
     loop2 []          (bs,es) = (rev bs, rev es) 
     loop2 (a:as)      (bs,es) = loop2 as (bs    ,  a:es)
-    loop1 (AcBool e:as)    _  = ([AcBool e], as)
     loop1 (AcDonc:as) (bs,es) = loop2 as (AcDonc:bs, es)
     loop1 (a:as)      (bs,es) = loop1 as (a     :bs, es)
 
-findCond :: FreshNode -> [Edge Int [Action]] -> (FreshNode, Branch Action) 
-findCond q [(i,a:as,j), (i',AcSkip:as',j')] | isCond a  && i==i'    = (q+1, BIf i bs  q es as' j j' ) where 
-    (bs,es) = partCond (a:as) 
-findCond q [(i,AcSkip:as,j),(i',a':as',j')] | isCond a' && i==i'    = (q+1, BIf i bs q es as j' j ) where
-    (bs,es) = partCond (a':as') 
-findCond q ((i,a:as,j):es)                  | isDsp  a              = (n' , BDp i ((a, q, as, j):es')) where 
-    (n', es')                                                       = loop (q+1) es
-    loop n []                                                       = (n,  [])  
-    loop n ((i',a':as',j'):es') | isDsp a'   && i==i'               = (n', (a',n,as',j'):es'') 
-                                | a'==AcSkip && i==i'               = loop  n   (es'++[(i',a':as',j')]) where 
-            (n', es'')                                              = loop (n+1) es' 
-findCond n ((i,a:as,j):es)      | isChk a                           = (n', BCk i ((a, n, as, j): es'))  where 
-    (n', es')                                                       = loop (n+1) es 
-    loop n []                                                       = (n, [])  
-    loop n ((i',a':as',j'):es') | (isChk a' && i==i') || a'==AcSkip = (n', (a',n, as', j'): es'') where  (n', es'') = loop (n+1) es' 
-findCond n ((i,a:as,j):es)      | a==AcSkip                         = (n', BDp i ((a, n, as, j): es'))  where 
-    (n', es')                                                       = loop (n+1) es 
-    loop n []                                                       = (n, [])  
-    loop n ((i',a':as',j'):es') | (isDsp a' && i==i')               = (n', (a',n, as', j'): es'') where  (n', es'') = loop (n+1) es' 
-        
-findCond n [(i,as,j)]                                               = (n, BSq i as j)  
-findCond n []                                                       = (n, BZr) 
-findCond n e                                                        = error $ "findCond: [Unexpected Action Seq] " ++ show e   
+
+edgs2brs :: Fresh -> [Edgs] -> (Fresh, [Br Ac])
+edgs2brs q [] = (q,[]) 
+edgs2brs q (es:ess) = (q'', b:bs) where 
+    (q', b)     = edg2br q (sortEdgs es) 
+    (q'', bs)   = edgs2brs q' ess
+
+edg2br :: Fresh -> [Edg] -> (Fresh, Br Ac) 
+edg2br q ((i,a:as,j):es) | isCnd a      = (q', BIf i bs q es' as' j j') where 
+    (bs, es' )              = partCond (a:as) 
+    (q',[(_,_,as',j')])     = edg2br_cont (q+1) es isCnd
+edg2br q ((i,a:as,j):es) | isDsp a      = (q', BDp i ((a,q,as,j):brs)) where 
+    (q',brs)                = edg2br_cont (q+1) es isDsp 
+edg2br q ((i,a:as,j):es) | isChk a      = (q', BCk i ((a,q,as,j):brs)) where 
+    (q',brs)                = edg2br_cont (q+1) es isChk 
+edg2br q [(i,as,j)]                     = (q, BSq i as j)  
+edg2br q []                             = (q, BZr) 
+edg2br q e                              = error $ "edg2br: [Unexpected Action Seq] " ++ show e   
+
+edg2br_cont :: Fresh -> [Edg] -> (Ac -> Bool) -> (Fresh, [(Ac, Fresh, [Ac], Fresh)]) 
+edg2br_cont q es pred      =   loop q es where 
+        loop q []                               =   (q, []) 
+        loop q [(i',a':as',j')]     | isSkp a'  =   (q+1, [(a',q,as',j')]) 
+        loop q ((i',a':as',j'):es') | pred  a'  =   (q' ,  (a',q,as',j'):brs) where 
+            (q', brs)                           =   loop (q+1) es' 
 
 
-branching :: [[Edge Int [Action]]] -> [Branch Action] 
-branching _ess = br ++ bs where 
-    (ess,div)   = undivide _ess 
-    q           = length ess + 1
-    (q'',br)    = branchdivides q' div
-    (q', bs)    = loop q ess 
-    loop q []       = (q, [])
-    loop q (es:ess) = (q'', b:bs) where 
-        (q', b)     = findCond q es 
-        (q'', bs)   = loop q' ess
+branching :: [Edgs] -> [Br Ac] 
+branching ess = br ++ bs where 
+    (spliced,ess')  = splice ess 
+    q               = length ess + 1
+    (q', bs)        = edgs2brs q ess' 
+    (q'',br)        = branch_splices q' spliced
+
+branch_splices :: Int -> [Edgs] -> (Int, [Br Ac]) 
+branch_splices q []                       = (q, []) 
+branch_splices q (cond:conds) = (q'',(b:bs)) where 
+    (q',b)   = branch_splice  q  cond 
+    (q'',bs) = branch_splices q' conds
+
+branch_splice :: Int -> Edgs -> (Int, Br Ac) 
+branch_splice q [(i,cond,k),(l,donc_then,j),(_,_else,j')] = 
+    (q, BIf' i (cond,k,l,donc) q _then _else j j') where 
+        (donc, _then) = partCond donc_then 
+
+splice :: [Edgs] -> ([Edgs], [Edgs])
+splice ess = loop ess ([],[]) where 
+    loop []       (div,ret) = (div,ret)  
+    loop (es:ess) (div,ret) = case getAcCond es of 
+        ([],[],_)                   -> loop ess (div, es:ret) 
+        ([cond],[AcRecord i t],els) -> loop ess' (econd:div,ret) where
+            econd               = cond : donc : els
+            ([donc],ess')       = getAcCheck i t (ret++ess) 
+
+-- get  `divided AcCond` 
+getAcCond :: Edgs -> (Edgs,[Ac],Edgs)  
+getAcCond es = loop es ([],[],[]) where 
+    loop []     ret       = ret 
+    loop (e@(_,AcCond:as,_):es) (_,_,es') = case last as of 
+            AcRecord i t   -> ([e], [AcRecord i t], es ++ es')
+            _              -> loop es ([] , [],       e : es') 
+    loop (e:es) (_,_,es') = loop es ([],[],e:es') 
+
+getAcCheck :: Node Int -> Node Int -> [Edgs] -> (Edgs,[Edgs]) 
+getAcCheck i t  rows = loop rows ([],[]) where 
+    loop []       (e ,ret)  = (e,ret) 
+    loop (es:ess) (cs,ret)  = loop ess (_c_ ++ cs, es':ret) where 
+        (_c_,es') = partition (\e -> AcCheck i t ∈ arrow e) es 
 
 
-branchdivides :: Int -> [[Edge Int [Action]]] -> (Int, [Branch Action]) 
-branchdivides q []                       = (q, []) 
-branchdivides q (ifthenelse:ifthenelses) = (q'',(b:bs)) where 
-    (q',b)   = branchdivide  q  ifthenelse 
-    (q'',bs) = branchdivides q' ifthenelses
-branchdivide :: Int -> [Edge Int [Action]] -> (Int, Branch Action) 
-branchdivide q [(i,cond,k),(l,doncval,j),(_,_else,j')] = 
-    let (donc, _then) = partCond doncval in  
-    (q, BIf' i (cond,k,l,donc) q _then _else j j') 
-
-undivide :: [[Edge Int [Action]]] -> ([[Edge Int [Action]]], [[Edge Int [Action]]])
-undivide ess = loop ess [] [] where 
-    loop []                         ret div                  = (ret,div)  
-    loop (es:ess) ret div = case accond es of 
-        Just ((i,AcCond:as,j), es) | lastrecord as -> loop (ess') (es':ret) (ifthenelse:div) where 
-            ifthenelse              =   (i,AcCond:as,j) : (j', donc ,k) : es 
-            ([(j',donc,k)],es')     =   partition (\e -> AcCheck qi qt `elem` arrow e ) $ hd line 
-            (line, ess')            =   partition (accheck qi qt) (ret ++ ess) 
-            AcRecord qi qt          =   last as  
-        _                                          -> loop ess (es:ret) div 
-
-
-accheck ::  Node Int  -> Node Int  -> [Edge Int [Action]] -> Bool 
-accheck i t [] = False 
-accheck i t (e:es) = (AcCheck i t `elem` as ) || accheck i t es 
-    where  as = arrow e 
-     
-
-
-accond es = loop es [] where 
-    loop []                _        = Nothing 
-    loop (e@(_,AcCond:_,_):es) es'  = Just (e, es++es')  
-    loop (e:es) es'                 = return . ( ((:)e) <$> ) =<< loop es es' 
-
-lastrecord as = case last as of 
-    AcRecord _ _    -> True
-    _               -> False 
 
 
 branch :: Matrix (Edge Int (OR Action)) -> [Branch Action] 
