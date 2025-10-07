@@ -204,10 +204,10 @@ main = do
 --}
     print "------ Branches -----"
     print $ bs
-{--
+   
     print "------ OPCODEs ------"
     print $ ops 
-   
+{--
     print "------ remove FUNSTACK OPCODE -----"
     print $ ops' 
 
