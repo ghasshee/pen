@@ -208,17 +208,20 @@ pgArgs (es,cfg@(i,t,q,s,v,ctx,stx,d))(tm:tms)   =   pgArgs (es', (Q q,  t, q' ,s
 -- 4. in function call     ,  just value 
 
 
-_pgCond :: PG' -> Term -> PG' 
-_pgCond (es, cfg@(i,t,q,s,v,ctx,stx,ds)) (RED (TmBOP op) [t1,t2]) = 
-    (es ++ [(i,AcBool ((pgBOP op) t1' t2'), t)], (i,t,q,s,v,ctx,stx,ds)) where 
-        t1' = tm2exp ctx t1
-        t2' = tm2exp ctx t2 
-
 pgCond :: PG' -> Term -> PG' 
 pgCond (es, cfg@(i,t,q,s,v,ctx,stx,d)) tm = (es ++ econd' , (i,t,q',s',v',ctx,stx,d'-1)) where 
     econd'                                      = [(i,AcCond,Q q)] ++ econd ++ [(Q(q+1),AcDonc,t)]  
     (econd,(i',t',q',s',v',ctx',stx',d'))       = pgTerm ([], (Q q, Q(q+1), q+2,s,v,ctx,stx,d)) tm 
 
+
+
+
+{--
+_pgCond :: PG' -> Term -> PG' 
+_pgCond (es, cfg@(i,t,q,s,v,ctx,stx,ds)) (RED (TmBOP op) [t1,t2]) = 
+    (es ++ [(i,AcBool ((pgBOP op) t1' t2'), t)], (i,t,q,s,v,ctx,stx,ds)) where 
+        t1' = tm2exp ctx t1
+        t2' = tm2exp ctx t2 
 
 pgBOP "!=" x y = Not (Eq x y)  
 pgBOP "==" x y = Eq  x y
@@ -239,5 +242,5 @@ tm2exp ctx (RED (TmU8   n) [])  =   Ox (to n)
 tm2exp ctx (RED (TmDATA d) [])  =   Ox (data2nat d)
 tm2exp ctx (RED (TmBOP o)[x,y]) =   pgBOP o (tm2exp ctx x) (tm2exp ctx y)
 tm2exp ctx (RED (TmAPP  )[x,y]) =   App (tm2exp ctx x) (tm2exp ctx y)
-
+--}
     
