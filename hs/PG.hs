@@ -145,7 +145,7 @@ pgTermApp (es,cfg@(i,t,q,s,v,ctx,stx,d)) (RED TmAPP [t1,t2]) cont = case t1 of
     RED (TmVAR n) []    ->  case searchFun n ctx of 
         Fun(0,_,_)          -> error $ "pgTermApp: illegal TmVAR " ++ show n ++ ":Fun " ++ show ctx
         Arg(0,_,_)          -> error $ "pgTermApp: illegal TmVAR " ++ show n ++ ":Arg " ++ show ctx
-        Arg(_,qn,qx){--f@f(f x)--}  -> pgArgs (es++eent++ercd++echk++eexit,(Q q,Q(q+1),q+3,s,v,ctx,stx,d)) (t2:cont) where 
+        Arg(_,qn,qx){--f@f(f x)--}  ->  pgArgs  (es++eent++ercd++echk++eexit,(Q q,Q(q+1),q+3,s,v,ctx,stx,d)) (t2:cont) where 
             eent                =   [(i     , AcEnter     , Q q     )] 
             ercd                =   [(Q(q+1), AcRecord i t, qn      )]
             echk                =   [(qx    , AcCheck  i t, Q(q+2)  )] 
@@ -175,20 +175,20 @@ pgArgs' pg []                                                      = pg
 pgArgs' (es,cfg@(i,t,q,s,v,ctx@(cs:css),stx,d)) (argctx:argctxs)  =  
     let cfg_ = (i,t,q,s,v,ctx,stx,d+1) in 
     case argctx of 
-    (RED(TmVAR n)[], Arg(0,_,_)) | var_out_of_ctx ctx n -> (es ++ e,cfg) where 
+    (RED(TmVAR n)[], Arg(0,_,_)) | var_out_of_ctx ctx n ->  (es ++ e,cfg) where 
         Fun(0,qn,qx)                =  searchFun n ctx 
         e                           =  [(i,AcSkip,qn), (qx,AcSkip,t)] 
-    (RED(TmVAR n)[], Arg(0,qn,qx)) | no_varg argctxs  -> pgArgs' (es ++ earg, cfg_) argctxs where 
+    (RED(TmVAR n)[], Arg(0,_,_)) | no_varg argctxs      ->  pgArgs' (es ++ earg, cfg_) argctxs where 
         earg                        = [(i, AcDup n',    t)]
         n'                          = calc_arglen ctx n - n + d
-    (RED(TmVAR n)[], Arg(0,qn,qx))  -> pgArgs' (es ++ earg, cfg') argctxs where 
+    (RED(TmVAR n)[], Arg(0,_,_))                        ->  pgArgs' (es ++ earg, cfg') argctxs where 
         earg                        = [(i, AcDup n',  Q q)]
         n'                          = calc_arglen ctx n - n + d 
         cfg'                        = (Q q,t,q+1,s,v,ctx,stx,d+1)  
-    (tm, Arg(0,qn,qx)) | no_varg argctxs  ->  pgArgs' (pgTerm (es,cfg) tm) argctxs 
-    (tm, Arg(0,qn,qx))                    ->  pgArgs' (es',(Q q,t,q',s',v',ctx',stx',d')) argctxs where 
+    (tm,             Arg(0,_,_)) | no_varg argctxs      ->  pgArgs' (pgTerm (es,cfg) tm) argctxs 
+    (tm,             Arg(0,_,_))                        ->  pgArgs' (es',(Q q,t,q',s',v',ctx',stx',d')) argctxs where 
         (es',(_,_,q',s',v',ctx',stx',d'))  = pgTerm  (es,(i,Q q,q+1,s,v,ctx,stx,d)) tm  
-    (RED(TmVAR n)[], Arg(l,qn,qx)) {-- Higher Order Arg --} -> pgArgs' (es ++ earg, cfg_) argctxs where 
+    (RED(TmVAR n)[], Arg(l,qn,qx)){--Higher Order Arg--}->  pgArgs' (es ++ earg, cfg_) argctxs where 
         Fun(_,qn',qx')              = searchFun n ctx   
         earg                        = [(qn, AcRecord i t, qn'), (qx', AcCheck i t, qx)] 
     e -> error $ "pgArgs: not supported arg " ++ show e 
