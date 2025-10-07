@@ -31,7 +31,8 @@ data Branch a   = BIf   Int [a] Int [a] [a] Int Int
 
 
 instance Show a => Show (Branch a) where 
-    show (BIf' i c q as bs j k) = "(" ++ show i ++ ",IF " ++ show c ++ " THEN{" ++ show q ++ "} " ++ show as ++ " ELSE " ++ show bs ++ ", (" ++ show j ++ "," ++ show k ++ "))"
+    show (BIf' i c q as bs j k) = "(" ++ show i ++ ",IF' " ++ show c ++ " THEN{" ++ show q ++ "} " ++ show as ++ " ELSE " ++ show bs ++ ", (" ++ show j ++ "," ++ show k ++ "))"
+    show (BIf'' i c q as bs j k) = "(" ++ show i ++ ",IF'' " ++ show c ++ " THEN{" ++ show q ++ "} " ++ show as ++ " ELSE " ++ show bs ++ ", (" ++ show j ++ "," ++ show k ++ "))"
     show (BIf i c q as bs j k) = "(" ++ show i ++ ",IF " ++ show c ++ " THEN{" ++ show q ++ "} " ++ show as ++ " ELSE " ++ show bs ++ ", (" ++ show j ++ "," ++ show k ++ "))"
     show (BDp i dsps)        = "(" ++ show i ++ ", [" ++ showChks dsps ++ ")" where 
         showChks []                     = "]"
@@ -123,6 +124,7 @@ partCond as = loop1 as ([],[]) where
     loop2 (a:as)      (bs,es) = loop2 as (bs    ,  a:es)
     loop1 (AcDonc:as) (bs,es) = loop2 as (AcDonc:bs, es)
     loop1 (a:as)      (bs,es) = loop1 as (a     :bs, es)
+    loop1 []          (bs,es) = (rev bs, rev es) 
 
 
 edgs2brs :: Fresh -> [Edgs] -> (Fresh, [Br Ac])
@@ -168,6 +170,11 @@ branch_splice :: Int -> Edgs -> (Int, Br Ac)
 branch_splice q [(i,cond,k),(l,donc_then,j),(_,_else,j')] = 
     (q, BIf' i (cond,k,l,donc) q _then _else j j') where 
         (donc, _then) = partCond donc_then 
+branch_splice q ((i,cond,k):es) = 
+    (q, BIf'' i (cond,k,init es,l, donc) q _then _else j j') where 
+        (donc, _then) = partCond donc_then
+        (_,_else,j')  = last es 
+        (l,donc_then,j) = last $ init es 
 
 splice :: [Edgs] -> ([Edgs], [Edgs])
 splice ess = loop ess ([],[]) where 
@@ -175,8 +182,8 @@ splice ess = loop ess ([],[]) where
     loop (es:ess) (div,ret) = case getAcCond es of 
         ([],[],_)                   -> loop ess (div, es:ret) 
         ([cond],[AcRecord i t],els) -> loop ess' (econd:div,ret) where
-            econd               = cond : donc : els
-            ([donc],ess')       = getAcCheck i t (ret++ess) 
+            econd               = cond : doncs ++ els
+            (doncs,ess')       = getAcChecks i t (ret++ess) 
 
 -- get  `divided AcCond` 
 getAcCond :: Edgs -> (Edgs,[Ac],Edgs)  
@@ -186,6 +193,18 @@ getAcCond es = loop es ([],[],[]) where
             AcRecord i t   -> ([e], [AcRecord i t], es ++ es')
             _              -> loop es ([] , [],       e : es') 
     loop (e:es) (_,_,es') = loop es ([],[],e:es') 
+
+
+--getAcChecks :: Node Int -> Node Int -> [Edgs] -> (Edgs, [Edgs]) 
+getAcChecks i t rows = 
+    let ([e], rows') = getAcCheck i t rows in 
+    case last (arrow e) of 
+        AcRecord i' t'  -> 
+            let (es, rows'') = getAcChecks i' t' rows' in 
+            (e:es, rows'') 
+        _               ->  ([e], rows')  
+
+        
 
 getAcCheck :: Node Int -> Node Int -> [Edgs] -> (Edgs,[Edgs]) 
 getAcCheck i t  rows = loop rows ([],[]) where 
