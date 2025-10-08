@@ -75,7 +75,7 @@ Currently, Kripke world is not implemented.
 Owing to Matrix Analysis and Branching, code generation is very simple. 
 We could make a virtual stack on memeory, and control from which we entered the branching points. 
 If we entered the branching points by recording `A`, then we push `A` to the stack. So, if we come accross a checkpoints, 
-we have to select the branch whose starting Action is `AcCheck A`. This is the semantics. of `AcRecord` and `AcCheck`, which determines function call statically. 
+we have to select the branch whose starting Action is `AcCheck A`. This is the semantics of `AcRecord` and `AcCheck`, which determines function call statically. 
 
 
 Under Construction. 
