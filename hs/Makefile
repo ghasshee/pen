@@ -1,4 +1,5 @@
-
+nix: 
+	nix-shell 
 
 
 .PHONY: clean pappy
