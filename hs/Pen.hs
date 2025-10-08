@@ -138,6 +138,8 @@ main = do
     let gclls   :: [[GCLL]]
         gclls   = map optrees2stmts optrees 
 
+    let bytes   :: [String] 
+        bytes   = asm <$> ops' 
 
     print "------ Abstract Syntax Tree -------"
     print asts
@@ -216,6 +218,9 @@ main = do
 
     print "------ GCLLs  -------"
     print $ gclls 
+
+    print "------ EVM ByteCodes ------"
+    print $ bytes 
     
     print "----- Crypto Test ----"
     print "set(uint256) hash is: " 

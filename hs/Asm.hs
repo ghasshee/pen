@@ -160,6 +160,7 @@ toByte o = case o of
                 where 
                     hex      = concat . map (toHex . toInteger . ord) 
                     (cs, bs) = span (not . isHex) s 
+           _                                  ->  "??"
 
 
 size :: OPCODE -> Int
