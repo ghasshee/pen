@@ -1,4 +1,4 @@
-# Pen 
+# PΞN 
 
 Pen is a Compiler that compiles the High-Level Language into EVM bytecodes. 
 
