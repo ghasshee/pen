@@ -2,13 +2,7 @@
 
 Pen is a Compiler that compiles the High-Level Language into EVM bytecodes. 
 
-
-
-
-
-## Build 
-
-You might need Haskell compiler  and some libraries. 
+To build the compiler, you might need Haskell compiler  and some libraries. 
 
 Goto `pen/hs/` directory and then type `make` and push enter key. 
 
