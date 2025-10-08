@@ -194,8 +194,8 @@ pgArgs' (es,cfg@(i,t,q,s,v,cx@(cs:css),sx,d)) (argcx:argcxs)  =
     e                                               -> error $ "pgArgs: not supported arg " ++ show e 
 
 
-pgArgs :: PG' -> [Term] -> PG' 
-pgArgs pg [tm]                              =   pgTerm pg tm 
+pgArgs ::       PG'     ->      [Term]      ->  PG' 
+pgArgs  pg                      [tm]        =   pgTerm pg tm 
 pgArgs (es,(i,t,q,s,v,cx,sx,d)) (tm:tms)    =   pgArgs (es',(Q q,t,q' ,s',v',cx',sx',d')) tms where 
     (es',(_,_,q',s',v',cx',sx',d'))         =   pgTerm (es, (i,Q q,q+1,s ,v ,cx ,sx ,d )) tm              
 
