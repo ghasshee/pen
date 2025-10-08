@@ -27,9 +27,13 @@ So, we use Higher Order Function statically. That is, we statically connect func
 
 ## Program Analysis 
 
+We analyze programs visually and mathematically, on "semiring matrix" representation of program graphs.
+Program Graph is a weighted graph whose weight is called "Action" which compose a semiring whose "addition" is "Logical OR" and whose "multiplication" is to "execute sequencially". Zero of Action is "Error" and one is "Skip" i.e. do nothing and just execute the next Action. With this semantics, we can make a semiring matrix M . Starting point is `V = (1,0,0,0, .. , 0)^T` and we could analysing the whole behavior with `star`ing the matrix M, i.e. `M^* T`. 
+For more detail of the theory, you could refer to [Automata Theory](https://ems.press/books/standalone/174) and [Program Graph](https://arxiv.org/abs/2012.10086). 
 
-### News : Type Inference & Higher Order Function is Now supported in pen compiler !!
 
+
+### Build / Run 
 
 ```
 $ cd hs 
