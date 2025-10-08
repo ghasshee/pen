@@ -6,7 +6,7 @@ module Node where
 import Set 
 import Mapping
 
--- || Ddfinition || 
+-- || Definition || 
 
 data Node s = Q s                 
             deriving (Eq,Ord,Read) 
