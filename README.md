@@ -67,7 +67,10 @@ Currently, Kripke world is not implemented.
 
 
 
-### Code Generation 
+## Code Generation 
+
+
+### Assembler 
 
 Owing to Matrix Analysis and Branching, code generation is very simple. 
 We could make a virtual stack on memeory, and control from which we entered the branching points. 
@@ -76,6 +79,15 @@ we have to select the branch whose starting Action is `AcCheck A`. This is the s
 
 
 Under Construction. 
+
+### Linker / Loader 
+
+
+In order to link contracts, we need to know contract addresses. 
+Contract is created by `CREATE` and `CREATE2`. 
+In order to calculate the Hash value which is needed by creation, 
+we have already implemented `RLP.hs` and `Crypto.hs` library modules. 
+However the contract layout generation is not supported currently. 
 
 
 ### Deploying a contract 
