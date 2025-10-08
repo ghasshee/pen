@@ -18,7 +18,6 @@ import Data
 import Datatype
 import Utils
 
-import Data.Tuple.Extra (fst3, snd3, thd3) 
 import Data.List (partition) 
 
 import Prelude hiding (partition) 
