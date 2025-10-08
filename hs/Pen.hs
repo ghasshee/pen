@@ -204,7 +204,7 @@ main = do
 --}
     print "------ Branches -----"
     print $ bs
-{--
+   
     print "------ OPCODEs ------"
     print $ ops 
    
@@ -216,7 +216,7 @@ main = do
 
     print "------ GCLLs  -------"
     print $ gclls 
---} 
+    
     print "----- Crypto Test ----"
     print "set(uint256) hash is: " 
     print $ dispatcherHash "set(uint256)" 
