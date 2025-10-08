@@ -8,7 +8,7 @@ Goto `pen/hs/` directory and then type `make` and push enter key.
 
 ## Type Inference 
 
-Pen compiler support Hindley-Milnor Type Inference. (See [TaPL (Chapter 21,22)](https://www.cis.upenn.edu/~bcpierce/tapl/).)
+Pen compiler support [Hindley-Milnor Type Inference](https://www.cis.upenn.edu/~bcpierce/tapl/).
 Type Inference is one of the goal of Statically Type Checking implementation which is used for Type Safety of the programs. 
 Additionally, in Pen compiler, for the sake of pointing out which functions and variables are "Higher Order" in the source code, we need to get the information of their "types".  
 
@@ -119,7 +119,7 @@ This is @pirapira(bamboo creator) 's innovative idea, which, I do not know, will
 
 2. Type is embeded into Term : this feature seems bad. Because, 
 it makes us difficult to separate AST of terms and AST of types. 
-But, However, this design enable avoiding full type system, which seems a bit expensive. 
+But, However, this design enable avoiding full type system, which seems a bit expensive for designing. 
 
 
 
