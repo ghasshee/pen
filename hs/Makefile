@@ -1,5 +1,3 @@
-nix: 
-	nix-shell 
 
 
 .PHONY: clean pappy
@@ -7,6 +5,8 @@ nix:
 all: pappy
 	ghc Pen
 
+nix: 
+	nix-shell 
 
 pappy: 
 	#cd Pappy && make 
