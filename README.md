@@ -13,6 +13,18 @@ You might need Haskell compiler  and some libraries.
 Goto `pen/hs/` directory and then type `make` and push enter key. 
 
 
+## Type Inference 
+
+Pen compiler support Hindley-Milnor Type Inference. (See [TaPL (Chapter 21,22)](https://www.cis.upenn.edu/~bcpierce/tapl/).)
+Type Inference is one of the goal of Statically Type Checking implementation which is used for Type Safety of the programs. 
+Additionally, in Pen compiler, for the sake of pointing out which functions and variables are "Higher Order" in the source code, we need to get the information of their "types".  
+
+## Static Higher Order Functions 
+
+The simplest way to achieve Higher Order Functions are `Lisp's Closures`. It handles functions as values, that is we can push functions on the stack and pass as a returning value to callers. `Closure` has the data consisting of function address and function argument informattions, and its environment (context, i.e. free variables of the function). In this Closure style's Higher Order Function is dynamic. Dynamic Function Call is to be avoided. 
+So, we use Higher Order Function statically. That is, we statically connect function callers and function callees. No dynamic call is used. For more detail, see `pen/hs/PG.hs` .  
+
+
 ## Program Analysis 
 
 
