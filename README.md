@@ -27,9 +27,17 @@ So, we use Higher Order Function statically. That is, we statically connect func
 
 ## Program Analysis 
 
+
+### Program Graph and Matrix representation 
+
+
 We analyze programs visually and mathematically, on "semiring matrix" representation of program graphs.
 Program Graph is a weighted graph whose weight is called "Action" which compose a semiring whose "addition" is "Logical OR" and whose "multiplication" is to "execute sequencially". Zero of Action is "Error" and one is "Skip" i.e. do nothing and just execute the next Action. With this semantics, we can make a semiring matrix M . Starting point is `V = (1,0,0,0, .. , 0)^T` and we could analysing the whole behavior with `star`ing the matrix M, i.e. `M^* T`. 
 For more detail of the theory, you could refer to [Automata Theory](https://ems.press/books/standalone/174) and [Program Graph](https://arxiv.org/abs/2012.10086). 
+
+
+![Analyzing the pen source code and showing the resulting program graph and its matrix representation.](/images/program_graph_and_matrix.png) 
+
 
 
 
@@ -43,17 +51,19 @@ $ ./Pen eg/count9.pen
 
 The above command might analyze the pen source code and show the resulting program flow graph matrix. 
 
-
 ![](/images/type_inference.png) 
 
 
+### Singularity Analysis ~ Bifurcations and Confluences 
+
+After Semiring Operation `*`, we could multiply sequence of Actions. And the matrix and simplified and we could go to the 
+analysis of singular points. After that singularity analysis, we could get branching(bifurcation) points and conflueces. 
+Most of the analysis is developped in the `pen/hs/Analysis.hs` file, and Matrix operation is defined in `Mat.hs`. 
+After the analysis, we define Branching data structure in `Branch.hs` file, which is used to create a branch i.e. `if _ then _ else _` structure. 
 
 
-### Program Graph and Matrix representation 
 
-The above command might analyze the pen source code and show the resulting program graph and its matrix representation. 
 
-![](/images/program_graph_and_matrix.png) 
 
 
 
