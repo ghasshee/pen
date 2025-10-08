@@ -102,11 +102,12 @@ Currently Not Supported.
 
 ## History 
 
-### Old Project (deprecated bamboo modification and its History) 
+
+### Old Project ( Deprecated bamboo modification ) 
 
 Original motivation of Pen compiler starts with modification of bamboo. 
-It halved unreadable and unusable source code of bamboo and had new features that bamboo did not have. 
-However, finally, it turned out that the original design was too untidy to build a nice compiler. 
+We halved unreadable and unusable source code of bamboo and had new features that bamboo did not have. 
+However, finally, it turned out the original design was too untidy for us to build a nice compiler. 
  
 Still the codes, design, and the architecture of bamboo seemed terribly bad towards formal language, 
 it had some philosophy, which we might appreciate. 
@@ -118,7 +119,7 @@ This is @pirapira(bamboo creator) 's innovative idea, which, I do not know, will
 
 2. Type is embeded into Term : this feature seems bad. Because, 
 it makes us difficult to separate AST of terms and AST of types. 
-But, However, this design enable avoiding full type system, which seems expensive for designing. 
+But, However, this design enable avoiding full type system, which seems a bit expensive. 
 
 
 
