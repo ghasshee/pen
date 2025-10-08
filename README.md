@@ -63,13 +63,34 @@ After the analysis, we define Branching data structure in `Branch.hs` file, whic
 
 
 
+### Kripke Semantics 
+
+After matrices are analyzed and organized very well, we could munipulate matrices by Kripke worlds. 
+The points of graphs are manipulated in order to fit various situations. 
+And this Matrix Manipulation, is the formal verification itself analytically. 
+
+Currently, Kripke world is not implemented. 
 
 
+
+
+### Code Generation 
+
+Owing to Matrix Analysis and Branching, code generation is very simple. 
+We could make a virtual stack on memeory, and control from which we entered the branching points. 
+If we entered the branching points by recording `A`, then we push `A` to the stack. So, if we come accross a checkpoints, 
+we have to select the branch whose starting Action is `AcCheck A`. This is the semantics. of `AcRecord` and `AcCheck`, which determines function call statically. 
+
+
+Under Construction. 
 
 
 ## Deploying a contract 
 
-Currently Not Supported 
+After the bytecode generation, we have to make ABI information in order to deploy the bytecode into the Blockchain.  
+For the detail, see solidity documentation or, the old project. 
+
+Currently Not Supported. 
 
 
 
