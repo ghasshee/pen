@@ -85,7 +85,7 @@ we have to select the branch whose starting Action is `AcCheck A`. This is the s
 Under Construction. 
 
 
-## Deploying a contract 
+### Deploying a contract 
 
 After the bytecode generation, we have to make ABI information in order to deploy the bytecode into the Blockchain.  
 For the detail, see solidity documentation or, the old project. 
