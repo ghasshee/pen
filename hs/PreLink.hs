@@ -2,7 +2,7 @@ module PreLink where
 
 
 
-data PreLinkValue   -- = LABEL Int             -- JUMPDEST Label 
+data PreLinkValue   -- = LABEL Int          -- JUMPDEST Label 
                     = FUN Int               -- Function Stack Number
                     | CR_SIZE               -- creation codesize
                     | RN_SIZE               -- runtime codesize 

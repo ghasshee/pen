@@ -50,6 +50,7 @@ import Asm
 
 
 import Print
+import Utils 
 
 import System.IO 
 import System.Environment 
@@ -118,8 +119,11 @@ main = do
     let decompss :: [[Matrix (OR Action)]] 
         decompss = map directSumDecompose ms 
 
+    let ns'     :: [Matrix (Edge Int (OR Action))] 
+        ns'     =  hd (directSumDecompose <$> ns)
+
     let bs      :: [[Branch Action]] 
-        bs      = map branch ns 
+        bs      = map branch ns'
 
     let ops     :: [[OPCODE]] 
         ops     = map branches2opcodes bs 
@@ -212,13 +216,13 @@ main = do
    
     print "------ remove FUNSTACK OPCODE -----"
     print $ ops' 
-
+        {--
     print "------ OpTrees ------"
     print $ optrees 
 
     print "------ GCLLs  -------"
     print $ gclls 
-
+--}
     print "------ EVM ByteCodes ------"
     print $ bytes 
     

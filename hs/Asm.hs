@@ -1,19 +1,58 @@
 module Asm where 
 
 import Data.Char
+import PreLink
 import Prelude hiding (EQ,LT,GT) 
 
 import Opcode
-import Hex
+import Utils 
+import Hex (isHex, toHex) 
+
+import Text.Printf (printf) 
+
+
+
+hex i n = printf ( "%0" ++ show i ++ "X" ) n 
 
 
 
 
 asm :: [OPCODE] -> String 
-asm = map toLower . concat . map toByte 
+asm ops = map toLower $ concat (map (toByte ops') ops') 
+    where ops' :: [(Int, OPCODE)] 
+          ops' = withSize ops 
 
-toByte  :: OPCODE -> String
-toByte o = case o of 
+withSize :: [OPCODE] -> [(Int, OPCODE)] 
+withSize ops = zip (scanl1 (+) (size <$> ops)) ops 
+
+withOffset :: [OPCODE] -> [(Int, OPCODE)] 
+withOffset ops = loop ops [] where 
+    loop [] ret = rev ret 
+    loop (o:os) ((i,PUSHDEST k):rest)   = loop os $ (i + size(PUSHDEST k),o):(i,PUSHDEST k):rest
+    loop (o:os) ((i,op        ):rest)   = loop os $ (i+size op,o):(i,op):rest
+
+
+
+findDEST :: Int -> [(Int,OPCODE)] -> OPCODE
+findDEST i []                           = INVALID
+findDEST i ((d,JUMPDEST i'):os) | i==i' = PUSH8 $ to d 
+findDEST i (o:os)                       = findDEST i os 
+
+rmPUSH :: OPCODE -> OPCODE 
+rmPUSH (PUSH (FUN n)) = mkPUSH (pushsize $ to n) (toInteger n) 
+
+pushsize :: Integer  -> Int 
+pushsize 0      = 0 
+pushsize 1      = 1
+pushsize i      = 1 + pushsize (i `div` 0x100) 
+
+mkPUSH :: Int -> Integer -> OPCODE
+mkPUSH n x = read ("PUSH" ++ show n ++ " " ++ show x) 
+
+toByte  :: [(Int ,OPCODE)] -> (Int, OPCODE) -> String
+toByte ops (i,o) = case o of 
+           --PUSHDEST              i            ->  toByte ops (i, rmPUSH (PUSH (FUN (findDEST i ops))))
+           PUSHDEST     i                     ->  toByte ops (i, findDEST i ops) 
            STOP                               ->  "00"
            ADD                                ->  "01"
            MUL                                ->  "02"
@@ -77,38 +116,39 @@ toByte o = case o of
            MSIZE                              ->  "59"
            GAS                                ->  "5A"
            JUMPDEST _                         ->  "5B"
-           PUSH1  v                           ->  "60" ++  toHex v
-           PUSH2  v                           ->  "61" ++  toHex v
-           PUSH3  v                           ->  "62" ++  toHex v
-           PUSH4  v                           ->  "63" ++  toHex v
-           PUSH5  v                           ->  "64" ++  toHex v
-           PUSH6  v                           ->  "65" ++  toHex v
-           PUSH7  v                           ->  "66" ++  toHex v
-           PUSH8  v                           ->  "67" ++  toHex v
-           PUSH9  v                           ->  "68" ++  toHex v
-           PUSH10 v                           ->  "69" ++  toHex v
-           PUSH11 v                           ->  "6A" ++  toHex v
-           PUSH12 v                           ->  "6B" ++  toHex v
-           PUSH13 v                           ->  "6C" ++  toHex v
-           PUSH14 v                           ->  "6D" ++  toHex v
-           PUSH15 v                           ->  "6E" ++  toHex v
-           PUSH16 v                           ->  "6F" ++  toHex v
-           PUSH17 v                           ->  "70" ++  toHex v
-           PUSH18 v                           ->  "71" ++  toHex v
-           PUSH19 v                           ->  "72" ++  toHex v
-           PUSH20 v                           ->  "73" ++  toHex v
-           PUSH21 v                           ->  "74" ++  toHex v
-           PUSH22 v                           ->  "75" ++  toHex v
-           PUSH23 v                           ->  "76" ++  toHex v
-           PUSH24 v                           ->  "77" ++  toHex v
-           PUSH25 v                           ->  "78" ++  toHex v
-           PUSH26 v                           ->  "79" ++  toHex v
-           PUSH27 v                           ->  "7A" ++  toHex v
-           PUSH28 v                           ->  "7B" ++  toHex v
-           PUSH29 v                           ->  "7C" ++  toHex v
-           PUSH30 v                           ->  "7D" ++  toHex v
-           PUSH31 v                           ->  "7E" ++  toHex v
-           PUSH32 v                           ->  "7F" ++  toHex v
+           PUSH0                              ->  "5F" 
+           PUSH1  v                           ->  "60" ++  hex 1  v
+           PUSH2  v                           ->  "61" ++  hex 2  v
+           PUSH3  v                           ->  "62" ++  hex 3  v
+           PUSH4  v                           ->  "63" ++  hex 4  v
+           PUSH5  v                           ->  "64" ++  hex 5  v
+           PUSH6  v                           ->  "65" ++  hex 6  v
+           PUSH7  v                           ->  "66" ++  hex 7  v
+           PUSH8  v                           ->  "67" ++  hex 8  v
+           PUSH9  v                           ->  "68" ++  hex 9  v
+           PUSH10 v                           ->  "69" ++  hex 10 v
+           PUSH11 v                           ->  "6A" ++  hex 11 v
+           PUSH12 v                           ->  "6B" ++  hex 12 v
+           PUSH13 v                           ->  "6C" ++  hex 13 v
+           PUSH14 v                           ->  "6D" ++  hex 14 v
+           PUSH15 v                           ->  "6E" ++  hex 15 v
+           PUSH16 v                           ->  "6F" ++  hex 16 v
+           PUSH17 v                           ->  "70" ++  hex 17 v
+           PUSH18 v                           ->  "71" ++  hex 18 v
+           PUSH19 v                           ->  "72" ++  hex 19 v
+           PUSH20 v                           ->  "73" ++  hex 20 v
+           PUSH21 v                           ->  "74" ++  hex 21 v
+           PUSH22 v                           ->  "75" ++  hex 22 v
+           PUSH23 v                           ->  "76" ++  hex 23 v
+           PUSH24 v                           ->  "77" ++  hex 24 v
+           PUSH25 v                           ->  "78" ++  hex 25 v
+           PUSH26 v                           ->  "79" ++  hex 26 v
+           PUSH27 v                           ->  "7A" ++  hex 27 v
+           PUSH28 v                           ->  "7B" ++  hex 28 v
+           PUSH29 v                           ->  "7C" ++  hex 29 v
+           PUSH30 v                           ->  "7D" ++  hex 30 v
+           PUSH31 v                           ->  "7E" ++  hex 31 v
+           PUSH32 v                           ->  "7F" ++  hex 32 v
            DUP1                               ->  "80"
            DUP2                               ->  "81"
            DUP3                               ->  "82"
@@ -156,15 +196,17 @@ toByte o = case o of
            REVERT                             ->  "FD"
            INVALID                            ->  "FE"
            SELFDESTRUCT                       ->  "FF"
-           INFO s                             ->  hex cs ++ bs 
+           INFO s                             ->  hex' cs ++ bs 
                 where 
-                    hex      = concat . map (toHex . toInteger . ord) 
+                    hex'      = concat . map (toHex . toInteger . ord) 
                     (cs, bs) = span (not . isHex) s 
-           _                                  ->  "??"
+           e                                  ->  "??" ++ show e ++ "??"
 
 
 size :: OPCODE -> Int
 size o = case o of 
+           PUSH (INT i)                       ->  1 + pushsize i 
+           PUSHDEST _                         ->  9  
            STOP                               ->  1
            ADD                                ->  1
            MUL                                ->  1
@@ -228,6 +270,7 @@ size o = case o of
            MSIZE                              ->  1
            GAS                                ->  1
            JUMPDEST _                         ->  1
+           PUSH0                              ->  1 
            PUSH1  v                           ->  2
            PUSH2  v                           ->  3
            PUSH3  v                           ->  4
@@ -308,6 +351,8 @@ size o = case o of
            INVALID                            ->  1
            SELFDESTRUCT                       ->  1
            INFO s                             ->  (length s) * 2 
+           e                                  -> error $ "size: undefined on " ++ show e  
+
 
 
 

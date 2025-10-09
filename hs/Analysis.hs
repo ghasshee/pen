@@ -185,35 +185,7 @@ zeroSuccNodes a i   = length (succNodes i a) == 0
 zeroPredNodes a i   = length (predNodes i a) == 0 
 
 
-{--
 
--- || Loop Entrance Nodes & Confluence Nodes || -- 
-loopEntranceNodes :: (Eq a, Semiring a) => Matrix a -> ([Int], [Int])
-loopEntranceNodes a = loop 1 [] [[]] [] [] [] where 
-  loop curr uncles (ans:ancestors) reached confluences entrances 
-    | curr ∈ concat ancestors   = case uncles of 
-        []          -> (curr : entrances, confluences ) 
-        [u]   :uss  -> loop u uss      ([]:ancestors) (ans ++ reached) confluences (curr : entrances) 
-        (u:us):uss  -> loop u (us:uss) ([]:ancestors) (ans ++ reached) confluences (curr : entrances)  
-    | curr ∈ reached            = case uncles of 
-        []          -> (entrances, curr : confluences ) 
-        [u]   :uss  -> loop u uss      ([]:ancestors) (ans ++ reached) (curr : confluences) entrances 
-        (u:us):uss  -> loop u (us:uss) ([]:ancestors) (ans ++ reached) (curr : confluences) entrances 
-    | otherwise                 = case succNodes curr a of 
-        []              -> case uncles of 
-            []              -> (entrances, confluences) 
-            [u]   :uss      -> loop u uss      ([]:ancestors) (curr:ans ++ reached) confluences entrances
-            (u:us):uss      -> loop u (us:uss) ([]:ancestors) (curr:ans ++ reached) confluences entrances 
-        [n]             -> loop n uncles      (   (curr:ans):ancestors) reached confluences entrances 
-        (n:ns)          -> loop n (ns:uncles) ([]:(curr:ans):ancestors) reached confluences entrances  
-
-
---}
-
-
-
-
-lu = luDecomp 
 
 
 

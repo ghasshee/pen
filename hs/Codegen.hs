@@ -4,11 +4,11 @@ module Codegen where
 import PreLink
 import Opcode
 import Hex 
+import Utils
 
 import Data.Word 
 import Text.Printf(printf)
 import Asm 
-
 
 
 
@@ -72,7 +72,7 @@ removeFUNSTACKOPCODEs = map removeFUNSTACKOPCODE
 
 
 
-pushM v = [PUSH (FUN v), PUSH1 0x60, MLOAD, DUP1, PUSH1 0x20, ADD, PUSH1 0x60, MSTORE, MSTORE] 
+pushM v = [PUSH8(toInteger v), PUSH1 0x60, MLOAD, DUP1, PUSH1 0x20, ADD, PUSH1 0x60, MSTORE, MSTORE] 
 popM1   = [PUSH1 0x60, MLOAD, DUP1, PUSH1 0x20, SUB, PUSH1 0x60, MSTORE, MLOAD] 
 popM n  = [PUSH1 0x60, MLOAD, DUP1, PUSH4 (0x20 * toInteger n), SUB, PUSH1 0x60, MSTORE] ++ 
                 concat ( replicate (n-1) [DUP1, MLOAD, PUSH1 0x20, SUB] ) ++ [MLOAD] 
@@ -83,9 +83,9 @@ popM n  = [PUSH1 0x60, MLOAD, DUP1, PUSH4 (0x20 * toInteger n), SUB, PUSH1 0x60,
 -- 2.a PUSH N decision 
 pushN_decision :: OPCODE -> OPCODE 
 pushN_decision (PUSH v) = case v of 
-    FUN   i                 -> if 0 <= i && i < 2^64  then push_of_size (size_int i) (toInteger i) else error "pushN_decision: out of range (FUN i)" 
-    INT   i                 -> if 0 <= i && i < 2^256 then push_of_size (size_integer i) i         else error "pushN_decision: out of range (INT i)"  
-    _                       -> PUSH v 
+    FUN   i     -> if 0<=i && i<2^64  then push_of_size (size_int i)(toInteger i) else err "pushN_decision: out of range (FUN i)" 
+    INT   i     -> if 0<=i && i<2^256 then push_of_size (size_integer i) i        else err "pushN_decision: out of range (INT i)"  
+    _           -> PUSH v 
 pushN_decision o        = o 
 
 pushN_desisions :: [OPCODE] -> [OPCODE] 

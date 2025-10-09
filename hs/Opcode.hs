@@ -187,7 +187,7 @@ instance Read OPCODE where
             _ -> [(INVALID, str )]
 --}
 
-
+    {--
 size :: OPCODE -> Integer 
 size op = case op of 
     PUSH1  _ -> 1 + 1 
@@ -224,4 +224,4 @@ size op = case op of
     PUSH32 _ -> 1 + 32
     _        -> 1
 
-
+--}

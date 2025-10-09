@@ -216,7 +216,7 @@ getAcCheck i t  rows = loop rows ([],[]) where
 
 
 branch :: Matrix (Edge Int (OR Action)) -> [Branch Action] 
-branch = branching . map removeEdgeOR . rows  
+branch = rev . branching . map removeEdgeOR . rows  
 
 
 
