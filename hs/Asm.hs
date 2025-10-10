@@ -12,47 +12,16 @@ import Text.Printf (printf)
 
 
 
-hex i n = printf ( "%0" ++ show i ++ "X" ) n 
-
-
-
 
 asm :: [OPCODE] -> String 
-asm ops = map toLower $ concat (map (toByte ops') ops') 
-    where ops' :: [(Int, OPCODE)] 
-          ops' = withSize ops 
-
-withSize :: [OPCODE] -> [(Int, OPCODE)] 
-withSize ops = zip (scanl1 (+) (size <$> ops)) ops 
-
-withOffset :: [OPCODE] -> [(Int, OPCODE)] 
-withOffset ops = loop ops [] where 
-    loop [] ret = rev ret 
-    loop (o:os) ((i,PUSHDEST k):rest)   = loop os $ (i + size(PUSHDEST k),o):(i,PUSHDEST k):rest
-    loop (o:os) ((i,op        ):rest)   = loop os $ (i+size op,o):(i,op):rest
+asm = map toLower . concat . map toByte 
 
 
+hex :: Int -> Integer -> String
+hex i n = printf ( "%0" ++ show (2*i) ++ "X" ) n 
 
-findDEST :: Int -> [(Int,OPCODE)] -> OPCODE
-findDEST i []                           = INVALID
-findDEST i ((d,JUMPDEST i'):os) | i==i' = PUSH8 $ to d 
-findDEST i (o:os)                       = findDEST i os 
-
-rmPUSH :: OPCODE -> OPCODE 
-rmPUSH (PUSH (FUN n)) = mkPUSH (pushsize $ to n) (toInteger n) 
-
-pushsize :: Integer  -> Int 
-pushsize 0      = 0 
-pushsize 1      = 1
-pushsize i      = 1 + pushsize (i `div` 0x100) 
-
-mkPUSH :: Int -> Integer -> OPCODE
-mkPUSH n x = read ("PUSH" ++ show n ++ " " ++ show x) 
-
-toByte  :: [(Int ,OPCODE)] -> (Int, OPCODE) -> String
-toByte ops (i,o) = case o of 
-           --PUSHDEST              i            ->  toByte ops (i, rmPUSH (PUSH (FUN (findDEST i ops))))
-           PUSHDEST     i                     ->  toByte ops (i, findDEST i ops) 
+toByte  :: OPCODE -> String
+toByte o = case o of 
            STOP                               ->  "00"
            ADD                                ->  "01"
            MUL                                ->  "02"
@@ -203,10 +172,14 @@ toByte ops (i,o) = case o of
            e                                  ->  "??" ++ show e ++ "??"
 
 
+pushsize :: Integer  -> Int 
+pushsize 0  = 0 
+pushsize i  = 1 + pushsize (i `div` 0x100) 
+
 size :: OPCODE -> Int
 size o = case o of 
            PUSH (INT i)                       ->  1 + pushsize i 
-           PUSHDEST _                         ->  9  
+           PUSHDEST _                         ->  9
            STOP                               ->  1
            ADD                                ->  1
            MUL                                ->  1

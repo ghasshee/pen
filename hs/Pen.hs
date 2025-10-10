@@ -129,12 +129,7 @@ main = do
         ops     = map branches2opcodes bs 
 
     let ops'    :: [[OPCODE]]
-        ops'    = removeFUNSTACKOPCODEs $ ops
-
-    let ops''   :: [[OPCODE]] 
-        ops''   = undefined  
-
-
+        ops'    = rmFUNSTACKs $ ops
 
     let optrees :: [[RBTree OPCODE]]  
         optrees = map ( knits . revcut) ops'
@@ -142,8 +137,11 @@ main = do
     let gclls   :: [[GCLL]]
         gclls   = map optrees2stmts optrees 
 
+    let ops''   :: [[(Int,OPCODE)]]
+        ops''   = codegen2 <$> ops'
+
     let bytes   :: [String] 
-        bytes   = asm <$> ops' 
+        bytes   = asm <$> ((snd <$>) <$> ops'')
 
     print "------ Abstract Syntax Tree -------"
     print asts
@@ -219,13 +217,17 @@ main = do
         {--
     print "------ OpTrees ------"
     print $ optrees 
-
+--}
     print "------ GCLLs  -------"
     print $ gclls 
---}
+   
+    print "------ with Address -----"
+    print ops''
+
     print "------ EVM ByteCodes ------"
     print $ bytes 
     
+
     print "----- Crypto Test ----"
     print "set(uint256) hash is: " 
     print $ dispatcherHash "set(uint256)" 
