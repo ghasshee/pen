@@ -11,6 +11,7 @@ import Text.Printf(printf)
 import Asm 
 import Mem 
 
+import Text.Read (readMaybe) 
 
 
 
@@ -57,6 +58,10 @@ malloc n = [PUSH1 _MP_, MLOAD, DUP1, PUSH4(to n * 0x20), ADD, PUSH1 _MP_, MSTORE
 
 
 -- 1. Transpiling 
+
+codegen1  :: [OPCODE] -> [OPCODE] 
+codegen1 = undefined 
+
 -- 1.a FUNSTACK transpile
 rmFUNSTACKs :: [[OPCODE]] -> [[OPCODE]] 
 rmFUNSTACKs = map rmFUNSTACK
@@ -79,6 +84,7 @@ popM n  = [PUSH1 0x60, MLOAD, DUP1, PUSH4 (0x20 * to n), SUB, PUSH1 0x60, MSTORE
 
 -- 2
  
+codegen2 :: [OPCODE] -> [OPCODE] 
 codegen2 = rmPUSHs . map snd . rmPUSHDEST . reAddr
 
 -- 2.a size estimate  
@@ -94,12 +100,12 @@ pushdest_size ops = pushsize (to $ sizeOPCODE ops)
 
 
 reAddr :: [OPCODE] -> [(Int, OPCODE)] 
-reAddr ops  =       
-    loop ops [] where 
+reAddr ops      =       loop ops [] where 
         sz = pushdest_size ops 
         loop [] ret                         = rev ret 
         loop (op:ops) ((i,PUSHDEST q):ios)  = loop ops ((i + sz, op):(i,PUSHDEST q):ios) 
         loop (op:ops) ((i,o         ):ios)  = loop ops ((i + size o, op):(i,o):ios)
+        loop (op:ops) []                    = loop ops [(0,op)]
 
 
 
@@ -110,13 +116,13 @@ reAddr ops  =
 
 rmPUSHDEST :: [(Int, OPCODE)] -> [(Int, OPCODE)] 
 rmPUSHDEST ops = loop ops where 
-    sz = 1 + fst (last ops) 
+    sz = to $  1 + fst (last ops) 
     loop []     = []
-    loop ((i,PUSHDEST q):rest) = (i, mkPUSH sz (to $ findDEST q ops)): loop rest 
+    loop ((i,PUSHDEST q):rest) = (i, mkPUSH (pushsize sz) (to $ findDEST q ops)): loop rest 
     loop (o:os) = o : loop os 
 
 findDEST :: Int -> [(Int,OPCODE)] -> Int
-findDEST i []                           = -1
+findDEST i []                           = 0
 findDEST i ((d,JUMPDEST i'):os) | i==i' = d 
 findDEST i (o:os)                       = findDEST i os 
 
@@ -137,9 +143,12 @@ rmPUSH (PUSH v)                         =   error $ "rmPUSH: undefined " ++ show
 rmPUSH o                                =   o 
 
 mkPUSH :: Int -> Integer -> OPCODE
-mkPUSH n x = read ("PUSH" ++ show n ++ " " ++ show x) 
+mkPUSH 0 _ = PUSH0 
+mkPUSH n x = debugRead ("PUSH" ++ show n ++ " " ++ show x) 
 
-
+debugRead x = case readMaybe x of 
+                Just y -> y 
+                Nothing -> error $ "read error : cannot read " ++ show x 
 
 
 {--

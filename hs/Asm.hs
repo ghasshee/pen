@@ -18,7 +18,8 @@ asm = map toLower . concat . map toByte
 
 
 hex :: Int -> Integer -> String
-hex i n = printf ( "%0" ++ show (2*i) ++ "X" ) n 
+hex i n | n < 0 = error $ "hex: cannot convert negative number " ++ show n 
+hex i n         = printf ( "%0" ++ show (2*i) ++ "X" ) n 
 
 toByte  :: OPCODE -> String
 toByte o = case o of 

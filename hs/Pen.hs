@@ -137,11 +137,11 @@ main = do
     let gclls   :: [[GCLL]]
         gclls   = map optrees2stmts optrees 
 
-    let ops''   :: [[(Int,OPCODE)]]
+    let ops''   :: [[OPCODE]]
         ops''   = codegen2 <$> ops'
 
     let bytes   :: [String] 
-        bytes   = asm <$> ((snd <$>) <$> ops'')
+        bytes   = asm <$> (ops'')
 
     print "------ Abstract Syntax Tree -------"
     print asts
@@ -223,10 +223,10 @@ main = do
    
     print "------ with Address -----"
     print ops''
-
+           
     print "------ EVM ByteCodes ------"
     print $ bytes 
-    
+         
 
     print "----- Crypto Test ----"
     print "set(uint256) hash is: " 
