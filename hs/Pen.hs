@@ -37,6 +37,8 @@ import Opcode
 import Action2Opcode
 import Branch2Opcode 
 
+
+import Disasm
 import Knit
 import Optree2GCLL
 import Codegen 
@@ -131,17 +133,20 @@ main = do
     let ops'    :: [[OPCODE]]
         ops'    = rmFUNSTACKs $ ops
 
-    let optrees :: [[RBTree OPCODE]]  
-        optrees = map ( knits . revcut) ops'
-
-    let gclls   :: [[GCLL]]
-        gclls   = map optrees2stmts optrees 
-
     let ops''   :: [[OPCODE]]
         ops''   = codegen <$> ops'
 
     let bytes   :: [String] 
         bytes   = asm <$> (ops'')
+
+    let dasms   :: [[OPCODE]]
+        dasms   = extract <$> ((lineNo . disAsm . byte) <$>  bytes) 
+
+    let optrees :: [[RBTree OPCODE]]  
+        optrees = map ( knits . revcut) dasms
+
+    let gclls   :: [[GCLL]]
+        gclls   = map optrees2stmts optrees 
 
     print "------ Abstract Syntax Tree -------"
     print asts
@@ -214,18 +219,18 @@ main = do
    
     print "------ remove FUNSTACK OPCODE -----"
     print $ ops' 
-        {--
-    print "------ OpTrees ------"
-    print $ optrees 
---}
-    print "------ GCLLs  -------"
-    print $ gclls 
    
     print "------ with Address -----"
     print ops''
            
     print "------ EVM ByteCodes ------"
     print $ bytes 
+        {--
+    print "------ OpTrees ------"
+    print $ optrees 
+--}
+    print "------ GCLLs  -------"
+    print $ gclls 
          
 
     print "----- Crypto Test ----"

@@ -4,6 +4,7 @@ module GCLL where
 -- Guarded Command Lower Language 
 
 import Hex 
+import Utils
 import Prelude hiding (EQ,GT,LT)
 
 type GCLL = STMT
@@ -85,7 +86,7 @@ instance Show EXPR where
     show x  = case x of 
         App   f x       -> show f ++ "(" ++ show x ++ ")" 
         Ox n            -> "0x" ++ toHex n
-        LABEL i         -> "Label " ++ show i 
+        LABEL i         -> "Label " ++ toHex (to i) 
         M  e            -> "M[" ++ show e ++ "]"
         S  e            -> "S[" ++ show e ++ "]"
         Stk n           -> "Stk[" ++ show n ++ "]" 
@@ -171,7 +172,7 @@ instance Show STMT where
         Stop            -> "Stop()" 
         Revert x y      -> "Revert(" ++ show x ++ ", " ++ show y ++ ")"
         Return x y      -> "Return(" ++ show x ++ ", " ++ show y ++ ")"
-        Label i         -> "<< label: " ++ show i ++ " >>"
+        Label i         -> "<< label: " ++ toHex (to i) ++ " >>"
         Pop             -> "Pop()"
         Push e          -> show e
         Assign x a      -> show x ++ " := " ++ show a 

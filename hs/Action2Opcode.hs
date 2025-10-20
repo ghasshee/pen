@@ -79,7 +79,7 @@ action2opcode a = case a of
     AcCodecopy x y z        -> e2o x ++ e2o y ++ e2o z ++ [CODECOPY] 
     AcExtcodecopy x y z w   -> e2o x ++ e2o y ++ e2o z ++ e2o w ++ [EXTCODECOPY] 
     AcSkip                  -> []   
-    AcBool e                -> e2o e 
+    --AcBool e                -> e2o e 
     AcElse                  -> [] 
     AcEnter                 -> enter 
     AcExit                  -> exit  
