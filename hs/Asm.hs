@@ -180,6 +180,7 @@ pushsize i  = 1 + pushsize (i `div` 0x100)
 size :: OPCODE -> Int
 size o = case o of 
            PUSH (INT i)                       ->  1 + pushsize i 
+           PUSH (FUN i)                       ->  1 + pushsize (to i) 
            PUSHDEST _                         ->  9
            STOP                               ->  1
            ADD                                ->  1

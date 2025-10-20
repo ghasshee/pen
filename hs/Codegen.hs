@@ -49,9 +49,20 @@ malloc n = [PUSH1 _MP_, MLOAD, DUP1, PUSH4(to n * 0x20), ADD, PUSH1 _MP_, MSTORE
 -- 4. ADD CREATION CODE and make Layout 
 
 
+codegen = codegen2 . codegen1 . codegen0 
 
 
+-- 0. Header 
 
+codegen0 :: [OPCODE] -> [OPCODE] 
+codegen0 = header 
+
+
+end0x03 :: [OPCODE] 
+end0x03 = [PUSH1 0x05, JUMP,JUMPDEST 0x03, STOP, JUMPDEST 0x05] 
+
+header :: [OPCODE] -> [OPCODE] 
+header ops = end0x03 ++ init_malloc ++ init_mstack ++ ops 
 
 
 
@@ -60,7 +71,7 @@ malloc n = [PUSH1 _MP_, MLOAD, DUP1, PUSH4(to n * 0x20), ADD, PUSH1 _MP_, MSTORE
 -- 1. Transpiling 
 
 codegen1  :: [OPCODE] -> [OPCODE] 
-codegen1 = undefined 
+codegen1 = rmFUNSTACK
 
 -- 1.a FUNSTACK transpile
 rmFUNSTACKs :: [[OPCODE]] -> [[OPCODE]] 
@@ -76,7 +87,7 @@ rmFUNSTACK (o              : os)    = o       :  rmFUNSTACK os
 
 
 
-pushM v = [PUSH8(to v), PUSH1 0x60, MLOAD, DUP1, PUSH1 0x20, ADD, PUSH1 0x60, MSTORE, MSTORE] 
+pushM v = [PUSH(FUN v), PUSH1 0x60, MLOAD, DUP1, PUSH1 0x20, ADD, PUSH1 0x60, MSTORE, MSTORE] 
 popM1   = [PUSH1 0x60, MLOAD, DUP1, PUSH1 0x20, SUB, PUSH1 0x60, MSTORE, MLOAD] 
 popM n  = [PUSH1 0x60, MLOAD, DUP1, PUSH4 (0x20 * to n), SUB, PUSH1 0x60, MSTORE] ++ 
                 concat ( replicate (n-1) [DUP1, MLOAD, PUSH1 0x20, SUB] ) ++ [MLOAD] 
@@ -122,7 +133,7 @@ rmPUSHDEST ops = loop ops where
     loop (o:os) = o : loop os 
 
 findDEST :: Int -> [(Int,OPCODE)] -> Int
-findDEST i []                           = 0
+findDEST i []                           = 0x03
 findDEST i ((d,JUMPDEST i'):os) | i==i' = d 
 findDEST i (o:os)                       = findDEST i os 
 
@@ -137,8 +148,8 @@ rmPUSHs :: [OPCODE] -> [OPCODE]
 rmPUSHs = map rmPUSH
 
 rmPUSH  :: OPCODE -> OPCODE 
-rmPUSH (PUSH(FUN i)) | 0<=i && i<2^64   =   mkPUSH(pushsize(to i))(to i)
-rmPUSH (PUSH(INT i)) | 0<=i && i<2^256  =   mkPUSH(pushsize    i )    i 
+rmPUSH (PUSH(FUN i)) | 0<=i && i<maxBound =   mkPUSH(pushsize(to i))(to i)
+rmPUSH (PUSH(INT i)) | 0<=i && i<2^255  =   mkPUSH(pushsize    i )    i 
 rmPUSH (PUSH v)                         =   error $ "rmPUSH: undefined " ++ show v
 rmPUSH o                                =   o 
 
@@ -172,6 +183,7 @@ data PreLinkValue   = LABEL Int             -- JUMPDEST Label
 
 creationCode :: Int -> [OPCODE] 
 creationCode q = init_malloc ++ init_mstack ++ snd (if_value_revert 0) ++ libcreate ++ deploy 
+
 
 -- a. init memory 
 init_malloc :: [OPCODE] 

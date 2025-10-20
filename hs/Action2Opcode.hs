@@ -85,7 +85,7 @@ action2opcode a = case a of
     AcExit                  -> exit  
     AcVar i                 -> undefined 
     AcRecord (Q i)_         -> pushFUNSTACK i 
-    AcCheck  (Q i)_         -> popFUNSTACK ++ [PUSH16 (toInteger i), EQ]  
+    AcCheck  (Q i)_         -> popFUNSTACK ++ [PUSH (FUN i), EQ]  
     AcSto i                 -> [PUSH (INT (toInteger i)), SLOAD] 
     AcSstore                -> [SSTORE] 
     -- a   -> [] 

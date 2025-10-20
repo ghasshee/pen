@@ -138,7 +138,7 @@ main = do
         gclls   = map optrees2stmts optrees 
 
     let ops''   :: [[OPCODE]]
-        ops''   = codegen2 <$> ops'
+        ops''   = codegen <$> ops'
 
     let bytes   :: [String] 
         bytes   = asm <$> (ops'')
