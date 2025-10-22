@@ -112,7 +112,7 @@ pushdest_size ops = pushsize (to $ sizeOPCODE ops)
 
 reAddr :: [OPCODE] -> [(Int, OPCODE)] 
 reAddr ops      =       loop ops [] where 
-        sz = pushdest_size ops 
+        sz = 1 + pushdest_size ops 
         loop [] ret                         = rev ret 
         loop (op:ops) ((i,PUSHDEST q):ios)  = loop ops ((i + sz, op):(i,PUSHDEST q):ios) 
         loop (op:ops) ((i,o         ):ios)  = loop ops ((i + size o, op):(i,o):ios)
