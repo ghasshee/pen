@@ -6,6 +6,8 @@ import Tree
 --import Var
 --import Term 
 import PreLink
+import Utils
+import Prelude hiding (EQ,LT,GT)
 
 
 data OPCODE = L | R             -- Parenceses "(", ")" for Disassemling -- see Knit.hs  
@@ -163,65 +165,173 @@ data OPCODE = L | R             -- Parenceses "(", ")" for Disassemling -- see K
             | INVALID
             | SELFDESTRUCT deriving (Show, Eq, Read)
 
-{--
-instance Read OPCODE where 
-    readsPrec _ str = 
-        case str of 
-            'P':'U':'S':'H':rest -> 
-                let (n, _:_:v_)    = span isDigit rest in 
-                let (v,_:rest)     = span (/= '\"') v_ in 
-                case (read n :: Int) of 
-                    1   -> [(PUSH1  v, rest)]
-                    2   -> [(PUSH2  v, rest)]
-                    3   -> [(PUSH3  v, rest)]
-                    4   -> [(PUSH4  v, rest)]
-                    5   -> [(PUSH5  v, rest)]
-                    6   -> [(PUSH6  v, rest)]
-                    7   -> [(PUSH7  v, rest)]
-                    8   -> [(PUSH8  v, rest)]
-                    9   -> [(PUSH9  v, rest)]
-                    10  -> [(PUSH10 v, rest)]
-                    11  -> [(PUSH11 v, rest)]
-                    12  -> [(PUSH12 v, rest)]
-                    13  -> [(PUSH13 v, rest)]
-            _ -> [(INVALID, str )]
---}
 
-    {--
-size :: OPCODE -> Integer 
-size op = case op of 
-    PUSH1  _ -> 1 + 1 
-    PUSH2  _ -> 1 + 2 
-    PUSH3  _ -> 1 + 3 
-    PUSH4  _ -> 1 + 4 
-    PUSH5  _ -> 1 + 5 
-    PUSH6  _ -> 1 + 6 
-    PUSH7  _ -> 1 + 7 
-    PUSH8  _ -> 1 + 8  
-    PUSH9  _ -> 1 + 9 
-    PUSH10 _ -> 1 + 10
-    PUSH11 _ -> 1 + 11
-    PUSH12 _ -> 1 + 12
-    PUSH13 _ -> 1 + 13
-    PUSH14 _ -> 1 + 14
-    PUSH15 _ -> 1 + 15
-    PUSH16 _ -> 1 + 16
-    PUSH17 _ -> 1 + 17
-    PUSH18 _ -> 1 + 18
-    PUSH19 _ -> 1 + 19
-    PUSH20 _ -> 1 + 20
-    PUSH21 _ -> 1 + 21
-    PUSH22 _ -> 1 + 22
-    PUSH23 _ -> 1 + 23
-    PUSH24 _ -> 1 + 24
-    PUSH25 _ -> 1 + 25
-    PUSH26 _ -> 1 + 26
-    PUSH27 _ -> 1 + 27
-    PUSH28 _ -> 1 + 28
-    PUSH29 _ -> 1 + 29
-    PUSH30 _ -> 1 + 30
-    PUSH31 _ -> 1 + 31
-    PUSH32 _ -> 1 + 32
-    _        -> 1
 
---}
+
+pushdatasize :: Integer  -> Int 
+pushdatasize 0  = 0 
+pushdatasize i  = 1 + pushdatasize (i `div` 0x100) 
+
+pushsize :: Integer -> Int 
+pushsize i = 1 + pushdatasize i 
+
+size :: OPCODE -> Int
+size o = case o of 
+           PUSH (INT i)                       ->  pushsize i 
+           PUSH (FUN i)                       ->  pushsize (to i) 
+           PUSH RN_SIZE                       ->  9 
+           PUSH RN_OFFSET                     ->  3 
+           PUSHDEST _                         ->  9
+           STOP                               ->  1
+           ADD                                ->  1
+           MUL                                ->  1
+           SUB                                ->  1
+           DIV                                ->  1
+           SDIV                               ->  1
+           MOD                                ->  1
+           SMOD                               ->  1
+           ADDMOD                             ->  1
+           MULMOD                             ->  1
+           EXP                                ->  1
+           SIGNEXTEND                         ->  1
+           LT                                 ->  1
+           GT                                 ->  1
+           SLT                                ->  1
+           SGT                                ->  1
+           EQ                                 ->  1
+           ISZERO                             ->  1
+           AND                                ->  1
+           OR                                 ->  1
+           XOR                                ->  1
+           NOT                                ->  1
+           BYTE                               ->  1
+           SHL                                ->  1
+           SHR                                ->  1
+           SAR                                ->  1
+           SHA3                               ->  1
+           ADDRESS                            ->  1
+           BALANCE                            ->  1
+           ORIGIN                             ->  1
+           CALLER                             ->  1
+           CALLVALUE                          ->  1
+           CALLDATALOAD                       ->  1
+           CALLDATASIZE                       ->  1
+           CALLDATACOPY                       ->  1
+           CODESIZE                           ->  1
+           CODECOPY                           ->  1
+           GASPRICE                           ->  1
+           EXTCODESIZE                        ->  1
+           EXTCODECOPY                        ->  1
+           RETURNDATASIZE                     ->  1
+           RETURNDATACOPY                     ->  1
+           EXTCODEHASH                        ->  1
+           BLOCKHASH                          ->  1
+           COINBASE                           ->  1
+           TIMESTAMP                          ->  1
+           NUMBER                             ->  1
+           DIFFICULTY                         ->  1
+           GASLIMIT                           ->  1
+           CHAINID                            ->  1
+           SELFBALANCE                        ->  1
+           POP                                ->  1
+           MLOAD                              ->  1
+           MSTORE                             ->  1
+           MSTORE8                            ->  1
+           SLOAD                              ->  1
+           SSTORE                             ->  1
+           JUMP                               ->  1
+           JUMPI                              ->  1
+           PC                                 ->  1
+           MSIZE                              ->  1
+           GAS                                ->  1
+           JUMPDEST _                         ->  1
+           PUSH0                              ->  1 
+           PUSH1  v                           ->  2
+           PUSH2  v                           ->  3
+           PUSH3  v                           ->  4
+           PUSH4  v                           ->  5
+           PUSH5  v                           ->  6
+           PUSH6  v                           ->  7
+           PUSH7  v                           ->  8
+           PUSH8  v                           ->  9
+           PUSH9  v                           ->  10
+           PUSH10 v                           ->  11
+           PUSH11 v                           ->  12
+           PUSH12 v                           ->  13
+           PUSH13 v                           ->  14
+           PUSH14 v                           ->  15
+           PUSH15 v                           ->  16
+           PUSH16 v                           ->  17
+           PUSH17 v                           ->  18
+           PUSH18 v                           ->  19
+           PUSH19 v                           ->  20
+           PUSH20 v                           ->  21
+           PUSH21 v                           ->  22
+           PUSH22 v                           ->  23
+           PUSH23 v                           ->  24
+           PUSH24 v                           ->  25
+           PUSH25 v                           ->  26
+           PUSH26 v                           ->  27
+           PUSH27 v                           ->  28
+           PUSH28 v                           ->  29
+           PUSH29 v                           ->  30
+           PUSH30 v                           ->  31
+           PUSH31 v                           ->  32
+           PUSH32 v                           ->  33
+           DUP1                               ->  1
+           DUP2                               ->  1
+           DUP3                               ->  1
+           DUP4                               ->  1
+           DUP5                               ->  1
+           DUP6                               ->  1
+           DUP7                               ->  1
+           DUP8                               ->  1
+           DUP9                               ->  1
+           DUP10                              ->  1
+           DUP11                              ->  1
+           DUP12                              ->  1
+           DUP13                              ->  1
+           DUP14                              ->  1
+           DUP15                              ->  1
+           DUP16                              ->  1
+           SWAP1                              ->  1
+           SWAP2                              ->  1
+           SWAP3                              ->  1
+           SWAP4                              ->  1
+           SWAP5                              ->  1
+           SWAP6                              ->  1
+           SWAP7                              ->  1
+           SWAP8                              ->  1
+           SWAP9                              ->  1
+           SWAP10                             ->  1
+           SWAP11                             ->  1
+           SWAP12                             ->  1
+           SWAP13                             ->  1
+           SWAP14                             ->  1
+           SWAP15                             ->  1
+           SWAP16                             ->  1
+           LOG0                               ->  1
+           LOG1                               ->  1
+           LOG2                               ->  1
+           LOG3                               ->  1
+           LOG4                               ->  1
+           CREATE                             ->  1
+           CALL                               ->  1
+           CALLCODE                           ->  1
+           RETURN                             ->  1
+           DELEGATECALL                       ->  1
+           CREATE2                            ->  1
+           STATICCALL                         ->  1
+           REVERT                             ->  1
+           INVALID                            ->  1
+           SELFDESTRUCT                       ->  1
+           INFO s                             ->  (length s) * 2 
+           e                                  -> error $ "size: undefined on " ++ show e  
+
+
+
+
+
+
+
+

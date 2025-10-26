@@ -133,7 +133,6 @@ main = do
     let ops'    :: [[OPCODE]]
         ops'    = rmFUNSTACKs $ ops
 
-    let debug   = reAddr2 . codegen1 . codegen0 <$> ops' 
     let ops''   :: [[OPCODE]]
         ops''   = codegen <$> ops'
 
@@ -239,7 +238,6 @@ main = do
     print $ dispatcherHash "set(uint256)" 
 
 
-    print debug
 
 
     
