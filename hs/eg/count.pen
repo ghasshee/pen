@@ -1,6 +1,6 @@
 contract counter {
     
-    counter : u256  ; 
+    counter   : u256 ; 
     unusedvar : u256 ; 
 
     method inc : () :=              { always counter >= 0 } 

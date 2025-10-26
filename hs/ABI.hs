@@ -1,77 +1,90 @@
 module ABI where 
 
 
-
+import AST
 import Type 
 import Utils
 
 
-ty2abi :: Ty -> String
-ty2abi TyU256           =   "uint256"
-ty2abi TyU8             =   "uint8"  
-ty2abi TyADDR           =   "address"
-ty2abi TyB32            =   "bytes32"
-ty2abi TyBOOL           =   "bool"   
-ty2abi TyUNIT           =   "void"   
-ty2abi e                =   err $ show e 
+ty2ABI :: Ty -> String
+ty2ABI TyU256           =   "uint256"
+ty2ABI TyU8             =   "uint8"  
+ty2ABI TyADDR           =   "address"
+ty2ABI TyB32            =   "bytes32"
+ty2ABI TyBOOL           =   "bool"   
+ty2ABI TyUNIT           =   "void"   
+ty2ABI e                =   err $ show e 
 
 
-{--
 
-(*************************) 
-(*      PRINT ABI        *) 
-(*************************) 
-
-let abi_str_of_ty       = function 
-    | TyU256                    ->  "uint256" 
-    | TyU8                      ->  "uint8"   
-    | TyBytes32                 ->  "bytes32" 
-    | TyAdr                    ->  "address"
-    | TyBool                    ->  "bool"
-    | TyUnit                    ->  "void"
-    | e                         ->  err (str_of_ty e)
+fallback2ABI :: String 
+fallback2ABI = 
+    "{"                                                 ++ "\n" ++
+    "\t" ++ "\"inputs\"             : [],"              ++ "\n" ++
+    "\t" ++ "\"outputs\"            : [],"              ++ "\n" ++
+    "\t" ++ "\"stateMutability\"    : \"payable\","     ++ "\n" ++
+    "\t" ++ "\"type\"               : \"fallback\""     ++ "\n" ++
+    "}"
 
 
-let prABI_default_mthd   =
-"{
-\"inputs\"  : [],
-\"outputs\" : [],
-\"payable\" : true,
-\"type\"    :\"fallback\"
-}"
+param2ABI :: Param -> String
+param2ABI (id,ty) =  
+    "{"                                                        ++ "\n" ++  
+    "\t" ++ "\"name\"               : \" ++ id        ++ "\"," ++ "\n" ++  
+    "\t" ++ "\"type\"               : \" ++ ty2ABI ty ++ "\""  ++ "\n" ++ 
+    "}"
 
-let prABI_input         = function 
-    TyVar(id,ty) ->  sprintf "{
-\"name\"    : \"%s\", 
-\"type\"    : \"%s\"
-}"  (id) (abi_str_of_ty ty)
 
-let prABI_inputs (args:ty list) : str =
-    let strs         = L.map prABI_input args in
-    BS.concat "," strs
+params2ABI :: Params -> String 
+params2ABI []         = [] 
+params2ABI [p]        = param2ABI p   
+params2ABI (p:ps)     = param2ABI p ++ "," ++ "\n" ++ 
+                        params2ABI ps 
 
-let prABI_output (ty:ty) : str =
-    sprintf "{
-\"name\"    : \"\", 
-\"type\"    : \"%s\"
-}" (abi_str_of_ty ty)
 
-let prABI_outputs (tys:ty list) : str =
-    let strs = L.map prABI_output tys in
-    BS.concat "," strs
+ret2ABI :: Ty -> String
+ret2ABI ty = 
+    "{"                                                         ++ "\n" ++  
+    "\t" ++ "\"name\"               : \"\""            ++ "\"," ++ "\n" ++  
+    "\t" ++ "\"type\"               : \"" ++ ty2ABI ty ++ "\"," ++ "\n" ++ 
+    "}"
 
-let prABI_mthd_info (TyMthd(id,args,ret)) = 
-    sprintf "{
-\"inputs\"  : [%s],
-\"name\"    : \"%s\",
-\"outputs\" : [%s],
-\"payable\" : true,
-\"type\"    : \"function\"
-}" (prABI_inputs args) (id) (prABI_output ret)
 
-let prABI_mthd  = function 
-    | TmMthd(TyDflt,_)       ->  prABI_default_mthd
-    | TmMthd(tyM,_)             ->  prABI_mthd_info tyM
+top2ABI :: TOP -> String 
+top2ABI (MT __end__ _ _ _) = JUST fallback2ABI
+top2ABI (MT id ty ps bd)   = JUST $ 
+    "{" 
+    "\t" ++ "\"name\"               : \"" ++ id             ++ "\"," ++ "\n" ++
+    "\t" ++ "\"inputs\"             : [" ++ params2ABI ps   ++ "],"  ++ "\n" ++ 
+    "\t" ++ "\"outputs\"            : [" ++ ret2ABI ty      ++ "],"  ++ "\n" ++ 
+    "\t" ++ "\"stateMutability\"    : \"payable\""          ++ ","   ++ "\n" ++
+    "\t" ++ "\"type\"               : \"function\""                  ++ "\n" ++ 
+    "}" 
+top2ABI (EV id ty )         = Nothing 
+top2ABI _                   = Nothing 
+
+
+
+tops2STs :: [TOP] -> [TOP] 
+tops2STs []              = [] 
+tops2STs (ST id ty:tops) = ST id ty: tops2STs tops 
+tops2STs (top:tops)      = tops2STs tops 
+
+cr2ABI (CN id tops) = 
+    "{" 
+    "\t" ++ "\"name\"               : \"" ++ id             ++ "\"," ++ "\n" ++
+    "\t" ++ "\"inputs\"             : [" ++ params2ABI ps   ++ "],"  ++ "\n" ++ 
+    "\t" ++ "\"outputs\"            : [" ++ ret2ABI ty      ++ "],"  ++ "\n" ++ 
+    "\t" ++ "\"stateMutability\"    : \"payable\""          ++ ","   ++ "\n" ++
+    "\t" ++ "\"type\"               : \"function\""                  ++ "\n" ++ 
+    "}"
+    
+
+
+    {--
+
+
+
 
 let prABI_cnstrctr (TmCn(id,flds,_)) =
     sprintf "{
