@@ -133,11 +133,12 @@ main = do
     let ops'    :: [[OPCODE]]
         ops'    = rmFUNSTACKs $ ops
 
+    let debug   = reAddr2 . codegen1 . codegen0 <$> ops' 
     let ops''   :: [[OPCODE]]
         ops''   = codegen <$> ops'
 
     let bytes   :: [String] 
-        bytes   = asm <$> (ops'')
+        bytes   = asm <$> ops'' 
 
     let dasms   :: [[OPCODE]]
         dasms   = extract <$> ((lineNo . disAsm . byte) <$>  bytes) 
@@ -148,10 +149,10 @@ main = do
     let gclls   :: [[GCLL]]
         gclls   = map optrees2stmts optrees 
 
-    print "------ Abstract Syntax Tree -------"
-    print asts
+    -- print "------ Abstract Syntax Tree -------"
+    -- print asts
 
-    print "------ Typing Test -----"
+    print "------ Typed   AST   -----"
     print tests
 
     -- print "------- transpiled into Functional Term -------" 
@@ -236,5 +237,15 @@ main = do
     print "----- Crypto Test ----"
     print "set(uint256) hash is: " 
     print $ dispatcherHash "set(uint256)" 
+
+
+    print debug
+
+
+    
+    putStrLn ""
+    putStrLn "======================================================="
+    putStrLn ""
+
 
     

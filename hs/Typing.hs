@@ -220,6 +220,7 @@ recon ctx stx q (RED tm trs)    = case tm of
         "/"                             ->  (tyT1  , q'', [(tyT1, tyT2)] ++ cs' ++ cs'') 
         "%"                             ->  (tyT1  , q'', [(tyT1, tyT2)] ++ cs' ++ cs'') 
     TmDATA d                        ->  (TyNAT, q, []) 
+    TmERR                           ->  (TyERR, q, []) 
     tm      -> error $ "recon not defined tm : " ++ show (RED tm trs)  
     
                     

@@ -113,7 +113,7 @@ Top : StoVars   Top                     { \ctx  ->  let (svs, ctx')     = $1 ctx
                                                     let (top, ctx'')    = $2 ctx'   in 
                                                     (svs ++ top        , ctx'')           } 
     | Mthd      Top                     { \ctx ->   ($1 ctx : fst($2 ctx) , ctx)        }
-    |                                   { \ctx ->   ([],               ctx  )           } 
+    |                                   { \ctx ->   ([MT "__end__" TyERR [] (BODY Nothing [] (RED TmERR []) Nothing)],  ctx  )           } 
 
 Mthd 
     : method id Params ':' Ty ':=' Body { \ctx -> 

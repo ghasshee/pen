@@ -84,6 +84,8 @@ data Tm     = TmAPP                 -- 2 args
             | TmTRUE                -- 0
             | TmFALSE               -- 0
             | TmNOT                 -- 1
+            | TmUNIT
+            | TmERR 
             -- | TmI Int Int           -- 0 
             -- | TmIREC  Int           -- 0 
             -- | TmISTR  Int           -- 0 structural recursion 

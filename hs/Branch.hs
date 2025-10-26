@@ -45,10 +45,11 @@ instance Show a => Show (Branch a) where
 
 
 instance {-# Overlapping #-} Show a => Show [Branch a] where 
-    show [] = "[]"
-    show [b]    = show b ++ "]" 
-    show (b:bs) = "[" ++ show b ++ "\n" ++ 
-                  "," ++ show bs
+    show xs = "\n[\n" ++ loop xs where 
+        loop []     =   "[]"
+        loop [b]    =   show b ++ "\n]\n" 
+        loop (b:bs) =   show b ++ "\n" ++ 
+                        "," ++ loop bs
 
 
 
@@ -195,7 +196,7 @@ getAcCond es = loop es ([],[],[]) where
     loop (e:es) (_,_,es') = loop es ([],[],e:es') 
 
 
---getAcChecks :: Node Int -> Node Int -> [Edgs] -> (Edgs, [Edgs]) 
+getAcChecks :: Node Int -> Node Int -> [Edgs] -> (Edgs, [Edgs]) 
 getAcChecks i t rows = 
     let ([e], rows') = getAcCheck i t rows in 
     case last (arrow e) of 

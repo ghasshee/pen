@@ -166,6 +166,7 @@ nodeReduction a@(M n m _ _ _ _) = rmNodes (isolatedNodes a') a' where
     a' = (paths2mat n (decomposedPaths a)) 
 
 
+
 rmNodes :: Eq a => [Int] -> Matrix a -> Matrix a 
 rmNodes [] a        = a 
 rmNodes (i:is) a    = minorMatrix i i (rmNodes is a)  

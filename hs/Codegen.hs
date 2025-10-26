@@ -24,7 +24,10 @@ import Text.Read (readMaybe)
 
 
 malloc1 :: [OPCODE] 
-malloc1 = [PUSH1 _MP_, MLOAD, DUP1, PUSH1 0x20, ADD, PUSH1 _MP_, MSTORE]  
+malloc1 = alloc1 _MP_ 
+
+mfree1 :: [OPCODE] 
+mfree1 = free1 _MP_ 
 
 malloc :: Int -> [OPCODE] 
 malloc n = [PUSH1 _MP_, MLOAD, DUP1, PUSH4(to n * 0x20), ADD, PUSH1 _MP_, MSTORE] 
@@ -59,7 +62,7 @@ codegen0 = header
 
 
 end0x03 :: [OPCODE] 
-end0x03 = [PUSH1 0x05, JUMP,JUMPDEST 0x03, STOP, JUMPDEST 0x05] 
+end0x03 = [PUSHDEST 0, JUMP,JUMPDEST 2, STOP, JUMPDEST 0] 
 
 header :: [OPCODE] -> [OPCODE] 
 header ops = end0x03 ++ init_malloc ++ init_mstack ++ ops 
@@ -87,37 +90,52 @@ rmFUNSTACK (o              : os)    = o       :  rmFUNSTACK os
 
 
 
-pushM v = [PUSH(FUN v), PUSH1 0x60, MLOAD, DUP1, PUSH1 0x20, ADD, PUSH1 0x60, MSTORE, MSTORE] 
-popM1   = [PUSH1 0x60, MLOAD, DUP1, PUSH1 0x20, SUB, PUSH1 0x60, MSTORE, MLOAD] 
-popM n  = [PUSH1 0x60, MLOAD, DUP1, PUSH4 (0x20 * to n), SUB, PUSH1 0x60, MSTORE] ++ 
-                concat ( replicate (n-1) [DUP1, MLOAD, PUSH1 0x20, SUB] ) ++ [MLOAD] 
+
+pushM v = [PUSH(FUN v)] ++ alloc1 _SP_ ++ [MSTORE] 
+--pushM v = [PUSH(FUN v), PUSH1 _SP_, MLOAD, DUP1, PUSH1 _WORD_, ADD, PUSH1 _SP_, MSTORE, MSTORE] 
+popM1   = free1 _SP_ ++ [MLOAD] 
+--popM1   =                [PUSH1 _SP_, MLOAD, DUP1, PUSH1 _WORD_, SUB, PUSH1 _SP_, MSTORE, MLOAD] 
+popM n  = [PUSH1 _SP_, MLOAD, DUP1, PUSH4 (to n * _WORD_), SUB, PUSH1 _SP_, MSTORE] ++ 
+                concat ( replicate (n-1) [DUP1, MLOAD, PUSH1 _WORD_, SUB] ) ++ [MLOAD] 
 
 
 -- 2
  
 codegen2 :: [OPCODE] -> [OPCODE] 
-codegen2 = rmPUSHs . map snd . rmPUSHDEST . reAddr
+codegen2 = rmPUSHs . map snd . rmPUSHDEST . reAddr2
 
 -- 2.a size estimate  
 
 withAddr :: [OPCODE] -> [(Int, OPCODE)] 
 withAddr ops = zip (0 : scanl1 (+) (size <$> ops)) (ops ++ [INVALID])  
 
-sizeOPCODE :: [OPCODE] -> Int 
-sizeOPCODE ops = 1 + fst ( last (withAddr ops) )  
+size_withAddr :: [(Int, OPCODE)] -> Int 
+size_withAddr ops' = fst (last ops') + size (snd (last ops'))
 
+size_RNTIME :: [OPCODE] -> Int 
+size_RNTIME ops = size_withAddr (withAddr ops)
 
-pushdest_size ops = pushsize (to $ sizeOPCODE ops) 
+size_PUSHDEST :: [OPCODE] -> Int
+size_PUSHDEST ops = 1 + (pushsize . to $ size_RNTIME ops)
 
 
 reAddr :: [OPCODE] -> [(Int, OPCODE)] 
 reAddr ops      =       loop ops [] where 
-        sz = 1 + pushdest_size ops 
+        sz = size_PUSHDEST ops
         loop [] ret                         = rev ret 
         loop (op:ops) ((i,PUSHDEST q):ios)  = loop ops ((i + sz, op):(i,PUSHDEST q):ios) 
         loop (op:ops) ((i,o         ):ios)  = loop ops ((i + size o, op):(i,o):ios)
         loop (op:ops) []                    = loop ops [(0,op)]
 
+reAddr_sz :: Int -> [OPCODE] -> [(Int, OPCODE)] 
+reAddr_sz sz ops      =       loop ops [] where 
+        loop [] ret                         = rev ret 
+        loop (op:ops) ((i,PUSHDEST q):ios)  = loop ops ((i + sz, op):(i,PUSHDEST q):ios) 
+        loop (op:ops) ((i,o         ):ios)  = loop ops ((i + size o, op):(i,o):ios)
+        loop (op:ops) []                    = loop ops [(0,op)]
+
+reAddr2 :: [OPCODE] -> [(Int, OPCODE)] 
+reAddr2 ops = reAddr_sz (1 + (pushsize $ to $ size_withAddr (reAddr ops))) ops
 
 
 
@@ -127,15 +145,16 @@ reAddr ops      =       loop ops [] where
 
 rmPUSHDEST :: [(Int, OPCODE)] -> [(Int, OPCODE)] 
 rmPUSHDEST ops = loop ops where 
-    sz = to $  1 + fst (last ops) 
+    sz = to $ size_withAddr ops
     loop []     = []
     loop ((i,PUSHDEST q):rest) = (i, mkPUSH (pushsize sz) (to $ findDEST q ops)): loop rest 
     loop (o:os) = o : loop os 
 
 findDEST :: Int -> [(Int,OPCODE)] -> Int
-findDEST i []                           = 0x03
-findDEST i ((d,JUMPDEST i'):os) | i==i' = d 
-findDEST i (o:os)                       = findDEST i os 
+findDEST i ops = try i ops where 
+    try i []                           = findDEST 2 ops
+    try i ((d,JUMPDEST i'):os) | i==i' = d 
+    try i (o:os)                       = try i os 
 
 
 
@@ -148,13 +167,13 @@ rmPUSHs :: [OPCODE] -> [OPCODE]
 rmPUSHs = map rmPUSH
 
 rmPUSH  :: OPCODE -> OPCODE 
-rmPUSH (PUSH(FUN i)) | 0<=i && i<maxBound =   mkPUSH(pushsize(to i))(to i)
-rmPUSH (PUSH(INT i)) | 0<=i && i<2^255  =   mkPUSH(pushsize    i )    i 
-rmPUSH (PUSH v)                         =   error $ "rmPUSH: undefined " ++ show v
-rmPUSH o                                =   o 
+rmPUSH (PUSH(FUN i)) | 0<=i && i<maxBound   =   mkPUSH(pushsize(to i))(to i)
+rmPUSH (PUSH(INT i)) | 0<=i && i<2^255      =   mkPUSH(pushsize    i )    i 
+rmPUSH (PUSH v)                             =   error $ "rmPUSH: undefined " ++ show v
+rmPUSH o                                    =   o 
 
 mkPUSH :: Int -> Integer -> OPCODE
-mkPUSH 0 _ = PUSH0 
+mkPUSH _ 0 = PUSH0 
 mkPUSH n x = debugRead ("PUSH" ++ show n ++ " " ++ show x) 
 
 debugRead x = case readMaybe x of 

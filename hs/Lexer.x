@@ -23,6 +23,7 @@ $symbol = [\$\#\@\!\%\^\&\\\*\(\)\+\-\:\:\=\/\>\<\.\,]
 token :-
     $white+     ; 
     $nl+        ; 
+    __end__     { \s -> error "cannot use __end__ : RESERVED for Compiler" } 
     true        { \s -> TRUE            } 
     false       { \s -> FALSE           } 
     let         { \s -> LET'            } 

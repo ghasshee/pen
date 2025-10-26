@@ -127,6 +127,7 @@ pgTerm (es,cfg@(i,t,q,s,v,cx,sx,d)) tr =
     RED (TmSTO n) [] | n >= len sx' ->  (es ++ [(i, AcSto (len sx           -n-1), t)], cfg_) 
     RED (TmSTO n) [] | sx /= sx'    ->  (es ++ [(i, AcSto (len sx - len sx' -n-1), t)], cfg_)  
     RED (TmSTO n) []                ->  (es ++ [(i, AcSto (len sx           -n-1), t)], cfg_)  
+    RED  TmERR    []                ->  (es ++ [(i, AcStop, t)], cfg) 
     e                               ->  error $ show e 
 
 
