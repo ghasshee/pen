@@ -78,7 +78,6 @@ If we entered the branching points by recording `A`, then we push `A` to the sta
 we have to select the branch whose starting Action is `AcCheck A`. This is the semantics of `AcRecord` and `AcCheck`, which determines function call statically. 
 
 
-Under Construction. 
 
 ### Linker / Loader 
 
@@ -95,7 +94,14 @@ However the contract layout generation is not supported currently.
 After the bytecode generation, we have to make ABI information in order to deploy the bytecode into the Blockchain.  
 For the detail, see solidity documentation or, the old project. 
 
-Currently Not Supported. 
+
+
+### ABI 
+
+abi generation now supported. 
+you can try on ethereum network using geth. 
+
+
 
 
 

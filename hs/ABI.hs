@@ -1,6 +1,6 @@
 module ABI where 
 
-
+import Param
 import AST
 import Type 
 import Utils
@@ -30,8 +30,8 @@ fallback2ABI =
 param2ABI :: Param -> String
 param2ABI (id,ty) =  
     "{"                                                        ++ "\n" ++  
-    "\t" ++ "\"name\"               : \" ++ id        ++ "\"," ++ "\n" ++  
-    "\t" ++ "\"type\"               : \" ++ ty2ABI ty ++ "\""  ++ "\n" ++ 
+    "\t" ++ "\"name\"               : \"" ++ id        ++ "\"" ++ "," ++ "\n" ++  
+    "\t" ++ "\"type\"               : \"" ++ ty2ABI ty ++ "\""  ++ "\n" ++ 
     "}"
 
 
@@ -50,10 +50,10 @@ ret2ABI ty =
     "}"
 
 
-top2ABI :: TOP -> String 
-top2ABI (MT __end__ _ _ _) = JUST fallback2ABI
-top2ABI (MT id ty ps bd)   = JUST $ 
-    "{" 
+top2ABI :: TOP -> Maybe String 
+top2ABI (MT __end__ _ _ _) = Just fallback2ABI
+top2ABI (MT id ty ps bd)   = Just $ 
+    "{"  ++ "\n" ++ 
     "\t" ++ "\"name\"               : \"" ++ id             ++ "\"," ++ "\n" ++
     "\t" ++ "\"inputs\"             : [" ++ params2ABI ps   ++ "],"  ++ "\n" ++ 
     "\t" ++ "\"outputs\"            : [" ++ ret2ABI ty      ++ "],"  ++ "\n" ++ 
@@ -63,37 +63,54 @@ top2ABI (MT id ty ps bd)   = JUST $
 top2ABI (EV id ty )         = Nothing 
 top2ABI _                   = Nothing 
 
+tops2ABI :: [TOP] -> [String]  
+tops2ABI [] = []
+tops2ABI (top:tops) = case top2ABI top of 
+    Just str    ->  str : tops2ABI tops 
+    Nothing     ->  tops2ABI tops 
 
 
-tops2STs :: [TOP] -> [TOP] 
-tops2STs []              = [] 
-tops2STs (ST id ty:tops) = ST id ty: tops2STs tops 
-tops2STs (top:tops)      = tops2STs tops 
 
+tops2SVs :: [TOP] -> Params 
+tops2SVs []              = [] 
+tops2SVs (SV id ty:tops) = (id,ty): tops2SVs tops 
+tops2SVs (top:tops)      = tops2SVs tops 
+
+
+cr2ABI :: CONTRACT -> String 
 cr2ABI (CN id tops) = 
-    "{" 
+    "{"  ++ 
     "\t" ++ "\"name\"               : \"" ++ id             ++ "\"," ++ "\n" ++
     "\t" ++ "\"inputs\"             : [" ++ params2ABI ps   ++ "],"  ++ "\n" ++ 
-    "\t" ++ "\"outputs\"            : [" ++ ret2ABI ty      ++ "],"  ++ "\n" ++ 
+    "\t" ++ "\"outputs\"            : [" ++                    "],"  ++ "\n" ++ 
     "\t" ++ "\"stateMutability\"    : \"payable\""          ++ ","   ++ "\n" ++
-    "\t" ++ "\"type\"               : \"function\""                  ++ "\n" ++ 
+    "\t" ++ "\"type\"               : \"constructor\""               ++ "\n" ++ 
     "}"
-    
+        where 
+            ps  = tops2SVs tops 
+
+
+cn2ABI :: CONTRACT -> [String] 
+cn2ABI (CN id tops) = 
+    cr2ABI (CN id tops) : tops2ABI tops 
+
+
+concat_comma :: [String] -> String 
+concat_comma []     = ""
+concat_comma [s]    = s   
+concat_comma (s:ss) = s ++ "," ++ "\n" ++ concat_comma ss 
+
+abi :: [CONTRACT] -> String 
+abi cns = "[\n" ++ loop cns ++ "\n]" where 
+    loop []         = ""
+    loop [cn]       = concat_comma (cn2ABI cn) 
+    loop (cn:cns)   = concat_comma (cn2ABI cn) ++ "," ++ "\n" ++ loop cns 
+
 
 
     {--
 
 
-
-
-let prABI_cnstrctr (TmCn(id,flds,_)) =
-    sprintf "{
-\"inputs\"  : [%s], 
-\"name\"    : \"%s\", 
-\"outputs\" : [], 
-\"payable\" : true,
-\"type\"    : \"constructor\"
-}" (prABI_inputs (L.filter non_mapping_arg flds)) (id)
 
 let prABI_cntrct seen_cnstrctr (TmCn(id,flds,mthds)) = 
     let strs : str list  =   L.map prABI_mthd mthds in

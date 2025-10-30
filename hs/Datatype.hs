@@ -43,6 +43,40 @@ instance Show DTy where
         showProd (t:ts) = show t ++ "," ++ showProd ts 
 
 
+------------------------------------
+---     memorize with FIX        ---
+------------------------------------
+    
+
+data Fix f = In (f (Fix f))
+
+data ListF a x = NilF | ConsF a x 
+    deriving (Show)
+
+type List a = Fix (ListF a) 
+
+a = In (ConsF 1 (In (ConsF 2 (In NilF))))
+
+toList (In NilF) = [] 
+toList (In (ConsF a as)) = a : toList as 
+
+
+
+
+data D x = DN
+         | DC 
+         | DP x x 
+
+type DD = Fix D  
+        
+toD (DNIL) = DN 
+toD (DCONST) = DC
+toD (DPAIR d e) = undefined 
+
+
+
+
+
 
 ------------------------------------
 --- Encode with  cantor Pairing  ---

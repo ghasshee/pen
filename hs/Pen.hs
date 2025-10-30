@@ -47,7 +47,7 @@ import Crypto
 import Asm 
 
 
-
+import ABI 
 
 
 
@@ -80,6 +80,10 @@ main = do
     -- AST.hs 
     let asts    :: [CONTRACT] 
         asts    = parse . lex $ contents
+
+    -- ABI.hs 
+    let abis    :: String 
+        abis    = abi asts 
 
     -- Eval.hs
     let tests   = map typingTest asts  
@@ -222,9 +226,6 @@ main = do
    
     print "------ with Address -----"
     print ops''
-           
-    print "------ EVM ByteCodes ------"
-    print $ bytes 
         {--
     print "------ OpTrees ------"
     print $ optrees 
@@ -232,6 +233,11 @@ main = do
     print "------ GCLLs  -------"
     print $ gclls 
          
+    print "------ ABI -------" 
+    putStrLn abis 
+           
+    print "------ EVM ByteCodes ------"
+    print $ bytes 
 
     print "----- Crypto Test ----"
     print "set(uint256) hash is: " 
