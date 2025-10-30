@@ -6,6 +6,11 @@ You might need Haskell compiler  and some libraries for building the compiler.
 Goto `pen/hs/` directory and then type `make` and push enter key. 
 
 
+## Inductive Data Type 
+
+Inductive data type is very useful. It is noetherian, i.e. if we unwrap some data, it has the end of data, or we can say the data is finite and must have terminals. Solidity's definition of datatype is not inductive it just stores variables, and mappings. They are just the state at some point and they do not store data how they make transitions into the state. With inductive data type, we can have not only money balance but also money transitions on chain. 
+That means 
+
 ## Type Inference 
 
 Pen compiler support [Hindley-Milnor Type Inference](https://www.cis.upenn.edu/~bcpierce/tapl/).
@@ -91,15 +96,8 @@ However the contract layout generation is not supported currently.
 
 ### Deploying a contract 
 
-After the bytecode generation, we have to make ABI information in order to deploy the bytecode into the Blockchain.  
-For the detail, see solidity documentation or, the old project. 
 
-
-
-### ABI 
-
-abi generation now supported. 
-you can try on ethereum network using geth. 
+ABI generation now supported. 
 
 
 
