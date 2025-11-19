@@ -108,16 +108,10 @@ abi cns = "[\n" ++ loop cns ++ "\n]" where
 
 
 
+
+
+
     {--
-
-
-
-let prABI_cntrct seen_cnstrctr (TmCn(id,flds,mthds)) = 
-    let strs : str list  =   L.map prABI_mthd mthds in
-    let strs                =   if !seen_cnstrctr then strs else prABI_cnstrctr (TmCn(id,flds,mthds)) :: strs in
-    seen_cnstrctr := true; 
-    BS.concat "," strs
-
 
 let prABI_evnt_arg = function TyEvVar(id,ty,visible) ->  
     sprintf "{\"name\":\"%s\",\"type\":\"%s\",\"indexed\":%s}"
@@ -131,14 +125,4 @@ let prABI_evnt = function TyEv(id,tyEvArgs) ->
     sprintf "{\"type\":\"evnt\",\"inputs\":[%s],\"name\":\"%s\"}"
         (prABI_evnt_inputs tyEvArgs) id
 
-let prABI_toplevel seen_cnstrctr = function 
-    | TmCn(id,fs,ms)           -> prABI_cntrct seen_cnstrctr (TmCn(id,fs,ms))
-    | TmEv e                   -> prABI_evnt e
-
-let prABI (tops : ty toplevel ilist) : unit =
-    let seen_cnstrctr    = ref false in
-    let ()                  = printf "[" in
-    let strs : str list  = L.map (prABI_toplevel seen_cnstrctr) (values tops) in
-    let ()                  = printf "%s" (BS.concat "," strs) in
-    printf "]"
 --}

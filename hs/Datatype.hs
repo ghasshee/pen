@@ -1,5 +1,6 @@
 module Datatype where 
 
+import Hex
 import Type 
 import LTree
 import Utils 
@@ -62,6 +63,28 @@ toList (In (ConsF a as)) = a : toList as
 
 
 
+    {--
+# solc 
+
+# mapping 
+# variable 
+--}
+
+
+data Patricia   = Empty 
+                | Leaf [Integer] Int 
+                | Node [Integer] Patricia Patricia 
+
+{--
+type mapping = address -> uint 
+--}
+
+
+
+
+
+
+
 
 data D x = DN
          | DC 
@@ -72,6 +95,11 @@ type DD = Fix D
 toD (DNIL) = DN 
 toD (DCONST) = DC
 toD (DPAIR d e) = undefined 
+
+
+
+
+
 
 
 

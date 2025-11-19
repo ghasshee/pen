@@ -2,6 +2,35 @@ module Hex where
 
 import Data.Char (isDigit)
 
+
+
+    {--
+data H =  H0 | H1 | H2 | H3 | H4 | H5 | H6 | H7 | 
+            H8 | H9 | HA | HB | HC | HD | HE | HF  
+
+instance Show H where 
+    show H0 = "0" 
+    show H1 = "1" 
+    show H2 = "2" 
+    show H3 = "3" 
+    show H4 = "4" 
+    show H5 = "5" 
+    show H6 = "1" 
+    show H7 = "6" 
+    show H8 = "7" 
+    show H9 = "8" 
+    show H0 = "9" 
+    show HA = "A" 
+    show HB = "B" 
+    show HC = "C" 
+    show HD = "D" 
+    show HE = "E" 
+    show HF = "F" 
+
+type Hex = [H] 
+--} 
+
+
 fromhexChar :: Char -> Integer
 fromhexChar '0' = 0
 fromhexChar '1' = 1

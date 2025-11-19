@@ -38,7 +38,7 @@ import Action2Opcode
 import Branch2Opcode 
 
 
-import Disasm
+import Disasm hiding (pr) 
 import Knit
 import Optree2GCLL
 import Codegen 
@@ -69,13 +69,44 @@ import VC
 import Kripke
 
 
+type Args = [String] 
+
+subcmds []              = error "file not specifies" 
+subcmds (a:as)          = do
+    case a of 
+        "--abi"         ->  do 
+                            contents    <- subcmds as 
+                            let asts        = parse . lex $ contents
+                            let abis        = abi asts 
+                            putStrLn abis 
+                            return [] 
+        "--bin"         ->  do 
+                            contents    <- subcmds as 
+                            let asts        = parse . lex $ contents 
+                            return contents 
+        file            ->  do 
+                            contents <- readFile file 
+                            return contents 
+      
+       
+                            
+
 
 
 
 main = do 
     args <- getArgs 
-    let (file:_) = args
-    contents <- readFile file 
+    -- let (file:_) = args
+
+    -- contents <- readFile file 
+    -- pr contents 
+    contents <- subcmds args 
+    case contents of 
+      []    -> return () 
+      _     -> pr contents 
+
+
+pr contents = do 
 
     -- AST.hs 
     let asts    :: [CONTRACT] 
@@ -86,15 +117,12 @@ main = do
         abis    = abi asts 
 
     -- Eval.hs
-    let tests   = map typingTest asts  
 
     let typed   = map typing asts 
-
 
     -- Term.hs 
     let tm      :: [Term] 
         tm      = map transpileCN typed
-
 
     -- PG.hs 
     let pgs     :: [PG] 
@@ -156,7 +184,7 @@ main = do
     -- print asts
 
     print "------ Typed   AST   -----"
-    print tests
+    print typed
 
     -- print "------- transpiled into Functional Term -------" 
     -- print tm 
