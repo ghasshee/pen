@@ -8,7 +8,7 @@ Goto `pen/hs/` directory and then type `make` and push enter key.
 
 ## Inductive Data Type 
 
-Inductive data type is very useful. It is noetherian, i.e. if we unwrap some data, it has the end of data, or we can say the data is finite and must have terminals. Solidity's definition of datatype is not inductive it just stores variables, and mappings. They are just the state at some point and they do not store data how they make transitions into the state. With inductive data type, we can have not only money balance but also money transitions on chain. 
+Inductive data type is very useful. It is noetherian, i.e. if we unwrap some data, it has the end of data, or we can say the data is finite and must have terminals. Solidity's definition of datatype is not inductive it just stores variables, and mappings. They are just the state at some point and they do not store data how they make transitions into the state. With inductive data type, we might have not only money balance but also money transitions on chain. 
 
 ## Type Inference 
 
