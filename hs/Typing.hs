@@ -27,7 +27,6 @@ typeof :: Ctx -> Term -> Ty
 typeof _ _ = Untyped
 
 
-
 substinty :: ID -> Ty -> Ty -> Ty 
 substinty x tyT tyS = case tyS of 
     TyARR tyS1 tyS2         -> TyARR (substinty x tyT tyS1) (substinty x tyT tyS2) 
@@ -78,7 +77,7 @@ var :: Int -> String
 var q = "?X" ++ show q
 
 
-
+type UVar = Int 
 
 
 paramret2ty :: [Param] -> Ty -> Ty 
@@ -107,41 +106,43 @@ apply_constr_params constr params = case params of
 
 
 
-{--
-data Decl   = FLET ID [Param] Ty Term (Maybe Formulae)
-            |  LET ID         Ty Term (Maybe Formulae) 
-            | SLET ID         Ty Term (Maybe Formulae) 
-            deriving (Eq, Read)  
-
-data BODY   = BODY (Maybe Formulae) [Decl] Term (Maybe Formulae) 
-            deriving (Eq, Read, Show ) 
-
-data TOP    = MT ID Ty [Param] BODY     -- Method Definition 
-            | SV ID Ty                  -- Storage Variables 
-            | SM ID Ty                  -- Storage Mappings 
-            | EV ID Ty                  -- Event Declaration 
-            | DT ID [ID] [DConstr]      -- Datatype Declaration 
-            deriving (Show, Eq, Read) 
-
-data CONTRACT 
-            = CN ID [TOP] 
-            deriving (Show, Eq, Read) 
---} 
 
 
-
-reconCN ctx stx q (CN id tops) = loop ctx stx q [] tops [] where 
-    loop ctx stx q constr tops tops' = case tops of 
-        []                          -> undefined 
+reconCN ctx stx q (CN id tops) = (CN id tops', q', constr') where 
+    (tops', q', constr')    = reconTOPs ctx stx q [] tops 
 
 
+reconTOPs :: Ctx -> Ctx -> UVar -> Constraint -> [TOP] -> ([TOP], UVar, Constraint) 
+reconTOPs ctx stx q constr tops = case tops of 
+    []                                  -> ([], q, constr) 
+    SV id ty                      : ts  -> (SV id ty'' : ts', q', constr') where 
+        ty''                            = apply_constr sol ty' 
+        sol                             = unify constr'
+        ty'                             = TyID (var q) 
+        stx'                            = addBind stx id (BindTmVAR ty')
+        (ts', q', constr')              = reconTOPs ctx stx' (q+1) constr ts
+    MT id ty ps body : ts  -> (m' : ts', q'', constr''') where
+        (body', tyR, q',constr')        = reconBODY ctx stx q body
+        constr''                        = constr ++ constr'
+        sol                             = unify constr''
+        tyR'                            = double (apply_constr sol) tyR
+        m'                              = MT id tyR' ps body'  
+        (ts', q'',constr''')            = reconTOPs ctx stx q' constr'' ts
 
 
+reconBODY :: Ctx -> Ctx -> UVar -> BODY -> (BODY, Ty, UVar, Constraint) 
 reconBODY ctx stx q (BODY p1 decls tm p2) = loop ctx stx q [] decls [] where 
     loop ctx stx q constr ds ds' = case ds of 
         []                          -> (body, ty, q', constr ++ constr') where
             body                        = BODY p1 (reverse ds') tm p2
             (ty, q', constr')           = recon ctx stx q tm 
+        SLET id    ty tm p  : ds    -> loop ctx stx' q' (constr ++ constr'') ds (d':ds') where 
+            BindTmVAR _ty               = getBind stx (tl id) 
+            constr''                    = (_ty, ty') : constr' 
+            _stx                        = addBind stx (tl id) (BindTmVAR (TyID (var q)))
+            (ty', q', constr')          = recon ctx _stx (q+1) tm 
+            stx'                        = addBind stx (tl id) (BindTmVAR ty') 
+            d'                          = SLET id ty' tm p 
         FLET id ps ty tm p  : ds    -> loop ctx' stx q'' constr'' ds (d':ds') where 
             tyR                         = TyID (var q)  
             (_ps,q')                    = paramUVar ps (q+1) 
@@ -161,17 +162,12 @@ reconBODY ctx stx q (BODY p1 decls tm p2) = loop ctx stx q [] decls [] where
             (ty', q', constr')          = recon _ctx stx (q+1) tm 
             ctx'                        = addBind ctx id (BindTmVAR ty') 
             d'                          = LET id ty' tm p 
-        SLET id    ty tm p  : ds    -> loop ctx stx' q' (constr ++ constr') ds (d':ds') where 
-            _stx                        = addBind stx id (BindTmVAR (TyID (var q)))
-            (ty', q', constr')          = recon ctx _stx (q+1) tm 
-            stx'                        = addBind stx id (BindTmVAR ty') 
-            d'                          = SLET id ty' tm p 
         
         
         
 
 
-recon :: Ctx -> Ctx -> Int -> Term -> (Ty, Int, Constraint) 
+recon :: Ctx -> Ctx -> UVar -> Term -> (Ty, UVar, Constraint) 
 recon ctx stx q (RED tm trs)    = case tm of 
     TmVAR i                         ->  (tyT, q, []) where 
                                         tyT     = getTy ctx i 
