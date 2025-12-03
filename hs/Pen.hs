@@ -118,7 +118,7 @@ pr contents = do
 
     -- Eval.hs
 
-    let typed   = map typing asts 
+    let typed   = map processCN asts 
 
     -- Term.hs 
     let tm      :: [Term] 
