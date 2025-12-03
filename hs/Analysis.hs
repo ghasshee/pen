@@ -3,7 +3,7 @@ module Analysis where
 
 -- import Data.Matrix hiding (zero)
 
-import Logic
+import Utils
 import Set 
 import Mat hiding (getRow, getCol) 
 import Node

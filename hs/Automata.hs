@@ -104,6 +104,8 @@ nextMatch curr a ((p,b,q):es)   | a ~< b && curr==p = (p,b,q) : nextMatch curr a
 
 -- || Operations on automata || -- 
 
+instance (Ord a, Ord s, Num s, Enum s) => ListOperations (Automata (Node s))  a  where 
+    uniq (A qs as es is ts)     = A (uniq qs)(uniq as)(uniq es)(uniq is)(uniq ts) 
 
 instance (Ord a, Ord s, Num s, Enum s) => SetOperations (Automata (Node s)  a) where 
     A qs1 as1 es1 is1 ts1 ∪ A qs2 as2 es2 is2 ts2   = A qs as es is ts where 
@@ -122,7 +124,6 @@ instance (Ord a, Ord s, Num s, Enum s) => SetOperations (Automata (Node s)  a) w
         es      = renodeEdges table $ intersect_edges [(e1,e2) | e1 <- es1, e2 <- es2]
         is      = renodes table [(i1,i2) | i1 <- is1, i2 <- is2] 
         ts      = renodes table [(t1,t2) | t1 <- ts1, t2 <- ts2] 
-    uniq (A qs as es is ts)     = A (uniq qs)(uniq as)(uniq es)(uniq is)(uniq ts) 
     (\\)                        = undefined 
     subsets                     = undefined 
 

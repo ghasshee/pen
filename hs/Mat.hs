@@ -13,7 +13,7 @@
 module Mat  where 
 
 
-import Set 
+import Set  hiding (fromList) 
 import Semiring -- added by ghasshee
 
 

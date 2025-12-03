@@ -11,9 +11,28 @@ import Data.List (sort)
 import Prelude hiding ((>>)) 
 
 
+-- Set Utilities 
+import Data.Set (Set)
+import qualified Data.Set as S
+
+
+
+instance Eq a => SetOperations (Set a) where 
+    φ           = S.empty 
+    
+
+instance (Eq a , Ord a) => ListOperations Set a where 
+    ( ∈ )       = S.member 
+    ( >> )      = S.insert 
+    toList      = S.toList
+    fromList    = S.fromList
+    
+
 
 
 class Eq s => SetOperations s where    
+    φ           :: s 
+    empty       :: s 
     subsets     :: s -> [s]  
     power       :: s -> [s]  
     intersect   :: s -> s -> s 
@@ -24,29 +43,33 @@ class Eq s => SetOperations s where
     (⊂)         :: s -> s -> Bool 
     (⊃)         :: s -> s -> Bool 
     (\\)        :: s -> s -> s 
+    φ           = empty 
     power       = subsets 
     intersect   = (∩)
     union       = (∪)
     a ⊂ b       = (a ∩ b == a) 
     b ⊃ a       = a ⊂ b 
     diff        = (\\)
-    uniq        :: s -> s  
     infixl 8 ∩  
     infixl 7 ∪
     infixl 6 \\ 
 
 class ListOperations s a where 
+    toList          :: s a -> [a] 
+    fromList        :: [a] -> s a  
     (∈)             :: a -> s a -> Bool 
     (∉)             :: a -> s a -> Bool 
     (~=~)           :: s a -> s a -> Bool 
     (>>)            :: a -> s a -> s a 
     add             :: a -> s a -> s a
     add             = (>>) 
+    uniq            :: s a -> s a  
     disjointunion   :: s a -> s a -> s (Either a a) 
     (+++)           :: s a -> s a -> s (Either a a)
     disjointunion   = (+++)
     a ∉ l           = not (a ∈ l)    
     infixr 3 ~=~ 
+    infixl 5 ∈    
     infixr 7 >> 
     
 instance Eq a => SetOperations [a] where 
@@ -59,9 +82,6 @@ instance Eq a => SetOperations [a] where
     as      ∪ bs                = uniq (as ++ bs) 
     as      \\  []              = as 
     as      \\ (b:bs)           = filter (/=b) as \\ bs 
-    uniq []                     = [] 
-    uniq (a:as) | a ∈ as        = uniq as 
-                | otherwise     = a : uniq as 
     
 
 instance Eq a => ListOperations [] a where 
@@ -73,12 +93,15 @@ instance Eq a => ListOperations [] a where
     a >> l      | a ∈ l         = l 
                 | otherwise     = a:l 
     l +++ r                     = (Left <$> l) ++ (Right <$> r )
+    uniq []                     = [] 
+    uniq (a:as) | a ∈ as        = uniq as 
+                | otherwise     = a : uniq as 
 
 
 
 
 
-
+    {--
 -- { Set type }-- 
 
 newtype Set a = Set [a] 
@@ -110,7 +133,7 @@ instance Eq a => Ord (Set a) where
     Set (a:as)  <= Set l  | a ∈ l     = True 
                           | otherwise = False 
 
-
+--}
 
 
 

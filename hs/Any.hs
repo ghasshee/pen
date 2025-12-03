@@ -49,11 +49,13 @@ instance Anyclass (Any a) where
 
 
 instance (Ord a) => ListOperations Any a where 
-    a >> In as      = In (a >> as) 
-    a >> Ex as      = Ex as \\ In [a] 
-    a ∈  In as      = a ∈ as 
-    In as +++ In bs = In (as +++ bs) 
-    a ~=~ b         = undefined 
+    a >> In as          = In (a >> as) 
+    a >> Ex as          = Ex as \\ In [a] 
+    a ∈  In as          = a ∈ as 
+    In as +++ In bs     = In (as +++ bs) 
+    uniq (In as)        = In (uniq as) 
+    uniq (Ex as)        = Ex (uniq as) 
+    a ~=~ b             = undefined 
 
 
 
@@ -72,8 +74,6 @@ instance (Ord a, SetOperations [a] ) => SetOperations (Any a) where
     In as   ∪  Ex bs    = Ex (bs \\ as) 
     Ex as   ∪  In bs    = Ex (as \\ bs)
     as      ∩  bs       = as ∪ (bs \\ as) 
-    uniq (In as)        = In (uniq as) 
-    uniq (Ex as)        = Ex (uniq as) 
 
 
 

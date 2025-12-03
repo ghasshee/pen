@@ -2,9 +2,9 @@
 module MSO {-# WARNING "Only Toy MSO Logic implemented" #-} where 
 
 
-import Logic 
 import Set 
 import Any
+import Utils 
 import Data.List (sort) 
 import Prelude hiding (any) 
 import Opcode
