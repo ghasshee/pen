@@ -26,6 +26,10 @@ token :-
     __end__     { \s -> error "cannot use __end__ : RESERVED for Compiler" } 
     true        { \s -> TRUE            } 
     false       { \s -> FALSE           } 
+    data        { \s -> DATA            } 
+    case        { \s -> CASE            } 
+    of          { \s -> OF              } 
+    "|"         { \s -> VBAR            } 
     let         { \s -> LET'            } 
     $digit+     { \s -> NUM (read s)    }  
     0x$hex+     { \s -> NUM (read s)    } 
@@ -42,7 +46,6 @@ token :-
     i8          { \s -> I8              }
     u8          { \s -> U8              }
     bool        { \s -> BOOL            }
-    case        { \s -> CASE            }
     new         { \s -> NEW             }
     call        { \s -> CALL            }
     sender      { \s -> SENDER          }
@@ -111,6 +114,7 @@ token :-
 
 data Token  
             = COMMENT String 
+            | DATA | VBAR | CASE | OF 
             | EXISTS | FORALL
             | NEXT | FUTURELY | GLOBALLY | UNTIL  
             | POSSIBLY | NECESSARILY 
@@ -131,7 +135,6 @@ data Token
             | EQ | NEQ | EQEQ
             | AND | OR 
             | PLUS |MINUS | MULT | DIV | MOD 
-            | CASE 
             | NEW 
             | CALL 
             | SENDER | SEND 

@@ -206,7 +206,8 @@ vtTerm tr ctx@(i,b)                 = case tr of
                                         vop             = VLf (BOp o)
                                         (vt1,ctx' )     = vtTerm t1 (i+1,b) 
                                         (vt2,ctx'')     = vtTerm t2 ctx'
-    _                           ->  undefined 
+    RED (TmERR   ) []           ->  (VLf Null, ctx) 
+    e                           ->  error $ show e 
 
 
 

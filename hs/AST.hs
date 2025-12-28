@@ -15,14 +15,12 @@ import Datatype
 data Decl   = FLET ID [Param] Ty Term (Maybe Formulae)
             |  LET ID         Ty Term (Maybe Formulae) 
             | SLET ID         Ty Term (Maybe Formulae) 
---          | DATA ID [ID] [DConstr] 
             deriving (Eq, Read)  
 
 instance Show Decl where 
     show (FLET i ps ty t p) = "FLET " ++ i ++ " " ++ show ps ++ " : " ++ show ty ++ " := " ++ show t ++ show p 
     show (SLET i    ty t p) = "SLET " ++ i ++ " "            ++ " : " ++ show ty ++ " := " ++ show t ++ show p  
     show ( LET i    ty t p) = " LET " ++ i ++ " "            ++ " : " ++ show ty ++ " := " ++ show t ++ show p 
---    show (DATA i is c)   = "DATA " ++ i ++ " " ++ show is ++ " := " ++ show c          
 
 data BODY   = BODY (Maybe Formulae) [Decl] Term (Maybe Formulae) 
             deriving (Eq, Read, Show ) 
@@ -33,11 +31,21 @@ data TOP    = MT ID Ty [Param] BODY     -- Method Definition
             | SM ID Ty                  -- Storage Mappings 
             | EV ID Ty                  -- Event Declaration 
             | DT ID [ID] [DConstr]      -- Datatype Declaration 
-            deriving (Show, Eq, Read) 
+            deriving (Eq, Read) 
+
+instance Show TOP where 
+    show (MT id ty ps bd ) = "MT " ++ id ++ " " ++ show ty ++ " " ++ show ps ++ " " ++ show bd 
+    show (SV id ty       ) = "SV " ++ id ++ " " ++ show ty 
+    show (DT id ids cs   ) = "DT " ++ id ++ " " ++ show ids ++ " \n\t := " ++ show cs 
 
 data CONTRACT 
             = CN ID [TOP] 
             deriving (Show, Eq, Read) 
+
+instance {-# OVERLAPPING #-} Show [DConstr] where 
+    show []         = "\n"
+    show [c]        = show c ++ "\n"  
+    show (c:cs)     = show c ++ "\n\t |  " ++ show cs 
 
 instance {-# OVERLAPPING #-} Show [TOP] where 
     show []         = "\n\n"

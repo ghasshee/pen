@@ -8,6 +8,7 @@ import GCLL
 import Tree
 import Type
 import Data
+import Datatype
 import Term
 import AST
 import PsrCtx
@@ -21,6 +22,10 @@ import PsrCtx
 %error      { parseError }
 
 %token 
+    data        { DATA              } 
+    '|'         { VBAR              } 
+    case        { CASE              } 
+    of          { OF                } 
     let         { LET'              } 
     true        { TRUE              } 
     false       { FALSE             } 
@@ -38,7 +43,6 @@ import PsrCtx
     i256        { I256              } 
     u256        { U256              } 
     bool        { BOOL              } 
-    case        { CASE              } 
     new         { NEW               } 
     call        { CALL              } 
     sender      { SENDER            } 
@@ -107,20 +111,37 @@ TopLevel
     |                                   { []                }
 
 Contract         
-    : contract id '{' Top '}'           { CN $2 (fst ($4 emptyCtx))     } 
+    : contract id '{' Tops '}'          { CN $2 (fst ($4 emptyCtx))     } 
 
-Top : StoVars   Top                     { \ctx  ->  let (svs, ctx')     = $1 ctx    in
+Tops
+    : Sto       Tops                    { \ctx  ->  let (svs, ctx')     = $1 ctx    in
                                                     let (top, ctx'')    = $2 ctx'   in 
-                                                    (svs ++ top        , ctx'')           } 
-    | Mthd      Top                     { \ctx ->   ($1 ctx : fst($2 ctx) , ctx)        }
+                                                    (svs ++ top           , ctx'')      } 
+    | Mthd      Tops                    { \ctx ->   ($1 ctx : fst($2 ctx) , ctx)        }
     |                                   { \ctx ->   ([MT "__end__" TyERR [] (BODY Nothing [] (RED TmERR []) Nothing)],  ctx  )           } 
+    | Data      Tops                    { \ctx ->   ($1 ctx : fst($2 ctx) , ctx)        } 
+
+Data 
+    : data id IDs ':=' Constrs      ';' { \ctx ->  DT $2 $3 ($5 ctx) } 
+Constrs 
+    : Constr '|' Constrs                { \ctx -> $1 ctx : $3 ctx   }
+    | Constr                            { \ctx -> [$1 ctx]          }  
+    |                                   { \ctx -> []                } 
+
+Constr 
+    : id CTys                           { \ctx -> DConstr $1 $2 }
+
+CTys 
+    : ATy CTys                           { $1 : $2 } 
+    | ATy                                { [$1] } 
+    |                                    { [] } 
 
 Mthd 
     : method id Params ':' Ty ':=' Body { \ctx -> 
                                             let (params,ctx') = $3 ctx  in 
                                             MT $2 $5 params ($7 ctx')  }
 
-StoVars
+Sto
     : IDs ':' Ty ';'                    { \ctx ->   mapStoTy $3 $1 ctx                  } 
 
 Params  
@@ -139,6 +160,7 @@ IDs : id IDs                            { $1 : $2           }
     |                                   { []                }   
 
 Ty  : ATy                               { $1                } 
+    |  TyApp                            { $1                } 
     | Ty '->' Ty                        { TyARR $1 $3       } 
     | '(' Tys ')'                       { TyPROD $2         } 
 
@@ -150,8 +172,12 @@ ATy : bool                              { TyBOOL            }
     | i8                                { TyI8              } 
     | u256                              { TyU256            } 
     | i256                              { TyI256            } 
+    | id                                { TyID $1           } 
     | '()'                              { TyUNIT            } 
     | '(' Ty ')'                        { $2                } 
+
+TyApp 
+    : Ty ATy                            { TyAPP $1 $2       }  
 
 
 Body 

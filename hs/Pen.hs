@@ -180,8 +180,8 @@ pr contents = do
     let gclls   :: [[GCLL]]
         gclls   = map optrees2stmts optrees 
 
-    -- print "------ Abstract Syntax Tree -------"
-    -- print asts
+    print "------ Abstract Syntax Tree -------"
+    print asts
 
     print "------ Typed   AST   -----"
     print typed
@@ -192,8 +192,8 @@ pr contents = do
     print "------ Program Graph -------" 
     print pgs 
 
-    -- print "------ Variable Tree -------"
-    -- print vts 
+    print "------ Variable Tree -------"
+    print vts 
 {--
     print "------ Matrix Representation ----" 
     print $ convert <$> mats

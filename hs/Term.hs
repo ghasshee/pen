@@ -5,6 +5,7 @@ import Type
 import Param 
 import GCLL 
 import Data
+import Pattern 
 import Utils
 
 
@@ -18,10 +19,6 @@ instance Eq K where
 
 instance Read K where 
     readsPrec _ = undefined 
-
-
-
-
 
 
 
@@ -78,25 +75,22 @@ data Tm     = TmAPP                 -- 2 args
             | TmVAR Int             -- 0
             | TmSTO Int             -- 0 Storage Variable  
             | TmPROD                -- n 
-            | TmDATA Data
             | TmU8 Int              -- 0
             | TmU256 Integer        -- 0
+            | TmDATA Data           -- 0 
             | TmTRUE                -- 0
             | TmFALSE               -- 0
             | TmNOT                 -- 1
-            | TmUNIT
-            | TmERR 
-            -- | TmI Int Int           -- 0 
-            -- | TmIREC  Int           -- 0 
-            -- | TmISTR  Int           -- 0 structural recursion 
+            | TmUNIT                -- 0 
+            | TmRET                 
+            | TmBOP String          -- 2    
+            | TmUOP String          -- 2 
+            | TmERR                 
             | TmIF                  -- 3 
             | TmAMOUNT              -- 0 EVM Value
             | TmTHIS                -- 0 THIS CONTRACT ADDRESS
             | TmSENDER              -- 0 SENDER 
             | TmCALL                -- 3 (4) args { to , value , input (, gascap) } 
-            | TmRET                 
-            | TmBOP String      
-            | TmUOP String    
             -- Declarations 
             | TmLET  ID Ty          -- 2 assignment 
             | TmSLET ID Ty          -- 2 storage assignment 
@@ -109,41 +103,20 @@ data Tm     = TmAPP                 -- 2 args
             | TmKont K 
             | TmFIXK ID [ID] K Ty 
             | Predicate Formulae
+            -- Datatype Constructor & Destructor 
+            | TmCON   ID              -- 0     Data Constructor  
+            | TmCASE                  -- 1+n  (input Term + n patterns) 
+            | TmPATTERN Pattern       -- 1     Case Term of Pattern -> Term    
 
+            -- Other Effectful Statement
             | Eff STMT
+            -- | TmI Int Int           -- 0 
+            -- | TmIREC  Int           -- 0 
+            -- | TmISTR  Int           -- 0 structural recursion 
             deriving (Show, Eq, Read) 
 
 
 type Term    = RBTree Tm 
-
-
-show' :: Term -> String 
-show' (RED (TmSTO  i)   _   )   = "S[" ++ show i ++ "]"  
-show' (RED (TmVAR  i)   _   )   = "X" ++ show i  
-show' (RED (TmU256 i)   _   )   = show i 
-show' (RED (TmDATA d)   _   )   = show d 
-show' (RED  a           []  )   = show a 
-show' (RED (TmABS x ty)  [a])   = "λ" ++ x ++ "." ++ show' a 
-show' (RED (TmFIX f xs ty)[a])  = "(fix " ++ f ++ " " ++ showArgs xs ++ "." ++ show' a ++ ")" 
-show' (RED (TmBOP o)    [a,b])  = show' a ++ o ++ show' b 
-show' (RED (TmUOP o)    [a])    = o ++ show' a
-show' (RED TmIF         [a,b,c])= "if" ++ show' a ++ "then" ++ show' b ++ "else" ++ show' c
-show' (RED TmCALL       [a,b,c])= "call(" ++ show' a ++ ", " ++ show' b ++ ", " ++ show' c ++ ")" 
-show' a                         = show a 
-
-showArgs [] = ""
-showArgs [x] = "x"
-showArgs (x:xs) = x ++ " " ++ showArgs xs 
--- RETURN Type 
---  if you want to return Function type,
---  then you have to make a contract and embed the function into it, and 
---  returns the address of contract and the method name. 
---  
---  if the returning function was an anonymous function show the error, 
---  ERROR: RETURNING FUNCTION cannot be an ANONYMOUS FUNCTION 
---
-
-
 
 
 
@@ -215,8 +188,41 @@ data AFormulae  = AEq Term Term
                 deriving (Eq, Read) 
                 
 instance Show AFormulae where 
-    show (AEq a b   )   = show' a ++ "==" ++ show' b
-    show (AGt a b   )   = show' a ++ ">"  ++ show' b 
-    show (ALt a b   )   = show' a ++ "<"  ++ show' b 
-    show (AGe a b   )   = show' a ++ ">=" ++ show' b 
-    show (ALe a b   )   = show' a ++ "<=" ++ show' b 
+    show (AEq a b   )   = showF a ++ "==" ++ showF b
+    show (AGt a b   )   = showF a ++ ">"  ++ showF b 
+    show (ALt a b   )   = showF a ++ "<"  ++ showF b 
+    show (AGe a b   )   = showF a ++ ">=" ++ showF b 
+    show (ALe a b   )   = showF a ++ "<=" ++ showF b 
+
+
+
+
+showF :: Term -> String 
+showF (RED(TmSTO  i)   _      ) = "S[" ++ show i ++ "]"  
+showF (RED(TmVAR  i)   _      ) = "X" ++ show i  
+showF (RED(TmU256 i)   _      ) = show i 
+showF (RED(TmDATA d)   _      ) = show d 
+showF (RED a           []     ) = show a 
+showF (RED(TmABS x ty) [a]    ) = "λ" ++ x ++ "." ++ showF a 
+showF (RED(TmFIX f x _)[a]    ) = "(fix " ++ f ++ " " ++ showArgs x ++ "." ++ showF a ++ ")" 
+showF (RED(TmBOP o)    [a,b]  ) = showF a ++ o ++ showF b 
+showF (RED(TmUOP o)    [a]    ) = o ++ showF a
+showF (RED TmIF        [a,b,c]) = "if" ++ showF a ++ "then" ++ showF b ++ "else" ++ showF c
+showF (RED TmCALL      [a,b,c]) = "call(" ++ showF a ++ ", " ++ showF b ++ ", " ++ showF c ++ ")" 
+showF a                         = show a 
+
+showArgs []                     = ""
+showArgs [x]                    = "x"
+showArgs (x:xs)                 = x ++ " " ++ showArgs xs 
+
+-- RETURN Type 
+--  if you want to return Function type,
+--  then you have to make a contract and embed the function into it, and 
+--  returns the address of contract and the method name. 
+--  
+--  if the returning function was an anonymous function show the error, 
+--  ERROR: RETURNING FUNCTION cannot be an ANONYMOUS FUNCTION 
+--
+
+
+

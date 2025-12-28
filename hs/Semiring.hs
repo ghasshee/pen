@@ -16,22 +16,23 @@ infixl 7 <.>
 
 
 class Monoid m => Semiring m where 
-    zero   :: m 
-    one   :: m 
-    (<+>) :: m -> m -> m 
-    (<.>) :: m -> m -> m 
+    zero    :: m 
+    one     :: m 
+    (<+>)   :: m -> m -> m 
+    (<.>)   :: m -> m -> m 
     srsum   :: [m] -> m 
     srprod  :: [m] -> m 
-    srsum     = foldr (<+>) zero
-    srprod    = foldr (<.>) one
+    srsum   = foldr (<+>) zero
+    srprod  = foldr (<.>) one
     one     = mempty 
+    (<.>)   = mappend 
     iszero  :: m -> Bool 
 
 class Semiring a => StarSemiring a where 
-    plus :: a -> a 
-    star :: a -> a 
-    plus a = a   <.> star a 
-    star a = one <.> plus a  
+    plus    :: a -> a 
+    star    :: a -> a 
+    plus a  = a   <.> star a 
+    star a  = one <.> plus a  
     
 class StarSemiring a => KleeneAlgebra a where 
 

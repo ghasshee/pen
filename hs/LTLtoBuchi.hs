@@ -39,21 +39,21 @@ instance Show LTL where
 nnf :: LTL -> LTL
 nnf Top             = Top
 nnf Bot             = Bot
+nnf (And a b)       = And (nnf a) (nnf b)
+nnf (Or  a b)       = Or  (nnf a) (nnf b)
+nnf (X   a  )       = X   (nnf a)
+nnf (U   a b)       = U   (nnf a) (nnf b)
+nnf (R   a b)       = R   (nnf a) (nnf b)
 nnf (AP s)          = AP s
-nnf (Not Top)       = Bot
-nnf (Not Bot)       = Top
-nnf (Not (AP s))    = Not (AP s)
+nnf (Not  Top     ) = Bot
+nnf (Not  Bot     ) = Top
+nnf (Not (AP s   )) = Not (AP s)
 nnf (Not (Not phi)) = nnf phi
 nnf (Not (And a b)) = Or  (nnf (Not a)) (nnf (Not b))
-nnf (Not (Or a b))  = And (nnf (Not a)) (nnf (Not b))
-nnf (Not (X a))     = X (nnf (Not a))  
-nnf (Not (U a b))   = R (nnf (Not a)) (nnf (Not b))
-nnf (Not (R a b))   = U (nnf (Not a)) (nnf (Not b))
-nnf (And a b)       = And (nnf a) (nnf b)
-nnf (Or a b)        = Or (nnf a) (nnf b)
-nnf (X a)           = X (nnf a)
-nnf (U a b)         = U (nnf a) (nnf b)
-nnf (R a b)         = R (nnf a) (nnf b)
+nnf (Not (Or  a b)) = And (nnf (Not a)) (nnf (Not b))
+nnf (Not (X   a  )) = X   (nnf (Not a))  
+nnf (Not (U   a b)) = R   (nnf (Not a)) (nnf (Not b))
+nnf (Not (R   a b)) = U   (nnf (Not a)) (nnf (Not b))
 
 
 
@@ -65,11 +65,9 @@ nnf (R a b)         = R (nnf a) (nnf b)
 closure :: LTL -> Set LTL
 closure phi = go phi φ 
   where
-    go f acc
-      | f ∈ acc     = acc
-      | otherwise   =
-          let acc' = f >> acc in
-          case f of
+    go f acc    | f ∈ acc     = acc
+                | otherwise   = let acc' = f >> acc in
+                                case f of
             Top         -> acc'
             Bot         -> acc'
             AP _        -> acc'
@@ -137,13 +135,13 @@ initialStates phi =
 -- A -> B iff for all X p in A, p in B, and for all propositions, valuations align (we treat valuation lazily)
 
 stepOK :: Set LTL -> Set LTL -> Set LTL -> Bool
-stepOK cl a b = 
+stepOK cl as bs = 
   -- next constraints
-  all (\f  -> case f of
-                X p -> p ∈  b
-                _   -> True) (toList a)
+  all (\a  -> case a of
+                X p -> p ∈  bs
+                _   -> True) (toList as)
   -- propositional compatibility: if p in a and p is atomic, nothing else
-  && noPropConflict a b
+  && noPropConflict as bs
 
 
 
@@ -175,7 +173,7 @@ buildGNBA phi =
       inits     = filter (phi' ∈ ) sts
       trans     = transitions cl sts
       us        = untils      cl
-      acc       = map (acceptSetForUntil sts) us
+      acc       = acceptSetForUntil sts <$> us
   in (sts, inits, trans, acc)
 
 -- For an until u = (phi U psi), acceptance set is states where psi holds

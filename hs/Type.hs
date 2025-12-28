@@ -22,7 +22,9 @@ data Ty     =   TyERR   --   nothing
             |   TyREC   ID Ty    -- μX.T  
             |   TyARR   Ty Ty    -- T → T  
             |   TyMTHD  ID [Ty] Ty
-            |   TyDFLT
+            |   TyDATA  ID [Ty] -- User Defined Datatype -- Datatype.hs
+            |   TyAPP Ty Ty 
+            -- |   TyDFLT
             |   TyREF   Ty     
             |   TySRC   Ty      |   TySINK Ty 
             |   TyID    ID 
@@ -47,6 +49,7 @@ instance Show Ty where
         TyNAT       -> "𝐍"
         TyARR a b   -> show a ++ " → " ++ show b
         TyID id     -> id 
+        TyAPP a b   -> "TyAPP " ++ show a ++ " " ++ show b 
         TyVAR i     -> show i 
         TyABS x ty  -> "λ" ++ show x ++ "." ++ show ty
         TyREC x ty  -> "μ" ++ show x ++ "." ++ show ty 

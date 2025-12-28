@@ -17,8 +17,9 @@ import qualified Data.Set as S
 
 
 
-instance Eq a => SetOperations (Set a) where 
+instance (Ord a, Eq a, ListOperations Set a) => SetOperations (Set a) where 
     φ           = S.empty 
+    subsets     = map S.fromList . subsets . S.toList
     
 
 instance (Eq a , Ord a) => ListOperations Set a where 
