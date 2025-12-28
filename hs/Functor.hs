@@ -6,16 +6,16 @@ import Semiring
 
 
 -- Functor Type f 
-data FTy x  = FZero   
+data F x  = FZero   
             | FOne 
             | FVar x   -- Recursive Parameter 
-            | FProd (FTy x) (FTy x) 
-            | FSum  (FTy x) (FTy x) 
+            | FProd (F x) (F x) 
+            | FSum  (F x) (F x) 
             | FConst Ty  
             deriving (Eq) 
 
 
-instance Functor FTy  where 
+instance Functor F  where 
     fmap _ FZero = FZero 
     fmap _ FOne  = FOne 
     fmap f (FVar x) = FVar (f x) 
@@ -23,7 +23,7 @@ instance Functor FTy  where
     fmap f (FSum a b)  = FSum (fmap f a) (fmap f b) 
 
 
-instance Show (FTy String) where 
+instance Show (F String) where 
     show FZero          =   "0" 
     show FOne           =   "1" 
     show (FVar x)       = x 
@@ -38,16 +38,16 @@ instance Show (FTy String) where
     show (FSum  a b)    =   show a ++ " + " ++ show b 
     show (FConst ty)    =   show ty 
 
-instance Semigroup (FTy String)  where 
+instance Semigroup (F String)  where 
     a <> b              = FProd a b 
-instance Monoid (FTy String)  where 
+instance Monoid (F String)  where 
     mempty              = FOne 
-instance Semiring (FTy String)  where 
+instance Semiring (F String)  where 
     zero                = FZero 
     a <+> b             = FSum a b 
     iszero a            = a == FZero 
 
-instance Num (FTy String) where 
+instance Num (F String) where 
     (+)     = (<+>) 
     (*)     = (<.>) 
     (-)     = undefined 
@@ -61,6 +61,6 @@ instance Num (FTy String) where
 
 
 
-instance Show (Fix FTy) where 
+instance Show (Fix F) where 
     show = show' . showFix show 
 

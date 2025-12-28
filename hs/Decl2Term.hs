@@ -21,7 +21,7 @@ transpileTOPs ctx (top:tops)    = case top of
         tys = params2ty ps ty 
     (SV id ty)              -> [ BLK (TmSLET id ty) (transpileTOPs ctx tops) ] 
     (EV id ty)              -> undefined 
-    (DT id ids cnstrs)      -> undefined   
+    (DT id ty ids cnstrs)   -> undefined   
 
 
 transpileBODY :: Ctx -> BODY -> Term 

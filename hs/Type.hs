@@ -19,15 +19,16 @@ data Ty     =   TyERR   --   nothing
             |   TyB32   -- 256 bits 
             |   TyPROD  [Ty] 
             |   TyABS   ID Ty    -- λX.T
-            |   TyREC   ID Ty    -- μX.T  
             |   TyARR   Ty Ty    -- T → T  
             |   TyMTHD  ID [Ty] Ty
-            |   TyDATA  ID [Ty] -- User Defined Datatype -- Datatype.hs
+            -- Datatype 
+            |   TyREC   ID Ty    -- μX.T  
+            |   TyID    ID 
             |   TyAPP Ty Ty 
+
             -- |   TyDFLT
             |   TyREF   Ty     
             |   TySRC   Ty      |   TySINK Ty 
-            |   TyID    ID 
             |   TyVAR   Int 
             |   TyTOP           -- forall T. T 
             |   TyAMOUNT        -- type of Wei i.e. Ether
@@ -48,14 +49,15 @@ instance Show Ty where
         TyBOOL      -> "𝟐"
         TyNAT       -> "𝐍"
         TyARR a b   -> show a ++ " → " ++ show b
-        TyID id     -> id 
-        TyAPP a b   -> show a ++ " " ++ show b 
         TyVAR i     -> show i 
         TyABS x ty  -> "λ" ++ show x ++ "." ++ show ty
-        TyREC x ty  -> "μ" ++ show x ++ "." ++ show ty 
         TyU8        -> "u8"
         TyU256      -> "uint" 
         Untyped     -> "Untyped" 
+        --TyDATA id l -> show id ++ " " ++ show l
+        TyREC x ty  -> "μ" ++ show x ++ "." ++ show ty 
+        TyID id     -> id 
+        TyAPP a b   -> show a ++ " " ++ show b 
         e           -> error $ show e 
 
 

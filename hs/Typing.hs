@@ -121,13 +121,14 @@ reconTOPs ctx stx q constr tops = case tops of
         ty'                             = TyID (var q) 
         stx'                            = addBind stx id (BindTmVAR ty')
         (ts', q', constr')              = reconTOPs ctx stx' (q+1) constr ts
-    MT id ty ps body : ts  -> (m' : ts', q'', constr''') where
+    MT id ty ps body              : ts  -> (m' : ts', q'', constr''') where
         (body', tyR, q',constr')        = reconBODY ctx stx q body
         constr''                        = constr ++ constr'
         sol                             = unify constr''
         tyR'                            = double (apply_constr sol) tyR
         m'                              = MT id tyR' ps body'  
         (ts', q'',constr''')            = reconTOPs ctx stx q' constr'' ts
+    DT id ty ps cs                : ts  -> undefined     
 
 
 reconBODY :: Ctx -> Ctx -> UVar -> BODY -> (BODY, Ty, UVar, Constraint) 

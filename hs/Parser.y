@@ -8,7 +8,6 @@ import GCLL
 import Tree
 import Type
 import Data
-import Datatype
 import Term
 import AST
 import PsrCtx
@@ -114,36 +113,40 @@ Contract
     : contract id '{' Tops '}'          { CN $2 (fst ($4 emptyCtx))     } 
 
 Tops
-    : Sto       Tops                    { \ctx  ->  let (svs, ctx')     = $1 ctx    in
+    :                                   { \ctx ->   ([MT "__end__" TyERR [] (BODY Nothing [] (RED TmERR []) Nothing)],  ctx  )           } 
+    | Mthd      Tops                    { \ctx ->   ($1 ctx : fst($2 ctx) , ctx)        }
+    | Sto       Tops                    { \ctx  ->  let (svs, ctx')     = $1 ctx    in
                                                     let (top, ctx'')    = $2 ctx'   in 
                                                     (svs ++ top           , ctx'')      } 
-    | Mthd      Tops                    { \ctx ->   ($1 ctx : fst($2 ctx) , ctx)        }
-    |                                   { \ctx ->   ([MT "__end__" TyERR [] (BODY Nothing [] (RED TmERR []) Nothing)],  ctx  )           } 
-    | Data      Tops                    { \ctx ->   ($1 ctx : fst($2 ctx) , ctx)        } 
+    | Data      Tops                    { \ctx ->   let (dt, ctx')      = $1 ctx in       
+                                                    let (top, ctx'')    = $2 ctx' in 
+                                                    ([dt] ++ top, ctx'') } 
+
 
 Data 
-    : data id IDs ':=' Constrs          { \ctx ->  DT $2 $3 ($5 ctx) } 
+    : data id IDs ':=' Constrs          { \ctx ->   let ctx'        = addCtx DTA $2 ctx in 
+                                                    let (cs,ctx'')  = $5 ctx' in 
+                                                    (DT $2 Untyped $3 cs, ctx'' ) } 
 Constrs 
-    : Constr '|' Constrs                { \ctx -> $1 ctx : $3 ctx   }
-    | Constr                            { \ctx -> [$1 ctx]          }  
-    |                                   { \ctx -> []                } 
-
+    : Constr '|' Constrs                { \ctx ->   let (c,ctx') = $1 ctx in 
+                                                    let (cs, ctx'') = $3 ctx' in 
+                                                    (c:cs, ctx'')               }
+    | Constr                            { \ctx ->   let (c,ctx') = $1 ctx in 
+                                                    ([c], ctx')           }  
+    |                                   { \ctx ->   ([],  ctx)               } 
 Constr 
-    : id CTys                           { \ctx -> DConstr $1 $2 }
-
+    : id CTys                           { \ctx -> (DConstr $1 $2, addCtx DTA $1 ctx) }
 CTys 
     : ATy CTys                           { $1 : $2 } 
-    | ATy                                { [$1] } 
     |                                    { [] } 
+
+Sto
+    : IDs ':' Ty ';'                    { \ctx ->   mapStoTy $3 $1 ctx                  } 
 
 Mthd 
     : method id Params ':' Ty ':=' Body { \ctx -> 
                                             let (params,ctx') = $3 ctx  in 
                                             MT $2 $5 params ($7 ctx')  }
-
-Sto
-    : IDs ':' Ty ';'                    { \ctx ->   mapStoTy $3 $1 ctx                  } 
-
 Params  
     : Param Params                      { \ctx -> 
                                             let (param,ctx')   = $1 ctx in 

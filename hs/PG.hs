@@ -15,7 +15,6 @@ import AST
 import Hex
 import Action  hiding (Var) 
 import Data
-import Datatype
 import Utils
 
 import Data.List (partition) 

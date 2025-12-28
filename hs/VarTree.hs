@@ -109,7 +109,7 @@ vtTOPs (top:tops)   ctx     = (vtop:vtops, ctx'') where
 -- TOP -> vt
 vtTOP  :: TOP -> Ctx -> VT
 vtTOP e@(EV id ty      ) ctx    = undefined 
-vtTOP d@(DT id ids csts) ctx    = undefined 
+vtTOP d@(DT id ty ids csts) ctx = undefined 
 vtTOP s@(SV id ty      ) (i,b)  = (VLf (Var(S i)), (i+1,(id, S i):b))
 vtTOP m@(MT id ty ps bd) (i,b)  = (VBr (A i)MTD(vps ++ [vbd]), ctx'') where
                                     (vps,ctx')      = vtParams ps (i+1,(id,A i):b) 

@@ -5,7 +5,7 @@ module ExtraData where
 
 
 
-import Datatype
+import Data 
 
 import Control.Monad
 

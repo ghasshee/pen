@@ -6,7 +6,7 @@ import Type
 import Param
 import Term
 import Tree
-import Datatype
+import Data
 --import CPS 
     
 
@@ -30,13 +30,14 @@ data TOP    = MT ID Ty [Param] BODY     -- Method Definition
             | SV ID Ty                  -- Storage Variables 
             | SM ID Ty                  -- Storage Mappings 
             | EV ID Ty                  -- Event Declaration 
-            | DT ID [ID] [DConstr]      -- Datatype Declaration 
+            | DT ID Ty [ID] [DConstr]   -- Datatype Declaration 
             deriving (Eq, Read) 
 
+
 instance Show TOP where 
-    show (MT id ty ps bd ) = "MT " ++ id ++ " " ++ show ty ++ " " ++ show ps ++ " " ++ show bd 
-    show (SV id ty       ) = "SV " ++ id ++ " " ++ show ty 
-    show (DT id ids cs   ) = "DT " ++ id ++ " " ++ show ids ++ " \n\t := " ++ show cs 
+    show (MT id ty ps bd    ) = "MT " ++ id ++ " " ++ show ty ++ " " ++ show ps ++ " " ++ show bd 
+    show (SV id ty          ) = "SV " ++ id ++ " " ++ show ty 
+    show (DT id ty ids cs   ) = "DT " ++ id ++ " " ++ show ids ++ " \n\t := " ++ show cs ++ "\n\t :: " ++ show ty  
 
 data CONTRACT 
             = CN ID [TOP] 
@@ -110,10 +111,10 @@ foldDecl (_F,_L,_S,_D) _Term (SLET i    ty t p) = _S (SLET i    ty (_Term t) p)
 
 foldBODY _BD _Dc _Tm (BODY f1 ds t f2) = _BD (BODY f1 (foldDecl _Dc _Tm <$> ds) (_Tm t) f2) 
 
-foldTOP (_M,_S,_E,_D) _P _BD _Dc _Tm (SV i t     ) = _S(SV i t ) 
-foldTOP (_M,_S,_E,_D) _P _BD _Dc _Tm (EV i t     ) = _E(EV i t ) 
-foldTOP (_M,_S,_E,_D) _P _BD _Dc _Tm (DT i id ds ) = _D(DT i id ds) 
-foldTOP (_M,_S,_E,_D) _P _BD _Dc _Tm (MT i t ps b) = 
+foldTOP (_M,_S,_E,_D) _P _BD _Dc _Tm (SV i t     )   = _S(SV i t ) 
+foldTOP (_M,_S,_E,_D) _P _BD _Dc _Tm (EV i t     )   = _E(EV i t ) 
+foldTOP (_M,_S,_E,_D) _P _BD _Dc _Tm (DT i t id ds ) = _D(DT i t id ds) 
+foldTOP (_M,_S,_E,_D) _P _BD _Dc _Tm (MT i t ps b)   = 
     _M(MT i t(_P<$>ps)(foldBODY _BD _Dc _Tm b))
 
 foldCN  _TOP _P _BD _Dc _Tm (CN id tops)      = CN id (foldTOP _TOP _P _BD _Dc _Tm<$>tops) 

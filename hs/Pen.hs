@@ -84,11 +84,12 @@ subcmds (a:as)          = do
                             putStrLn $ bin  
                             return [] 
         "--graph"       ->  do 
-                            contents    <- subcmds as 
+                            let (file:rest) = as 
+                            contents    <- subcmds rest 
                             let (g:_)     = dots contents 
                             putStrLn $ g
                             let (m:_) = ms $ contents   
-                            writeDot m 
+                            writeDot file m 
                             return [] 
         file            ->  do 
                             contents <- readFile file 

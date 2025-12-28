@@ -54,7 +54,7 @@ renderPG m =
         . toDot 
         $ pg2dot m 
 
-writeDot :: Matrix (OR Action) -> IO FilePath 
-writeDot a = do 
-    runGraphviz (pg2dot a) (Jpeg) "graph.png" 
+writeDot :: FilePath -> Matrix (OR Action) -> IO FilePath 
+writeDot f a = do 
+    runGraphviz (pg2dot a) (Jpeg) f 
  
