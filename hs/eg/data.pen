@@ -1,15 +1,16 @@
 contract counter {
     
-    counter : u256  ; 
+    counter : u256 ;  
 
     data List a := Nil
-                |  Cons a (List a)  ; 
+                |  Cons a (List a)  
 
     data Tree a := Leaf
-                |  Node a (Tree a) (Tree a) ; 
+                |  Node a (Tree a) (Tree a) 
+
     data Either a b 
                 := Left a 
-                |  Right b ; 
+                |  Right b 
 
     method reset : () :=            { counter >= 0 }  
         let y = 5; 

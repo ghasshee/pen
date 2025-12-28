@@ -122,7 +122,7 @@ Tops
     | Data      Tops                    { \ctx ->   ($1 ctx : fst($2 ctx) , ctx)        } 
 
 Data 
-    : data id IDs ':=' Constrs      ';' { \ctx ->  DT $2 $3 ($5 ctx) } 
+    : data id IDs ':=' Constrs          { \ctx ->  DT $2 $3 ($5 ctx) } 
 Constrs 
     : Constr '|' Constrs                { \ctx -> $1 ctx : $3 ctx   }
     | Constr                            { \ctx -> [$1 ctx]          }  

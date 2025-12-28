@@ -49,7 +49,7 @@ instance Show Ty where
         TyNAT       -> "𝐍"
         TyARR a b   -> show a ++ " → " ++ show b
         TyID id     -> id 
-        TyAPP a b   -> "TyAPP " ++ show a ++ " " ++ show b 
+        TyAPP a b   -> show a ++ " " ++ show b 
         TyVAR i     -> show i 
         TyABS x ty  -> "λ" ++ show x ++ "." ++ show ty
         TyREC x ty  -> "μ" ++ show x ++ "." ++ show ty 

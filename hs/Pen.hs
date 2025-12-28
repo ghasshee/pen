@@ -30,7 +30,7 @@ import Analysis
         ( decomposedPaths, junctionNodes, bifurcationNodes, initialNodes, terminalNodes, confluenceNodes, success
         , genMat, convert, star', nodeReduction
         , innerizeOR, reNodeMat)
-
+import PG2DOT 
 import Branch (Branch, branch) 
 
 import Opcode 
@@ -76,14 +76,20 @@ subcmds (a:as)          = do
     case a of 
         "--abi"         ->  do 
                             contents    <- subcmds as 
-                            let asts        = parse . lex $ contents
-                            let abis        = abi asts 
-                            putStrLn abis 
+                            putStrLn $ abis contents 
                             return [] 
         "--bin"         ->  do 
                             contents    <- subcmds as 
-                            let asts        = parse . lex $ contents 
-                            return contents 
+                            let [bin] = bytes contents 
+                            putStrLn $ bin  
+                            return [] 
+        "--graph"       ->  do 
+                            contents    <- subcmds as 
+                            let (g:_)     = dots contents 
+                            putStrLn $ g
+                            let (m:_) = ms $ contents   
+                            writeDot m 
+                            return [] 
         file            ->  do 
                             contents <- readFile file 
                             return contents 
@@ -93,11 +99,9 @@ subcmds (a:as)          = do
 
 
 
-
 main = do 
     args <- getArgs 
     -- let (file:_) = args
-
     -- contents <- readFile file 
     -- pr contents 
     contents <- subcmds args 
@@ -105,29 +109,61 @@ main = do
       []    -> return () 
       _     -> pr contents 
 
+asts   :: String -> [CONTRACT]
+asts   = parse . lex 
+
+abis    :: String -> String 
+abis    = abi . asts 
+
+typed   :: String -> [CONTRACT] 
+typed   = map processCN . asts 
+
+tm      :: String -> [Term] 
+tm      = map transpileCN . typed 
+
+pgs     :: String -> [PG] 
+pgs     = map pg . typed 
+
+vts     :: String -> [VT] 
+vts     = map mkVT . typed 
+
+mats    :: String -> [Matrix (OR (Edge Int Action))] 
+mats    =  map genMat . pgs  
+    
+as      = map convert . mats 
+stars   = map star' . mats 
+ss      = map success . stars 
+ms      = map nodeReduction . as 
+ns      = map reNodeMat . ms 
+dots    = map renderPG . ms 
+decomps     = map directSumDecompose . ms 
+decomps'    = map directSumDecompose . ns  
+ns'     = hd . decomps' 
+bs      = map branch . ns' 
+ops     = map branches2opcodes . bs 
+ops'    = rmFUNSTACKs . ops 
+ops''   = map codegen . ops' 
+bytes   = map asm . ops'' 
+dasms   = map extract . map ( lineNo . disAsm . byte ) . bytes 
+optrees = map (knits . revcut) . dasms
+gclls   :: String -> [[GCLL]] 
+gclls   = map optrees2stmts . optrees 
 
 pr contents = do 
-
     -- AST.hs 
     let asts    :: [CONTRACT] 
         asts    = parse . lex $ contents
-
     -- ABI.hs 
     let abis    :: String 
         abis    = abi asts 
-
     -- Eval.hs
-
     let typed   = map processCN asts 
-
     -- Term.hs 
     let tm      :: [Term] 
         tm      = map transpileCN typed
-
     -- PG.hs 
     let pgs     :: [PG] 
         pgs     = map pg typed
-
     -- VarTree.hss
     let vts     :: [VT] 
         vts     = map mkVT typed 
@@ -146,6 +182,8 @@ pr contents = do
     
     let ms      :: [Matrix (OR Action)] 
         ms      = map nodeReduction as
+
+    let dots    = map renderPG ms  
 
     let ns      :: [Matrix (Edge Int (OR Action))] 
         ns      = map reNodeMat ms
@@ -181,22 +219,21 @@ pr contents = do
         gclls   = map optrees2stmts optrees 
 
     print "------ Abstract Syntax Tree -------"
-    print asts
-
+    print $ asts 
     print "------ Typed   AST   -----"
-    print typed
+    print $ typed 
 
     -- print "------- transpiled into Functional Term -------" 
     -- print tm 
 
     print "------ Program Graph -------" 
-    print pgs 
-
+    print $ pgs  
+        {--
     print "------ Variable Tree -------"
-    print vts 
-{--
+    print $ vts  
+   
     print "------ Matrix Representation ----" 
-    print $ convert <$> mats
+    print $ map convert $ mats 
    
     print "------ Diags ------"
     mapM printDiag mats
@@ -230,13 +267,13 @@ pr contents = do
     print $ map decomposedPaths as
 --} 
     print "------ Node Reduction ------" 
-    print $ ms
+    print $ ms 
 
     print "----- Direct Sum Decompostions -----" 
     print "trims:"
     print $ map (\m -> trim m 1 2)  ms 
     print "decomposions:"
-    print $ map allComponents ms 
+    print $ map allComponents ms  
     print $ decompss
 
 {--
@@ -244,25 +281,25 @@ pr contents = do
     print $ ns 
 --}
     print "------ Branches -----"
-    print $ bs
+    print $ bs  
    
     print "------ OPCODEs ------"
-    print $ ops 
+    print $ ops  
    
     print "------ remove FUNSTACK OPCODE -----"
-    print $ ops' 
+    print $ ops'  
    
     print "------ with Address -----"
-    print ops''
+    print $ ops''  
         {--
     print "------ OpTrees ------"
-    print $ optrees 
+    print $ optrees  
 --}
     print "------ GCLLs  -------"
     print $ gclls 
          
     print "------ ABI -------" 
-    putStrLn abis 
+    putStrLn $ abis  
            
     print "------ EVM ByteCodes ------"
     print $ bytes 

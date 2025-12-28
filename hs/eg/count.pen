@@ -1,7 +1,7 @@
 contract counter {
     
     counter   : u256 ; 
-    unusedvar : u256 ; 
+    unusedvar : u256 ;
 
     method inc : () :=              { always counter >= 0 } 
         let counter = counter + 1 ; { counter > 0  }  

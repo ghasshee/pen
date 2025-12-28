@@ -1,6 +1,6 @@
 contract counter {
     
-    counter : u256  ; 
+    counter : u256   ; 
     
 
     method reset : () :=            { counter >= 0 }  
