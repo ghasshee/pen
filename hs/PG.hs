@@ -145,19 +145,23 @@ pgTermApp (es,cfg@(i,t,q,s,v,cx,sx,d)) (RED TmAPP [t1,t2]) cont = case t1 of
     RED (TmVAR n) []    ->  case searchFun n cx of 
         Fun(0,_,_)                  -> error $ "pgTermApp: illegal TmVAR " ++ show n ++ ":Fun " ++ show cx
         Arg(0,_,_)                  -> error $ "pgTermApp: illegal TmVAR " ++ show n ++ ":Arg " ++ show cx
-        Arg(_,qn,qx){--f@f(f x)--}  ->  pgArgs  (es++eent++ercd++echk++eexit,(Q q,Q(q+1),q+3,s,v,cx,sx,d)) (t2:cont) where 
+        Arg(_,qn,qx){--f@f(f x)--}  ->  pgArgs  (es++eent++ercd++echk++eswap++epop++eexit,(Q q,Q(q+1),q+5,s,v,cx,sx,d)) (t2:cont) where 
             eent                =   [(i     , AcEnter     , Q q     )] 
             ercd                =   [(Q(q+1), AcRecord i t, qn      )]
             echk                =   [(qx    , AcCheck  i t, Q(q+2)  )] 
-            eexit               =   [(Q(q+2), AcExit      , t       )] 
-        Fun(_,qn,qx){-- double --}  ->  pgArgs' (es++eent++ercd++echk++eexit,(Q q,Q(q+1),q+3,s,v,cx,sx,d)) argcxs where 
+            eswap               =   [(Q(q+2), AcSwap 1    , Q(q+3)  )]
+            epop                =   [(Q(q+3), AcPop       , Q(q+4)  )] 
+            eexit               =   [(Q(q+4), AcExit      , t       )] 
+        Fun(_,qn,qx){-- double --}  ->  pgArgs' (es++eent++ercd++echk++eswap++epop++eexit,(Q q,Q(q+1),q+5,s,v,cx,sx,d)) argcxs where 
             args                =   t2 : cont 
             acx                 =   searchArgs n cx 
             argcxs              =   zip args acx 
             eent                =   [(i     , AcEnter     , Q q     )] 
             ercd                =   [(Q(q+1), AcRecord i t, qn      )] 
             echk                =   [(qx    , AcCheck  i t, Q(q+2)  )]  
-            eexit               =   [(Q(q+2), AcExit      , t       )] 
+            eswap               =   [(Q(q+2), AcSwap 1    , Q(q+3)  )]
+            epop                =   [(Q(q+3), AcPop       , Q(q+4)  )] 
+            eexit               =   [(Q(q+4), AcExit      , t       )] 
     _                   -> pgTermApp (es,cfg)  t1 (t2:cont)
 
 
