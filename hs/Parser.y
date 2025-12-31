@@ -126,14 +126,14 @@ Tops
 Data 
     : data id IDs ':=' Constrs          { \ctx ->   let ctx'        = addCtx DTA $2 ctx in 
                                                     let (cs,ctx'')  = $5 ctx' in 
-                                                    (DT $2 Untyped $3 cs, ctx'' ) } 
+                                                    (DT $2 [] ($3) cs, ctx'' ) } 
 Constrs 
-    : Constr '|' Constrs                { \ctx ->   let (c,ctx') = $1 ctx in 
+    : Constr '|' Constrs                { \ctx ->   let (c,ctx')    = $1 ctx in 
                                                     let (cs, ctx'') = $3 ctx' in 
                                                     (c:cs, ctx'')               }
     | Constr                            { \ctx ->   let (c,ctx') = $1 ctx in 
-                                                    ([c], ctx')           }  
-    |                                   { \ctx ->   ([],  ctx)               } 
+                                                    ([c],  ctx')                }  
+    |                                   { \ctx ->   ([],   ctx)                 } 
 Constr 
     : id CTys                           { \ctx -> (DConstr $1 $2, addCtx DTA $1 ctx) }
 CTys 
@@ -323,6 +323,7 @@ Bool
 
 
 {
+
 
 parseError :: [Token] -> a 
 parseError t = error $ show t 

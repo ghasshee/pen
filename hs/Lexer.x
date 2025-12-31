@@ -14,7 +14,7 @@ $space  = [\ \t]
 $letter = [a-zA-Z] 
 $hex    = [0-9A-Fa-f] 
 $nl     = [\n] 
-$symbol = [\$\#\@\!\%\^\&\\\*\(\)\+\-\:\:\=\/\>\<\.\,] 
+$symbol = [\$\#\@\!\%\^\&\\\*\(\)\+\-\;\:\:\=\/\>\<\.\,] 
 
 @any    = [$digit $space $letter $symbol]*     
 
@@ -113,7 +113,8 @@ token :-
 { 
 
 data Token  
-            = COMMENT String 
+            = EOF 
+            | COMMENT String 
             | DATA | VBAR | CASE | OF 
             | EXISTS | FORALL
             | NEXT | FUTURELY | GLOBALLY | UNTIL  
@@ -150,8 +151,11 @@ data Token
             | A' | E' | F' | G' | X' | U' | AND' | OR' 
             deriving (Show, Eq, Read) 
 
-lex = alexScanTokens 
+-- lex = alexScanTokens 
 
+lex = filter notComment . alexScanTokens where 
+    notComment (COMMENT _) = False 
+    notComment _ = True 
 } 
 
 

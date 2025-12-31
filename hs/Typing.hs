@@ -9,6 +9,7 @@ import Bind
 import Tree
 import Subtyping
 import Utils
+import Data2Functor (typeDT) 
 
 import Prelude hiding ((<$)) 
 
@@ -128,7 +129,10 @@ reconTOPs ctx stx q constr tops = case tops of
         tyR'                            = double (apply_constr sol) tyR
         m'                              = MT id tyR' ps body'  
         (ts', q'',constr''')            = reconTOPs ctx stx q' constr'' ts
-    DT id ty ps cs                : ts  -> undefined     
+    DT id ty ps cs                : ts  -> (dt' : ts', q', constr') where 
+        dt'                             = typeDT (DT id ty ps cs)
+        (ts',q',constr')                = reconTOPs ctx stx q constr ts                              
+
 
 
 reconBODY :: Ctx -> Ctx -> UVar -> BODY -> (BODY, Ty, UVar, Constraint) 

@@ -1,32 +1,32 @@
 module Functor where 
 
 import Fix 
-import Type 
 import Semiring 
 
+data Mu ty x = Mu x (F ty x)  
 
 -- Functor Type f 
-data F x  = FZero   
+data F ty x = FZero   
             | FOne 
             | FVar x   -- Recursive Parameter 
-            | FProd (F x) (F x) 
-            | FSum  (F x) (F x) 
-            | FConst Ty  
+            | FProd (F ty x) (F ty x) 
+            | FSum  (F ty x) (F ty x) 
+            | FConst ty  
             deriving (Eq) 
 
 
-instance Functor F  where 
-    fmap _ FZero = FZero 
-    fmap _ FOne  = FOne 
-    fmap f (FVar x) = FVar (f x) 
-    fmap f (FProd a b) = FProd (fmap f a) (fmap f b) 
-    fmap f (FSum a b)  = FSum (fmap f a) (fmap f b) 
+instance Functor (F ty) where 
+    fmap _  FZero       = FZero 
+    fmap _  FOne        = FOne 
+    fmap f (FVar x)     = FVar  (f x) 
+    fmap f (FProd a b)  = FProd (fmap f a) (fmap f b) 
+    fmap f (FSum  a b)  = FSum  (fmap f a) (fmap f b) 
 
 
-instance Show (F String) where 
-    show FZero          =   "0" 
-    show FOne           =   "1" 
-    show (FVar x)       = x 
+instance Show ty => Show (F ty String) where 
+    show (FZero )       =   "0" 
+    show (FOne  )       =   "1" 
+    show (FVar x)       =    x 
     show (FProd(FSum a b)(FSum c d)) 
                         =   "(" ++ show(FSum a b) ++ ")" ++ " × " ++
                             "(" ++ show(FSum c d) ++ ")" 
@@ -38,16 +38,18 @@ instance Show (F String) where
     show (FSum  a b)    =   show a ++ " + " ++ show b 
     show (FConst ty)    =   show ty 
 
-instance Semigroup (F String)  where 
+
+instance Eq ty => Semigroup (F ty String)  where 
     a <> b              = FProd a b 
-instance Monoid (F String)  where 
+instance Eq ty => Monoid (F ty String)  where 
     mempty              = FOne 
-instance Semiring (F String)  where 
+instance Eq ty => Semiring (F ty String)  where 
     zero                = FZero 
     a <+> b             = FSum a b 
     iszero a            = a == FZero 
 
-instance Num (F String) where 
+
+instance Eq ty => Num (F ty String) where 
     (+)     = (<+>) 
     (*)     = (<.>) 
     (-)     = undefined 
@@ -60,7 +62,6 @@ instance Num (F String) where
                 | otherwise     = FSum FOne (loop (n - 1)) 
 
 
-
-instance Show (Fix F) where 
+instance Show ty => Show (Fix (F ty)) where 
     show = show' . showFix show 
 

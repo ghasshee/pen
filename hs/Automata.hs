@@ -105,9 +105,16 @@ nextMatch curr a ((p,b,q):es)   | a ~< b && curr==p = (p,b,q) : nextMatch curr a
 -- || Operations on automata || -- 
 
 instance (Ord a, Ord s, Num s, Enum s) => ListOperations (Automata (Node s))  a  where 
+    toList      = undefined 
+    fromList    = undefined 
+    (∈)         = undefined 
+    (~=~)       = undefined 
+    (+++)       = undefined 
+    (>>)        = undefined 
     uniq (A qs as es is ts)     = A (uniq qs)(uniq as)(uniq es)(uniq is)(uniq ts) 
 
 instance (Ord a, Ord s, Num s, Enum s) => SetOperations (Automata (Node s)  a) where 
+    φ           = A [] [] [] [] [] 
     A qs1 as1 es1 is1 ts1 ∪ A qs2 as2 es2 is2 ts2   = A qs as es is ts where 
         table   = renode_table qs' 
         qs'     = qs1 +++ qs2

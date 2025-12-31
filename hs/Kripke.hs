@@ -1,4 +1,4 @@
-module Kripke where 
+module Kripke {-# WARNING "Kripke Semantics To Be Implemented after Inductive Data Type .." #-} where 
 
 
 import Set 

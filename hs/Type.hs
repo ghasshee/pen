@@ -4,9 +4,10 @@ module Type where
 import Numeric.Natural 
 import Prelude hiding ((<$))
 
-type N = Natural 
+-- type N = Natural 
 
-type ID     = String
+type ID     =   String
+
 data Ty     =   TyERR   --   nothing 
             |   TyUNIT  --   0 bit 
             |   TyBOOL  --   1 bit
@@ -17,18 +18,23 @@ data Ty     =   TyERR   --   nothing
             |   TyU256  -- 256 bits
             |   TyI256  -- 256 bits
             |   TyB32   -- 256 bits 
-            |   TyPROD  [Ty] 
-            |   TyABS   ID Ty    -- λX.T
             |   TyARR   Ty Ty    -- T → T  
             |   TyMTHD  ID [Ty] Ty
+            |   TyPROD  [Ty] 
+
             -- Datatype 
             |   TyREC   ID Ty    -- μX.T  
             |   TyID    ID 
-            |   TyAPP Ty Ty 
+            |   TyAPP   Ty Ty 
+            |   TyABS   ID Ty    -- λX.T
+            |   TySUM   Ty Ty 
+            |   TyPAIR  Ty Ty 
+            |   TyCON   ID Ty 
 
-            -- |   TyDFLT
+            -- Reference Type 
             |   TyREF   Ty     
             |   TySRC   Ty      |   TySINK Ty 
+
             |   TyVAR   Int 
             |   TyTOP           -- forall T. T 
             |   TyAMOUNT        -- type of Wei i.e. Ether
@@ -39,7 +45,10 @@ data Ty     =   TyERR   --   nothing
             |   Ty String  
             |   TyPoly String [Ty] 
             |   Untyped 
+
             deriving (Eq, Read) 
+
+
 
 
 instance Show Ty where 
@@ -50,14 +59,19 @@ instance Show Ty where
         TyNAT       -> "𝐍"
         TyARR a b   -> show a ++ " → " ++ show b
         TyVAR i     -> show i 
-        TyABS x ty  -> "λ" ++ show x ++ "." ++ show ty
         TyU8        -> "u8"
+        TyI8        -> "i8" 
+        TyI256      -> "int" 
         TyU256      -> "uint" 
         Untyped     -> "Untyped" 
-        --TyDATA id l -> show id ++ " " ++ show l
+        -- Datatype 
         TyREC x ty  -> "μ" ++ show x ++ "." ++ show ty 
-        TyID id     -> id 
+        TyID  id    -> id 
         TyAPP a b   -> show a ++ " " ++ show b 
+        TyABS x ty  -> "λ" ++ show x ++ "." ++ show ty
+        TyPAIR x y  -> show x ++ "×" ++ show y 
+        TySUM x y   -> show x ++ "+" ++ show y 
+        TyCON id ty -> id ++ " : " ++ show ty  
         e           -> error $ show e 
 
 
@@ -81,5 +95,8 @@ ty2num TyU256   = 6
 ty2num TyI256   = 7 
 ty2num TyB32    = 8 
 ty2num _        = error "not an atomic type" 
+
+
+
 
 

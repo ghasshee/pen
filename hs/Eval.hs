@@ -31,6 +31,6 @@ processCN cn = (fst3 . reconCN [] [] 0) cn
 --typingTest :: CONTRACT -> (CONTRACT, Ctx, Ctx, UVar, Constraint) 
 -- typingTest cn = processCN [] [] 0 [] cn  
 
-typingTest2 :: CONTRACT -> (CONTRACT, UVar, Constraint) 
-typingTest2 cn = reconCN [] [] 0  cn 
-typing = fst3 . typingTest2
+--typingTest2 :: CONTRACT -> (CONTRACT, UVar, Constraint) 
+--typingTest2 cn = reconCN [] [] 0  cn 
+--typing = fst3 . typingTest2

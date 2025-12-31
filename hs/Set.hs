@@ -7,7 +7,7 @@
 
 module Set where 
 
-import Data.List (sort)  
+import Data.List (nub, sort)  
 import Prelude hiding ((>>)) 
 
 
@@ -20,6 +20,9 @@ import qualified Data.Set as S
 instance (Ord a, Eq a, ListOperations Set a) => SetOperations (Set a) where 
     φ           = S.empty 
     subsets     = map S.fromList . subsets . S.toList
+    (∩)         = S.intersection
+    (\\)        = S.difference
+    (∪)         = S.union 
     
 
 instance (Eq a , Ord a) => ListOperations Set a where 
@@ -27,6 +30,9 @@ instance (Eq a , Ord a) => ListOperations Set a where
     ( >> )      = S.insert 
     toList      = S.toList
     fromList    = S.fromList
+    uniq        = S.fromList . nub . S.toList 
+    (+++)       = undefined
+    (~=~)       = undefined 
     
 
 
@@ -44,7 +50,7 @@ class Eq s => SetOperations s where
     (⊂)         :: s -> s -> Bool 
     (⊃)         :: s -> s -> Bool 
     (\\)        :: s -> s -> s 
-    φ           = empty 
+    empty       = φ      
     power       = subsets 
     intersect   = (∩)
     union       = (∪)
@@ -74,6 +80,7 @@ class ListOperations s a where
     infixr 7 >> 
     
 instance Eq a => SetOperations [a] where 
+    φ                           = [] 
     subsets []                  = [[]]
     subsets (x:xs)              = subsets xs ++ ( (x:) <$> subsets xs)  
     []      ∩ _                 = [] 
@@ -86,6 +93,8 @@ instance Eq a => SetOperations [a] where
     
 
 instance Eq a => ListOperations [] a where 
+    fromList                    = id 
+    toList                      = id 
     a ∈ b                       = a `elem` b  
     []   ~=~ []                 = True
     []   ~=~ _                  = False 

@@ -5,11 +5,26 @@ module Fix where
 
 
 
+
+
+
 data Fix f = In (f (Fix f))
 
 
+
+
+
+
+foldMu :: Functor f => (f a -> a) -> Fix f -> a 
+foldMu = cata 
+
+--ana = unfoldMu 
+
+unfoldMu :: Functor f => (a -> f a) -> a -> Fix f 
+unfoldMu coalg a = In (unfoldMu coalg <$> coalg a) 
+
 cata :: Functor f => (f a -> a) -> Fix f -> a 
-cata alg (In x) = alg (fmap (cata alg) x) 
+cata alg (In fx) = alg (cata alg <$> fx) 
 
 showFix :: Functor f => (f String -> String) -> Fix f -> String
 showFix = cata  
@@ -30,7 +45,8 @@ show' (x   :  xs) =  x : show' xs
 instance Show a => Show (Fix (ListF a)) where 
     show = show' . showFix show 
 
-data ListF a x = NilF | ConsF a x 
+data ListF a x = NilF 
+               | ConsF a x 
     deriving (Show) 
 
 instance Functor (ListF a) where 

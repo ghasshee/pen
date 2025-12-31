@@ -47,7 +47,6 @@ instance Anyclass (Any a) where
     complement (Ex l) = In l
     complement (In l) = Ex l 
 
-
 instance (Ord a) => ListOperations Any a where 
     a >> In as          = In (a >> as) 
     a >> Ex as          = Ex as \\ In [a] 
@@ -56,10 +55,15 @@ instance (Ord a) => ListOperations Any a where
     uniq (In as)        = In (uniq as) 
     uniq (Ex as)        = Ex (uniq as) 
     a ~=~ b             = undefined 
+    fromList l          = In l 
+    toList (In l)       = l 
+    toList (Ex l)       = error "The whole set is not specified"
+
 
 
 
 instance (Ord a, SetOperations [a] ) => SetOperations (Any a) where 
+    φ                   = In [] 
     subsets (In l)      = In <$> (subsets l) 
     In []   \\  _       = none 
     _       \\ Ex []    = none 

@@ -22,14 +22,14 @@ data DConstr    = DConstr ID [Ty]
 -- e.g. 
 -- defining List 
 
-l = DInd "List" ["a"] 
-        [DConstr "Nil"  []
-        ,DConstr "Cons" [TyID "a", TyAPP (TyID "List") (TyID "a")]
+l = DInd ("List") ["a"] 
+        [DConstr ("Nil")  []
+        ,DConstr ("Cons") [TyID "a", TyAPP (TyID "List") (TyID "a")]
         ] 
 
-n = DInd "Nat" []
-        [DConstr "Succ" [TyID "Nat"]
-        ,DConstr "Zero" []
+n = DInd ("Nat") []
+        [DConstr ("Succ") [TyID "Nat"]
+        ,DConstr ("Zero") []
         ]
 
 
@@ -87,3 +87,5 @@ method withdraw (amount : Wei) {
 
 
 
+
+data T a = L | N a (T Int) (T a) deriving (Show) 

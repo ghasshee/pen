@@ -51,7 +51,7 @@ ret2ABI ty =
 
 
 top2ABI :: TOP -> Maybe String 
-top2ABI (MT __end__ _ _ _) = Just fallback2ABI
+top2ABI (MT "__end__" _ _ _) = Just fallback2ABI
 top2ABI (MT id ty ps bd)   = Just $ 
     "{"  ++ "\n" ++ 
     "\t" ++ "\"name\"               : \"" ++ id             ++ "\"," ++ "\n" ++

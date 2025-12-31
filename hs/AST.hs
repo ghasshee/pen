@@ -30,14 +30,14 @@ data TOP    = MT ID Ty [Param] BODY     -- Method Definition
             | SV ID Ty                  -- Storage Variables 
             | SM ID Ty                  -- Storage Mappings 
             | EV ID Ty                  -- Event Declaration 
-            | DT ID Ty [ID] [DConstr]   -- Datatype Declaration 
+            | DT ID [Ty] [ID] [DConstr] -- Datatype Declaration 
             deriving (Eq, Read) 
 
 
 instance Show TOP where 
     show (MT id ty ps bd    ) = "MT " ++ id ++ " " ++ show ty ++ " " ++ show ps ++ " " ++ show bd 
     show (SV id ty          ) = "SV " ++ id ++ " " ++ show ty 
-    show (DT id ty ids cs   ) = "DT " ++ id ++ " " ++ show ids ++ " \n\t := " ++ show cs ++ "\n\t :: " ++ show ty  
+    show (DT id tys ids cs  ) = "DT " ++ id ++ " " ++ show ids ++ " \n\t := " ++ show cs ++ "\n\t :: " ++ show tys
 
 data CONTRACT 
             = CN ID [TOP] 

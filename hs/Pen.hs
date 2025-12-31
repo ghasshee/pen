@@ -67,6 +67,7 @@ import Automata hiding (trim)
 import ATree
 import VC
 import Kripke
+import LTL2Buchi
 
 
 type Args = [String] 
