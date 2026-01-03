@@ -44,7 +44,10 @@ For more detail of the theory, you could refer to [Automata Theory](https://ems.
 ```
 $ cd hs 
 $ make 
-$ ./Pen eg/count9.pen
+$ ./Pen eg/count9.pen                       ## outputs all of Analysis 
+$ ./Pen --abi eg/count14.pen                ## outputs ABI 
+$ ./Pen --bin eg/count14.pen                ## outputs EVM Bytecode 
+$ ./Pen --graph graph.jpeg eg/count14.pen   ## generates Program Graph Visualization
 ``` 
 
 The above command might analyze the pen source code and show the resulting program flow graph matrix. 
