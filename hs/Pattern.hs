@@ -2,7 +2,7 @@ module Pattern where
 
 
 
-data Pattern        =   PVar String             -- x 
-                    |   PWildcard               -- _ 
+data Pattern        =   PWild                   -- _ 
+                    |   PVar String             -- x 
                     |   PCon String [Pattern]   -- C p1 .. pk
                     deriving (Eq, Show, Read ) 

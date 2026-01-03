@@ -15,7 +15,7 @@ $letter     = [a-zA-Z]
 $capital    = [A-Z]
 $hex        = [0-9A-Fa-f] 
 $nl         = [\n] 
-$symbol     = [\$\#\@\!\%\^\&\\\*\(\)\+\-\;\:\:\=\/\>\<\.\,] 
+$symbol     = [\$\#\@\!\%\^\&\\\*\(\)\+\-\;\:\:\=\/\>\<\.\,\|] 
 
 @any        = [$digit $space $letter $symbol]*     
 
@@ -33,6 +33,7 @@ token :-
     case        { \s -> CASE            } 
     of          { \s -> OF              } 
     "|"         { \s -> VBAR            } 
+    "_"         { \s -> WILD            } 
     let         { \s -> LET'            } 
     $digit+     { \s -> NUM (read s)    }  
     0x$hex+     { \s -> NUM (read s)    } 
@@ -119,7 +120,7 @@ token :-
 data Token  
             = EOF 
             | COMMENT String 
-            | DATA | VBAR | CASE | OF 
+            | DATA | VBAR | CASE | OF | WILD
             | EXISTS | FORALL
             | NEXT | FUTURELY | GLOBALLY | UNTIL  
             | POSSIBLY | NECESSARILY 

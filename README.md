@@ -36,7 +36,7 @@ For more detail of the theory, you could refer to [Automata Theory](https://ems.
 ![Analyzing the pen source code and showing the resulting program graph and its matrix representation.](/images/program_graph_and_matrix.png) 
 
 
-![graph representation](/images/graph.jpeg) 
+![graph representation: count14.pen](/images/count14.jpeg) 
 
 
 ### Build / Run 

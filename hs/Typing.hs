@@ -54,6 +54,7 @@ apply_constr sol tyT =
 occur :: ID -> Ty -> Bool 
 occur x tyT = case tyT of 
     TyARR tyT1 tyT2       -> occur x tyT1 || occur x tyT2
+    TyAPP tyT1 tyT2       -> occur x tyT1 || occur x tyT2   
     TyID s                -> s == x 
     _                     -> False 
 

@@ -9,6 +9,7 @@ import Tree
 import Type
 import Data
 import Term
+import Pattern
 import AST
 import PsrCtx
 
@@ -22,6 +23,7 @@ import PsrCtx
 
 %token 
     data        { DATA              } 
+    '_'         { WILD              } 
     '|'         { VBAR              } 
     case        { CASE              } 
     of          { OF                } 
@@ -270,16 +272,50 @@ BOp : '=='                              { "=="  }
     | '/'                               { "/"   } 
     | '%'                               { "%"   } 
 
+
+PatternTms 
+    : Pattern '->' Tm  '|' PatternTms   { \ctx -> 
+                                            let  p           = $1 ctx in 
+                                            let (t,  ctx'')  = $3 ctx in 
+                                            let (ps, ctx''') = $5 ctx in 
+                                            (RED (TmPATTERN p) [t] : ps , ctx''')  }
+    | Pattern '->' Tm                   { \ctx -> 
+                                            let (t, ctx')    = $3 ctx in 
+                                            ([RED (TmPATTERN ($1 ctx)) [t]] , ctx') } 
+    |                                   { \ctx ->  ([], ctx)    }  
+
+Pattern 
+    : '_'                               { \ctx -> (PWild          )  }
+    | id                                { \ctx -> (PVar $1        )  }
+    | cid Patterns                      { \ctx -> (PCon $1($2 ctx))  } 
+
+Patterns
+    : '(' Pattern      ')' Patterns     { \ctx -> $2 ctx : $4 ctx }  
+    | '(' cid Patterns ')' Patterns     { \ctx -> PCon $2($3 ctx) : $5 ctx }
+    | '_'                  Patterns     { \ctx -> PWild : $2 ctx }
+    | id                   Patterns     { \ctx -> PVar $1 : $2 ctx }
+    |                                   { \ctx -> [] } 
+
 Tm  : if Tm then Tm else Tm             { \ctx -> 
                                             let (b,ctx') = $2 ctx in 
                                             let (t1,ctx'') = $4 ctx' in 
                                             let (t2,ctx''') = $6 ctx'' in 
                                             (RED TmIF [b,t1,t2], ctx''') } 
+    | case ATm of '|' PatternTms        { \ctx -> 
+                                            let (t,ctx') = $2 ctx in 
+                                            let (ps, ctx'') = $5 ctx' in 
+                                            (RED TmCASE (t:ps), ctx'')  }
+    | case ATm of PatternTms            { \ctx -> 
+                                            let (t,ctx') = $2 ctx in 
+                                            let (ps, ctx'') = $4 ctx' in 
+                                            (RED TmCASE (t:ps), ctx'')  }
     | Tm BOp Tm                         { \ctx -> 
                                             let (t1,ctx') = $1 ctx in 
                                             let (t2,ctx'') = $3 ctx' in 
                                             (RED (TmBOP $2) [t1,t2], ctx'') } 
     | AppTm                             { $1                                } 
+
+
 
 
 AppTm 
