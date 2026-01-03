@@ -31,6 +31,7 @@ typeof _ _ = Untyped
 substinty :: ID -> Ty -> Ty -> Ty 
 substinty x tyT tyS = case tyS of 
     TyARR tyS1 tyS2         -> TyARR (substinty x tyT tyS1) (substinty x tyT tyS2) 
+    TyAPP tyS1 tyS2         -> TyAPP (substinty x tyT tyS1) (substinty x tyT tyS2) 
     TyID s                  -> case tyT of 
         TyREC _ _               -> tyT 
         _ | s == x              -> tyT
