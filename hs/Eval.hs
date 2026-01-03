@@ -26,7 +26,7 @@ eval ctx stx tr = tr
 
 
 processCN :: CONTRACT -> CONTRACT 
-processCN cn = (fst3 . reconCN [] [] 0) cn    
+processCN cn = (fst3 . reconCN [] [] [] 0) cn    
 
 --typingTest :: CONTRACT -> (CONTRACT, Ctx, Ctx, UVar, Constraint) 
 -- typingTest cn = processCN [] [] 0 [] cn  

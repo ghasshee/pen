@@ -104,7 +104,7 @@ data Tm     = TmAPP                 -- 2 args
             | TmFIXK ID [ID] K Ty 
             | Predicate Formulae
             -- Datatype Constructor & Destructor 
-            | TmCON   ID              -- 0     Data Constructor  
+            | TmCON   Int ID          -- 0     Data Constructor  
             | TmCASE                  -- 1+n  (input Term + n patterns) 
             | TmPATTERN Pattern       -- 1     Case Term of Pattern -> Term    
 

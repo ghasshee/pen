@@ -40,7 +40,7 @@ lookup id (ss,vs,ds) = loopVar vs 0 where
     loopVar [] _        = loopDta ds 0 
     loopVar (x:xs) n    = if x == id then TmVAR n else loopVar xs (n+1) 
     loopDta [] _        = loopSto ss 0 
-    loopDta (d:ds) n    = if d == id then TmCON id else loopDta ds (n+1) 
+    loopDta (d:ds) n    = if d == id then TmCON n id else loopDta ds (n+1) 
     loopSto [] _        = error $ "PsrCtx.hs: lookup: " ++ id ++ " is not passed to the context." 
     loopSto (s:ss) n    = if s == id then TmSTO n else loopSto ss (n+1) 
 
@@ -50,6 +50,6 @@ lookup' id (ss,vs,ds) = loopVar vs 0 where
     loopVar [] _        = loopDta ds 0
     loopVar (x:xs) n    = if x == id then Just (TmVAR n) else loopVar xs (n+1)
     loopDta [] _        = loopSto ss 0
-    loopDta (d:ds) n    = if d == id then Just (TmCON id) else loopDta ds (n+1) 
+    loopDta (d:ds) n    = if d == id then Just (TmCON n id) else loopDta ds (n+1) 
     loopSto [] _        = Nothing 
     loopSto (s:ss) n    = if s == id then Just (TmSTO n) else loopSto ss (n+1)

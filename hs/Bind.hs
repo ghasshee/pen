@@ -8,8 +8,8 @@ import Type
 data Bind   = BindName
             | BindTyVAR
             | BindTmVAR Ty 
-            | BindTmAbb Term (Maybe Ty) 
-            | BindTyAbb Ty 
+            | BindTmABB Term (Maybe Ty) 
+            | BindTyABB Ty 
             deriving (Eq, Show) 
 
 
@@ -26,10 +26,10 @@ getBind ((x,bd):ctx) i | i == x     = bd
                        | otherwise  = getBind ctx i 
 
 bindshift i bd = case bd of 
-    BindTyAbb tyT                   -> BindTyAbb (tyShift i tyT) 
+    BindTyABB tyT                   -> BindTyABB (tyShift i tyT) 
     BindTmVAR tyT                   -> BindTmVAR (tyShift i tyT)
-    BindTmAbb t Nothing             -> BindTmAbb (tmShift i t) Nothing 
-    BindTmAbb t (Just ty)           -> BindTmAbb (tmShift i t) (Just $ tyShift i ty) 
+    BindTmABB t Nothing             -> BindTmABB (tmShift i t) Nothing 
+    BindTmABB t (Just ty)           -> BindTmABB (tmShift i t) (Just $ tyShift i ty) 
 
 nthBind :: Ctx -> Int -> Bind 
 nthBind ctx i | i >= length ctx = error $ "nthBind : " ++ show i ++ " >= len(ctx): " ++ show ctx 
@@ -38,6 +38,6 @@ nthBind ctx i | i >= length ctx = error $ "nthBind : " ++ show i ++ " >= len(ctx
 
 getTy ctx i = case nthBind ctx i of 
     BindTmVAR tyT                   -> tyT 
-    BindTmAbb _ (Just tyT)          -> tyT 
-    BindTmAbb _ (Nothing )          -> error "getTy: No type binded"
+    BindTmABB _ (Just tyT)          -> tyT 
+    BindTmABB _ (Nothing )          -> error "getTy: No type binded"
     _                               -> error "getTy: Wrong Bind"

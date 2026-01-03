@@ -24,6 +24,7 @@ data Ty     =   TyERR   --   nothing
 
             -- Datatype 
             |   TyREC   ID Ty    -- μX.T  
+            |   TyD     ID 
             |   TyID    ID 
             |   TyAPP   Ty Ty 
             |   TyABS   ID Ty    -- λX.T
@@ -67,6 +68,7 @@ instance Show Ty where
         -- Datatype 
         TyREC x ty  -> "μ" ++ show x ++ "." ++ show ty 
         TyID  id    -> id 
+        TyD   id    -> "#" ++ id 
         TyAPP a b   -> show a ++ " " ++ show b 
         TyABS x ty  -> "λ" ++ show x ++ "." ++ show ty
         TyPAIR x y  -> show x ++ "×" ++ show y 

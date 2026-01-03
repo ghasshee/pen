@@ -8,17 +8,20 @@ import Prelude hiding (lex, EQ, LT, GT)
 
 %wrapper "basic" 
 
-$non0   = [1-9] 
-$digit  = [0-9] 
-$space  = [\ \t] 
-$letter = [a-zA-Z] 
-$hex    = [0-9A-Fa-f] 
-$nl     = [\n] 
-$symbol = [\$\#\@\!\%\^\&\\\*\(\)\+\-\;\:\:\=\/\>\<\.\,] 
+$non0       = [1-9] 
+$digit      = [0-9] 
+$space      = [\ \t] 
+$letter     = [a-zA-Z] 
+$capital    = [A-Z]
+$hex        = [0-9A-Fa-f] 
+$nl         = [\n] 
+$symbol     = [\$\#\@\!\%\^\&\\\*\(\)\+\-\;\:\:\=\/\>\<\.\,] 
 
-@any    = [$digit $space $letter $symbol]*     
+@any        = [$digit $space $letter $symbol]*     
 
-@id     = [\_ $letter]* [$digit $letter]+  
+@id         = [\_ $letter]* [$digit $letter]+  
+
+@cid        = [$capital] [$digit $letter]* 
 
 token :-
     $white+     ; 
@@ -100,6 +103,7 @@ token :-
     "/"         { \s -> DIV             } 
     "%"         { \s -> MOD             } 
     "--" @any   { \s -> COMMENT s       } 
+    @cid        { \s -> CID s           } 
     @id         { \s -> ID s            } 
     A           { \s -> A'              } 
     E           { \s -> E'              } 
@@ -147,7 +151,7 @@ data Token
             | LBRACE | RBRACE | LSQUARE | RSQUARE 
             | SEMI | COLON | COLONEQ 
             | COMMA | DOT | NOT 
-            | ID String 
+            | ID String | CID String 
             | A' | E' | F' | G' | X' | U' | AND' | OR' 
             deriving (Show, Eq, Read) 
 

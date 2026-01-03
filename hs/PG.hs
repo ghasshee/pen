@@ -75,6 +75,7 @@ pgTOP (es,(i,t,q,s,v,cx,sx))  top       =   case top of
         id'                             =   id  ++  showTyParams ps 
         es'                             =   es ++ [(i,AcDispatch id', Q q), (Q(q+1), AcSkip, t) ]  
         (es'',(_,_,q',s',v',cx',_))     =   pgMT (es',(Q q,Q(q+1),q+2,s,v,cx,sx)) (MT id ty ps bd)
+    (DT id tys ids cs)  ->  (es,(i,t,q,s,v,cx,sx)) 
     
 pgMT   pg (MT id ty ps bd)              =   pgBODY (pgParams pg ps) bd 
 

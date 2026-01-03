@@ -26,7 +26,7 @@ computeTy ctx tyT       = tyT
 simplifyty :: Ctx -> Ty -> Ty 
 simplifyty ctx tyT      = loop tyT  where 
     loop (TyID i)  = case getBind ctx i of 
-        BindTyAbb tyT   -> loop tyT 
+        BindTyABB tyT   -> loop tyT 
         _               -> error $ "simplifyty: cannot get TyID abbreviation" ++ show i 
     loop tyT        = tyT 
 

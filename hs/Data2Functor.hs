@@ -3,8 +3,10 @@ module Data2Functor where
 import AST
 import Data
 import Type
+import Utils 
 import Functor
 
+import Data.Char (isUpper)
 
 
 
@@ -59,9 +61,10 @@ typeDT (DT id _ ids cs) = DT id (ty:contys) ids cs where
 
 data2contype :: DInd -> [Ty] 
 data2contype (DInd id ids cs) = constr2contype ret <$> cs where 
-    ret                 = loop ids (TyID id)   
+    ret                 = loop ids (TyD id)   
     loop []       id    = id 
-    loop (ty:tys) id    = loop tys (TyAPP id (TyID ty)) 
+    loop (ty:tys) id | isUpper (hd ty)  = loop tys (TyAPP id (TyD ty)) 
+                     | otherwise        = loop tys (TyAPP id (TyID ty))
 
 constr2contype :: Ty -> DConstr -> Ty 
 constr2contype ret (DConstr id tys) = TyCON id (loop tys ret) where 

@@ -85,6 +85,7 @@ import PsrCtx
     '/'         { DIV               } 
     '%'         { MOD               } 
     comment     { COMMENT $$        } 
+    cid         { CID $$            } 
     id          { ID $$             } 
     E           { POSSIBLY          } 
     A           { NECESSARILY       } 
@@ -124,7 +125,7 @@ Tops
 
 
 Data 
-    : data id IDs ':=' Constrs          { \ctx ->   let ctx'        = addCtx DTA $2 ctx in 
+    : data cid IDs ':=' Constrs         { \ctx ->   let ctx'        = addCtx DTA $2 ctx in 
                                                     let (cs,ctx'')  = $5 ctx' in 
                                                     (DT $2 [] ($3) cs, ctx'' ) } 
 Constrs 
@@ -135,7 +136,7 @@ Constrs
                                                     ([c],  ctx')                }  
     |                                   { \ctx ->   ([],   ctx)                 } 
 Constr 
-    : id CTys                           { \ctx -> (DConstr $1 $2, addCtx DTA $1 ctx) }
+    : cid CTys                          { \ctx -> (DConstr $1 $2, addCtx DTA $1 ctx) }
 CTys 
     : ATy CTys                           { $1 : $2 } 
     |                                    { [] } 
@@ -176,6 +177,7 @@ ATy : bool                              { TyBOOL            }
     | u256                              { TyU256            } 
     | i256                              { TyI256            } 
     | id                                { TyID $1           } 
+    | cid                               { TyD $1            } 
     | '()'                              { TyUNIT            } 
     | '(' Ty ')'                        { $2                } 
 
@@ -307,6 +309,7 @@ ATm : '(' Tm ')'                        { $2                                }
     | this                              { \ctx -> (RED TmTHIS   [], ctx)    } 
     | sender                            { \ctx -> (RED TmSENDER [], ctx)    } 
     | id                                { \ctx -> (RED (lookup $1 ctx) [], ctx) } 
+    | cid                               { \ctx -> (RED (lookup $1 ctx) [], ctx) } 
 
 Num : num                               { let f n = case n of 
                                                         0 -> DZero 
