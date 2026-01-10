@@ -275,26 +275,37 @@ BOp : '=='                              { "=="  }
 
 PatternTms 
     : Pattern '->' Tm  '|' PatternTms   { \ctx -> 
-                                            let  p           = $1 ctx in 
-                                            let (t,  ctx'')  = $3 ctx in 
-                                            let (ps, ctx''') = $5 ctx in 
+                                            let (p,  ctx')   = $1 ctx   in 
+                                            let (t,  ctx'')  = $3 ctx'  in 
+                                            let (ps, ctx''') = $5 ctx'' in 
                                             (RED (TmPATTERN p) [t] : ps , ctx''')  }
     | Pattern '->' Tm                   { \ctx -> 
-                                            let (t, ctx')    = $3 ctx in 
-                                            ([RED (TmPATTERN ($1 ctx)) [t]] , ctx') } 
+                                            let (p, ctx')    = $1 ctx  in 
+                                            let (t, ctx'')   = $3 ctx' in 
+                                            ([RED (TmPATTERN p) [t]] , ctx'') } 
     |                                   { \ctx ->  ([], ctx)    }  
 
 Pattern 
-    : '_'                               { \ctx -> (PWild          )  }
-    | id                                { \ctx -> (PVar $1        )  }
-    | cid Patterns                      { \ctx -> (PCon $1($2 ctx))  } 
+    : '_'                               { \ctx -> (PWild          , ctx)  }
+    | id                                { \ctx -> let ctx' = ctx in 
+                                                  (PVar $1        , ctx')  }
+    | cid Patterns                      { \ctx -> let ctx' = ctx in 
+                                                  let (ps, ctx'') = $2 ctx' in 
+                                                  (PCon $1 ps, ctx'')  } 
 
 Patterns
-    : '(' Pattern      ')' Patterns     { \ctx -> $2 ctx : $4 ctx }  
-    | '(' cid Patterns ')' Patterns     { \ctx -> PCon $2($3 ctx) : $5 ctx }
-    | '_'                  Patterns     { \ctx -> PWild : $2 ctx }
-    | id                   Patterns     { \ctx -> PVar $1 : $2 ctx }
-    |                                   { \ctx -> [] } 
+    : '(' Pattern      ')' Patterns     { \ctx -> let (p,ctx') = $2 ctx in 
+                                                  let (ps,ctx'') = $4 ctx in 
+                                                  ( p : ps , ctx'')     }  
+    | '(' cid Patterns ')' Patterns     { \ctx -> let (ps, ctx') = $3 ctx in 
+                                                  let (ps', ctx'') = $5 ctx' in 
+                                                  (PCon $2 ps : ps' , ctx'')  }
+    | '_'                  Patterns     { \ctx -> let (ps, ctx') = $2 ctx in 
+                                                  (PWild : ps, ctx') }
+    | id                   Patterns     { \ctx -> let ctx' = ctx in 
+                                                  let (ps, ctx'') = $2 ctx' in 
+                                                  (PVar $1 : ps, ctx'')  }
+    |                                   { \ctx -> ([], ctx)  } 
 
 Tm  : if Tm then Tm else Tm             { \ctx -> 
                                             let (b,ctx') = $2 ctx in 
