@@ -2,6 +2,7 @@ module Typing  where
 
 import AST 
 import GCLL
+import Data
 import Type 
 import Param
 import Term 
@@ -9,7 +10,8 @@ import Bind
 import Tree
 import Subtyping
 import Utils
-import Data2Functor (typeDT) 
+import Pattern
+import Data2Functor (typedDT) 
 
 import Prelude hiding ((<$)) 
 
@@ -138,11 +140,15 @@ reconTOPs ctx stx dtx q constr tops = case tops of
         m'                              = MT id tyR' ps body'  
         (ts', q'',constr''')            = reconTOPs ctx stx dtx q' constr'' ts
     DT id tys ps cs               : ts  -> (dt' : ts', q', constr') where 
+        dt'                             = typedDT (DT id tys ps cs)
         DT _ (dty:ctys) ps' cs'         = dt' 
+--        ctx'                            = addDConstrBind ctx cs'
         dtx'                            = addDIndBind dtx (dty:ctys) 
-        dt'                             = typeDT (DT id tys ps cs)
         (ts',q',constr')                = reconTOPs ctx stx dtx' q constr ts                              
 
+-- #TODO 
+addDConstrBind ctx [] = ctx 
+addDConstrBind ctx (DConstr id [ty]: ds ) = addDConstrBind (addBind ctx id (BindTmVAR ty)) ds 
 
 addDIndBind dtx (dty:ctys) = dtx'' where 
     TyREC id ty                 = dty 
@@ -243,10 +249,40 @@ recon ctx stx dtx q (RED tm trs)    = case tm of
     TmERR                           ->  (TyERR, q, []) 
     TmCON n id                      ->  (tyT, q, [])  where 
                                             tyT  = getTy dtx n 
-    tm      -> error $ "recon not defined tm : " ++ show (RED tm trs)  
+    TmCASE                          ->  reconPATTERNs ctx stx dtx q pts tyMatch where 
+                                            pts     = tl trs 
+                                            match   = hd trs 
+                                            (tyMatch,_,_) = recon ctx stx dtx q match 
+
+    tm                              -> error $ "recon not defined tm : " ++ show (RED tm trs)  
+
+
+reconPATTERNs ctx stx dtx q pts (TyD id) = loop ctx q pts [] where 
+    constrTys = tyD2tyC 
+    loop ctx q []       [ret] = ret  
+    loop ctx q (pt:pts) []    = case pt of 
+        RED (TmPATTERN (PCon id ps)) [t] -> undefined
+        RED (TmPATTERN p) [t]       ->  loop ctx' q pts [(tyT, q', constr)] where 
+            ctx'                    =   addBindPattern ctx p
+            (tyT, q', constr)       =   recon ctx' stx dtx q t 
+        _                           ->  error "reconPATTERN: expected PATTERN TERM" 
+    loop ctx q (pt:pts) [ret] = case pt of 
+        RED (TmPATTERN p) [t]       ->  if b then error $ show [tyT, tyT'] --(tyT, q'', constr' ++ constr'') 
+                                             else error $ show tyT ++ "," ++ show ret ++ "reconPATTERN: dependent case forbidden." where
+            ctx'                    =   addBindPattern ctx p 
+            (tyT, q'', constr'')    =   recon ctx' stx dtx q t 
+            (tyT',q' , constr' )    =   ret 
+            b                       =   tyT == tyT' 
     
-                    
-                                    
+
+addBindPattern ctx p = loop ctx p where 
+    loop ctx p = case p of 
+        PCon c ps   -> foldl loop ctx ps 
+        PVar x      -> addBind ctx x (BindTmVAR tyX) 
+                        where tyX = getPatternTypeFromDConstr x
+        PWild       -> ctx
+
+getPatternTypeFromDConstr = undefined 
                                         
 
 

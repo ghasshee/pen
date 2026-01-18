@@ -35,6 +35,18 @@ n = DInd ("Nat") []
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 -- Old experimental Data 
 -- #TODO remove this Data definition 
 data Data   = DSucc Data

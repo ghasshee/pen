@@ -53,10 +53,15 @@ constr2type (DConstr id tys) = loop tys where
     loop (ty:tys)   = TyPAIR ty (loop tys) 
 
 
-typeDT :: TOP -> TOP
-typeDT (DT id _ ids cs) = DT id (ty:contys) ids cs where 
+typedDT :: TOP -> TOP
+typedDT (DT id _ ids cs) = DT id (ty:contys) ids cs' where 
     ty      = data2type (DInd id ids cs) 
     contys  = data2contype (DInd id ids cs) 
+    cs'     = typedDConstrs contys cs
+
+typedDConstrs :: [Ty] -> [DConstr] -> [DConstr]
+typedDConstrs (cty:ctys) (DConstr id _ : ds ) = DConstr id [cty] : typedDConstrs ctys ds 
+
 
 
 data2contype :: DInd -> [Ty] 

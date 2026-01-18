@@ -25,7 +25,6 @@ instance Show Decl where
 data BODY   = BODY (Maybe Formulae) [Decl] Term (Maybe Formulae) 
             deriving (Eq, Read, Show ) 
 
-
 data TOP    = MT ID Ty [Param] BODY     -- Method Definition 
             | SV ID Ty                  -- Storage Variables 
             | SM ID Ty                  -- Storage Mappings 
@@ -33,14 +32,12 @@ data TOP    = MT ID Ty [Param] BODY     -- Method Definition
             | DT ID [Ty] [ID] [DConstr] -- Datatype Declaration 
             deriving (Eq, Read) 
 
-
 instance Show TOP where 
     show (MT id ty ps bd    ) = "MT " ++ id ++ " " ++ show ty ++ " " ++ show ps ++ " " ++ show bd 
     show (SV id ty          ) = "SV " ++ id ++ " " ++ show ty 
     show (DT id tys ids cs  ) = "DT " ++ id ++ " " ++ show ids ++ " \n\t := " ++ show cs ++ "\n\t :: " ++ show tys
 
-data CONTRACT 
-            = CN ID [TOP] 
+data CONTRACT = CN ID [TOP] 
             deriving (Show, Eq, Read) 
 
 instance {-# OVERLAPPING #-} Show [DConstr] where 
@@ -51,7 +48,6 @@ instance {-# OVERLAPPING #-} Show [DConstr] where
 instance {-# OVERLAPPING #-} Show [TOP] where 
     show []         = "\n\n"
     show (t:ts)     = "\n\n" ++ show t ++ show ts  
-
 
 instance {-# OVERLAPPING #-} Show [Decl] where 
     show []         = "" 

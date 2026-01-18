@@ -41,3 +41,10 @@ getTy ctx i = case nthBind ctx i of
     BindTmABB _ (Just tyT)          -> tyT 
     BindTmABB _ (Nothing )          -> error "getTy: No type binded"
     _                               -> error "getTy: Wrong Bind"
+
+    {--
+getTyFromID [] i    = error $ "getTyFromID: cannot find type of " ++ i
+getTyFromID ((id,BindTmVAR tyT):ctx) i  
+  | i == id         = tyT
+  | otherwise       = getTyFromID ctx i 
+--}
