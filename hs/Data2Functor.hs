@@ -60,6 +60,7 @@ typedDT (DT id _ ids cs) = DT id (ty:contys) ids cs' where
     cs'     = typedDConstrs contys cs
 
 typedDConstrs :: [Ty] -> [DConstr] -> [DConstr]
+typedDConstrs []         []                   = [] 
 typedDConstrs (cty:ctys) (DConstr id _ : ds ) = DConstr id [cty] : typedDConstrs ctys ds 
 
 

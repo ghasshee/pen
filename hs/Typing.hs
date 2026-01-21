@@ -256,6 +256,7 @@ recon ctx stx dtx q (RED tm trs)    = case tm of
 
     tm                              -> error $ "recon not defined tm : " ++ show (RED tm trs)  
 
+tyD2tyC = undefined 
 
 reconPATTERNs ctx stx dtx q pts (TyD id) = loop ctx q pts [] where 
     constrTys = tyD2tyC 
@@ -273,6 +274,7 @@ reconPATTERNs ctx stx dtx q pts (TyD id) = loop ctx q pts [] where
             (tyT, q'', constr'')    =   recon ctx' stx dtx q t 
             (tyT',q' , constr' )    =   ret 
             b                       =   tyT == tyT' 
+reconPATTERNs ctx stx dtx q pts (TyAPP tyA tyB)  = reconPATTERNs ctx stx dtx q pts tyA  
     
 
 addBindPattern ctx p = loop ctx p where 

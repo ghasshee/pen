@@ -20,9 +20,10 @@ contract counter {
 
     method reset : () :=            { counter >= 0 }  
         let l = Cons Z (Cons (S Z) (Cons (S(S Z)) Nil)); 
+
         let n = case l of 
-              | Cons a as -> a 
-              | Nil       -> Z ; 
+            | Cons a as -> a 
+            | Nil       -> Z ; 
         let y = 5; 
         let double f x = f (f x); 
         let fac x = if x == 0 then 1 else x * fac (x - 1);
