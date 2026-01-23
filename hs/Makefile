@@ -55,6 +55,9 @@ test:  all
 	./Pen eg/count12.pen 
 	cat   eg/data.pen
 	./Pen eg/data.pen
+	cat   eg/data2.pen
+	./Pen eg/data2.pen
+	
 
 # 
 # .DEFAULT_GOAL := all

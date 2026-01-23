@@ -76,6 +76,12 @@ instance Show Ty where
         TyCON id ty -> id ++ " : " ++ show ty  
         e           -> error $ show e 
 
+instance {-# OVERLAPPING #-} Show [Ty] where 
+    show tys        = "\n\t[" ++ loop tys ++ "]" where 
+        loop []         = ""
+        loop [c]        = show c   
+        loop (c:cs)     = show c ++ "\n\t," ++ loop cs 
+
 
 
 
