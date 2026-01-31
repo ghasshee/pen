@@ -127,8 +127,8 @@ Tops
 
 
 Data 
-    : data cid IDs ':=' Constrs         { \ctx ->   let ctx'        = addCtx DTA $2 ctx in 
-                                                    let (cs,ctx'')  = $5 ctx' in 
+    : data cid IDs ':=' Constrs         { \ctx ->   let (cs,ctx')   = $5 ctx in 
+                                                    let ctx''       = addCtx DTA $2 ctx' in 
                                                     (DT $2 [] ($3) cs, ctx'' ) } 
 Constrs 
     : Constr '|' Constrs                { \ctx ->   let (c,ctx')    = $1 ctx in 

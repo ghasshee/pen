@@ -152,8 +152,8 @@ addDConstrBind ctx (DConstr id [ty]: ds ) = addDConstrBind (addBind ctx id (Bind
 
 addDIndBind dtx (dty:ctys) = dtx'' where 
     TyREC id ty                 = dty 
-    dtx'                        = addBind dtx id (BindTyABB dty)
-    dtx''                       = loop dtx' ctys where 
+    dtx''                       = addBind dtx' id (BindTyABB dty)
+    dtx'                        = loop dtx ctys where 
         loop dtx []                 = dtx
         loop dtx (TyCON id ty:cs)   = loop (addBind dtx id (BindTmVAR ty)) cs
 
@@ -256,35 +256,56 @@ recon ctx stx dtx q (RED tm trs)    = case tm of
 
     tm                              -> error $ "recon not defined tm : " ++ show (RED tm trs)  
 
-tyD2tyC = undefined 
+tyD2tyC :: Ctx -> ID -> [(ID,Ty)] 
+tyD2tyC [] id = error $ "tyD2tyC: cannot find Datatype :" ++ id  
+tyD2tyC ((s,BindTyABB ty):dtx) id | id == s = loop dtx []    where 
+    loop [] ret                     = ret 
+    loop ((s,BindTyABB _):dtx) ret  = ret 
+    loop ((s,BindTmVAR ty):dtx)ret  = loop dtx ((s,ty):ret)  
+tyD2tyC (_:dtx) id = tyD2tyC dtx id                         
 
-reconPATTERNs ctx stx dtx q pts (TyD id) = loop ctx q pts [] where 
-    constrTys = tyD2tyC 
-    loop ctx q []       [ret] = ret  
-    loop ctx q (pt:pts) []    = case pt of 
-        RED (TmPATTERN (PCon id ps)) [t] -> undefined
-        RED (TmPATTERN p) [t]       ->  loop ctx' q pts [(tyT, q', constr)] where 
-            ctx'                    =   addBindPattern ctx p
+reconPATTERNs :: Ctx -> Ctx -> Ctx -> Int -> [Term] -> Ty -> (Ty, Int, Constraint) 
+reconPATTERNs ctx stx dtx q pts ty = loop ctx q pts [] where 
+    TyD id    = getTyD ty 
+    constrTys = tyD2tyC dtx id  
+    loop ctx q []       ret     = unifyPattern ret  
+    loop ctx q (pt:pts) ret     = case pt of 
+        RED (TmPATTERN (PCon id ps)) [t] -> loop ctx q pts ((tyT, q', constr):ret) where 
+            cty                     =   getPConTy constrTys id 
+            ctx'                    =   addBindPCon dtx ctx ps cty 
+            (tyT, q', constr)       =   recon ctx' stx dtx q t 
+        RED (TmPATTERN (PWild)) [t]      -> loop ctx q pts ((tyT, q', constr):ret)  where 
+            (tyT, q', constr)       =   recon ctx stx dtx q t 
+        RED (TmPATTERN (PVar s))[t]      -> loop ctx' q pts ((tyT, q', constr):ret) where 
+            ctx'                    =   addBind ctx s (BindTmVAR ty) 
             (tyT, q', constr)       =   recon ctx' stx dtx q t 
         _                           ->  error "reconPATTERN: expected PATTERN TERM" 
-    loop ctx q (pt:pts) [ret] = case pt of 
-        RED (TmPATTERN p) [t]       ->  if b then error $ show [tyT, tyT'] --(tyT, q'', constr' ++ constr'') 
-                                             else error $ show tyT ++ "," ++ show ret ++ "reconPATTERN: dependent case forbidden." where
-            ctx'                    =   addBindPattern ctx p 
-            (tyT, q'', constr'')    =   recon ctx' stx dtx q t 
-            (tyT',q' , constr' )    =   ret 
-            b                       =   tyT == tyT' 
-reconPATTERNs ctx stx dtx q pts (TyAPP tyA tyB)  = reconPATTERNs ctx stx dtx q pts tyA  
-    
 
-addBindPattern ctx p = loop ctx p where 
-    loop ctx p = case p of 
-        PCon c ps   -> foldl loop ctx ps 
-        PVar x      -> addBind ctx x (BindTmVAR tyX) 
-                        where tyX = getPatternTypeFromDConstr x
-        PWild       -> ctx
+getTyD (TyD id)         = TyD id 
+getTyD (TyAPP tyA tyB)  = getTyD tyA 
+getTyD ty               = error $ "getTyD: unexpected type " ++ show ty 
 
-getPatternTypeFromDConstr = undefined 
+
+unifyPattern :: [(Ty, Int, Constraint)] -> (Ty, Int, Constraint)
+unifyPattern [] = error $ "unifyPattern: no contents"
+unifyPattern [ret] = ret
+unifyPattern ((ty,q,constr):(ty',q',constr'):rest) = unifyPattern ((ty,q, constr ++ constr' ++ [(ty,ty')]):rest)  
+
+
+addBindPCon :: Ctx -> Ctx -> [Pattern] -> Ty -> Ctx 
+addBindPCon dtx ctx [] _        = ctx 
+addBindPCon dtx ctx (PVar x:ps) (TyARR tyX tyA) = addBindPCon dtx (addBind ctx x (BindTmVAR tyX)) ps tyA   
+addBindPCon dtx ctx (PWild :ps) (TyARR _   tyA) = addBindPCon dtx ctx ps tyA
+addBindPCon dtx ctx (PCon cid cps:ps) (TyARR (TyD id) tyA) = addBindPCon dtx ctx' ps tyA where 
+    ctx'    = addBindPCon dtx ctx cps cty 
+    cntys   = tyD2tyC dtx id 
+    cty     = getPConTy cntys cid
+
+getPConTy :: [(ID,Ty)] -> ID -> Ty
+getPConTy [] id                         = error $ "getPConTy: cannot find type of " ++ id 
+getPConTy ((s,ty):rest) id  | s == id   = ty 
+                            | otherwise = getPConTy rest id             
+
                                         
 
 
