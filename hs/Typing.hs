@@ -81,6 +81,12 @@ unify constraint = case constraint of
                             | otherwise   -> error $ "unify: Unsolvable Constraints:" ++ "(" ++ show tyS ++ "," ++ show tyT ++ ")" ++  show constraint
 
 
+unifyPattern :: [(Ty, Int, Constraint)] -> (Ty, Int, Constraint)
+unifyPattern [] = error $ "unifyPattern: no contents"
+unifyPattern [ret] = ret
+unifyPattern ((ty,q,constr):(ty',q',constr'):rest) = unifyPattern ((ty,q, constr ++ constr' ++ [(ty,ty')]):rest)  
+
+
 var :: Int -> String 
 var q = "?X" ++ show q
 
@@ -142,13 +148,9 @@ reconTOPs ctx stx dtx q constr tops = case tops of
     DT id tys ps cs               : ts  -> (dt' : ts', q', constr') where 
         dt'                             = typedDT (DT id tys ps cs)
         DT _ (dty:ctys) ps' cs'         = dt' 
---        ctx'                            = addDConstrBind ctx cs'
         dtx'                            = addDIndBind dtx (dty:ctys) 
         (ts',q',constr')                = reconTOPs ctx stx dtx' q constr ts                              
 
--- #TODO 
-addDConstrBind ctx [] = ctx 
-addDConstrBind ctx (DConstr id [ty]: ds ) = addDConstrBind (addBind ctx id (BindTmVAR ty)) ds 
 
 addDIndBind dtx (dty:ctys) = dtx'' where 
     TyREC id ty                 = dty 
@@ -256,13 +258,7 @@ recon ctx stx dtx q (RED tm trs)    = case tm of
 
     tm                              -> error $ "recon not defined tm : " ++ show (RED tm trs)  
 
-tyD2tyC :: Ctx -> ID -> [(ID,Ty)] 
-tyD2tyC [] id = error $ "tyD2tyC: cannot find Datatype :" ++ id  
-tyD2tyC ((s,BindTyABB ty):dtx) id | id == s = loop dtx []    where 
-    loop [] ret                     = ret 
-    loop ((s,BindTyABB _):dtx) ret  = ret 
-    loop ((s,BindTmVAR ty):dtx)ret  = loop dtx ((s,ty):ret)  
-tyD2tyC (_:dtx) id = tyD2tyC dtx id                         
+
 
 reconPATTERNs :: Ctx -> Ctx -> Ctx -> Int -> [Term] -> Ty -> (Ty, Int, Constraint) 
 reconPATTERNs ctx stx dtx q pts ty = loop ctx q pts [] where 
@@ -281,16 +277,24 @@ reconPATTERNs ctx stx dtx q pts ty = loop ctx q pts [] where
             (tyT, q', constr)       =   recon ctx' stx dtx q t 
         _                           ->  error "reconPATTERN: expected PATTERN TERM" 
 
+getTyD :: Ty -> Ty 
 getTyD (TyD id)         = TyD id 
 getTyD (TyAPP tyA tyB)  = getTyD tyA 
 getTyD ty               = error $ "getTyD: unexpected type " ++ show ty 
 
+tyD2tyC :: Ctx -> ID -> [(ID,Ty)] 
+tyD2tyC dtx id = search dtx id where 
+    search [] id = error $ "tyD2tyC: cannot find Datatype :" ++ id  
+    search ((s,BindTyABB ty):dtx) id | id == s = loop dtx []    
+    search (_:dtx) id = search dtx id                         
+    loop [] ret                     = ret 
+    loop ((s,BindTyABB _):dtx) ret  = ret 
+    loop ((s,BindTmVAR ty):dtx)ret  = loop dtx ((s,ty):ret)  
 
-unifyPattern :: [(Ty, Int, Constraint)] -> (Ty, Int, Constraint)
-unifyPattern [] = error $ "unifyPattern: no contents"
-unifyPattern [ret] = ret
-unifyPattern ((ty,q,constr):(ty',q',constr'):rest) = unifyPattern ((ty,q, constr ++ constr' ++ [(ty,ty')]):rest)  
-
+getPConTy :: [(ID,Ty)] -> ID -> Ty
+getPConTy [] id                         = error $ "getPConTy: cannot find type of " ++ id 
+getPConTy ((s,ty):rest) id  | s == id   = ty 
+                            | otherwise = getPConTy rest id             
 
 addBindPCon :: Ctx -> Ctx -> [Pattern] -> Ty -> Ctx 
 addBindPCon dtx ctx [] _        = ctx 
@@ -300,11 +304,6 @@ addBindPCon dtx ctx (PCon cid cps:ps) (TyARR (TyD id) tyA) = addBindPCon dtx ctx
     ctx'    = addBindPCon dtx ctx cps cty 
     cntys   = tyD2tyC dtx id 
     cty     = getPConTy cntys cid
-
-getPConTy :: [(ID,Ty)] -> ID -> Ty
-getPConTy [] id                         = error $ "getPConTy: cannot find type of " ++ id 
-getPConTy ((s,ty):rest) id  | s == id   = ty 
-                            | otherwise = getPConTy rest id             
 
                                         
 
