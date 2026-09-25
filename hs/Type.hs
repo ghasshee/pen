@@ -107,4 +107,7 @@ ty2num _        = error "not an atomic type"
 
 
 
+arity :: Ty -> Int 
+arity (TyARR a b) = 1 + arity b 
+arity _           = 0 
 

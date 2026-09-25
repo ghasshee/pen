@@ -15,8 +15,14 @@ data DInd       = DInd ID [ID] [DConstr]
                 deriving (Show, Eq, Read) 
 
 data DConstr    = DConstr ID [Ty] 
-                deriving (Show, Eq, Read) 
+                deriving (Eq, Read) 
 
+
+instance Show DConstr where 
+    show (DConstr id l) = "DC " ++ id ++ " [" ++ showList l where 
+        showList []     = "]" 
+        showList [x]    = show x ++ "]" 
+        showList (x:xs) = show x ++ ", " ++ showList xs 
 
 
 -- e.g. 
@@ -31,11 +37,6 @@ n = DInd ("Nat") []
         [DConstr ("Succ") [TyID "Nat"]
         ,DConstr ("Zero") []
         ]
-
-
-
-
-
 
 
 

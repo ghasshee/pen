@@ -14,8 +14,11 @@ import Utils
 
 
 
-eval :: Ctx -> Ctx -> Term -> Term 
-eval ctx stx tr = tr 
+eval :: Ctx -> Ctx -> Ctx -> Term -> Term 
+eval ctx stx dtx tr = 
+    case tr of 
+      RED TmAPP [a,b] -> undefined  
+
 
 
 

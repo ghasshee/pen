@@ -279,7 +279,7 @@ reconPATTERNs ctx stx dtx q pts ty = loop ctx q pts [] where
 
 getTyD :: Ty -> Ty 
 getTyD (TyD id)         = TyD id 
-getTyD (TyAPP tyA tyB)  = getTyD tyA 
+getTyD (TyAPP tyA tyB)  = TyAPP (getTyD tyA) tyB  
 getTyD ty               = error $ "getTyD: unexpected type " ++ show ty 
 
 tyD2tyC :: Ctx -> ID -> [(ID,Ty)] 

@@ -1,18 +1,18 @@
-{-# OPTIONS_GHC -fno-warn-orphans #-} 
+--{-# OPTIONS_GHC -fno-warn-orphans #-} 
 
 {-# LANGUAGE TypeFamilies #-} 
-{-# LANGUAGE GADTs #-} 
 {-# LANGUAGE MagicHash #-} 
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-} 
-{-# LANGUAGE TypeOperators #-} 
 {-# LANGUAGE UndecidableInstances #-} 
-{-# LANGUAGE PolyKinds #-} 
-{-# LANGUAGE DataKinds #-} 
+{-# LANGUAGE OverloadedRecordDot #-} 
+-- {-# LANGUAGE GADTs #-} 
+--{-# LANGUAGE ScopedTypeVariables #-}
+--{-# LANGUAGE TypeApplications #-} 
+--{-# LANGUAGE TypeOperators #-} 
+--{-# LANGUAGE PolyKinds #-} 
+--{-# LANGUAGE DataKinds #-} 
 --{-# LANGUAGE FlexibleContexts #-}
 --{-# LANGUAGE FlexibleInstances #-} 
 --{-# LANGUAGE MultiParamTypeClasses #-} 
-{-# LANGUAGE OverloadedRecordDot #-} 
 --{-# LANGUAGE ConstraintKinds #-} 
 --{-# LANGUAGE StandaloneKindSignatures #-} 
 
@@ -21,8 +21,8 @@ module Scoped where
 
 import Common
 
-import GHC.TypeLits --(Symbol, KnownSymbol, symbolVal', ErrorMessage(Text), TypeError, ErrorMessage((:<>:)))
-import GHC.Records  
+import GHC.TypeLits (Symbol, KnownSymbol, symbolVal', ErrorMessage(Text), TypeError, ErrorMessage((:<>:)))
+import GHC.Records (HasField, getField) 
 import GHC.Exts
 import Unsafe.Coerce
 
@@ -60,12 +60,14 @@ instance (res ~ Term, KnownSymbol name, ThrowOnFree (FreeVariableError name) (Is
 owl :: Term 
 owl = lam.f $ \Enter -> lam.g $ \Enter -> app var.g (app var.f var.g) 
 
-free :: Term
-free = lam.x $ \Enter -> var.x   
+i :: Term
+i = lam.x $ \Enter -> var.x
 
-i = Lam "x" (Var "x") 
-t = Var "x" 
-t' = var.x 
+i' = Lam "x" (Var "x") 
+f = Var "x" 
+
+--free :: Term
+--free = var.x 
 
 
 

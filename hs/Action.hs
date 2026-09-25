@@ -3,6 +3,7 @@ module Action where
 import GCLL
 import Node
 import Edge 
+import Pack 
 import Semiring 
 
 
@@ -25,6 +26,7 @@ data Action     = AcStop
                 | AcCodecopy EXPR EXPR EXPR
                 | AcExtcodecopy EXPR EXPR EXPR EXPR
                 | AcSkip                -- correspond to GOTO 
+                | AcPack Pack  
                 | AcSstore 
                 | AcMstore 
                 -- | AcAssign Var EXPR
@@ -53,6 +55,7 @@ instance Ord Action where
 
                 
 instance Show Action where 
+    show (AcPack p              ) = "PACK" ++ show p 
     show (AcStop                ) = "STOP"
     show (AcDispatch s          ) = "DSP " ++  s 
     show (AcRevert e f          ) = "RV" ++ show [e,f] 

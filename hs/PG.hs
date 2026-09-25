@@ -15,6 +15,7 @@ import AST
 import Hex
 import Action  hiding (Var) 
 import Data
+import Pack 
 import Utils
 
 import Data.List (partition) 
@@ -75,7 +76,7 @@ pgTOP (es,(i,t,q,s,v,cx,sx))  top       =   case top of
         id'                             =   id  ++  showTyParams ps 
         es'                             =   es ++ [(i,AcDispatch id', Q q), (Q(q+1), AcSkip, t) ]  
         (es'',(_,_,q',s',v',cx',_))     =   pgMT (es',(Q q,Q(q+1),q+2,s,v,cx,sx)) (MT id ty ps bd)
-    (DT id tys ids cs)  ->  (es,(i,t,q,s,v,cx,sx)) 
+    (DT id (dty:ctys) ids cs)  ->  (es,(i,t,q,s,v,cx,sx)) 
     
 pgMT   pg (MT id ty ps bd)              =   pgBODY (pgParams pg ps) bd 
 
@@ -104,11 +105,12 @@ pgDecl (es, cfg@(i,t,q,s,v,cx,sx)) d    =   case d of
 
 pgTerm :: PG' -> Term -> PG' 
 pgTerm (es,cfg@(i,t,q,s,v,cx,sx,d)) tr = 
+        let tr'  = convertTmCON tr  in 
         let cs:css  = cx                        in 
         let sx'     = reduced sx                in 
         let cfg_    = (i,t,q,s,v,cx,sx,d+1)     in 
         let calc n  = calc_arglen cx n - n + d  in  
-        case tr of 
+        case tr' of 
     RED TmAPP [t1,t2]               ->  pgTermApp (es, cfg) tr [] 
     RED (TmU256 n) []               ->  (es ++ [(i, AcPush (Ox n           ), t)], cfg_) where  
     RED (TmDATA n) []               ->  (es ++ [(i, AcPush (Ox (data2nat n)), t)], cfg_) where 
@@ -128,8 +130,20 @@ pgTerm (es,cfg@(i,t,q,s,v,cx,sx,d)) tr =
     RED (TmSTO n) [] | sx /= sx'    ->  (es ++ [(i, AcSto (len sx - len sx' -n-1), t)], cfg_)  
     RED (TmSTO n) []                ->  (es ++ [(i, AcSto (len sx           -n-1), t)], cfg_)  
     RED  TmERR    []                ->  (es ++ [(i, AcStop, t)], cfg) 
+    RED (TmCON n id) trs            ->  (es ++ [(i, AcPack p, t)], cfg) where 
+        p   = packTmCON tr' 
     e                               ->  error $ "pgTerm: not implemented on the term; \n" ++ show e 
 
+
+
+convertTmCON :: Term -> Term 
+convertTmCON tr  = loop tr [] where 
+    loop (RED TmAPP [t1,t2]) cont   = case t1 of 
+        RED (TmCON n id) []     -> RED (TmCON n id) (loop t2 []: cont) 
+        RED (TmAPP) [t11,t12]   -> loop t1 (loop t2 []: cont)
+        _                       -> RED TmAPP [t1,convertTmCON t2] 
+    loop (RED tm trs)        cont   = RED tm (convertTmCON <$> trs) 
+    loop t cont                  = error $ "convertTmCON: unexpected cont; " ++ show cont ++ "\n term ;" ++ show tr  
 
 {-- 
  - Function Execution (or Function Call ) 
@@ -143,6 +157,7 @@ pgTerm (es,cfg@(i,t,q,s,v,cx,sx,d)) tr =
 
 pgTermApp :: PG' -> Term -> [Term] -> PG' 
 pgTermApp (es,cfg@(i,t,q,s,v,cx,sx,d)) (RED TmAPP [t1,t2]) cont = case t1 of 
+    RED (TmCON n id) tr -> error $ show t1 ++ show t2 ++ show cont  
     RED (TmVAR n) []    ->  case searchFun n cx of 
         Fun(0,_,_)                  -> error $ "pgTermApp: illegal TmVAR " ++ show n ++ ":Fun " ++ show cx
         Arg(0,_,_)                  -> error $ "pgTermApp: illegal TmVAR " ++ show n ++ ":Arg " ++ show cx
