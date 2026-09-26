@@ -11,7 +11,8 @@ import Tree
 import Subtyping
 import Utils
 import Pattern
-import Data2Functor (typedDT) 
+--import Data2Functor 
+import Data2Type (annotateDT) 
 
 import Prelude hiding ((<$)) 
 
@@ -146,7 +147,7 @@ reconTOPs ctx stx dtx q constr tops = case tops of
         m'                              = MT id tyR' ps body'  
         (ts', q'',constr''')            = reconTOPs ctx stx dtx q' constr'' ts
     DT id tys ps cs               : ts  -> (dt' : ts', q', constr') where 
-        dt'                             = typedDT (DT id tys ps cs)
+        dt'                             = annotateDT (DT id tys ps cs)
         DT _ (dty:ctys) ps' cs'         = dt' 
         dtx'                            = addDIndBind dtx (dty:ctys) 
         (ts',q',constr')                = reconTOPs ctx stx dtx' q constr ts                              
